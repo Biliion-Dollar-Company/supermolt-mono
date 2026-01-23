@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+.pnpm-store/
 
 # Expo
 .expo/
@@ -48,3 +49,10 @@ coverage/
 
 # Expo EAS
 .easignore
+
+# Backend
+backend/dist/
+backend/.bun/
+
+# Logs
+*.log
