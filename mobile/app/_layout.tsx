@@ -1,14 +1,16 @@
 import '../global.css';
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Slot } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-
-// Import providers
+import { PrivyProvider } from '@privy-io/expo';
 import { AuthProvider } from '@/lib/auth/provider';
-import { WebSocketProvider } from '@/lib/websocket/provider';
+
+// Privy configuration
+const PRIVY_APP_ID = 'cmkraowkw0094i50c2n696dhz';
+const PRIVY_CLIENT_ID = 'client-WY5gKa3L5wUkNj33WrNyYNXmVbVnvhLe6GZfk1zf9hQdV';
 
 // Keep splash screen visible while loading
 SplashScreen.preventAutoHideAsync();
@@ -26,28 +28,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <WebSocketProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: '#0f0f0f' },
-                animation: 'fade',
-              }}
-            >
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="(modals)"
-                options={{
-                  presentation: 'modal',
-                  animation: 'slide_from_bottom',
-                }}
-              />
-            </Stack>
+        <PrivyProvider appId={PRIVY_APP_ID} clientId={PRIVY_CLIENT_ID}>
+          <AuthProvider>
+            <Slot />
             <StatusBar style="light" />
-          </WebSocketProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </PrivyProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

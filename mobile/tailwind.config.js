@@ -8,38 +8,65 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Brand colors
+        // Brand colors - SuperRouter design system
         brand: {
-          primary: '#8B5CF6',    // Purple
-          secondary: '#06B6D4',  // Cyan
-          accent: '#F59E0B',     // Amber
+          primary: '#68ac6e',     // SuperRouter green
+          secondary: '#9945ff',   // Solana purple
+          accent: '#00ff41',      // Matrix green (neon)
         },
-        // Semantic colors
-        success: '#22C55E',
-        warning: '#F59E0B',
-        error: '#EF4444',
-        // Background
+        // Void blacks
+        void: {
+          black: '#000000',
+          900: '#0a0a0a',
+          800: '#121212',
+          700: '#1a1a1a',
+          600: '#27272a',
+        },
+        // Surface colors
+        surface: {
+          primary: '#0f0f0f',
+          secondary: '#1a1a1a',
+          tertiary: '#27272a',
+        },
+        // Text colors
+        text: {
+          primary: '#fafafa',
+          secondary: '#a1a1aa',
+          muted: '#71717a',
+        },
+        // Status colors
+        status: {
+          success: '#22c55e',
+          error: '#ef4444',
+          warning: '#f59e0b',
+        },
+        // Glass effects
+        glass: {
+          white: 'rgba(255, 255, 255, 0.05)',
+          green: 'rgba(104, 172, 110, 0.1)',
+        },
+        // Backwards compatibility
         background: {
           DEFAULT: '#0f0f0f',
           secondary: '#1a1a1a',
-          tertiary: '#262626',
+          tertiary: '#27272a',
         },
-        // Text
         foreground: {
           DEFAULT: '#fafafa',
           secondary: '#a1a1aa',
           muted: '#71717a',
         },
-        // Card
         card: {
           DEFAULT: '#1a1a1a',
-          hover: '#262626',
+          hover: '#27272a',
         },
-        // Border
         border: {
           DEFAULT: '#27272a',
-          focus: '#8B5CF6',
+          focus: '#68ac6e',
         },
+        success: '#22c55e',
+        warning: '#f59e0b',
+        error: '#ef4444',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

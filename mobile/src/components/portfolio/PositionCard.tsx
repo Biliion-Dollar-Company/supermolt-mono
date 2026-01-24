@@ -14,7 +14,8 @@ export function PositionCard({ position }: PositionCardProps) {
 
   const handlePress = () => {
     // Navigate to position detail modal
-    router.push(`/(modals)/position/${position.id}`);
+    // TODO: Create the position detail route
+    router.push(`/(modals)/approve-tx` as const);
   };
 
   return (

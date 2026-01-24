@@ -1,10 +1,12 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter, useSegments } from 'expo-router';
+import { usePrivy, useLoginWithOAuth } from '@privy-io/expo';
 
 // Types
 interface User {
   id: string;
-  email?: string;
+  twitterUsername?: string;
+  twitterId?: string;
   walletAddress?: string;
 }
 
@@ -18,9 +20,8 @@ interface AuthContextType {
   wallet: Wallet | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: () => Promise<void>;
+  loginWithTwitter: () => Promise<void>;
   logout: () => Promise<void>;
-  connectWallet: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -38,100 +39,89 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const segments = useSegments();
 
-  // Check auth state on mount
+  // Privy hooks
+  const { user: privyUser, isReady, logout: privyLogout } = usePrivy();
+  const { login: oauthLogin, state: oauthState } = useLoginWithOAuth();
+
+  const isLoading = !isReady || oauthState.status === 'loading';
+
+  // Map Privy user to our User type
+  // Use type assertion since Privy's types may vary across versions
+  const privyUserAny = privyUser as Record<string, unknown> | null;
+  const twitterData = privyUserAny?.twitter as { username?: string; subject?: string } | undefined;
+  const walletData = privyUserAny?.wallet as { address?: string } | undefined;
+
+  const user: User | null = privyUser
+    ? {
+        id: privyUser.id,
+        twitterUsername: twitterData?.username,
+        twitterId: twitterData?.subject,
+        walletAddress: walletData?.address,
+      }
+    : null;
+
+  // Set up embedded wallet when user authenticates
   useEffect(() => {
-    checkAuthState();
-  }, []);
+    if (walletData?.address) {
+      setWallet({
+        address: walletData.address,
+        type: 'embedded',
+      });
+    } else {
+      setWallet(null);
+    }
+  }, [walletData?.address]);
 
   // Redirect based on auth state
   useEffect(() => {
-    if (isLoading) return;
+    if (!isReady) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
+    const firstSegment = segments[0];
+    const inAuthGroup = firstSegment === '(auth)';
+    // Check if we're on the root index (undefined segment means root)
+    const onRootIndex = firstSegment === undefined;
 
-    if (!user && !inAuthGroup) {
-      // Redirect to login if not authenticated
-      router.replace('/(auth)/login');
-    } else if (user && inAuthGroup) {
+    if (!privyUser && !inAuthGroup && !onRootIndex) {
+      // Redirect to root (login screen) if not authenticated
+      router.replace('/');
+    } else if (privyUser && (inAuthGroup || onRootIndex)) {
       // Redirect to home if authenticated
       router.replace('/(tabs)');
     }
-  }, [user, segments, isLoading]);
+  }, [privyUser, segments, isReady, router]);
 
-  async function checkAuthState() {
+  // Login with Twitter OAuth
+  const loginWithTwitter = useCallback(async () => {
     try {
-      // TODO: Check Privy session
-      // For now, simulate a brief loading state
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Mock: Check if we have a stored session
-      // In production, this would check Privy auth state
-      setIsLoading(false);
+      await oauthLogin({ provider: 'twitter' });
     } catch (error) {
-      console.error('Auth check failed:', error);
-      setIsLoading(false);
-    }
-  }
-
-  async function login() {
-    try {
-      setIsLoading(true);
-      // TODO: Trigger Privy login
-      // For now, mock a successful login
-      setUser({
-        id: 'mock-user-id',
-        email: 'user@example.com',
-      });
-      setWallet({
-        address: 'So11111111111111111111111111111111111111112',
-        type: 'embedded',
-      });
-    } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Twitter login failed:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
-  }
+  }, [oauthLogin]);
 
-  async function logout() {
+  // Logout
+  const logout = useCallback(async () => {
     try {
-      setIsLoading(true);
-      // TODO: Trigger Privy logout
-      setUser(null);
+      await privyLogout();
       setWallet(null);
     } catch (error) {
       console.error('Logout failed:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
-  }
-
-  async function connectWallet() {
-    try {
-      // TODO: Trigger MWA wallet connection
-      console.log('Connecting wallet via MWA...');
-    } catch (error) {
-      console.error('Wallet connection failed:', error);
-      throw error;
-    }
-  }
+  }, [privyLogout]);
 
   const value: AuthContextType = {
     user,
     wallet,
     isLoading,
-    isAuthenticated: !!user,
-    login,
+    isAuthenticated: !!privyUser,
+    loginWithTwitter,
     logout,
-    connectWallet,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
