@@ -8,159 +8,113 @@ const agent = new Hono();
 // All routes require auth
 agent.use('*', authMiddleware);
 
-const updateConfigSchema = z.object({
-  riskLevel: z.enum(['low', 'medium', 'high']).optional(),
-  maxPositionSize: z.number().min(0.01).max(100).optional(),
-  stopLoss: z.number().min(1).max(100).optional(),
-  takeProfit: z.number().min(1).max(1000).optional(),
-  allowedTokens: z.array(z.string()).optional(),
-  tradingHours: z
-    .object({
-      enabled: z.boolean(),
-      start: z.string().regex(/^\d{2}:\d{2}$/),
-      end: z.string().regex(/^\d{2}:\d{2}$/),
-    })
-    .optional(),
+const createAgentSchema = z.object({
+  archetypeId: z.string().min(1),
+  name: z.string().min(1).max(32),
 });
 
-// GET /agent/state
-agent.get('/state', async (c) => {
+const updateStatusSchema = z.object({
+  status: z.enum(['TRAINING', 'ACTIVE', 'PAUSED']),
+});
+
+// GET /agents — list user's agents
+agent.get('/', async (c) => {
   try {
     const userId = c.get('userId');
-    const state = await agentService.getAgentState(userId);
+    const agents = await agentService.getUserAgents(userId);
 
-    return c.json({
-      success: true,
-      data: state,
-    });
+    return c.json({ success: true, data: agents });
   } catch (error) {
-    console.error('Get agent state error:', error);
+    console.error('List agents error:', error);
     return c.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to get agent state',
-        },
-      },
+      { success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to list agents' } },
       500
     );
   }
 });
 
-// POST /agent/start
-agent.post('/start', async (c) => {
-  try {
-    const userId = c.get('userId');
-    const state = await agentService.startAgent(userId);
-
-    return c.json({
-      success: true,
-      data: state,
-    });
-  } catch (error) {
-    console.error('Start agent error:', error);
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to start agent',
-        },
-      },
-      500
-    );
-  }
-});
-
-// POST /agent/stop
-agent.post('/stop', async (c) => {
-  try {
-    const userId = c.get('userId');
-    const state = await agentService.stopAgent(userId);
-
-    return c.json({
-      success: true,
-      data: state,
-    });
-  } catch (error) {
-    console.error('Stop agent error:', error);
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to stop agent',
-        },
-      },
-      500
-    );
-  }
-});
-
-// POST /agent/pause
-agent.post('/pause', async (c) => {
-  try {
-    const userId = c.get('userId');
-    const state = await agentService.pauseAgent(userId);
-
-    return c.json({
-      success: true,
-      data: state,
-    });
-  } catch (error) {
-    console.error('Pause agent error:', error);
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to pause agent',
-        },
-      },
-      500
-    );
-  }
-});
-
-// PUT /agent/config
-agent.put('/config', async (c) => {
+// POST /agents — create a new agent
+agent.post('/', async (c) => {
   try {
     const userId = c.get('userId');
     const body = await c.req.json();
-    const config = updateConfigSchema.parse(body);
+    const { archetypeId, name } = createAgentSchema.parse(body);
 
-    const state = await agentService.updateAgentConfig(userId, config);
+    const newAgent = await agentService.createAgent(userId, archetypeId, name);
 
-    return c.json({
-      success: true,
-      data: state,
-    });
+    return c.json({ success: true, data: newAgent }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return c.json(
-        {
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'Invalid request body',
-            details: error.errors,
-          },
-        },
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid request body', details: error.errors } },
         400
       );
     }
-
-    console.error('Update config error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to create agent';
+    const status = message.includes('already have') ? 409 : 500;
     return c.json(
-      {
-        success: false,
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Failed to update config',
-        },
-      },
-      500
+      { success: false, error: { code: status === 409 ? 'CONFLICT' : 'INTERNAL_ERROR', message } },
+      status
+    );
+  }
+});
+
+// GET /agents/:id — get agent details
+agent.get('/:id', async (c) => {
+  try {
+    const userId = c.get('userId');
+    const agentId = c.req.param('id');
+    const result = await agentService.getAgent(agentId, userId);
+
+    return c.json({ success: true, data: result });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to get agent';
+    return c.json(
+      { success: false, error: { code: 'NOT_FOUND', message } },
+      404
+    );
+  }
+});
+
+// PATCH /agents/:id/status — update agent status
+agent.patch('/:id/status', async (c) => {
+  try {
+    const userId = c.get('userId');
+    const agentId = c.req.param('id');
+    const body = await c.req.json();
+    const { status } = updateStatusSchema.parse(body);
+
+    const updated = await agentService.updateAgentStatus(agentId, userId, status);
+
+    return c.json({ success: true, data: updated });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid request body', details: error.errors } },
+        400
+      );
+    }
+    const message = error instanceof Error ? error.message : 'Failed to update status';
+    return c.json(
+      { success: false, error: { code: 'NOT_FOUND', message } },
+      404
+    );
+  }
+});
+
+// DELETE /agents/:id — delete an agent
+agent.delete('/:id', async (c) => {
+  try {
+    const userId = c.get('userId');
+    const agentId = c.req.param('id');
+    await agentService.deleteAgent(agentId, userId);
+
+    return c.json({ success: true, data: { deleted: true } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete agent';
+    return c.json(
+      { success: false, error: { code: 'NOT_FOUND', message } },
+      404
     );
   }
 });

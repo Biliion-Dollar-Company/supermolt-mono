@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum AgentStatus {
+  TRAINING
+  ACTIVE
+  PAUSED
+}
+
+enum TradeAction {
+  BUY
+  SELL
+}
+
+enum TradeStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum FeedbackRating {
+  GOOD
+  BAD
+  SKIP
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model TradingAgent {
+  id           String      @id @default(cuid())
+  userId       String
+  archetypeId  String
+  name         String
+  status       AgentStatus @default(TRAINING)
+  paperBalance Decimal     @default(10.0) @db.Decimal(18, 6)
+  totalTrades  Int         @default(0)
+  winRate      Decimal     @default(0) @db.Decimal(5, 2)
+  totalPnl     Decimal     @default(0) @db.Decimal(18, 6)
+  config       Json        @default("{}")
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  paperTrades PaperTrade[]
+  feedbacks   TradeFeedback[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([archetypeId])
+  @@map("trading_agents")
+}
+
+model PaperTrade {
+  id          String      @id @default(cuid())
+  agentId     String
+  tokenMint   String
+  tokenSymbol String
+  tokenName   String
+  action      TradeAction
+  entryPrice  Decimal     @db.Decimal(24, 12)
+  exitPrice   Decimal?    @db.Decimal(24, 12)
+  amount      Decimal     @db.Decimal(18, 6)
+  tokenAmount Decimal?    @db.Decimal(24, 6)
+  pnl         Decimal?    @db.Decimal(18, 6)
+  pnlPercent  Decimal?    @db.Decimal(8, 2)
+  status      TradeStatus @default(OPEN)
+  signalSource String
+  confidence  Int
+  marketCap   Decimal?    @db.Decimal(24, 2)
+  liquidity   Decimal?    @db.Decimal(24, 2)
+  metadata    Json        @default("{}")
+  openedAt    DateTime    @default(now())
+  closedAt    DateTime?
+
+  agent     TradingAgent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  feedbacks TradeFeedback[]
+
+  @@index([agentId])
+  @@index([agentId, status])
+  @@index([openedAt])
+  @@map("paper_trades")
+}
+
+model TradeFeedback {
+  id        String         @id @default(cuid())
+  tradeId   String
+  agentId   String
+  userId    String
+  rating    FeedbackRating
+  tags      String[]
+  note      String?
+  createdAt DateTime       @default(now())
+
+  trade PaperTrade   @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  agent TradingAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([tradeId, userId])
+  @@index([agentId])
+  @@index([userId])
+  @@map("trade_feedbacks")
+}

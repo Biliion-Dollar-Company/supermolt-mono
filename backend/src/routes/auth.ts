@@ -94,28 +94,17 @@ auth.post('/refresh', async (c) => {
   }
 });
 
-// GET /auth/me (protected)
+// GET /auth/me (protected) — returns userId from JWT
 auth.get('/me', authMiddleware, async (c) => {
-  try {
-    const userId = c.get('userId');
-    const user = await authService.getMe(userId);
-
-    return c.json({
-      success: true,
-      data: user,
-    });
-  } catch (error) {
-    return c.json(
-      {
-        success: false,
-        error: {
-          code: 'NOT_FOUND',
-          message: 'User not found',
-        },
-      },
-      404
-    );
-  }
+  const user = c.get('user');
+  return c.json({
+    success: true,
+    data: {
+      userId: user.sub,
+      privyId: user.privyId,
+      wallet: user.wallet ?? null,
+    },
+  });
 });
 
 export { auth };

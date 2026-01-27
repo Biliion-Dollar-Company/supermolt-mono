@@ -12,6 +12,7 @@ const envSchema = z.object({
   REDIS_URL: z.string().optional(),
   DEVPRINT_URL: z.string().url().optional(),
   DEVPRINT_WS_URL: z.string().optional(),
+  INTERNAL_API_KEY: z.string().min(16).optional(), // DevPrint → SR-Mobile internal calls
 });
 
 function loadEnv() {

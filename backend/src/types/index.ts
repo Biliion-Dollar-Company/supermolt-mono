@@ -1,42 +1,4 @@
-// User types
-export interface User {
-  id: string;
-  privyId: string;
-  walletAddress: string | null;
-  email: string | null;
-  createdAt: string;
-}
-
-export interface UserSettings {
-  userId: string;
-  notifications: boolean;
-  autoSign: boolean;
-  maxSlippage: number;
-}
-
-// Agent types
-export type AgentStatus = 'stopped' | 'running' | 'paused';
-
-export interface AgentConfig {
-  riskLevel: 'low' | 'medium' | 'high';
-  maxPositionSize: number;
-  stopLoss: number;
-  takeProfit: number;
-  allowedTokens: string[];
-  tradingHours: {
-    enabled: boolean;
-    start: string;
-    end: string;
-  };
-}
-
-export interface AgentState {
-  status: AgentStatus;
-  config: AgentConfig;
-  lastActivity?: string;
-}
-
-// Auth types
+// JWT payload from verified token
 export interface JwtPayload {
   sub: string;
   privyId: string;
@@ -52,11 +14,11 @@ export interface AuthTokens {
 }
 
 export interface LoginResponse {
-  user: User;
+  userId: string;
   tokens: AuthTokens;
 }
 
-// API types
+// API response wrappers
 export interface ApiResponse<T> {
   success: true;
   data: T;

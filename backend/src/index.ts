@@ -6,8 +6,10 @@ import { env } from './lib/env';
 // Routes
 import { health } from './routes/health';
 import { auth } from './routes/auth';
-import { user } from './routes/user';
 import { agent } from './routes/agent';
+import { trades } from './routes/trades';
+import { archetypes } from './routes/archetypes';
+import { internal } from './routes/internal';
 
 const app = new Hono();
 
@@ -16,22 +18,30 @@ app.use('*', logger());
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:8081', 'exp://localhost:8081'], // Expo dev
+    origin: ['http://localhost:8081', 'exp://localhost:8081'],
     credentials: true,
   })
 );
 
-// Routes
+// Public routes
 app.route('/health', health);
+app.route('/archetypes', archetypes);
+
+// Auth routes
 app.route('/auth', auth);
-app.route('/user', user);
-app.route('/agent', agent);
+
+// Protected routes (JWT required)
+app.route('/agents', agent);
+app.route('/trades', trades);
+
+// Internal routes (API key required — DevPrint → SR-Mobile)
+app.route('/internal', internal);
 
 // Root
 app.get('/', (c) => {
   return c.json({
     name: 'SR-Mobile API',
-    version: '0.1.0',
+    version: '0.2.0',
     docs: '/health',
   });
 });
@@ -69,7 +79,7 @@ app.onError((err, c) => {
 const port = parseInt(env.PORT, 10);
 
 console.log(`
-🚀 SR-Mobile API starting...
+  SR-Mobile API starting...
    Port: ${port}
    Environment: ${process.env.NODE_ENV || 'development'}
 `);
