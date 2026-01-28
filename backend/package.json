@@ -13,7 +13,7 @@
     "db:push": "bunx prisma db push",
     "db:migrate": "bunx prisma migrate dev",
     "db:studio": "bunx prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "bunx prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
