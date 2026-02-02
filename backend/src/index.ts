@@ -11,6 +11,7 @@ import { agent } from './routes/agent';
 import { trades } from './routes/trades';
 import { archetypes } from './routes/archetypes';
 import { internal } from './routes/internal';
+import { webhooks } from './routes/webhooks';
 
 const app = new Hono();
 
@@ -27,6 +28,7 @@ app.use(
 // Public routes
 app.route('/health', health);
 app.route('/archetypes', archetypes);
+app.route('/webhooks', webhooks); // Helius webhooks (public, signature validated)
 
 // Auth routes
 app.route('/auth', auth);
