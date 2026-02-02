@@ -6,6 +6,7 @@ import { env } from './lib/env';
 // Routes
 import { health } from './routes/health';
 import { auth } from './routes/auth';
+import { siwsAuthRoutes } from './routes/auth.siws';
 import { agent } from './routes/agent';
 import { trades } from './routes/trades';
 import { archetypes } from './routes/archetypes';
@@ -29,6 +30,7 @@ app.route('/archetypes', archetypes);
 
 // Auth routes
 app.route('/auth', auth);
+app.route('/auth', siwsAuthRoutes); // SIWS agent auth
 
 // Protected routes (JWT required)
 app.route('/agents', agent);

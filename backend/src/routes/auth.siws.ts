@@ -1,0 +1,150 @@
+import { Hono } from 'hono';
+import { PrismaClient, Prisma } from '@prisma/client';
+import * as jwt from 'jose';
+import * as siwsService from '../services/siws.service';
+import { z } from 'zod';
+
+const db = new PrismaClient();
+
+// Initialize Hono router
+export const siwsAuthRoutes = new Hono();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-min-32-chars-required';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+
+// GET /auth/agent/challenge
+// Returns a nonce for agent to sign
+siwsAuthRoutes.get('/agent/challenge', async (c) => {
+  const nonce = siwsService.generateNonce();
+  siwsService.storeNonce(nonce);
+
+  return c.json({
+    nonce,
+    statement: 'Sign this message to authenticate your Solana agent with Trench',
+    expiresIn: 300 // 5 minutes
+  });
+});
+
+// POST /auth/agent/verify
+// Verifies agent signature and issues JWT
+const verifySIWSSchema = z.object({
+  pubkey: z.string().min(32).max(44), // Solana address length
+  signature: z.string(), // base64-encoded signature
+  nonce: z.string()
+});
+
+siwsAuthRoutes.post('/agent/verify', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { pubkey, signature, nonce } = verifySIWSSchema.parse(body);
+
+    // Verify the signature
+    const isValid = siwsService.verifySIWSSignature(pubkey, signature, nonce);
+    if (!isValid) {
+      return c.json({ error: 'Invalid signature' }, 401);
+    }
+
+    // Check if agent already exists
+    let agent = await db.tradingAgent.findFirst({
+      where: { userId: pubkey } // Use pubkey as userId for agents
+    });
+
+    // If not, create new agent registration
+    if (!agent) {
+      agent = await db.tradingAgent.create({
+        data: {
+          userId: pubkey, // Pubkey is the agent ID
+          archetypeId: 'pending', // Will be set by user later
+          name: `Agent-${pubkey.slice(0, 6)}`,
+          status: 'TRAINING',
+          paperBalance: new Prisma.Decimal(10.0), // Start with 10 SOL paper trading
+          config: {} // Will be populated when archetype is chosen
+        }
+      });
+    }
+
+    // Issue JWT for this agent
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const token = await new jwt.SignJWT({
+      sub: agent.userId, // Subject is the pubkey
+      agentId: agent.id,
+      type: 'agent'
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime(JWT_EXPIRES_IN)
+      .sign(secret);
+
+    // Optional: Issue refresh token for long-lived sessions
+    const refreshToken = await new jwt.SignJWT({
+      sub: agent.userId,
+      agentId: agent.id,
+      type: 'agent_refresh'
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime(JWT_REFRESH_EXPIRES_IN)
+      .sign(secret);
+
+    // Agent last activity is tracked via updatedAt field (auto-updated by Prisma)
+
+    return c.json({
+      success: true,
+      token,
+      refreshToken,
+      agent: {
+        id: agent.id,
+        pubkey: agent.userId,
+        name: agent.name,
+        status: agent.status,
+        archetypeId: agent.archetypeId
+      },
+      expiresIn: 900 // 15 minutes in seconds
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({ error: 'Invalid request body', issues: error.issues }, 400);
+    }
+    console.error('SIWS auth error:', error);
+    return c.json({ error: 'Authentication failed' }, 500);
+  }
+});
+
+// POST /auth/agent/refresh
+// Refresh agent JWT token
+const refreshSIWSSchema = z.object({
+  refreshToken: z.string()
+});
+
+siwsAuthRoutes.post('/agent/refresh', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { refreshToken } = refreshSIWSSchema.parse(body);
+
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    const verified = await jwt.jwtVerify(refreshToken, secret);
+
+    if (verified.payload.type !== 'agent_refresh') {
+      return c.json({ error: 'Invalid token type' }, 401);
+    }
+
+    const agentId = verified.payload.sub;
+
+    // Issue new access token
+    const newAccessToken = await new jwt.SignJWT({
+      sub: agentId,
+      type: 'agent'
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime(JWT_EXPIRES_IN)
+      .sign(secret);
+
+    return c.json({
+      success: true,
+      token: newAccessToken,
+      expiresIn: 900
+    });
+  } catch (error) {
+    console.error('Token refresh error:', error);
+    return c.json({ error: 'Token refresh failed' }, 401);
+  }
+});
