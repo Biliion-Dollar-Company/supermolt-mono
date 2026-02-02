@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { extractSwapsFromTransaction } from '../lib/swap-parser';
+import { getTokenPrice } from '../lib/birdeye';
 
 const db = new PrismaClient();
 
@@ -23,28 +25,60 @@ function validateHeliusSignature(
 }
 
 /**
- * Parse Solana transaction and extract swap information
+ * Create trade record in database
  */
-function parseSwapTransaction(
-  transaction: any
-): {
-  fromToken?: string;
-  toToken?: string;
-  amount?: number;
-  swapType?: string;
-} | null {
+async function createTradeRecord(
+  agentUserId: string,
+  swapData: any
+): Promise<void> {
   try {
-    // For now, return a basic structure
-    // We'll enhance this in Days 5-6 with full swap parser
-    return {
-      fromToken: undefined,
-      toToken: undefined,
-      amount: undefined,
-      swapType: undefined
-    };
+    // Find the agent by userId (pubkey)
+    const agent = await db.tradingAgent.findFirst({
+      where: { userId: agentUserId }
+    });
+
+    if (!agent) {
+      console.warn(`Agent not found for userId: ${agentUserId}`);
+      return;
+    }
+
+    // Get token prices from Birdeye
+    const inputPrice = await getTokenPrice(swapData.inputMint);
+    const outputPrice = await getTokenPrice(swapData.outputMint);
+
+    // Create paper trade record
+    await db.paperTrade.create({
+      data: {
+        agentId: agent.id,
+        tokenMint: swapData.outputMint,
+        tokenSymbol: outputPrice?.symbol || 'UNKNOWN',
+        tokenName: outputPrice?.name || 'Unknown',
+        action: 'BUY', // Simplified - could detect BUY vs SELL from input/output
+        entryPrice: inputPrice?.priceUsd || 0,
+        amount: swapData.inputAmount || 0,
+        tokenAmount: swapData.outputAmount,
+        marketCap: outputPrice?.marketCap,
+        liquidity: outputPrice?.liquidity,
+        metadata: {
+          dex: swapData.dex,
+          signature: swapData.signature,
+          inputMint: swapData.inputMint,
+          outputMint: swapData.outputMint,
+          source: 'helius-webhook'
+        },
+        signalSource: swapData.dex || 'unknown',
+        confidence: 100
+      }
+    });
+
+    console.log('Trade record created:', {
+      agentId: agent.id,
+      tokenMint: swapData.outputMint,
+      amount: swapData.inputAmount,
+      dex: swapData.dex
+    });
   } catch (error) {
-    console.error('Failed to parse swap transaction:', error);
-    return null;
+    console.error('Failed to create trade record:', error);
   }
 }
 
@@ -83,39 +117,37 @@ webhooks.post('/solana', async (c) => {
 
     // Extract transaction details
     const txSignature = payload.signature;
-    const instructions = payload.instructions || [];
 
-    // Try to find swap instruction
-    let swapFound = false;
+    // Parse all swaps from transaction
+    const swaps = extractSwapsFromTransaction({
+      signature: txSignature,
+      timestamp: payload.timestamp,
+      instructions: payload.instructions || []
+    });
 
-    for (const instruction of instructions) {
-      // Look for swap instructions (Jupiter, Raydium, Pump.fun, etc.)
-      const program = instruction.programId || '';
-      const parsed = instruction.parsed || {};
+    console.log('Extracted swaps:', {
+      count: swaps.length,
+      dexes: swaps.map(s => s.dex)
+    });
 
-      // Jupiter Program ID: JUP4Fb2cqiRUcaTHdrPC8h2gNsYZgUjCFnJ1r7p7Kho
-      // Raydium Program IDs: ...
-      // Pump.fun Program ID: ...
-
-      if (program.includes('JUP') || parsed.type === 'swap') {
-        swapFound = true;
-        console.log('Found swap instruction:', {
-          program,
-          type: parsed.type
+    // For each swap found, try to create a trade record
+    // In production, we'd identify which agent this is by wallet address
+    // For now, we'll just log the swap data
+    for (const swap of swaps) {
+      try {
+        console.log('Processing swap:', {
+          dex: swap.dex,
+          input: swap.inputMint.slice(0, 8),
+          output: swap.outputMint.slice(0, 8),
+          amount: swap.inputAmount
         });
 
-        // Parse swap details
-        const swapData = parseSwapTransaction(instruction);
-
-        if (swapData) {
-          // TODO: In Days 5-6, we'll query Birdeye for price and create trade record
-          console.log('Parsed swap:', swapData);
-        }
+        // TODO: Extract wallet address from transaction to identify agent
+        // Once we have the agent's wallet, we can create the trade record:
+        // await createTradeRecord(agentWallet, swap);
+      } catch (error) {
+        console.error('Failed to process swap:', error);
       }
-    }
-
-    if (!swapFound) {
-      console.log('No swap instruction found in transaction');
     }
 
     // Return success (Helius expects 200 response)
@@ -123,7 +155,8 @@ webhooks.post('/solana', async (c) => {
       success: true,
       message: 'Webhook received',
       txSignature,
-      swapFound
+      swapsFound: swaps.length,
+      dexes: swaps.map(s => s.dex)
     });
   } catch (error) {
     console.error('Webhook processing error:', error);
