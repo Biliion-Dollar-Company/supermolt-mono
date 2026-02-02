@@ -25,6 +25,30 @@ function validateHeliusSignature(
 }
 
 /**
+ * Extract signer wallet from transaction accounts
+ * The first account in most transactions is the signer
+ */
+function extractSignerWallet(transaction: any): string | null {
+  try {
+    // Try different locations where the signer might be
+    if (transaction.signer) return transaction.signer;
+    if (transaction.signers && transaction.signers.length > 0) {
+      return transaction.signers[0];
+    }
+    if (transaction.accounts && transaction.accounts.length > 0) {
+      // First account is typically the signer
+      const firstAccount = transaction.accounts[0];
+      if (typeof firstAccount === 'string') return firstAccount;
+      if (firstAccount.pubkey) return firstAccount.pubkey;
+    }
+    return null;
+  } catch (error) {
+    console.error('Failed to extract signer:', error);
+    return null;
+  }
+}
+
+/**
  * Create trade record in database
  */
 async function createTradeRecord(
@@ -42,12 +66,18 @@ async function createTradeRecord(
       return;
     }
 
+    console.log('Creating trade for agent:', {
+      agentId: agent.id,
+      pubkey: agentUserId,
+      outputToken: swapData.outputMint
+    });
+
     // Get token prices from Birdeye
     const inputPrice = await getTokenPrice(swapData.inputMint);
     const outputPrice = await getTokenPrice(swapData.outputMint);
 
     // Create paper trade record
-    await db.paperTrade.create({
+    const trade = await db.paperTrade.create({
       data: {
         agentId: agent.id,
         tokenMint: swapData.outputMint,
@@ -71,11 +101,24 @@ async function createTradeRecord(
       }
     });
 
-    console.log('Trade record created:', {
+    console.log('✅ Trade record created:', {
+      tradeId: trade.id,
       agentId: agent.id,
       tokenMint: swapData.outputMint,
+      symbol: outputPrice?.symbol,
       amount: swapData.inputAmount,
-      dex: swapData.dex
+      dex: swapData.dex,
+      signature: swapData.signature
+    });
+
+    // Update agent stats
+    await db.tradingAgent.update({
+      where: { id: agent.id },
+      data: {
+        totalTrades: {
+          increment: 1
+        }
+      }
     });
   } catch (error) {
     console.error('Failed to create trade record:', error);
@@ -118,6 +161,9 @@ webhooks.post('/solana', async (c) => {
     // Extract transaction details
     const txSignature = payload.signature;
 
+    // Extract signer wallet from transaction
+    const signerWallet = extractSignerWallet(payload);
+
     // Parse all swaps from transaction
     const swaps = extractSwapsFromTransaction({
       signature: txSignature,
@@ -125,26 +171,31 @@ webhooks.post('/solana', async (c) => {
       instructions: payload.instructions || []
     });
 
-    console.log('Extracted swaps:', {
-      count: swaps.length,
+    console.log('Webhook processing:', {
+      signature: txSignature.slice(0, 16),
+      signer: signerWallet?.slice(0, 8),
+      swapsFound: swaps.length,
       dexes: swaps.map(s => s.dex)
     });
 
     // For each swap found, try to create a trade record
-    // In production, we'd identify which agent this is by wallet address
-    // For now, we'll just log the swap data
+    let tradesCreated = 0;
     for (const swap of swaps) {
       try {
-        console.log('Processing swap:', {
-          dex: swap.dex,
-          input: swap.inputMint.slice(0, 8),
-          output: swap.outputMint.slice(0, 8),
-          amount: swap.inputAmount
-        });
+        if (signerWallet) {
+          console.log('Creating trade for swap:', {
+            dex: swap.dex,
+            input: swap.inputMint.slice(0, 8),
+            output: swap.outputMint.slice(0, 8),
+            amount: swap.inputAmount
+          });
 
-        // TODO: Extract wallet address from transaction to identify agent
-        // Once we have the agent's wallet, we can create the trade record:
-        // await createTradeRecord(agentWallet, swap);
+          // Create trade record for this agent
+          await createTradeRecord(signerWallet, swap);
+          tradesCreated++;
+        } else {
+          console.warn('Could not extract signer from transaction');
+        }
       } catch (error) {
         console.error('Failed to process swap:', error);
       }
@@ -155,7 +206,9 @@ webhooks.post('/solana', async (c) => {
       success: true,
       message: 'Webhook received',
       txSignature,
+      signer: signerWallet ? `${signerWallet.slice(0, 8)}...` : null,
       swapsFound: swaps.length,
+      tradesCreated,
       dexes: swaps.map(s => s.dex)
     });
   } catch (error) {
