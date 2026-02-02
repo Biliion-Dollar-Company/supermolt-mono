@@ -6,10 +6,14 @@
   "scripts": {
     "mobile": "pnpm --filter mobile",
     "backend": "pnpm --filter backend",
+    "web": "pnpm --filter web",
     "dev:mobile": "pnpm --filter mobile start",
     "dev:backend": "pnpm --filter backend dev",
-    "dev": "pnpm run --parallel dev:mobile dev:backend",
+    "dev:web": "pnpm --filter web dev",
+    "dev": "pnpm run --parallel dev:backend dev:web",
+    "build": "pnpm run build:backend && pnpm run build:web",
     "build:backend": "pnpm --filter backend build",
+    "build:web": "pnpm --filter web build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
   },
