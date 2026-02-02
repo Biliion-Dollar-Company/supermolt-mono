@@ -12,6 +12,8 @@ import { trades } from './routes/trades';
 import { archetypes } from './routes/archetypes';
 import { internal } from './routes/internal';
 import { webhooks } from './routes/webhooks';
+import { feed } from './routes/feed';
+import { copyTrade } from './routes/copy-trade';
 
 const app = new Hono();
 
@@ -37,6 +39,8 @@ app.route('/auth', siwsAuthRoutes); // SIWS agent auth
 // Protected routes (JWT required)
 app.route('/agents', agent);
 app.route('/trades', trades);
+app.route('/feed', feed);
+app.route('/trades', copyTrade); // /trades/copy/* endpoints
 
 // Internal routes (API key required — DevPrint → SR-Mobile)
 app.route('/internal', internal);

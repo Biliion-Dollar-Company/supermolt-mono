@@ -107,3 +107,96 @@ model TradeFeedback {
   @@index([userId])
   @@map("trade_feedbacks")
 }
+
+// ─── TRENCH Phase 2: Agent Reputation & Copy-Trading ───
+
+model TokensMetadata {
+  id              String    @id @default(cuid())
+  mint            String    @unique
+  symbol          String
+  name            String
+  decimals        Int
+  price           Decimal?  @db.Decimal(24, 12)
+  marketCap       Decimal?  @db.Decimal(24, 2)
+  liquidity       Decimal?  @db.Decimal(24, 2)
+  change24h       Decimal?  @db.Decimal(8, 2)
+  volume24h       Decimal?  @db.Decimal(24, 2)
+  lastUpdated     DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
+
+  @@index([mint])
+  @@index([symbol])
+  @@map("tokens_metadata")
+}
+
+model FeedActivity {
+  id              String    @id @default(cuid())
+  agentId         String
+  action          String    // BUY or SELL
+  tokenMint       String
+  tokenSymbol     String
+  amount          Decimal   @db.Decimal(24, 6)
+  entryPrice      Decimal   @db.Decimal(24, 12)
+  exitPrice       Decimal?  @db.Decimal(24, 12)
+  pnl             Decimal?  @db.Decimal(24, 6)
+  pnlPercent      Decimal?  @db.Decimal(8, 2)
+  dex             String    // Jupiter, Raydium, Pump.fun, etc.
+  txSignature     String    @unique
+  timestamp       DateTime
+  createdAt       DateTime  @default(now())
+
+  @@index([agentId])
+  @@index([tokenMint])
+  @@index([timestamp])
+  @@index([txSignature])
+  @@map("feed_activities")
+}
+
+model CopyTrade {
+  id              String    @id @default(cuid())
+  userPubkey      String    // Human wallet
+  agentId         String    // Agent being copied
+  sourceFeedId    String    // Original trade
+  userAmount      Decimal   @db.Decimal(24, 8)
+  txSignature     String?   @unique
+  status          String    @default("PENDING") // PENDING, EXECUTED, FAILED
+  errorMessage    String?
+  createdAt       DateTime  @default(now())
+  executedAt      DateTime?
+
+  @@index([userPubkey])
+  @@index([agentId])
+  @@index([status])
+  @@map("copy_trades")
+}
+
+model AgentStats {
+  id              String    @id @default(cuid())
+  agentId         String    @unique
+  sortinoRatio    Decimal   @default(0) @db.Decimal(10, 4)
+  winRate         Decimal   @default(0) @db.Decimal(5, 2)
+  maxDrawdown     Decimal   @default(0) @db.Decimal(5, 2)
+  totalPnl        Decimal   @default(0) @db.Decimal(20, 8)
+  totalTrades     Int       @default(0)
+  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime  @default(now())
+
+  @@index([sortinoRatio])
+  @@index([agentId])
+  @@map("agent_stats")
+}
+
+model WebhookEvent {
+  id              String    @id @default(cuid())
+  heliusSignature String    @unique
+  eventType       String
+  agentPubkey     String
+  payload         Json
+  processed       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  @@index([agentPubkey])
+  @@index([processed])
+  @@index([eventType])
+  @@map("webhook_events")
+}
