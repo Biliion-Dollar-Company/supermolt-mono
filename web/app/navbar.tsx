@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Home, Trophy, Briefcase, MessageSquare, Vote, BarChart3 } from 'lucide-react';
+import { Home, Trophy, Briefcase, MessageSquare, Vote, BarChart3, Menu, X } from 'lucide-react';
 import { WebSocketStatus } from '@/components/WebSocketStatus';
 
 export default function Navbar() {
@@ -26,44 +26,47 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-void-900/95 backdrop-blur-lg border-b border-void-600 sticky top-0 z-50 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="bg-bg-primary/95 backdrop-blur-lg border-b border-border sticky top-0 z-50">
+      <div className="container-colosseum">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <Trophy className="w-8 h-8 text-brand-primary group-hover:scale-110 transition-transform" />
+            <div className="p-2 rounded-xl bg-accent-gradient transition-transform group-hover:scale-105">
+              <Trophy className="w-5 h-5 text-black" />
+            </div>
             <div>
-              <div className="text-xl font-bold bg-gradient-to-r from-brand-primary via-matrix-green to-solana-purple bg-clip-text text-transparent">
+              <div className="text-xl font-bold text-gradient-gold">
                 SuperMolt
               </div>
-              <div className="text-xs text-gray-500 -mt-1">AI Trading Platform</div>
+              <div className="text-xs text-text-muted -mt-0.5">AI Trading Platform</div>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <ul className="hidden md:flex gap-2 items-center">
+          <ul className="hidden md:flex gap-1 items-center">
             {navLinks.map((link) => {
               const Icon = link.Icon;
+              const active = isActive(link.href);
               return (
                 <li key={link.href}>
                   <Link
                     href={link.href}
                     className={`
-                      flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all duration-300
+                      flex items-center gap-2 px-4 py-2 rounded-pill font-medium transition-all duration-250
                       ${
-                        isActive(link.href)
-                          ? 'bg-gradient-to-r from-brand-primary to-matrix-green text-void-black glow-green'
-                          : 'text-gray-400 hover:text-white hover:bg-void-800'
+                        active
+                          ? 'bg-accent-gradient text-black'
+                          : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
                       }
                     `}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span>{link.label}</span>
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm">{link.label}</span>
                   </Link>
                 </li>
               );
             })}
-            <li className="border-l border-void-600 ml-2 pl-4">
+            <li className="border-l border-border ml-2 pl-4">
               <WebSocketStatus showText={false} />
             </li>
           </ul>
@@ -71,48 +74,45 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-400 hover:text-white hover:bg-void-800 transition-colors"
+            className="md:hidden p-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-white/5 transition-all"
             aria-label="Toggle menu"
           >
             {mobileMenuOpen ? (
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="w-6 h-6" />
             ) : (
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+              <Menu className="w-6 h-6" />
             )}
           </button>
         </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-void-600 animate-slide-down">
-            <ul className="space-y-2">
+          <div className="md:hidden py-4 border-t border-border animate-slide-up">
+            <ul className="space-y-1">
               {navLinks.map((link) => {
                 const Icon = link.Icon;
+                const active = isActive(link.href);
                 return (
                   <li key={link.href}>
                     <Link
                       href={link.href}
                       onClick={() => setMobileMenuOpen(false)}
                       className={`
-                        flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-300
+                        flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-250
                         ${
-                          isActive(link.href)
-                            ? 'bg-gradient-to-r from-brand-primary to-matrix-green text-void-black glow-green'
-                            : 'text-gray-400 hover:text-white hover:bg-void-800'
+                          active
+                            ? 'bg-accent-gradient text-black'
+                            : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
                         }
                       `}
                     >
-                      <Icon className="w-6 h-6" />
+                      <Icon className="w-5 h-5" />
                       <span>{link.label}</span>
                     </Link>
                   </li>
                 );
               })}
-              <li className="pt-2 border-t border-void-600">
+              <li className="pt-2 border-t border-border mt-2">
                 <div className="px-4 py-2">
                   <WebSocketStatus showText={true} />
                 </div>
