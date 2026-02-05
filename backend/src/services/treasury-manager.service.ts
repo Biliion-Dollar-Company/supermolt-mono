@@ -1,0 +1,484 @@
+/**
+ * Treasury Manager Service
+ * 
+ * Manages USDC treasury wallet and reward distribution to scanner agents
+ * 
+ * Features:
+ * - USDC balance tracking
+ * - Allocation calculation (rank-based multipliers)
+ * - On-chain USDC distribution via Solana
+ * - Transaction logging and proof tracking
+ * 
+ * Created: February 5, 2026
+ * By: Backend Infrastructure Agent
+ */
+
+import { Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js';
+import {
+  getAssociatedTokenAddress,
+  createTransferInstruction,
+  getAccount,
+  createAssociatedTokenAccountInstruction,
+} from '@solana/spl-token';
+import bs58 from 'bs58';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+// USDC Token Mint (Devnet for hackathon)
+const USDC_MINT = new PublicKey(process.env.USDC_MINT || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
+const USDC_DECIMALS = 6; // USDC has 6 decimals
+
+// Rank multipliers (based on leaderboard position)
+const RANK_MULTIPLIERS: { [key: number]: number } = {
+  1: 2.0,   // 1st place: 2x
+  2: 1.5,   // 2nd place: 1.5x
+  3: 1.0,   // 3rd place: 1x
+  4: 0.75,  // 4th place: 0.75x
+  5: 0.5,   // 5th place: 0.5x
+};
+
+interface AllocationResult {
+  scannerId: string;
+  scannerName: string;
+  pubkey: string;
+  rank: number;
+  performanceScore: number;
+  winRate: number;
+  totalCalls: number;
+  usdcAmount: number;
+  multiplier: number;
+}
+
+interface DistributionResult {
+  scannerId: string;
+  scannerName: string;
+  amount: number;
+  signature: string;
+  status: 'success' | 'failed';
+  error?: string;
+  solscan: string;
+}
+
+export class TreasuryManagerService {
+  private connection: Connection;
+  private treasuryKeypair: Keypair | null = null;
+
+  constructor() {
+    const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+    this.connection = new Connection(rpcUrl, 'confirmed');
+    this.loadTreasuryWallet();
+  }
+
+  /**
+   * Load treasury wallet from environment variable
+   * Supports both base58 and base64 encoded private keys
+   */
+  private loadTreasuryWallet() {
+    const privateKeyStr = process.env.TREASURY_PRIVATE_KEY;
+
+    if (!privateKeyStr) {
+      console.warn('⚠️ TREASURY_PRIVATE_KEY not set - distribution will fail');
+      return;
+    }
+
+    try {
+      let privateKeyBytes: Uint8Array;
+      
+      // Try base58 first (most common Solana format)
+      try {
+        privateKeyBytes = bs58.decode(privateKeyStr);
+      } catch {
+        // If base58 fails, try base64 (generated keys format)
+        privateKeyBytes = Uint8Array.from(Buffer.from(privateKeyStr, 'base64'));
+      }
+      
+      this.treasuryKeypair = Keypair.fromSecretKey(privateKeyBytes);
+      console.log('✅ Treasury wallet loaded:', this.treasuryKeypair.publicKey.toBase58());
+    } catch (error) {
+      console.error('❌ Failed to load treasury wallet:', error);
+      throw new Error('Invalid TREASURY_PRIVATE_KEY format (must be base58 or base64)');
+    }
+  }
+
+  /**
+   * Get treasury wallet public key
+   */
+  getTreasuryPublicKey(): string | null {
+    return this.treasuryKeypair?.publicKey.toBase58() || null;
+  }
+
+  /**
+   * Get USDC balance of treasury wallet
+   */
+  async getBalance(): Promise<number> {
+    if (!this.treasuryKeypair) {
+      throw new Error('Treasury wallet not loaded');
+    }
+
+    try {
+      const tokenAccount = await getAssociatedTokenAddress(
+        USDC_MINT,
+        this.treasuryKeypair.publicKey
+      );
+
+      const accountInfo = await getAccount(this.connection, tokenAccount);
+      const balance = Number(accountInfo.amount) / Math.pow(10, USDC_DECIMALS);
+
+      return balance;
+    } catch (error: any) {
+      // If account doesn't exist, balance is 0
+      if (error.message.includes('could not find account')) {
+        return 0;
+      }
+      console.error('Error fetching balance:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate USDC allocations for an epoch
+   */
+  async calculateAllocations(epochId: string): Promise<AllocationResult[]> {
+    // Get epoch details
+    const epoch = await prisma.scannerEpoch.findUnique({
+      where: { id: epochId },
+      include: {
+        rankings: {
+          include: {
+            scanner: true,
+          },
+          orderBy: {
+            performanceScore: 'desc',
+          },
+        },
+      },
+    });
+
+    if (!epoch) {
+      throw new Error(`Epoch ${epochId} not found`);
+    }
+
+    if (epoch.rankings.length === 0) {
+      throw new Error(`No rankings found for epoch ${epochId}`);
+    }
+
+    const baseAllocation = Number(epoch.baseAllocation) || 200;
+    const allocations: AllocationResult[] = [];
+
+    // Calculate allocations for each scanner
+    for (let i = 0; i < epoch.rankings.length; i++) {
+      const ranking = epoch.rankings[i];
+      const rank = i + 1;
+      const multiplier = RANK_MULTIPLIERS[rank] || 0.5;
+
+      // Performance adjustment (0.5 - 1.0)
+      // Lower bound ensures even poor performers get something
+      const performanceScore = Number(ranking.performanceScore);
+      const performanceAdjustment = Math.max(0.5, performanceScore / 100);
+
+      // Final USDC amount
+      const usdcAmount = baseAllocation * multiplier * performanceAdjustment;
+
+      allocations.push({
+        scannerId: ranking.scannerId,
+        scannerName: ranking.scanner.name,
+        pubkey: ranking.scanner.pubkey,
+        rank,
+        performanceScore,
+        winRate: Number(ranking.winRate),
+        totalCalls: ranking.totalCalls,
+        usdcAmount: Math.round(usdcAmount * 100) / 100, // Round to 2 decimals
+        multiplier,
+      });
+    }
+
+    return allocations;
+  }
+
+  /**
+   * Execute USDC distribution to scanners
+   */
+  async distributeRewards(epochId: string): Promise<{
+    allocations: DistributionResult[];
+    summary: {
+      totalAmount: number;
+      successful: number;
+      failed: number;
+      timestamp: string;
+    };
+  }> {
+    if (!this.treasuryKeypair) {
+      throw new Error('Treasury wallet not loaded');
+    }
+
+    // Check if epoch already distributed
+    const epoch = await prisma.scannerEpoch.findUnique({
+      where: { id: epochId },
+    });
+
+    if (!epoch) {
+      throw new Error(`Epoch ${epochId} not found`);
+    }
+
+    if (epoch.status === 'PAID') {
+      throw new Error(`Epoch ${epochId} already distributed`);
+    }
+
+    // Calculate allocations
+    const allocations = await this.calculateAllocations(epochId);
+
+    // Check treasury balance
+    const totalAmount = allocations.reduce((sum, a) => sum + a.usdcAmount, 0);
+    const balance = await this.getBalance();
+
+    if (balance < totalAmount) {
+      throw new Error(
+        `Insufficient treasury balance: ${balance} USDC < ${totalAmount} USDC needed`
+      );
+    }
+
+    // Execute distributions
+    const results: DistributionResult[] = [];
+    let successful = 0;
+    let failed = 0;
+
+    for (const allocation of allocations) {
+      try {
+        const signature = await this.sendUSDC(
+          allocation.pubkey,
+          allocation.usdcAmount
+        );
+
+        // Record in database
+        await prisma.treasuryAllocation.create({
+          data: {
+            epochId,
+            scannerId: allocation.scannerId,
+            amount: allocation.usdcAmount,
+            performanceScore: allocation.performanceScore,
+            rank: allocation.rank,
+            txSignature: signature,
+            status: 'completed',
+            completedAt: new Date(),
+          },
+        });
+
+        // Update scanner ranking
+        await prisma.scannerRanking.update({
+          where: {
+            scannerId_epochId: {
+              scannerId: allocation.scannerId,
+              epochId,
+            },
+          },
+          data: {
+            usdcAllocated: allocation.usdcAmount,
+            finalRank: allocation.rank,
+          },
+        });
+
+        results.push({
+          scannerId: allocation.scannerId,
+          scannerName: allocation.scannerName,
+          amount: allocation.usdcAmount,
+          signature,
+          status: 'success',
+          solscan: `https://solscan.io/tx/${signature}`,
+        });
+
+        successful++;
+        console.log(
+          `✅ Distributed ${allocation.usdcAmount} USDC to ${allocation.scannerName} (${signature})`
+        );
+      } catch (error: any) {
+        console.error(
+          `❌ Failed to distribute to ${allocation.scannerName}:`,
+          error
+        );
+
+        // Record failed allocation
+        await prisma.treasuryAllocation.create({
+          data: {
+            epochId,
+            scannerId: allocation.scannerId,
+            amount: allocation.usdcAmount,
+            performanceScore: allocation.performanceScore,
+            rank: allocation.rank,
+            status: 'failed',
+          },
+        });
+
+        results.push({
+          scannerId: allocation.scannerId,
+          scannerName: allocation.scannerName,
+          amount: allocation.usdcAmount,
+          signature: '',
+          status: 'failed',
+          error: error.message,
+          solscan: '',
+        });
+
+        failed++;
+      }
+    }
+
+    // Update epoch status
+    await prisma.scannerEpoch.update({
+      where: { id: epochId },
+      data: {
+        status: failed === 0 ? 'PAID' : 'ACTIVE', // Only mark as PAID if all succeeded
+      },
+    });
+
+    return {
+      allocations: results,
+      summary: {
+        totalAmount,
+        successful,
+        failed,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+
+  /**
+   * Send USDC to a recipient
+   */
+  private async sendUSDC(recipientPubkey: string, amount: number): Promise<string> {
+    if (!this.treasuryKeypair) {
+      throw new Error('Treasury wallet not loaded');
+    }
+
+    const recipient = new PublicKey(recipientPubkey);
+
+    // Get associated token accounts
+    const senderTokenAccount = await getAssociatedTokenAddress(
+      USDC_MINT,
+      this.treasuryKeypair.publicKey
+    );
+
+    const recipientTokenAccount = await getAssociatedTokenAddress(
+      USDC_MINT,
+      recipient
+    );
+
+    // Convert USDC amount to smallest unit (6 decimals)
+    const amountInSmallestUnit = Math.floor(amount * Math.pow(10, USDC_DECIMALS));
+
+    const transaction = new Transaction();
+
+    // Check if recipient token account exists, create if not
+    try {
+      await getAccount(this.connection, recipientTokenAccount);
+    } catch {
+      // Account doesn't exist, add instruction to create it
+      transaction.add(
+        createAssociatedTokenAccountInstruction(
+          this.treasuryKeypair.publicKey, // payer
+          recipientTokenAccount,
+          recipient,
+          USDC_MINT
+        )
+      );
+    }
+
+    // Add transfer instruction
+    transaction.add(
+      createTransferInstruction(
+        senderTokenAccount,
+        recipientTokenAccount,
+        this.treasuryKeypair.publicKey,
+        amountInSmallestUnit
+      )
+    );
+
+    // Send and confirm transaction
+    const signature = await this.connection.sendTransaction(
+      transaction,
+      [this.treasuryKeypair],
+      {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      }
+    );
+
+    // Wait for confirmation
+    await this.connection.confirmTransaction(signature, 'confirmed');
+
+    return signature;
+  }
+
+  /**
+   * Get allocation history for a scanner
+   */
+  async getScannerAllocations(scannerId: string) {
+    const allocations = await prisma.treasuryAllocation.findMany({
+      where: { scannerId },
+      include: {
+        epoch: {
+          select: {
+            epochNumber: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    const totalEarned = allocations
+      .filter((a) => a.status === 'completed')
+      .reduce((sum, a) => sum + Number(a.amount), 0);
+
+    return {
+      allocations: allocations.map((a) => ({
+        epochId: a.epochId,
+        epochName: a.epoch?.name || 'Unknown',
+        amount: Number(a.amount),
+        rank: a.rank,
+        txSignature: a.txSignature,
+        status: a.status,
+        createdAt: a.createdAt.toISOString(),
+        solscan: a.txSignature
+          ? `https://solscan.io/tx/${a.txSignature}`
+          : null,
+      })),
+      totalEarned: Math.round(totalEarned * 100) / 100,
+    };
+  }
+
+  /**
+   * Get treasury pool status
+   */
+  async getTreasuryStatus() {
+    const balance = await this.getBalance();
+
+    // Get total allocated but not distributed
+    const allocations = await prisma.treasuryAllocation.aggregate({
+      where: { status: 'pending' },
+      _sum: { amount: true },
+    });
+
+    // Get total distributed
+    const distributed = await prisma.treasuryAllocation.aggregate({
+      where: { status: 'completed' },
+      _sum: { amount: true },
+    });
+
+    const allocated = Number(allocations._sum.amount || 0);
+    const totalDistributed = Number(distributed._sum.amount || 0);
+
+    return {
+      totalBalance: Math.round(balance * 100) / 100,
+      allocated: Math.round(allocated * 100) / 100,
+      distributed: Math.round(totalDistributed * 100) / 100,
+      available: Math.round((balance - allocated) * 100) / 100,
+      treasuryWallet: this.getTreasuryPublicKey(),
+    };
+  }
+}
+
+// Export singleton instance
+export const treasuryManager = new TreasuryManagerService();

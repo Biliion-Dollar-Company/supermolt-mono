@@ -1,0 +1,52 @@
+env: load .env
+env: export EXPO_PUBLIC_PRIVY_APP_ID EXPO_PUBLIC_API_URL
+› Skipping dev server
+› Planning build
+› Preparing Pods/expo-dev-launcher-EXDevLauncher » ResourceBundle-EXDevLauncher-expo-dev-launcher-Info.plist
+› Preparing Pods/React-Core-React-Core_privacy » ResourceBundle-React-Core_privacy-React-Core-Info.plist
+› Preparing Pods/React-cxxreact-React-cxxreact_privacy » ResourceBundle-React-cxxreact_privacy-React-cxxreact-Info.plist
+› Preparing Pods/RNSVG-RNSVGFilters » ResourceBundle-RNSVGFilters-RNSVG-Info.plist
+› Preparing Pods/RNCAsyncStorage-RNCAsyncStorage_resources » ResourceBundle-RNCAsyncStorage_resources-RNCAsyncStorage-Info.plist
+› Preparing Pods/ExpoSystemUI-ExpoSystemUI_privacy » ResourceBundle-ExpoSystemUI_privacy-ExpoSystemUI-Info.plist
+› Preparing Pods/EXNotifications-ExpoNotifications_privacy » ResourceBundle-ExpoNotifications_privacy-EXNotifications-Info.plist
+› Preparing Pods/ExpoFileSystem-ExpoFileSystem_privacy » ResourceBundle-ExpoFileSystem_privacy-ExpoFileSystem-Info.plist
+› Preparing Pods/EXConstants-ExpoConstants_privacy » ResourceBundle-ExpoConstants_privacy-EXConstants-Info.plist
+› Executing react-native Pods/hermes-engine » [CP-User] [Hermes] Replace Hermes for the right configuration, if needed
+› Preparing Pods/glog-glog_privacy » ResourceBundle-glog_privacy-glog-Info.plist
+› Preparing Pods/expo-dev-menu-EXDevMenu » ResourceBundle-EXDevMenu-expo-dev-menu-Info.plist
+› Preparing Pods/boost-boost_privacy » ResourceBundle-boost_privacy-boost-Info.plist
+› Preparing Pods/RCT-Folly-RCT-Folly_privacy » ResourceBundle-RCT-Folly_privacy-RCT-Folly-Info.plist
+› Preparing expo-constants Pods/EXConstants-EXConstants » ResourceBundle-EXConstants-EXConstants-Info.plist
+› Preparing Pods/EXApplication-ExpoApplication_privacy » ResourceBundle-ExpoApplication_privacy-EXApplication-Info.plist
+› Creating  Pods/expo-dev-launcher-EXDevLauncher » EXDevLauncher.bundle
+› Compiling react-native Pods/React-Core » RCTCxxBridge.mm
+› Compiling react-native Pods/React-Core » RCTBridge.mm
+› Compiling react-native Pods/RCTTypeSafety » RCTConvertHelpers.mm
+› Compiling react-native Pods/RCT-Folly » json.cpp
+› Compiling react-native Pods/RCT-Folly » dynamic.cpp
+› Compiling react-native Pods/RCT-Folly » String.cpp
+› Compiling react-native Pods/RCT-Folly » SplitStringSimd.cpp
+
+❌  (ios/Pods/Headers/Private/boost/operators.hpp:100:10)
+
+   98 | #include <iterator>
+   99 | 
+> 100 | #include <boost/config.hpp>
+      |          ^ 'boost/config.hpp' file not found
+  101 | #include <boost/detail/workaround.hpp>
+  102 | #include <boost/core/addressof.hpp>
+  103 | 
+
+› Compiling react-native Pods/RCT-Folly » SharedMutex.cpp
+› Compiling react-native Pods/RCT-Folly » ScopeGuard.cpp
+› Compiling react-native Pods/RCT-Folly » SanitizeThread.cpp
+› Compiling react-native Pods/RCT-Folly » SafeAssert.cpp
+› Compiling react-native Pods/RCT-Folly » ParkingLot.cpp
+› Compiling react-native Pods/RCT-Folly » NetOps.cpp
+    Run script build phase '[CP-User] [RN]Check rncore' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'React-Fabric' from project 'Pods')
+    Run script build phase '[CP-User] [RN]Check rncore' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'React-FabricComponents' from project 'Pods')
+    Run script build phase '[CP-User] [Hermes] Replace Hermes for the right configuration, if needed' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'hermes-engine' from project 'Pods')
+
+› 1 error(s), and 3 warning(s)
+
+CommandError: Failed to build iOS project. "xcodebuild" exited with error code 65.
