@@ -2,6 +2,20 @@ import { prisma } from '../lib/db';
 import { getArchetype } from '../lib/archetypes';
 import type { AgentStatus } from '@prisma/client';
 
+// Dynamic import to avoid circular dependency issues
+let heliusMonitor: any = null;
+async function getHeliusMonitor() {
+  if (!heliusMonitor) {
+    try {
+      const indexModule = await import('../index.js');
+      heliusMonitor = indexModule.heliusMonitor;
+    } catch (error) {
+      console.warn('⚠️  Could not import heliusMonitor:', error);
+    }
+  }
+  return heliusMonitor;
+}
+
 export async function createAgent(userId: string, archetypeId: string, name: string) {
   const archetype = getArchetype(archetypeId);
   if (!archetype) {
@@ -83,6 +97,21 @@ export async function deleteAgent(agentId: string, userId: string) {
 
   if (!agent || agent.userId !== userId) {
     throw new Error('Agent not found');
+  }
+
+  // Remove wallet from Helius monitoring if this is a SIWS agent
+  // (SIWS agents have their wallet pubkey as userId)
+  if (agent.userId.length >= 32 && agent.userId.length <= 44) {
+    try {
+      const monitor = await getHeliusMonitor();
+      if (monitor) {
+        monitor.removeWallet(agent.userId);
+        console.log(`✅ Removed wallet ${agent.userId.slice(0, 8)}... from Helius monitoring`);
+      }
+    } catch (error) {
+      // Don't block deletion if Helius fails
+      console.error(`❌ Failed to remove wallet from Helius monitoring:`, error);
+    }
   }
 
   return prisma.tradingAgent.delete({

@@ -6,6 +6,20 @@ import { z } from 'zod';
 
 const db = new PrismaClient();
 
+// Dynamic import to avoid circular dependency issues
+let heliusMonitor: any = null;
+async function getHeliusMonitor() {
+  if (!heliusMonitor) {
+    try {
+      const indexModule = await import('../index.js');
+      heliusMonitor = indexModule.heliusMonitor;
+    } catch (error) {
+      console.warn('⚠️  Could not import heliusMonitor:', error);
+    }
+  }
+  return heliusMonitor;
+}
+
 // Initialize Hono router
 export const siwsAuthRoutes = new Hono();
 
@@ -50,6 +64,9 @@ siwsAuthRoutes.post('/agent/verify', async (c) => {
       where: { userId: pubkey } // Use pubkey as userId for agents
     });
 
+    // Track if this is a new agent (for Helius monitoring)
+    const isNewAgent = !agent;
+
     // If not, create new agent registration
     if (!agent) {
       agent = await db.tradingAgent.create({
@@ -62,6 +79,22 @@ siwsAuthRoutes.post('/agent/verify', async (c) => {
           config: {} // Will be populated when archetype is chosen
         }
       });
+    }
+
+    // Add wallet to Helius monitoring (for new agents)
+    if (isNewAgent) {
+      try {
+        const monitor = await getHeliusMonitor();
+        if (monitor) {
+          monitor.addWallet(pubkey);
+          console.log(`✅ Added wallet ${pubkey.slice(0, 8)}... to Helius monitoring`);
+        } else {
+          console.warn(`⚠️  Helius monitor not available, wallet ${pubkey.slice(0, 8)}... not added to monitoring`);
+        }
+      } catch (error) {
+        // Don't block registration if Helius fails
+        console.error(`❌ Failed to add wallet to Helius monitoring:`, error);
+      }
     }
 
     // Issue JWT for this agent

@@ -159,6 +159,9 @@ app.onError((err, c) => {
   );
 });
 
+// Global Helius monitor instance (exported for dynamic wallet management)
+export let heliusMonitor: HeliusWebSocketMonitor | null = null;
+
 // Start Helius WebSocket Monitor (real-time transaction tracking)
 async function startHeliusMonitor() {
   const heliusApiKey = process.env.HELIUS_API_KEY;
@@ -168,7 +171,7 @@ async function startHeliusMonitor() {
     return;
   }
 
-  // Tracked wallets for real-time monitoring
+  // Tracked wallets for real-time monitoring (initial hardcoded wallets)
   const trackedWallets = [
     'DRhKVNHRwkh59puYfFekZxTNdaEqUGTzf692zoGtAoSy',
     '9U5PtsCxkma37wwMRmPLeLVqwGHvHMs7fyLaL47ovmTn',
@@ -176,17 +179,19 @@ async function startHeliusMonitor() {
   ];
 
   try {
-    const monitor = new HeliusWebSocketMonitor(heliusApiKey, trackedWallets, db);
+    heliusMonitor = new HeliusWebSocketMonitor(heliusApiKey, trackedWallets, db);
     
     // Start in background
-    monitor.start().catch((error) => {
+    heliusMonitor.start().catch((error) => {
       console.error('❌ Helius monitor failed to start:', error);
     });
 
     // Graceful shutdown
     process.on('SIGTERM', async () => {
       console.log('\n🛑 Shutting down...');
-      await monitor.stop();
+      if (heliusMonitor) {
+        await heliusMonitor.stop();
+      }
       process.exit(0);
     });
   } catch (error) {

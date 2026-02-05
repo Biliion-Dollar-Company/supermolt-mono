@@ -44,14 +44,68 @@ export class HeliusWebSocketMonitor {
   private ws: WebSocket | null = null;
   private db: PrismaClient;
   private apiKey: string;
-  private trackedWallets: string[];
+  private trackedWallets: Set<string>; // Changed to Set for O(1) lookups and uniqueness
   private isConnected = false;
   private reconnectAttempts = 0;
+  private subscriptions: Map<string, number> = new Map(); // Track subscription IDs
 
   constructor(apiKey: string, trackedWallets: string[], db: PrismaClient) {
     this.apiKey = apiKey;
-    this.trackedWallets = trackedWallets;
+    this.trackedWallets = new Set(trackedWallets);
     this.db = db;
+  }
+
+  /**
+   * Add a wallet to monitoring (dynamic)
+   */
+  addWallet(address: string): void {
+    if (this.trackedWallets.has(address)) {
+      console.log(`⚠️  Wallet ${address.slice(0, 8)}... already tracked`);
+      return;
+    }
+
+    // Check 100 wallet limit per connection
+    if (this.trackedWallets.size >= 100) {
+      console.error(`❌ Cannot add wallet: maximum 100 wallets per connection reached`);
+      throw new Error('Maximum wallet limit (100) reached. Need to implement multiple WebSocket connections.');
+    }
+
+    this.trackedWallets.add(address);
+    console.log(`➕ Added wallet to tracking: ${address.slice(0, 8)}... (total: ${this.trackedWallets.size})`);
+
+    // If already connected, subscribe immediately
+    if (this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
+      this.subscribeToWallet(address);
+    }
+  }
+
+  /**
+   * Remove a wallet from monitoring
+   */
+  removeWallet(address: string): void {
+    if (!this.trackedWallets.has(address)) {
+      console.log(`⚠️  Wallet ${address.slice(0, 8)}... not tracked`);
+      return;
+    }
+
+    this.trackedWallets.delete(address);
+    console.log(`➖ Removed wallet from tracking: ${address.slice(0, 8)}... (total: ${this.trackedWallets.size})`);
+
+    // If connected, unsubscribe
+    if (this.isConnected && this.ws?.readyState === WebSocket.OPEN) {
+      const subId = this.subscriptions.get(`wallet-${address}`);
+      if (subId) {
+        this.unsubscribeFromWallet(address, subId);
+        this.subscriptions.delete(`wallet-${address}`);
+      }
+    }
+  }
+
+  /**
+   * Get current tracked wallet count
+   */
+  getTrackedWalletCount(): number {
+    return this.trackedWallets.size;
   }
 
   /**
@@ -59,7 +113,7 @@ export class HeliusWebSocketMonitor {
    */
   async start(): Promise<void> {
     console.log('🟢 Starting Helius WebSocket Monitor');
-    console.log(`   Tracking wallets: ${this.trackedWallets.join(', ')}`);
+    console.log(`   Tracking wallets: ${Array.from(this.trackedWallets).join(', ')}`);
     this.connect();
   }
 
@@ -96,6 +150,49 @@ export class HeliusWebSocketMonitor {
   }
 
   /**
+   * Subscribe to a single wallet
+   */
+  private subscribeToWallet(wallet: string): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.warn('⚠️ WebSocket not open, cannot subscribe');
+      return;
+    }
+
+    const subscription = {
+      jsonrpc: '2.0',
+      id: `wallet-${wallet}`,
+      method: 'accountSubscribe',
+      params: [
+        wallet,
+        { commitment: 'confirmed', encoding: 'jsonParsed' }
+      ]
+    };
+
+    this.ws.send(JSON.stringify(subscription));
+    console.log(`📡 Subscribed to wallet: ${wallet.slice(0, 8)}...`);
+  }
+
+  /**
+   * Unsubscribe from a single wallet
+   */
+  private unsubscribeFromWallet(wallet: string, subscriptionId: number): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.warn('⚠️ WebSocket not open, cannot unsubscribe');
+      return;
+    }
+
+    const unsubscribe = {
+      jsonrpc: '2.0',
+      id: `unsub-wallet-${wallet}`,
+      method: 'accountUnsubscribe',
+      params: [subscriptionId]
+    };
+
+    this.ws.send(JSON.stringify(unsubscribe));
+    console.log(`📡 Unsubscribed from wallet: ${wallet.slice(0, 8)}...`);
+  }
+
+  /**
    * Subscribe to tracked wallets using accountSubscribe
    * (Helius-specific: watches accounts for changes)
    */
@@ -107,18 +204,7 @@ export class HeliusWebSocketMonitor {
 
     // Subscribe to each wallet using accountSubscribe
     for (const wallet of this.trackedWallets) {
-      const subscription = {
-        jsonrpc: '2.0',
-        id: `wallet-${wallet}`,
-        method: 'accountSubscribe',
-        params: [
-          wallet,
-          { commitment: 'confirmed', encoding: 'jsonParsed' }
-        ]
-      };
-
-      this.ws!.send(JSON.stringify(subscription));
-      console.log(`📡 Subscribed to wallet: ${wallet.slice(0, 8)}...`);
+      this.subscribeToWallet(wallet);
     }
 
     // Also subscribe to program logs (for Pump.fun/PumpSwap activity detection)
@@ -151,9 +237,18 @@ export class HeliusWebSocketMonitor {
     try {
       const message: any = JSON.parse(data.toString());
 
-      // Skip subscription confirmations
+      // Track subscription confirmations (store subscription IDs for later unsubscribe)
       if (message.result && typeof message.result === 'number') {
-        console.log(`📡 Subscription confirmed: ${message.id}`);
+        const subId = message.result;
+        const msgId = message.id;
+        
+        // Store wallet subscription IDs for future unsubscribe
+        if (msgId && msgId.startsWith('wallet-')) {
+          this.subscriptions.set(msgId, subId);
+          console.log(`📡 Subscription confirmed: ${msgId} (subId: ${subId})`);
+        } else {
+          console.log(`📡 Subscription confirmed: ${msgId || 'unknown'}`);
+        }
         return;
       }
 
@@ -161,7 +256,7 @@ export class HeliusWebSocketMonitor {
       if (message.method === 'accountNotification') {
         const account = message.params?.result?.value?.owner;
         
-        if (account && this.trackedWallets.includes(account)) {
+        if (account && this.trackedWallets.has(account)) {
           console.log(`\n📨 Account activity detected: ${account.slice(0, 8)}...`);
           
           // Process account activity
@@ -204,7 +299,7 @@ export class HeliusWebSocketMonitor {
    */
   private async extractSigner(result: any): Promise<string | null> {
     // Check account field (for wallet subscriptions)
-    if (result.account && this.trackedWallets.includes(result.account)) {
+    if (result.account && this.trackedWallets.has(result.account)) {
       return result.account;
     }
 
