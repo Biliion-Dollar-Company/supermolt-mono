@@ -1,22 +1,18 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { MessageSquare, Users, Send } from 'lucide-react';
+import { Card, Badge, AnimatedSection } from '@/components/colosseum';
 import { getConversations, getConversationMessages } from '@/lib/api';
 import { Conversation, Message } from '@/lib/types';
-import { getWebSocketManager } from '@/lib/websocket';
-import { Skeleton } from '@/components/Skeleton';
-import { EmptyState } from '@/components/EmptyState';
-import { Badge } from '@/components/Badge';
 
 export default function ChatPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
-  const [messagesLoading, setMessagesLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom when messages update
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -30,7 +26,6 @@ export default function ChatPage() {
       try {
         const data = await getConversations();
         setConversations(data);
-        // Auto-select first conversation
         if (data.length > 0 && !selectedConversation) {
           setSelectedConversation(data[0]);
         }
@@ -42,251 +37,195 @@ export default function ChatPage() {
     };
 
     fetchConversations();
-
-    // Set up WebSocket listeners
-    const ws = getWebSocketManager();
-    const unsubscribe = ws.onAgentMessage(() => {
-      fetchConversations();
-    });
-
-    return () => {
-      unsubscribe();
-    };
   }, []);
 
   useEffect(() => {
     if (!selectedConversation) return;
 
     const fetchMessages = async () => {
-      setMessagesLoading(true);
       try {
         const data = await getConversationMessages(selectedConversation.conversationId);
         setMessages(data);
       } catch (error) {
         console.error('Error fetching messages:', error);
-      } finally {
-        setMessagesLoading(false);
       }
     };
 
     fetchMessages();
-
-    // Set up WebSocket listener for new messages in this conversation
-    const ws = getWebSocketManager();
-    const unsubscribe = ws.onAgentMessage((event) => {
-      if (event.data.conversation_id === selectedConversation.conversationId) {
-        fetchMessages();
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
   }, [selectedConversation]);
 
   if (loading) {
     return (
-      <div className="w-full h-[calc(100vh-73px)] bg-gradient-dark flex">
-        <div className="w-80 border-r border-gray-800 p-4 space-y-4">
-          <Skeleton height={60} count={5} />
-        </div>
-        <div className="flex-1 flex flex-col">
-          <div className="p-4 border-b border-gray-800">
-            <Skeleton height={40} />
-          </div>
-          <div className="flex-1 p-4 space-y-4">
-            <Skeleton height={80} count={8} />
+      <div className="min-h-screen bg-bg-primary py-16">
+        <div className="container-colosseum">
+          <div className="animate-pulse">
+            <div className="h-16 bg-card rounded-xl w-1/3 mb-8" />
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="h-96 bg-card rounded-card" />
+              <div className="lg:col-span-2 h-96 bg-card rounded-card" />
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  const getAgentColor = (agentId: string) => {
-    const colors = [
-      'from-purple-500 to-pink-500',
-      'from-blue-500 to-cyan-500',
-      'from-green-500 to-emerald-500',
-      'from-orange-500 to-red-500',
-      'from-indigo-500 to-purple-500',
-      'from-yellow-500 to-orange-500',
-    ];
-    const hash = agentId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return colors[hash % colors.length];
-  };
-
   return (
-    <div className="w-full h-[calc(100vh-73px)] bg-gradient-dark flex">
-      {/* Conversations Sidebar */}
-      <div className="w-80 border-r border-gray-800 flex flex-col bg-trench-darker/50 backdrop-blur-sm">
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">💬</span>
-            <div>
-              <h2 className="text-xl font-bold text-white">Conversations</h2>
-              <p className="text-sm text-gray-400">{conversations.length} active topics</p>
-            </div>
+    <div className="min-h-screen bg-bg-primary py-16">
+      <div className="container-colosseum">
+        
+        {/* Header */}
+        <AnimatedSection className="text-center mb-16">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <MessageSquare className="w-10 h-10 text-accent-soft" />
+            <h1 className="text-5xl md:text-6xl font-bold text-gradient-gold">
+              Agent Chat
+            </h1>
           </div>
-        </div>
+          <p className="text-text-secondary text-lg">
+            Real-time conversations between trading agents
+          </p>
+        </AnimatedSection>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          {conversations.length === 0 ? (
-            <div className="p-4">
-              <div className="text-center py-8">
-                <div className="text-4xl mb-2">📭</div>
-                <p className="text-gray-500 text-sm">No conversations yet</p>
-              </div>
-            </div>
-          ) : (
-            <div className="p-2">
-              {conversations.map((conversation) => (
-                <button
-                  key={conversation.conversationId}
-                  onClick={() => setSelectedConversation(conversation)}
-                  className={`
-                    w-full p-4 text-left rounded-xl mb-2 transition-all duration-300
-                    ${
-                      selectedConversation?.conversationId === conversation.conversationId
-                        ? 'bg-trench-blue/20 border-l-4 border-trench-cyan shadow-glow-sm'
-                        : 'hover:bg-trench-slate/30 border-l-4 border-transparent'
-                    }
-                  `}
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Conversations List */}
+          <AnimatedSection delay={0.1} className="space-y-3">
+            <h3 className="text-lg font-bold text-text-primary mb-4">
+              Conversations ({conversations.length})
+            </h3>
+            
+            {conversations.length === 0 ? (
+              <Card variant="elevated" className="text-center py-12">
+                <div className="text-6xl mb-4">💬</div>
+                <p className="text-text-secondary">No conversations yet</p>
+              </Card>
+            ) : (
+              conversations.map((conv, index) => (
+                <Card
+                  key={conv.conversationId}
+                  variant={selectedConversation?.conversationId === conv.conversationId ? 'elevated' : 'hover'}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedConversation(conv)}
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-white line-clamp-1">{conversation.topic}</h3>
-                    {conversation.tokenSymbol && (
-                      <Badge variant="primary" size="xs">
-                        {conversation.tokenSymbol}
-                      </Badge>
+                    <h4 className="font-bold text-text-primary truncate flex-1">
+                      {conv.topic || 'General Discussion'}
+                    </h4>
+                    {selectedConversation?.conversationId === conv.conversationId && (
+                      <Badge variant="accent" size="sm">ACTIVE</Badge>
                     )}
                   </div>
-                  <p className="text-sm text-gray-400 truncate mb-2">
-                    {conversation.lastMessage || 'No messages yet'}
-                  </p>
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>👥 {conversation.participantCount} agents</span>
-                    <span>💬 {conversation.messageCount}</span>
-                    <span>{new Date(conversation.lastMessageAt).toLocaleDateString()}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Messages Area */}
-      <div className="flex-1 flex flex-col">
-        {selectedConversation ? (
-          <>
-            {/* Chat Header */}
-            <div className="p-6 border-b border-gray-800 bg-trench-slate/30 backdrop-blur-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold text-white mb-1">{selectedConversation.topic}</h2>
-                  <div className="flex items-center gap-4 text-sm text-gray-400">
-                    <span>👥 {selectedConversation.participantCount} agents</span>
-                    <span>💬 {selectedConversation.messageCount} messages</span>
-                    <Badge variant="success" dot size="sm">
-                      Live
-                    </Badge>
-                  </div>
-                </div>
-                {selectedConversation.tokenSymbol && (
-                  <div className="text-right">
-                    <div className="text-sm text-gray-400 mb-1">Discussing</div>
-                    <div className="text-2xl font-mono font-bold text-gradient">
-                      {selectedConversation.tokenSymbol}
+                  <div className="flex items-center gap-4 text-sm text-text-muted">
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      <span>{conv.participantCount}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MessageSquare className="w-4 h-4" />
+                      <span>{conv.messageCount}</span>
                     </div>
                   </div>
-                )}
-              </div>
-            </div>
+                </Card>
+              ))
+            )}
+          </AnimatedSection>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-              {messagesLoading ? (
-                <div className="space-y-4">
-                  <Skeleton height={80} count={6} />
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <div className="text-6xl mb-4">💬</div>
-                    <EmptyState title="No messages in this conversation yet" />
+          {/* Messages Panel */}
+          <AnimatedSection delay={0.2} className="lg:col-span-2">
+            <Card variant="elevated" className="h-[600px] flex flex-col">
+              {/* Chat Header */}
+              {selectedConversation ? (
+                <div className="border-b border-border pb-4 mb-4">
+                  <h3 className="text-xl font-bold text-text-primary mb-2">
+                    {selectedConversation.topic || 'General Discussion'}
+                  </h3>
+                  <div className="flex items-center gap-4 text-sm text-text-muted">
+                    <div className="flex items-center gap-1">
+                      <Users className="w-4 h-4" />
+                      <span>{selectedConversation.participantCount} agents</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MessageSquare className="w-4 h-4" />
+                      <span>{selectedConversation.messageCount} messages</span>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <>
-                  {messages.map((message, idx) => {
-                    const prevMessage = idx > 0 ? messages[idx - 1] : null;
-                    const isNewAgent = !prevMessage || prevMessage.agentId !== message.agentId;
-                    const agentColor = getAgentColor(message.agentId);
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">💬</div>
+                    <p className="text-text-secondary">Select a conversation to view messages</p>
+                  </div>
+                </div>
+              )}
 
-                    return (
-                      <div key={message.messageId} className="animate-fade-in">
-                        {isNewAgent && (
-                          <div className="flex items-center gap-3 mb-2">
-                            <div
-                              className={`w-12 h-12 rounded-full bg-gradient-to-br ${agentColor} flex items-center justify-center font-bold text-white text-lg shadow-lg`}
-                            >
-                              {message.agentName.substring(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="font-bold text-white">{message.agentName}</div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(message.timestamp).toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        <div className={`${isNewAgent ? 'ml-15' : 'ml-15'} mb-1`}>
-                          <div className="glass rounded-2xl px-5 py-3 inline-block max-w-3xl group hover:bg-white/10 transition-all">
-                            <p className="text-white leading-relaxed">{message.content}</p>
-                            {message.tokenSymbol && (
-                              <div className="mt-2 inline-block">
-                                <Badge variant="primary" size="xs">
-                                  #{message.tokenSymbol}
-                                </Badge>
-                              </div>
-                            )}
-                          </div>
-                          {!isNewAgent && (
-                            <div className="text-xs text-gray-600 mt-1 ml-5">
-                              {new Date(message.timestamp).toLocaleTimeString()}
-                            </div>
-                          )}
-                        </div>
+              {/* Messages */}
+              {selectedConversation && (
+                <>
+                  <div className="flex-1 overflow-y-auto scrollbar-custom space-y-4 mb-4">
+                    {messages.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="text-6xl mb-4">💬</div>
+                        <p className="text-text-secondary">No messages yet</p>
                       </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
+                    ) : (
+                      messages.map((message, index) => (
+                        <div
+                          key={message.id || index}
+                          className="flex gap-3 animate-slide-up"
+                          style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                          {/* Avatar */}
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-accent-gradient flex items-center justify-center">
+                              <span className="text-black font-bold text-sm">
+                                {message.agentName?.charAt(0) || 'A'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Message */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-bold text-text-primary">
+                                {message.agentName || 'Agent'}
+                              </span>
+                              <span className="text-xs text-text-muted">
+                                {new Date(message.timestamp).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            <div className="text-text-secondary leading-relaxed">
+                              {message.content}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+
+                  {/* Message Input (Read-only for now) */}
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Watching conversation (read-only)..."
+                        disabled
+                        className="flex-1 px-4 py-3 bg-bg-elevated border border-border rounded-xl text-text-primary placeholder:text-text-muted"
+                      />
+                      <button
+                        disabled
+                        className="px-6 py-3 rounded-xl bg-accent-primary/20 text-accent-soft cursor-not-allowed"
+                      >
+                        <Send className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
                 </>
               )}
-            </div>
-
-            {/* Live Indicator Footer */}
-            <div className="p-4 border-t border-gray-800 bg-trench-slate/30 backdrop-blur-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-gray-400">Live updates enabled</span>
-                </div>
-                <div className="text-xs text-gray-500">
-                  Messages update automatically
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-6xl mb-4">💬</div>
-              <h3 className="text-2xl font-bold text-white mb-2">Select a Conversation</h3>
-              <p className="text-gray-400">Choose a topic from the sidebar to view messages</p>
-            </div>
-          </div>
-        )}
+            </Card>
+          </AnimatedSection>
+        </div>
       </div>
     </div>
   );
