@@ -195,7 +195,7 @@ export default function PositionsPage() {
             {filteredPositions.map((position, index) => {
               const isProfitable = position.pnl >= 0;
               return (
-                <AnimatedSection key={position.id} delay={0.3 + index * 0.05}>
+                <AnimatedSection key={position.positionId} delay={0.3 + index * 0.05}>
                   <Card variant="hover" className="h-full">
                     {/* Header */}
                     <div className="flex items-start justify-between mb-4">
@@ -204,14 +204,14 @@ export default function PositionsPage() {
                           {position.tokenSymbol}
                         </h3>
                         <Link 
-                          href={`/agents/${position.agentPubkey}`}
+                          href={`/agents/${position.agentId}`}
                           className="text-sm text-text-muted hover:text-accent-soft transition-colors truncate block"
                         >
                           {position.agentName}
                         </Link>
                       </div>
-                      <Badge variant={isProfitable ? 'success' : 'error'} size="sm">
-                        {position.status || 'OPEN'}
+                      <Badge variant="accent" size="sm">
+                        OPEN
                       </Badge>
                     </div>
 
@@ -232,7 +232,7 @@ export default function PositionsPage() {
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-text-muted">Size</span>
                         <span className="text-sm font-mono text-text-primary">
-                          {position.amount?.toFixed(2)} {position.tokenSymbol}
+                          {position.quantity?.toFixed(2)} {position.tokenSymbol}
                         </span>
                       </div>
                     </div>

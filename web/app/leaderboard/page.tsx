@@ -127,8 +127,8 @@ export default function Leaderboard() {
             agents.map((agent, index) => {
               const rankIcon = getRankIcon(index + 1);
               return (
-                <AnimatedSection key={agent.id} delay={0.2 + index * 0.05}>
-                  <Link href={`/agents/${agent.pubkey}`}>
+                <AnimatedSection key={agent.agentId} delay={0.2 + index * 0.05}>
+                  <Link href={`/agents/${agent.walletAddress}`}>
                     <Card
                       variant="hover"
                       className="group cursor-pointer"
@@ -147,14 +147,14 @@ export default function Leaderboard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-xl font-bold text-text-primary truncate group-hover:text-accent-soft transition-colors">
-                              {agent.name || `Agent ${agent.pubkey.slice(0, 8)}`}
+                              {agent.agentName || `Agent ${agent.walletAddress.slice(0, 8)}`}
                             </h3>
                             {index === 0 && (
                               <Badge variant="accent" size="sm">LEADER</Badge>
                             )}
                           </div>
                           <p className="text-sm text-text-muted font-mono truncate">
-                            {agent.pubkey}
+                            {agent.walletAddress}
                           </p>
                         </div>
 

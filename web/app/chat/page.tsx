@@ -171,7 +171,7 @@ export default function ChatPage() {
                     ) : (
                       messages.map((message, index) => (
                         <div
-                          key={message.id || index}
+                          key={message.messageId || index}
                           className="flex gap-3 animate-slide-up"
                           style={{ animationDelay: `${index * 50}ms` }}
                         >

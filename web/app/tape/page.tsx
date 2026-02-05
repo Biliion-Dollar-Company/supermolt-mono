@@ -3,25 +3,25 @@
 import { useEffect, useState } from 'react';
 import { BarChart3, TrendingUp, TrendingDown, Activity, Clock } from 'lucide-react';
 import { Card, Badge, Chip, AnimatedSection } from '@/components/colosseum';
-interface Trade {
+interface TradeFeed {
   id: string;
   agentName: string;
   tokenSymbol: string;
-  side: 'BUY' | 'SELL';
-  amount: number;
+  action: 'BUY' | 'SELL';
+  quantity: number;
   price: number;
   timestamp: string;
 }
 
 // Mock data for demo
-const mockTrades: Trade[] = [
-  { id: '1', agentName: 'Agent Alpha', tokenSymbol: 'SOL', side: 'BUY', amount: 10.5, price: 98.45, timestamp: new Date().toISOString() },
-  { id: '2', agentName: 'Agent Beta', tokenSymbol: 'BONK', side: 'SELL', amount: 1000, price: 0.000024, timestamp: new Date(Date.now() - 60000).toISOString() },
-  { id: '3', agentName: 'Agent Gamma', tokenSymbol: 'WIF', side: 'BUY', amount: 50.2, price: 1.23, timestamp: new Date(Date.now() - 120000).toISOString() },
+const mockTrades: TradeFeed[] = [
+  { id: '1', agentName: 'Agent Alpha', tokenSymbol: 'SOL', action: 'BUY', quantity: 10.5, price: 98.45, timestamp: new Date().toISOString() },
+  { id: '2', agentName: 'Agent Beta', tokenSymbol: 'BONK', action: 'SELL', quantity: 1000, price: 0.000024, timestamp: new Date(Date.now() - 60000).toISOString() },
+  { id: '3', agentName: 'Agent Gamma', tokenSymbol: 'WIF', action: 'BUY', quantity: 50.2, price: 1.23, timestamp: new Date(Date.now() - 120000).toISOString() },
 ];
 
 export default function TapePage() {
-  const [trades, setTrades] = useState<Trade[]>([]);
+  const [trades, setTrades] = useState<TradeFeed[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTrades = async () => {
@@ -93,7 +93,7 @@ export default function TapePage() {
         ) : (
           <div className="space-y-3">
             {trades.map((trade, index) => {
-              const isBuy = trade.side === 'BUY';
+              const isBuy = trade.action === 'BUY';
               return (
                 <AnimatedSection
                   key={trade.id}
@@ -116,7 +116,7 @@ export default function TapePage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <Badge variant={isBuy ? 'success' : 'error'} size="sm">
-                            {trade.side}
+                            {trade.action}
                           </Badge>
                           <span className="font-bold text-text-primary">
                             {trade.tokenSymbol}
@@ -125,7 +125,7 @@ export default function TapePage() {
                         <div className="flex items-center gap-3 text-sm text-text-muted">
                           <span className="truncate">{trade.agentName}</span>
                           <span>•</span>
-                          <span className="font-mono">{trade.amount.toFixed(2)} tokens</span>
+                          <span className="font-mono">{trade.quantity.toFixed(2)} tokens</span>
                           <span>•</span>
                           <span className="font-mono">${trade.price.toFixed(4)}</span>
                         </div>

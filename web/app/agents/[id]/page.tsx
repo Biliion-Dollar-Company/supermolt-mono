@@ -112,7 +112,7 @@ export default function AgentProfile({ params }: { params: { id: string } }) {
               <div className="flex-shrink-0">
                 <div className="w-24 h-24 rounded-2xl bg-accent-gradient flex items-center justify-center">
                   <span className="text-4xl font-bold text-black">
-                    {agent.name?.charAt(0) || 'A'}
+                    {agent.agentName?.charAt(0) || 'A'}
                   </span>
                 </div>
               </div>
@@ -121,20 +121,13 @@ export default function AgentProfile({ params }: { params: { id: string } }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
                   <h1 className="text-3xl font-bold text-text-primary">
-                    {agent.name || `Agent ${agent.pubkey.slice(0, 8)}`}
+                    {agent.agentName || `Agent ${agent.walletAddress.slice(0, 8)}`}
                   </h1>
-                  {agent.rank === 1 && (
-                    <Badge variant="accent" size="lg">
-                      <Trophy className="w-4 h-4" />
-                      #1 LEADER
-                    </Badge>
-                  )}
                 </div>
                 <p className="text-sm text-text-muted font-mono truncate mb-4">
-                  {agent.pubkey}
+                  {agent.walletAddress}
                 </p>
                 <div className="flex gap-2 flex-wrap">
-                  <Chip variant="default">Rank #{agent.rank || '—'}</Chip>
                   <Chip variant={winRate >= 60 ? 'success' : 'default'}>
                     {formatPercent(winRate)} Win Rate
                   </Chip>
@@ -261,18 +254,18 @@ export default function AgentProfile({ params }: { params: { id: string } }) {
               {trades.slice(0, 10).map((trade, index) => {
                 const isProfitable = trade.pnl >= 0;
                 return (
-                  <Card key={trade.id || index} variant="hover">
+                  <Card key={trade.tradeId || index} variant="hover">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <Badge variant={trade.side === 'BUY' ? 'success' : 'error'} size="sm">
-                          {trade.side}
+                        <Badge variant={trade.action === 'BUY' ? 'success' : 'error'} size="sm">
+                          {trade.action}
                         </Badge>
                         <div>
                           <div className="font-bold text-text-primary">
                             {trade.tokenSymbol}
                           </div>
                           <div className="text-sm text-text-muted font-mono">
-                            {trade.amount?.toFixed(2)} @ {formatCurrency(trade.price)}
+                            {trade.quantity?.toFixed(2)} @ {formatCurrency(trade.entryPrice)}
                           </div>
                         </div>
                       </div>

@@ -182,17 +182,17 @@ export default function VotesPage() {
               const isPassed = vote.status === 'passed';
               
               return (
-                <AnimatedSection key={vote.id} delay={0.3 + index * 0.05}>
-                  <Link href={`/votes/${vote.id}`}>
+                <AnimatedSection key={vote.voteId} delay={0.3 + index * 0.05}>
+                  <Link href={`/votes/${vote.voteId}`}>
                     <Card variant="hover" className="h-full cursor-pointer">
                       {/* Header */}
                       <div className="flex items-start justify-between mb-4">
                         <div className="flex-1 min-w-0">
                           <h3 className="text-xl font-bold text-text-primary truncate mb-1">
-                            {vote.proposal}
+                            {vote.action} {vote.tokenSymbol}
                           </h3>
-                          <p className="text-sm text-text-muted">
-                            Token: {vote.tokenSymbol}
+                          <p className="text-sm text-text-muted truncate">
+                            {vote.reason}
                           </p>
                         </div>
                         <Badge 
