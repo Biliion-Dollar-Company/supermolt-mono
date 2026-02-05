@@ -2,18 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getAgent, getAgentTrades, getAgentPositions, getAgentProfile, isAuthenticated, getJWT } from '@/lib/api';
-import { Agent, Trade, Position, Profile } from '@/lib/types';
-import ProfileEditModal from '@/components/ProfileEditModal';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts';
+import { ArrowLeft, Trophy, TrendingUp, Target, Activity, Calendar } from 'lucide-react';
+import { Button, Card, Badge, Chip, AnimatedSection } from '@/components/colosseum';
+import { getAgent, getAgentTrades, getAgentPositions } from '@/lib/api';
+import { Agent, Trade, Position } from '@/lib/types';
+import { formatCurrency, formatPercent } from '@/lib/design-system';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface ChartData {
   timestamp: string;
@@ -22,44 +16,23 @@ interface ChartData {
 
 export default function AgentProfile({ params }: { params: { id: string } }) {
   const [agent, setAgent] = useState<Agent | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showPositions, setShowPositions] = useState(true);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isOwnProfile, setIsOwnProfile] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
         const [agentData, tradesData, positionsData] = await Promise.all([
           getAgent(params.id),
-          getAgentTrades(params.id, 100),
+          getAgentTrades(params.id, 50),
           getAgentPositions(params.id),
         ]);
 
         setAgent(agentData);
         setTrades(tradesData);
         setPositions(positionsData);
-
-        // Fetch profile data
-        try {
-          const profileData = await getAgentProfile(params.id);
-          setProfile(profileData);
-          
-          // Check if this is the user's own profile
-          if (isAuthenticated()) {
-            // For now, we'll assume the authenticated user's wallet matches params.id
-            // In a real app, you'd decode the JWT to get the user's wallet
-            setIsOwnProfile(true); // TODO: Implement proper ownership check
-          }
-        } catch (profileErr) {
-          console.warn('Failed to load profile data:', profileErr);
-        }
 
         // Build cumulative PnL chart
         const sorted = [...tradesData].sort(
@@ -74,10 +47,8 @@ export default function AgentProfile({ params }: { params: { id: string } }) {
           };
         });
         setChartData(data);
-        setError(null);
       } catch (err) {
-        setError('Failed to load agent data. Please try again.');
-        console.error(err);
+        console.error('Failed to load agent:', err);
       } finally {
         setLoading(false);
       }
@@ -88,353 +59,238 @@ export default function AgentProfile({ params }: { params: { id: string } }) {
 
   if (loading) {
     return (
-      <div className="w-full min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto"></div>
-          <p className="mt-4 text-gray-400">Loading agent details...</p>
+      <div className="min-h-screen bg-bg-primary py-16">
+        <div className="container-colosseum">
+          <div className="animate-pulse space-y-8">
+            <div className="h-32 bg-card rounded-card" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-card rounded-card" />)}
+            </div>
+            <div className="h-96 bg-card rounded-card" />
+          </div>
         </div>
       </div>
     );
   }
 
-  if (error || !agent) {
+  if (!agent) {
     return (
-      <div className="w-full min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 mb-4">{error || 'Agent not found'}</p>
-          <Link
-            href="/leaderboard"
-            className="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600"
-          >
-            Back to Leaderboard
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+        <Card variant="elevated" className="text-center py-12 max-w-md">
+          <div className="text-6xl mb-4">🤖</div>
+          <h2 className="text-2xl font-bold text-text-primary mb-4">Agent Not Found</h2>
+          <Link href="/leaderboard">
+            <Button variant="primary">Back to Leaderboard</Button>
           </Link>
-        </div>
+        </Card>
       </div>
     );
   }
 
-  const winCount = trades.filter((t) => t.pnl > 0).length;
-  const lossCount = trades.filter((t) => t.pnl < 0).length;
+  const winCount = trades.filter(t => t.pnl > 0).length;
+  const winRate = trades.length > 0 ? (winCount / trades.length) * 100 : 0;
 
   return (
-    <div className="w-full min-h-screen bg-gray-950 p-6">
-      <div className="max-w-7xl mx-auto">
-        <Link
-          href="/leaderboard"
-          className="text-cyan-400 hover:text-cyan-300 mb-6 inline-block"
-        >
-          ← Back to Leaderboard
-        </Link>
+    <div className="min-h-screen bg-bg-primary py-16">
+      <div className="container-colosseum">
+        
+        {/* Back Button */}
+        <AnimatedSection className="mb-8">
+          <Link href="/leaderboard">
+            <Button variant="secondary" size="sm">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Leaderboard
+            </Button>
+          </Link>
+        </AnimatedSection>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 mb-8">
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex items-center gap-6">
+        {/* Agent Header */}
+        <AnimatedSection delay={0.1}>
+          <Card variant="elevated" className="mb-8">
+            <div className="flex items-start gap-6">
               {/* Avatar */}
-              {profile?.avatarUrl ? (
-                <img
-                  src={profile.avatarUrl}
-                  alt={profile.displayName || agent.agentName}
-                  className="w-24 h-24 rounded-full border-2 border-cyan-400"
-                  onError={(e) => {
-                    // Fallback to placeholder on error
-                    e.currentTarget.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${agent.walletAddress}`;
-                  }}
-                />
-              ) : (
-                <img
-                  src={`https://api.dicebear.com/7.x/bottts/svg?seed=${agent.walletAddress}`}
-                  alt={agent.agentName}
-                  className="w-24 h-24 rounded-full border-2 border-gray-700"
-                />
-              )}
-              
-              <div>
-                <h1 className="text-4xl font-bold text-cyan-400 mb-2">
-                  {profile?.displayName || agent.agentName}
-                </h1>
-                <p className="text-gray-400 font-mono text-sm mb-3">
-                  {agent.walletAddress.substring(0, 20)}...{agent.walletAddress.slice(-20)}
+              <div className="flex-shrink-0">
+                <div className="w-24 h-24 rounded-2xl bg-accent-gradient flex items-center justify-center">
+                  <span className="text-4xl font-bold text-black">
+                    {agent.name?.charAt(0) || 'A'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-bold text-text-primary">
+                    {agent.name || `Agent ${agent.pubkey.slice(0, 8)}`}
+                  </h1>
+                  {agent.rank === 1 && (
+                    <Badge variant="accent" size="lg">
+                      <Trophy className="w-4 h-4" />
+                      #1 LEADER
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-text-muted font-mono truncate mb-4">
+                  {agent.pubkey}
                 </p>
-                
-                {/* Social Links */}
-                {profile && (profile.twitterHandle || profile.website || profile.discord || profile.telegram) && (
-                  <div className="flex gap-3 mt-2">
-                    {profile.twitterHandle && (
-                      <a
-                        href={`https://twitter.com/${profile.twitterHandle.replace('@', '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cyan-400 text-sm"
-                      >
-                        🐦 Twitter
-                      </a>
-                    )}
-                    {profile.website && (
-                      <a
-                        href={profile.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cyan-400 text-sm"
-                      >
-                        🌐 Website
-                      </a>
-                    )}
-                    {profile.discord && (
-                      <span className="text-gray-400 text-sm">
-                        💬 {profile.discord}
-                      </span>
-                    )}
-                    {profile.telegram && (
-                      <a
-                        href={`https://t.me/${profile.telegram.replace('@', '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-cyan-400 text-sm"
-                      >
-                        ✈️ Telegram
-                      </a>
-                    )}
-                  </div>
-                )}
+                <div className="flex gap-2 flex-wrap">
+                  <Chip variant="default">Rank #{agent.rank || '—'}</Chip>
+                  <Chip variant={winRate >= 60 ? 'success' : 'default'}>
+                    {formatPercent(winRate)} Win Rate
+                  </Chip>
+                  <Chip variant={agent.total_pnl >= 0 ? 'success' : 'error'}>
+                    {formatCurrency(agent.total_pnl)} Total P&L
+                  </Chip>
+                </div>
               </div>
             </div>
+          </Card>
+        </AnimatedSection>
 
-            {/* Edit Button */}
-            {isOwnProfile && profile && (
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="px-4 py-2 bg-cyan-500 text-white rounded hover:bg-cyan-600 font-medium"
-              >
-                Edit Profile
-              </button>
-            )}
-          </div>
+        {/* Stats Grid */}
+        <AnimatedSection delay={0.2} className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <Card variant="hover" className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="p-2 rounded-xl bg-accent-primary/10">
+                <Trophy className="w-5 h-5 text-accent-soft" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-text-primary mb-1">
+              {agent.sortino_ratio?.toFixed(2) || '—'}
+            </div>
+            <div className="text-xs text-text-muted uppercase tracking-wide">
+              Sortino Ratio
+            </div>
+          </Card>
 
-          {/* Bio */}
-          {profile?.bio && (
-            <div className="mb-6 p-4 bg-gray-800 rounded">
-              <p className="text-gray-300">{profile.bio}</p>
+          <Card variant="hover" className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="p-2 rounded-xl bg-success/10">
+                <TrendingUp className="w-5 h-5 text-success" />
+              </div>
             </div>
-          )}
+            <div className="text-2xl font-bold text-text-primary mb-1">
+              {formatPercent(winRate)}
+            </div>
+            <div className="text-xs text-text-muted uppercase tracking-wide">
+              Win Rate
+            </div>
+          </Card>
 
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="bg-gray-800 p-4 rounded">
-              <p className="text-gray-400 text-sm mb-1">Sortino Ratio</p>
-              <p className="text-2xl font-bold text-cyan-400">
-                {(agent.sortino_ratio || 0).toFixed(2)}
-              </p>
+          <Card variant="hover" className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="p-2 rounded-xl bg-accent-primary/10">
+                <Activity className="w-5 h-5 text-accent-soft" />
+              </div>
             </div>
-            <div className="bg-gray-800 p-4 rounded">
-              <p className="text-gray-400 text-sm mb-1">Win Rate</p>
-              <p className="text-2xl font-bold text-cyan-400">
-                {(agent.win_rate || 0).toFixed(1)}%
-              </p>
+            <div className="text-2xl font-bold text-text-primary mb-1">
+              {agent.trade_count || 0}
             </div>
-            <div className="bg-gray-800 p-4 rounded">
-              <p className="text-gray-400 text-sm mb-1">Total PnL</p>
-              <p
-                className={`text-2xl font-bold ${
-                  (agent.total_pnl || 0) > 0 ? 'text-green-400' : 'text-red-400'
-                }`}
-              >
-                ${(agent.total_pnl || 0).toFixed(2)}
-              </p>
+            <div className="text-xs text-text-muted uppercase tracking-wide">
+              Total Trades
             </div>
-            <div className="bg-gray-800 p-4 rounded">
-              <p className="text-gray-400 text-sm mb-1">Trades</p>
-              <p className="text-2xl font-bold text-cyan-400">{agent.trade_count || 0}</p>
-            </div>
-            <div className="bg-gray-800 p-4 rounded">
-              <p className="text-gray-400 text-sm mb-1">Wins / Losses</p>
-              <p className="text-2xl font-bold text-cyan-400">
-                {winCount} / {lossCount}
-              </p>
-            </div>
-            <div className="bg-gray-800 p-4 rounded">
-              <p className="text-gray-400 text-sm mb-1">Avg Win / Loss</p>
-              <p className="text-2xl font-bold">
-                <span className="text-green-400">${(agent.average_win || 0).toFixed(2)}</span>
-                {' / '}
-                <span className="text-red-400">${(agent.average_loss || 0).toFixed(2)}</span>
-              </p>
-            </div>
-          </div>
-        </div>
+          </Card>
 
+          <Card variant="hover" className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="p-2 rounded-xl bg-accent-primary/10">
+                <Target className="w-5 h-5 text-accent-soft" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-text-primary mb-1">
+              {positions.length}
+            </div>
+            <div className="text-xs text-text-muted uppercase tracking-wide">
+              Open Positions
+            </div>
+          </Card>
+        </AnimatedSection>
+
+        {/* P&L Chart */}
         {chartData.length > 0 && (
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 mb-8">
-            <h2 className="text-2xl font-bold text-cyan-400 mb-6">Cumulative PnL</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis
-                  dataKey="timestamp"
-                  stroke="#888"
-                  style={{ fontSize: '12px' }}
-                  tick={{ fill: '#888' }}
-                />
-                <YAxis stroke="#888" style={{ fontSize: '12px' }} tick={{ fill: '#888' }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1f3a',
-                    border: '1px solid #00d4ff',
-                    borderRadius: '4px',
-                  }}
-                  labelStyle={{ color: '#e4e4e7' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="cumulativePnL"
-                  stroke="#00d4ff"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <AnimatedSection delay={0.3} className="mb-8">
+            <Card variant="elevated">
+              <h3 className="text-xl font-bold text-text-primary mb-6">
+                Cumulative P&L
+              </h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis 
+                    dataKey="timestamp" 
+                    stroke="rgba(255,255,255,0.3)" 
+                    style={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    stroke="rgba(255,255,255,0.3)" 
+                    style={{ fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#0A0A0A', 
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="cumulativePnL" 
+                    stroke="#E8B45E" 
+                    strokeWidth={2}
+                    dot={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card>
+          </AnimatedSection>
         )}
 
-        {/* Current Positions */}
-        {positions.length > 0 && (
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-cyan-400">Current Positions</h2>
-              <button
-                onClick={() => setShowPositions(!showPositions)}
-                className="text-sm text-gray-400 hover:text-cyan-400"
-              >
-                {showPositions ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            {showPositions && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="px-4 py-2 text-left text-gray-400">Token</th>
-                      <th className="px-4 py-2 text-right text-gray-400">Quantity</th>
-                      <th className="px-4 py-2 text-right text-gray-400">Entry Price</th>
-                      <th className="px-4 py-2 text-right text-gray-400">Current Price</th>
-                      <th className="px-4 py-2 text-right text-gray-400">Current Value</th>
-                      <th className="px-4 py-2 text-right text-gray-400">PnL</th>
-                      <th className="px-4 py-2 text-right text-gray-400">PnL %</th>
-                      <th className="px-4 py-2 text-left text-gray-400">Opened</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {positions.map((position) => (
-                      <tr key={position.positionId} className="border-b border-gray-800 hover:bg-gray-800">
-                        <td className="px-4 py-2 font-mono text-cyan-400 font-semibold">
-                          {position.tokenSymbol}
-                        </td>
-                        <td className="px-4 py-2 text-right">{position.quantity.toFixed(2)}</td>
-                        <td className="px-4 py-2 text-right">${position.entryPrice.toFixed(6)}</td>
-                        <td className="px-4 py-2 text-right">${position.currentPrice.toFixed(6)}</td>
-                        <td className="px-4 py-2 text-right font-medium">
-                          ${position.currentValue.toFixed(2)}
-                        </td>
-                        <td
-                          className={`px-4 py-2 text-right font-semibold ${
-                            position.pnl > 0 ? 'text-green-400' : 'text-red-400'
-                          }`}
-                        >
-                          {position.pnl > 0 ? '+' : ''}${position.pnl.toFixed(2)}
-                        </td>
-                        <td
-                          className={`px-4 py-2 text-right font-semibold ${
-                            position.pnlPercent > 0 ? 'text-green-400' : 'text-red-400'
-                          }`}
-                        >
-                          {position.pnlPercent > 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%
-                        </td>
-                        <td className="px-4 py-2 text-sm text-gray-500">
-                          {new Date(position.openedAt).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-8">
-          <h2 className="text-2xl font-bold text-cyan-400 mb-6">Trade History</h2>
+        {/* Recent Trades */}
+        <AnimatedSection delay={0.4}>
+          <h3 className="text-2xl font-bold text-text-primary mb-6">
+            Recent Trades
+          </h3>
+          
           {trades.length === 0 ? (
-            <p className="text-gray-400">No trades yet</p>
+            <Card variant="elevated" className="text-center py-12">
+              <div className="text-6xl mb-4">📊</div>
+              <p className="text-text-secondary">No trades yet</p>
+            </Card>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-700">
-                    <th className="px-4 py-2 text-left text-gray-400">Token</th>
-                    <th className="px-4 py-2 text-left text-gray-400">Action</th>
-                    <th className="px-4 py-2 text-right text-gray-400">Qty</th>
-                    <th className="px-4 py-2 text-right text-gray-400">Entry Price</th>
-                    <th className="px-4 py-2 text-right text-gray-400">Exit Price</th>
-                    <th className="px-4 py-2 text-right text-gray-400">PnL</th>
-                    <th className="px-4 py-2 text-left text-gray-400">Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {trades.map((trade) => (
-                    <tr key={trade.tradeId} className="border-b border-gray-800 hover:bg-gray-800">
-                      <td className="px-4 py-2 font-mono text-cyan-400">{trade.tokenSymbol}</td>
-                      <td className="px-4 py-2">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-bold ${
-                            trade.action === 'BUY'
-                              ? 'bg-green-900 text-green-400'
-                              : 'bg-red-900 text-red-400'
-                          }`}
-                        >
-                          {trade.action}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2 text-right">{trade.quantity.toFixed(2)}</td>
-                      <td className="px-4 py-2 text-right">
-                        ${trade.entryPrice.toFixed(6)}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        ${(trade.exitPrice || 0).toFixed(6)}
-                      </td>
-                      <td
-                        className={`px-4 py-2 text-right font-semibold ${
-                          trade.pnl > 0 ? 'text-green-400' : 'text-red-400'
-                        }`}
-                      >
-                        ${trade.pnl.toFixed(2)}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-500">
-                        {new Date(trade.timestamp).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {trades.slice(0, 10).map((trade, index) => {
+                const isProfitable = trade.pnl >= 0;
+                return (
+                  <Card key={trade.id || index} variant="hover">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Badge variant={trade.side === 'BUY' ? 'success' : 'error'} size="sm">
+                          {trade.side}
+                        </Badge>
+                        <div>
+                          <div className="font-bold text-text-primary">
+                            {trade.tokenSymbol}
+                          </div>
+                          <div className="text-sm text-text-muted font-mono">
+                            {trade.amount?.toFixed(2)} @ {formatCurrency(trade.price)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Chip variant={isProfitable ? 'success' : 'error'}>
+                          {formatCurrency(trade.pnl)}
+                        </Chip>
+                        <div className="text-xs text-text-muted mt-1">
+                          {new Date(trade.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           )}
-        </div>
-
-        {/* Profile Edit Modal */}
-        {profile && (
-          <ProfileEditModal
-            profile={profile}
-            isOpen={isEditModalOpen}
-            onClose={() => setIsEditModalOpen(false)}
-            onSuccess={(updatedProfile) => {
-              setProfile(updatedProfile);
-              // Also update the agent name if displayName changed
-              if (agent) {
-                setAgent({
-                  ...agent,
-                  agentName: updatedProfile.displayName || agent.agentName,
-                });
-              }
-            }}
-          />
-        )}
+        </AnimatedSection>
       </div>
     </div>
   );

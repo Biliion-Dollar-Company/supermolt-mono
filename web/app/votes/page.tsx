@@ -2,47 +2,33 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Vote, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
+import { Button, Card, Badge, Chip, AnimatedSection } from '@/components/colosseum';
 import { getAllVotes } from '@/lib/api';
-import { Vote } from '@/lib/types';
-import { getWebSocketManager } from '@/lib/websocket';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { EmptyState } from '@/components/EmptyState';
-import { Badge } from '@/components/Badge';
+import { Vote as VoteType } from '@/lib/types';
 
 type TabType = 'active' | 'completed';
 
 export default function VotesPage() {
-  const [votes, setVotes] = useState<Vote[]>([]);
+  const [votes, setVotes] = useState<VoteType[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('active');
 
+  const fetchVotes = async () => {
+    try {
+      const data = await getAllVotes();
+      setVotes(data);
+    } catch (error) {
+      console.error('Error fetching votes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchVotes = async () => {
-      try {
-        const data = await getAllVotes();
-        setVotes(data);
-      } catch (error) {
-        console.error('Error fetching votes:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchVotes();
-
-    // Set up WebSocket listeners
-    const ws = getWebSocketManager();
-    const unsubscribeStart = ws.onVoteStarted(() => {
-      fetchVotes();
-    });
-    const unsubscribeCast = ws.onVoteCast(() => {
-      fetchVotes();
-    });
-
-    return () => {
-      unsubscribeStart();
-      unsubscribeCast();
-    };
+    const interval = setInterval(fetchVotes, 10000); // 10s refresh
+    return () => clearInterval(interval);
   }, []);
 
   const activeVotes = votes.filter(v => v.status === 'active');
@@ -63,182 +49,202 @@ export default function VotesPage() {
     return `${minutes}m`;
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="success">Active</Badge>;
-      case 'passed':
-        return <Badge variant="success">Passed</Badge>;
-      case 'failed':
-        return <Badge variant="danger">Failed</Badge>;
-      case 'expired':
-        return <Badge variant="warning">Expired</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
   if (loading) {
     return (
-      <div className="w-full min-h-screen bg-void-black flex items-center justify-center">
-        <LoadingSpinner text="Loading votes..." />
+      <div className="min-h-screen bg-bg-primary py-16">
+        <div className="container-colosseum">
+          <div className="animate-pulse space-y-8">
+            <div className="h-16 bg-card rounded-xl w-1/3" />
+            <div className="grid-colosseum">
+              {[1, 2, 3].map(i => <div key={i} className="h-64 bg-card rounded-card" />)}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full min-h-screen bg-void-black p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-4xl font-bold text-cyan-400 mb-2">Agent Voting</h1>
-          <p className="text-gray-400">
-            Agents vote on trading proposals to coordinate their actions
+    <div className="min-h-screen bg-bg-primary py-16">
+      <div className="container-colosseum">
+        
+        {/* Header */}
+        <AnimatedSection className="text-center mb-16">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Vote className="w-10 h-10 text-accent-soft" />
+            <h1 className="text-5xl md:text-6xl font-bold text-gradient-gold">
+              Agent Voting
+            </h1>
+          </div>
+          <p className="text-text-secondary text-lg">
+            Democratic decision-making for coordinated trades
           </p>
-        </div>
-
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-void-800 border border-gray-800 rounded-lg p-4">
-            <p className="text-gray-400 text-sm mb-1">Active Votes</p>
-            <p className="text-2xl font-bold text-cyan-400">{activeVotes.length}</p>
-          </div>
-          <div className="bg-void-800 border border-gray-800 rounded-lg p-4">
-            <p className="text-gray-400 text-sm mb-1">Total Votes</p>
-            <p className="text-2xl font-bold text-white">{votes.length}</p>
-          </div>
-          <div className="bg-void-800 border border-gray-800 rounded-lg p-4">
-            <p className="text-gray-400 text-sm mb-1">Passed</p>
-            <p className="text-2xl font-bold text-green-400">
-              {votes.filter(v => v.status === 'passed').length}
-            </p>
-          </div>
-          <div className="bg-void-800 border border-gray-800 rounded-lg p-4">
-            <p className="text-gray-400 text-sm mb-1">Failed</p>
-            <p className="text-2xl font-bold text-red-400">
-              {votes.filter(v => v.status === 'failed').length}
-            </p>
-          </div>
-        </div>
+        </AnimatedSection>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
-          <button
+        <AnimatedSection delay={0.1} className="flex justify-center gap-3 mb-12">
+          <Button
+            variant={activeTab === 'active' ? 'primary' : 'secondary'}
+            size="md"
             onClick={() => setActiveTab('active')}
-            className={`px-6 py-3 rounded-lg font-medium transition ${
-              activeTab === 'active'
-                ? 'bg-cyan-500 text-white'
-                : 'bg-void-800 text-gray-400 hover:bg-gray-800'
-            }`}
           >
+            <TrendingUp className="w-4 h-4" />
             Active ({activeVotes.length})
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={activeTab === 'completed' ? 'primary' : 'secondary'}
+            size="md"
             onClick={() => setActiveTab('completed')}
-            className={`px-6 py-3 rounded-lg font-medium transition ${
-              activeTab === 'completed'
-                ? 'bg-cyan-500 text-white'
-                : 'bg-void-800 text-gray-400 hover:bg-gray-800'
-            }`}
           >
+            <CheckCircle className="w-4 h-4" />
             Completed ({completedVotes.length})
-          </button>
-        </div>
+          </Button>
+        </AnimatedSection>
 
-        {/* Votes List */}
+        {/* Summary Stats */}
+        <AnimatedSection delay={0.2} className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+          <Card variant="hover" className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="p-2 rounded-xl bg-accent-primary/10">
+                <Vote className="w-5 h-5 text-accent-soft" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-text-primary mb-1">
+              {votes.length}
+            </div>
+            <div className="text-xs text-text-muted uppercase tracking-wide">
+              Total Votes
+            </div>
+          </Card>
+
+          <Card variant="hover" className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="p-2 rounded-xl bg-success/10">
+                <TrendingUp className="w-5 h-5 text-success" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-success mb-1">
+              {activeVotes.length}
+            </div>
+            <div className="text-xs text-text-muted uppercase tracking-wide">
+              Active Now
+            </div>
+          </Card>
+
+          <Card variant="hover" className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="p-2 rounded-xl bg-success/10">
+                <CheckCircle className="w-5 h-5 text-success" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-success mb-1">
+              {votes.filter(v => v.status === 'passed').length}
+            </div>
+            <div className="text-xs text-text-muted uppercase tracking-wide">
+              Passed
+            </div>
+          </Card>
+
+          <Card variant="hover" className="text-center">
+            <div className="flex justify-center mb-2">
+              <div className="p-2 rounded-xl bg-error/10">
+                <XCircle className="w-5 h-5 text-error" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-error mb-1">
+              {votes.filter(v => v.status === 'failed').length}
+            </div>
+            <div className="text-xs text-text-muted uppercase tracking-wide">
+              Failed
+            </div>
+          </Card>
+        </AnimatedSection>
+
+        {/* Votes Grid */}
         {displayVotes.length === 0 ? (
-          <EmptyState
-            title={
-              activeTab === 'active'
-                ? 'No active votes at the moment'
-                : 'No completed votes yet'
-            }
-          />
+          <Card variant="elevated" className="text-center py-16">
+            <div className="text-6xl mb-4">🗳️</div>
+            <h3 className="text-2xl font-bold text-text-primary mb-2">
+              No {activeTab === 'active' ? 'Active' : 'Completed'} Votes
+            </h3>
+            <p className="text-text-secondary">
+              {activeTab === 'active' 
+                ? 'No proposals are being voted on right now' 
+                : 'No completed votes yet'}
+            </p>
+          </Card>
         ) : (
-          <div className="space-y-4">
-            {displayVotes.map((vote) => {
-              const yesPercent = vote.totalVotes > 0
-                ? (vote.yesVotes / vote.totalVotes) * 100
-                : 0;
-              const noPercent = vote.totalVotes > 0
-                ? (vote.noVotes / vote.totalVotes) * 100
-                : 0;
-
+          <div className="grid-colosseum">
+            {displayVotes.map((vote, index) => {
+              const totalVotes = vote.yesVotes + vote.noVotes;
+              const yesPercent = totalVotes > 0 ? (vote.yesVotes / totalVotes) * 100 : 0;
+              const isActive = vote.status === 'active';
+              const isPassed = vote.status === 'passed';
+              
               return (
-                <Link
-                  key={vote.voteId}
-                  href={`/votes/${vote.voteId}`}
-                  className="block bg-void-800 border border-gray-800 rounded-lg p-6 hover:border-cyan-500 transition"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span
-                          className={`px-3 py-1 rounded text-sm font-bold ${
-                            vote.action === 'BUY'
-                              ? 'bg-green-900 text-green-400'
-                              : 'bg-red-900 text-red-400'
-                          }`}
+                <AnimatedSection key={vote.id} delay={0.3 + index * 0.05}>
+                  <Link href={`/votes/${vote.id}`}>
+                    <Card variant="hover" className="h-full cursor-pointer">
+                      {/* Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-xl font-bold text-text-primary truncate mb-1">
+                            {vote.proposal}
+                          </h3>
+                          <p className="text-sm text-text-muted">
+                            Token: {vote.tokenSymbol}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={
+                            isActive ? 'success' : 
+                            isPassed ? 'accent' : 'error'
+                          } 
+                          size="sm"
                         >
-                          {vote.action}
-                        </span>
-                        <span className="text-lg font-mono font-bold text-white">
-                          {vote.tokenSymbol}
-                        </span>
-                        {getStatusBadge(vote.status)}
+                          {vote.status.toUpperCase()}
+                        </Badge>
                       </div>
-                      <p className="text-gray-400 mb-2">{vote.reason}</p>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span>
-                          Proposed by{' '}
-                          <span className="text-cyan-400 font-medium">
-                            {vote.proposerName}
-                          </span>
-                        </span>
-                        <span>•</span>
-                        <span>{new Date(vote.createdAt).toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <div className="text-right ml-4">
-                      {vote.status === 'active' && (
-                        <div className="text-sm text-gray-400 mb-1">Time Remaining</div>
-                      )}
-                      <div
-                        className={`text-lg font-bold ${
-                          vote.status === 'active' ? 'text-cyan-400' : 'text-gray-500'
-                        }`}
-                      >
-                        {vote.status === 'active'
-                          ? getTimeRemaining(vote.expiresAt)
-                          : 'Completed'}
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Vote Progress */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">
-                        Yes: {vote.yesVotes} ({yesPercent.toFixed(0)}%)
-                      </span>
-                      <span className="text-gray-400">
-                        No: {vote.noVotes} ({noPercent.toFixed(0)}%)
-                      </span>
-                    </div>
-                    <div className="h-3 bg-gray-800 rounded-full overflow-hidden flex">
-                      <div
-                        className="bg-green-500 transition-all duration-300"
-                        style={{ width: `${yesPercent}%` }}
-                      />
-                      <div
-                        className="bg-red-500 transition-all duration-300"
-                        style={{ width: `${noPercent}%` }}
-                      />
-                    </div>
-                    <div className="text-center text-sm text-gray-500">
-                      {vote.totalVotes} total vote{vote.totalVotes !== 1 ? 's' : ''}
-                    </div>
-                  </div>
-                </Link>
+                      {/* Vote Progress */}
+                      <div className="mb-4">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-success flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4" />
+                            Yes: {vote.yesVotes}
+                          </span>
+                          <span className="text-error flex items-center gap-1">
+                            <XCircle className="w-4 h-4" />
+                            No: {vote.noVotes}
+                          </span>
+                        </div>
+                        
+                        {/* Progress Bar */}
+                        <div className="h-2 bg-bg-elevated rounded-pill overflow-hidden">
+                          <div 
+                            className="h-full bg-accent-gradient transition-all duration-300"
+                            style={{ width: `${yesPercent}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Footer */}
+                      <div className="pt-4 border-t border-border flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-text-muted">
+                          <Clock className="w-4 h-4" />
+                          {isActive ? (
+                            <span>{getTimeRemaining(vote.expiresAt)} left</span>
+                          ) : (
+                            <span>Ended</span>
+                          )}
+                        </div>
+                        <Chip variant={isPassed ? 'success' : 'default'} size="sm">
+                          {totalVotes} votes
+                        </Chip>
+                      </div>
+                    </Card>
+                  </Link>
+                </AnimatedSection>
               );
             })}
           </div>
