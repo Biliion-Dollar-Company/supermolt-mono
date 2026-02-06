@@ -405,6 +405,26 @@ export class HeliusWebSocketMonitor {
   private async processTransaction(signer: string, result: any): Promise<void> {
     try {
       await this.createOrUpdateAgent(signer);
+
+      // 🎯 CHECK IF THIS IS SUPERROUTER - Trigger agent analysis!
+      const { isSuperRouter, handleSuperRouterTrade } = await import('./superrouter-observer.js');
+      
+      if (isSuperRouter(signer)) {
+        console.log('🎯 SuperRouter trade detected! Analyzing...');
+        
+        // Extract trade details from result
+        // TODO: Parse token mint, action, amount from transaction data
+        // For now, trigger with basic data
+        await handleSuperRouterTrade({
+          signature: result.signature || 'unknown',
+          tokenMint: 'unknown', // Will be parsed from transaction
+          tokenSymbol: undefined,
+          tokenName: undefined,
+          action: 'BUY', // Default to BUY for now
+          amount: 0.1, // Will be parsed from transaction
+          timestamp: new Date(),
+        });
+      }
     } catch (error) {
       console.error(`❌ Failed to process transaction:`, error);
     }
