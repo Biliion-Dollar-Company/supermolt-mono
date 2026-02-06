@@ -3,6 +3,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import * as jwt from 'jose';
 import * as siwsService from '../services/siws.service';
 import { z } from 'zod';
+import { getHeliusMonitor } from '../index';
 
 const db = new PrismaClient();
 
@@ -81,20 +82,18 @@ siwsAuthRoutes.post('/agent/verify', async (c) => {
       });
     }
 
-    // Add wallet to Helius monitoring (for new agents)
-    if (isNewAgent) {
-      try {
-        const monitor = await getHeliusMonitor();
-        if (monitor) {
-          monitor.addWallet(pubkey);
-          console.log(`✅ Added wallet ${pubkey.slice(0, 8)}... to Helius monitoring`);
-        } else {
-          console.warn(`⚠️  Helius monitor not available, wallet ${pubkey.slice(0, 8)}... not added to monitoring`);
-        }
-      } catch (error) {
-        // Don't block registration if Helius fails
-        console.error(`❌ Failed to add wallet to Helius monitoring:`, error);
+    // 🔥 DYNAMIC WALLET MONITORING: Add this wallet to Helius monitor (all agents, not just new ones)
+    try {
+      const monitor = await getHeliusMonitor();
+      if (monitor) {
+        monitor.addWallet(pubkey);
+        console.log(`✅ Added wallet ${pubkey.slice(0, 8)}... to Helius monitoring`);
+      } else {
+        console.warn(`⚠️  Helius monitor not available, wallet ${pubkey.slice(0, 8)}... not added to monitoring`);
       }
+    } catch (error) {
+      // Don't block registration if Helius fails
+      console.error(`❌ Failed to add wallet to Helius monitoring:`, error);
     }
 
     // Issue JWT for this agent

@@ -26,6 +26,7 @@ import { positions } from './routes/positions';
 import { messaging } from './routes/messaging';
 import { voting } from './routes/voting';
 import { profile } from './routes/profile';
+import { treasury } from './routes/treasury.routes';
 
 // USDC Hackathon Routes (Standardized Modules)
 import treasury from './modules/treasury/treasury.routes';
@@ -35,6 +36,14 @@ import calls from './modules/scanner-calls/scanner-calls.routes';
 
 const db = new PrismaClient();
 const app = new Hono();
+
+// Global Helius monitor instance (for dynamic wallet management)
+let heliusMonitor: HeliusWebSocketMonitor | null = null;
+
+// Export function to get monitor instance
+export function getHeliusMonitor(): HeliusWebSocketMonitor | null {
+  return heliusMonitor;
+}
 
 // CORS Configuration - Allow frontend origins
 const allowedOrigins = [
@@ -99,6 +108,9 @@ app.route('/trades', copyTrade); // /trades/copy/* endpoints
 app.route('/positions', positions); // Position tracking
 app.route('/messaging', messaging); // Agent messaging
 app.route('/voting', voting); // Voting system
+
+// Treasury routes (USDC reward distribution)
+app.route('/treasury', treasury); // Treasury management and USDC distribution
 
 // Internal routes (API key required — DevPrint → SR-Mobile)
 app.route('/internal', internal);
@@ -185,6 +197,8 @@ async function startHeliusMonitor() {
     heliusMonitor.start().catch((error) => {
       console.error('❌ Helius monitor failed to start:', error);
     });
+
+    console.log('✅ Helius monitor instance saved globally (dynamic wallet support enabled)');
 
     // Graceful shutdown
     process.on('SIGTERM', async () => {

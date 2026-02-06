@@ -6,34 +6,44 @@
 import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client';
 import { createLeaderboardService } from '../services/leaderboard-ranking';
+import { getLeaderboardCache } from '../services/leaderboard-cache';
+import { rateLimiters } from '../middleware/rate-limit';
 import { websocketEvents } from '../services/websocket-events';
 
 export function createLeaderboardAdvanced(db: PrismaClient) {
   const routes = new Hono();
   const rankingService = createLeaderboardService(db);
+  const cacheService = getLeaderboardCache(db);
 
   /**
    * GET /leaderboard-advanced?limit=100&sort=sortino
    * Returns ranked agents with full metrics
    */
-  routes.get('/', async (c) => {
+  routes.get('/', rateLimiters.relaxed, async (c) => {
     try {
       const limit = Math.min(Number(c.req.query('limit')) || 100, 1000);
       const sort = c.req.query('sort') || 'score'; // score, sortino, winRate, pnl
 
-      const ranked = await rankingService.rankAllAgents();
+      // Use cache for main leaderboard
+      const ranked = await cacheService.getCachedLeaderboard('main', async () => {
+        const startTime = Date.now();
+        const result = await rankingService.rankAllAgents();
+        console.log(`[Leaderboard] Ranking calculation took ${Date.now() - startTime}ms`);
+        return result;
+      });
 
-      // Sort by requested metric
+      // Sort by requested metric (post-cache)
+      let sorted = [...ranked];
       if (sort === 'sortino') {
-        ranked.sort((a, b) => b.sortino - a.sortino);
+        sorted.sort((a, b) => b.sortino - a.sortino);
       } else if (sort === 'winRate') {
-        ranked.sort((a, b) => b.winRate - a.winRate);
+        sorted.sort((a, b) => b.winRate - a.winRate);
       } else if (sort === 'pnl') {
-        ranked.sort((a, b) => b.totalPnL - a.totalPnL);
+        sorted.sort((a, b) => b.totalPnL - a.totalPnL);
       }
       // Default to score
 
-      const formatted = ranked.slice(0, limit).map((m) => rankingService.formatMetrics(m));
+      const formatted = sorted.slice(0, limit).map((m) => rankingService.formatMetrics(m));
 
       return c.json({
         success: true,
@@ -41,6 +51,7 @@ export function createLeaderboardAdvanced(db: PrismaClient) {
           count: formatted.length,
           agents: formatted,
           timestamp: new Date().toISOString(),
+          cached: true,
         },
       });
     } catch (error: any) {

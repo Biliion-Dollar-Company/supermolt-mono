@@ -442,6 +442,61 @@ export class HeliusWebSocketMonitor {
   }
 
   /**
+   * Dynamically add a wallet to monitoring
+   */
+  addWallet(walletAddress: string): void {
+    if (this.trackedWallets.includes(walletAddress)) {
+      console.log(`⚠️ Wallet already tracked: ${walletAddress.slice(0, 8)}...`);
+      return;
+    }
+
+    this.trackedWallets.push(walletAddress);
+    console.log(`➕ Added wallet to monitoring: ${walletAddress.slice(0, 8)}...`);
+    console.log(`   Total tracked: ${this.trackedWallets.length} wallets`);
+
+    // Subscribe immediately if connected
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      const subscription = {
+        jsonrpc: '2.0',
+        id: `wallet-${walletAddress}`,
+        method: 'accountSubscribe',
+        params: [
+          walletAddress,
+          { commitment: 'confirmed', encoding: 'jsonParsed' }
+        ]
+      };
+
+      this.ws.send(JSON.stringify(subscription));
+      console.log(`📡 Subscribed to new wallet: ${walletAddress.slice(0, 8)}...`);
+    }
+  }
+
+  /**
+   * Dynamically remove a wallet from monitoring
+   */
+  removeWallet(walletAddress: string): void {
+    const index = this.trackedWallets.indexOf(walletAddress);
+    if (index === -1) {
+      console.log(`⚠️ Wallet not tracked: ${walletAddress.slice(0, 8)}...`);
+      return;
+    }
+
+    this.trackedWallets.splice(index, 1);
+    console.log(`➖ Removed wallet from monitoring: ${walletAddress.slice(0, 8)}...`);
+    console.log(`   Total tracked: ${this.trackedWallets.length} wallets`);
+
+    // Note: Helius doesn't have accountUnsubscribe, so we just stop tracking it
+    // The subscription will naturally expire on reconnect
+  }
+
+  /**
+   * Get list of tracked wallets
+   */
+  getTrackedWallets(): string[] {
+    return [...this.trackedWallets];
+  }
+
+  /**
    * Stop monitoring
    */
   async stop(): Promise<void> {
