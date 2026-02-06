@@ -71,12 +71,6 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
       data: {
         topic: `SuperRouter ${trade.action}: ${trade.tokenSymbol || trade.tokenMint.substring(0, 8)}`,
         tokenMint: trade.tokenMint,
-        metadata: {
-          superRouterSignature: trade.signature,
-          action: trade.action,
-          amount: trade.amount,
-          timestamp: trade.timestamp.toISOString(),
-        },
       },
     });
 
