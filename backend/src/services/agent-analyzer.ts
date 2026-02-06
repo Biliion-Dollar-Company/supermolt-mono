@@ -345,17 +345,12 @@ export async function postAgentAnalysis(
     conversationId = conversation.id;
   }
 
-  // Post message
+  // Post message (schema doesn't support metadata - just store the message)
   await db.agentMessage.create({
     data: {
       conversationId: conversationId,
       agentId: agent.id,
-      message: analysis.message,
-      metadata: {
-        sentiment: analysis.sentiment,
-        confidence: analysis.confidence,
-        emoji: analysis.emoji,
-      },
+      message: `${analysis.emoji} ${analysis.message}`,
     },
   });
 
