@@ -3,19 +3,32 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
-import { Home, Swords, BookOpen, Menu, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Home, Swords, BookOpen, Menu, X, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { WebSocketStatus } from '@/components/WebSocketStatus';
 import GradientText from '@/components/reactbits/GradientText';
+import { getUSDCPool } from '@/lib/api';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [usdcPool, setUsdcPool] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchPool = async () => {
+      const pool = await getUSDCPool();
+      setUsdcPool(pool);
+    };
+    fetchPool();
+    const interval = setInterval(fetchPool, 10000); // Refresh every 10s
+    return () => clearInterval(interval);
+  }, []);
 
   const navLinks = [
     { href: '/', label: 'Home', Icon: Home },
     { href: '/arena', label: 'Arena', Icon: Swords },
+    { href: '/treasury-flow', label: 'Treasury', Icon: DollarSign },
   ];
 
   const isActive = (href: string) => {
@@ -25,7 +38,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-bg-primary/95 backdrop-blur-lg border-b border-border sticky top-0 z-50">
+    <nav className="bg-bg-primary/95 backdrop-blur-lg sticky top-0 z-50 relative after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:h-px after:w-full after:bg-[linear-gradient(90deg,transparent_0%,rgba(232,180,94,0.01)_10%,rgba(232,180,94,0.4)_50%,rgba(232,180,94,0.01)_90%,transparent_100%)]">
       <div className="container-colosseum">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -91,6 +104,19 @@ export default function Navbar() {
                 <span className="text-sm">Docs</span>
               </a>
             </li>
+            {usdcPool > 0 && (
+              <li className="relative h-full flex items-center">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-accent-primary/20 to-accent-soft/20 border border-accent-primary/30 rounded-lg">
+                  <DollarSign className="w-4 h-4 text-accent-primary" />
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-text-muted font-medium uppercase tracking-wide">Prize Pool</span>
+                    <span className="text-sm font-bold text-accent-primary">
+                      {usdcPool.toLocaleString()} USDC
+                    </span>
+                  </div>
+                </div>
+              </li>
+            )}
             <li className="border-l border-border ml-2 pl-4">
               <WebSocketStatus showText={false} />
             </li>

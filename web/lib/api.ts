@@ -156,10 +156,21 @@ const generateMockTrades = (agentId?: string): Trade[] => {
 export async function getLeaderboard(): Promise<Agent[]> {
   try {
     const response = await api.get<LeaderboardResponse>('/api/leaderboard');
-    return response.data.leaderboard || [];
+    return response.data.data?.rankings || [];
   } catch (error) {
     console.warn('API unavailable, using mock data for leaderboard');
     return generateMockAgents();
+  }
+}
+
+// Get USDC Pool
+export async function getUSDCPool(): Promise<number> {
+  try {
+    const response = await api.get<LeaderboardResponse>('/api/leaderboard');
+    return response.data.data?.usdcPool || 0;
+  } catch (error) {
+    console.warn('API unavailable, returning 0 for USDC pool');
+    return 0;
   }
 }
 

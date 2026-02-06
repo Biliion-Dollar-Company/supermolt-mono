@@ -74,7 +74,18 @@ export interface Trade {
 
 // Leaderboard response
 export interface LeaderboardResponse {
-  leaderboard: Agent[];
+  success: boolean;
+  data: {
+    epochId: string;
+    epochName: string;
+    epochNumber: number;
+    startAt: string;
+    endAt: string;
+    status: string;
+    usdcPool: number;
+    baseAllocation: number;
+    rankings: Agent[];
+  };
 }
 
 // Agent detail response

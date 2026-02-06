@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Swords, Wifi, WifiOff } from 'lucide-react';
+import { Swords, Wifi, WifiOff, Clock, Users, TrendingUp } from 'lucide-react';
 import { getRecentTrades, getAllPositions } from '@/lib/api';
 import { Trade, Position } from '@/lib/types';
-import { ArenaLeaderboard, TokenFeed, TokenDetailModal } from '@/components/arena';
+import { ArenaLeaderboard, TokenDetailModal } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
 
 function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
@@ -42,7 +42,6 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
     tokenMap.set(sym, existing);
   }
 
-  // Also incorporate positions into agent counts
   for (const pos of positions) {
     const sym = pos.tokenSymbol;
     const existing = tokenMap.get(sym);
@@ -63,10 +62,52 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
     });
   }
 
-  // Sort by most recent trade
   tokens.sort((a, b) => new Date(b.lastTradeTime).getTime() - new Date(a.lastTradeTime).getTime());
 
   return tokens;
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function TokenCard({ token, onClick }: { token: ArenaToken; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full text-left border border-white/[0.06] p-4 hover:bg-white/[0.03] hover:border-accent-primary/20 transition-all cursor-pointer group mb-3"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-lg font-bold font-mono text-text-primary group-hover:text-accent-primary transition-colors">
+          {token.tokenSymbol}
+        </span>
+        <span className={`text-sm font-mono ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {token.netPnl >= 0 ? '+' : ''}{token.netPnl.toFixed(2)}%
+        </span>
+      </div>
+
+      <div className="flex items-center gap-4 text-xs text-text-muted">
+        <span className="flex items-center gap-1">
+          <Users className="w-3 h-3" />
+          {token.agentCount} agents
+        </span>
+        <span className="flex items-center gap-1">
+          <TrendingUp className="w-3 h-3" />
+          {token.recentTradeCount} trades
+        </span>
+        <span className="flex items-center gap-1 ml-auto">
+          <Clock className="w-3 h-3" />
+          {timeAgo(token.lastTradeTime)}
+        </span>
+      </div>
+    </button>
+  );
 }
 
 export default function ArenaPage() {
@@ -75,6 +116,7 @@ export default function ArenaPage() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isLive, setIsLive] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -100,8 +142,8 @@ export default function ArenaPage() {
   }, [fetchData]);
 
   return (
-    <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-6">
-      <div className="max-w-[1400px] mx-auto">
+    <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%]">
+      <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8 gap-2">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -121,7 +163,7 @@ export default function ArenaPage() {
           </div>
         </div>
 
-        {/* Main layout: leaderboard left, tokens right */}
+        {/* Main layout: leaderboard left, token carousel right */}
         <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
           {/* Leaderboard */}
           <div className="border border-white/[0.06] bg-bg-secondary p-4 sm:p-5">
@@ -131,7 +173,7 @@ export default function ArenaPage() {
             <ArenaLeaderboard />
           </div>
 
-          {/* Token Feed */}
+          {/* Token Carousel */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
@@ -140,13 +182,45 @@ export default function ArenaPage() {
               <span className="text-xs text-text-muted">{tokens.length} tokens</span>
             </div>
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="space-y-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-24 bg-white/[0.02] animate-pulse rounded" />
+                  <div key={i} className="h-20 bg-white/[0.02] animate-pulse rounded" />
                 ))}
               </div>
+            ) : tokens.length === 0 ? (
+              <div className="flex items-center justify-center h-64 text-text-muted">
+                <p>No recent trading activity</p>
+              </div>
             ) : (
-              <TokenFeed tokens={tokens} onTokenClick={setSelectedToken} />
+              <div
+                className="relative overflow-hidden h-[600px]"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+              >
+                {/* Top fade */}
+                <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-bg-primary to-transparent z-10 pointer-events-none" />
+                {/* Bottom fade */}
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-bg-primary to-transparent z-10 pointer-events-none" />
+
+                <div className={`animate-vertical-marquee ${isPaused ? 'paused' : ''}`}>
+                  {/* First set */}
+                  {tokens.map((token) => (
+                    <TokenCard
+                      key={token.tokenSymbol}
+                      token={token}
+                      onClick={() => setSelectedToken(token.tokenSymbol)}
+                    />
+                  ))}
+                  {/* Duplicate for seamless loop */}
+                  {tokens.map((token) => (
+                    <TokenCard
+                      key={`dup-${token.tokenSymbol}`}
+                      token={token}
+                      onClick={() => setSelectedToken(token.tokenSymbol)}
+                    />
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
