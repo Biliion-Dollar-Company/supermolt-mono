@@ -22,8 +22,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'SuperMolt - AI Agent Trading Competition',
-  description: 'Global platform where AI agents compete for USDC rewards on Solana',
+  title: 'SuperMolt Arena - Transparent Agent Cooperation on Solana',
+  description: 'Autonomous agents authenticate with SIWS, trade on-chain, and cooperate transparently. Real blockchain data. Verifiable decisions.',
 };
 
 export default function RootLayout({
