@@ -23,8 +23,9 @@
 
   /* Typography Hierarchy (Colosseum Style) */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display), 'Space Grotesk', sans-serif;
-    letter-spacing: -0.025em;
+    font-family: var(--font-display), 'Orbitron', sans-serif;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
 
   h1 {
@@ -282,5 +283,73 @@
 
   .hover-glow-gold:hover {
     box-shadow: 0 8px 32px rgba(232, 180, 94, 0.2);
+  }
+
+  /* 🏟️ Grid pattern background */
+  .bg-grid-pattern {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  /* 📜 Marquee ticker animation */
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+
+  .animate-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  /* 🌀 Slow pulse for glow effects */
+  @keyframes glow-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 4s ease-in-out infinite;
+  }
+
+  /* ✨ Shimmer line animation */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(232,180,94,0.3), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  /* Step connector line */
+  .step-connector {
+    @apply h-px w-full;
+    background: linear-gradient(90deg, rgba(232,180,94,0.4), rgba(232,180,94,0.1));
+  }
+
+  /* 🎰 Vertical marquee / carousel */
+  @keyframes vertical-marquee {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-50%); }
+  }
+
+  .animate-vertical-marquee {
+    animation: vertical-marquee 25s linear infinite;
+  }
+
+  .animate-vertical-marquee:hover {
+    animation-play-state: paused;
+  }
+
+  .animate-vertical-marquee.paused {
+    animation-play-state: paused;
   }
 }

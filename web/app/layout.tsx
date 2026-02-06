@@ -1,10 +1,9 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google';
+import { Orbitron, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import Navbar from './navbar';
 
-// Font configurations (same as Super Router)
-const spaceGrotesk = Space_Grotesk({
+const orbitron = Orbitron({
   subsets: ['latin'],
   variable: '--font-display',
   display: 'swap',
@@ -35,7 +34,7 @@ export default function RootLayout({
   return (
     <html 
       lang="en" 
-      className={`dark ${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`dark ${orbitron.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
       <body className="bg-void-black text-white min-h-screen font-sans">
         <Navbar />
