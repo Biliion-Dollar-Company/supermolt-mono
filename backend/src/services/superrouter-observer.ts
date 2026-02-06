@@ -22,21 +22,87 @@ interface SuperRouterTrade {
 }
 
 /**
- * Fetch token data from DevPrint or Birdeye
+ * Fetch token data from DexScreener (free API, no key required)
  */
 async function fetchTokenData(tokenMint: string) {
-  console.log(`📊 Fetching token data for ${tokenMint.substring(0, 8)}...`);
+  console.log(`📊 Fetching REAL token data for ${tokenMint.substring(0, 8)}...`);
   
-  // TODO: Replace with actual DevPrint API call
-  // For now, return mock data
+  try {
+    // DexScreener API (free, public, no key needed)
+    const url = `https://api.dexscreener.com/latest/dex/tokens/${tokenMint}`;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`⚠️  DexScreener API failed (${response.status}), using fallback`);
+      return getFallbackData();
+    }
+    
+    const data = await response.json();
+    
+    if (!data.pairs || data.pairs.length === 0) {
+      console.warn(`⚠️  No trading pairs found for token ${tokenMint.substring(0, 8)}`);
+      return getFallbackData();
+    }
+    
+    // Use the most liquid pair (Raydium or Jupiter usually)
+    const pair = data.pairs.sort((a: any, b: any) => 
+      (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0)
+    )[0];
+    
+    const metrics = {
+      holders: null, // DexScreener doesn't provide this
+      liquidity: pair.liquidity?.usd || 0,
+      volume24h: pair.volume?.h24 || 0,
+      priceChange24h: pair.priceChange?.h24 || 0,
+      marketCap: pair.marketCap || 0,
+      fdv: pair.fdv || 0,
+      txns24h: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
+      priceUsd: parseFloat(pair.priceUsd || '0'),
+      smartMoneyFlow: determineSmartMoney(pair),
+    };
+    
+    console.log(`✅ REAL DATA fetched:`);
+    console.log(`   Liquidity: $${metrics.liquidity.toLocaleString()}`);
+    console.log(`   Volume 24h: $${metrics.volume24h.toLocaleString()}`);
+    console.log(`   Price Change: ${metrics.priceChange24h.toFixed(2)}%`);
+    console.log(`   Txns 24h: ${metrics.txns24h}`);
+    console.log(`   Smart Money: ${metrics.smartMoneyFlow}`);
+    
+    return metrics;
+  } catch (error) {
+    console.error(`❌ Error fetching token data:`, error);
+    return getFallbackData();
+  }
+}
+
+/**
+ * Determine smart money flow based on volume and price action
+ */
+function determineSmartMoney(pair: any): 'IN' | 'OUT' | 'NEUTRAL' {
+  const volume = pair.volume?.h24 || 0;
+  const priceChange = pair.priceChange?.h24 || 0;
+  
+  // High volume + strong price gain = Smart money IN
+  if (volume > 500000 && priceChange > 15) return 'IN';
+  
+  // High volume + strong price drop = Smart money OUT
+  if (volume > 500000 && priceChange < -15) return 'OUT';
+  
+  return 'NEUTRAL';
+}
+
+/**
+ * Fallback data when API fails
+ */
+function getFallbackData() {
   return {
-    holders: Math.floor(Math.random() * 1000 + 100),
-    liquidity: Math.floor(Math.random() * 500000 + 50000),
-    volume24h: Math.floor(Math.random() * 1000000 + 100000),
-    priceChange24h: (Math.random() - 0.5) * 100,
-    marketCap: Math.floor(Math.random() * 5000000 + 500000),
-    smartMoneyFlow: Math.random() > 0.5 ? 'IN' : (Math.random() > 0.5 ? 'OUT' : 'NEUTRAL'),
-  } as any;
+    holders: null,
+    liquidity: 50000,
+    volume24h: 100000,
+    priceChange24h: 0,
+    marketCap: 500000,
+    smartMoneyFlow: 'NEUTRAL' as const,
+  };
 }
 
 /**

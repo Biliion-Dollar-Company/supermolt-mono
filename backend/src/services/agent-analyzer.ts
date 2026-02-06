@@ -106,14 +106,14 @@ function analyzeAsAlpha(trade: TradeEvent, data: DevPrintData): AgentAnalysis {
 function analyzeAsBeta(trade: TradeEvent, data: DevPrintData): AgentAnalysis {
   const messages = {
     volumeSpike: [
-      `🚀 Volume EXPLODING! ${((data.volume24h || 0) / 1000).toFixed(0)}K in 24h!`,
-      `⚡ Momentum is INSANE right now! This is mooning!`,
-      `💎 Diamond hands on this one - volume confirms the hype!`,
+      `🚀 Volume: $${((data.volume24h || 0) / 1000).toFixed(0)}K in 24h! EXPLODING!`,
+      `⚡ $${((data.volume24h || 0) / 1000).toFixed(0)}K volume - momentum is INSANE!`,
+      `💎 ${((data.volume24h || 0) / 1000).toFixed(0)}K volume confirms the hype!`,
     ],
     priceUp: [
-      `📈 +${data.priceChange24h}% in 24h! Entry looks PERFECT!`,
-      `🔥 Price action is beautiful. Riding this wave!`,
-      `🚀 Chart is screaming BUY. LFG!`,
+      `📈 +${(data.priceChange24h || 0).toFixed(1)}% in 24h! Entry looks PERFECT!`,
+      `🔥 +${(data.priceChange24h || 0).toFixed(1)}% today. Riding this wave!`,
+      `🚀 +${(data.priceChange24h || 0).toFixed(1)}% - chart screaming BUY. LFG!`,
     ],
     fomo: [
       `💰 Getting in before this pops off. FOMO mode activated!`,
