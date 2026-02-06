@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { extractSwapsFromTransaction } from '../lib/swap-parser';
 import { getTokenPrice } from '../lib/birdeye';
 import { PositionTracker } from '../services/position-tracker';
+import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-observer';
 
 const db = new PrismaClient();
 const positionTracker = new PositionTracker(db);
@@ -338,6 +339,12 @@ webhooks.post('/solana', async (c) => {
 
       console.log('👤 [WEBHOOK] Signer wallet:', signerWallet.slice(0, 8) + '...');
 
+      // 🎯 CHECK IF THIS IS SUPERROUTER
+      if (isSuperRouter(signerWallet)) {
+        console.log('🎯🎯🎯 SUPERROUTER DETECTED! 🎯🎯🎯');
+        console.log('Triggering observer agent analysis...');
+      }
+
       // Check if this is a SWAP transaction (Helius enhanced format tells us)
       if (transaction.type !== 'SWAP') {
         console.log('⏭️ [WEBHOOK] Skipping non-swap transaction:', transaction.type);
@@ -382,6 +389,32 @@ webhooks.post('/solana', async (c) => {
           await createTradeRecord(signerWallet, swap);
           totalTradesCreated++;
           console.log('✅ [WEBHOOK] Trade record created successfully');
+
+          // 🎯 SUPERROUTER OBSERVER: Trigger analysis if this is SuperRouter
+          if (isSuperRouter(signerWallet)) {
+            console.log('\n🤖 TRIGGERING OBSERVER AGENT ANALYSIS 🤖\n');
+            
+            // Determine BUY or SELL action
+            const isBuy = swap.inputMint === 'So11111111111111111111111111111111111111112'; // SOL mint
+            const action = isBuy ? 'BUY' : 'SELL';
+            
+            // Build trade event for observers
+            const tradeEvent = {
+              signature: swap.signature,
+              walletAddress: signerWallet,
+              tokenMint: isBuy ? swap.outputMint : swap.inputMint,
+              tokenSymbol: undefined, // Will be fetched by observer
+              tokenName: undefined,
+              action,
+              amount: isBuy ? swap.inputAmount : swap.outputAmount,
+              timestamp: new Date(swap.timestamp || Date.now())
+            };
+
+            // Fire and forget - don't block webhook response
+            handleSuperRouterTrade(tradeEvent).catch((err) => {
+              console.error('❌ Observer analysis failed:', err);
+            });
+          }
         } catch (error) {
           console.error('❌ [WEBHOOK] Failed to process swap:', error instanceof Error ? error.message : error);
         }
