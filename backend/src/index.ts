@@ -171,9 +171,6 @@ app.onError((err, c) => {
   );
 });
 
-// Global Helius monitor instance (exported for dynamic wallet management)
-export let heliusMonitor: HeliusWebSocketMonitor | null = null;
-
 // Start Helius WebSocket Monitor (real-time transaction tracking)
 async function startHeliusMonitor() {
   const heliusApiKey = process.env.HELIUS_API_KEY;
