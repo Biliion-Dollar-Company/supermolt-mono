@@ -81,7 +81,7 @@ function formatPoints(value: number): string {
 // USDC Pool Counter for Rewards View
 function USDCPoolCounter({ isActive }: { isActive: boolean }): ReactNode {
   const poolAmount = useCountUp(1000, isActive, 2000);
-  return <>{poolAmount.toLocaleString()} USDC</>;
+  return <>{poolAmount.toLocaleString()} <USDCIcon className="inline-block h-8 w-8 lg:h-10 lg:w-10 -mt-1 ml-1" /></>;
 }
 
 // SVG Icons
@@ -139,9 +139,9 @@ function Toast({
         >
           <motion.div
             className={cn(
-              'flex items-center gap-3 rounded-sm px-4 py-3',
-              'border-accent-primary/50 border bg-white/[0.04] backdrop-blur-xl',
-              'shadow-accent-primary/20 shadow-lg'
+              'flex items-center gap-3 rounded-sm px-5 py-4',
+              'border-accent-primary/50 border bg-bg-primary backdrop-blur-xl',
+              'shadow-accent-primary/30 shadow-xl'
             )}
             animate={{
               boxShadow: [
@@ -1325,18 +1325,6 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                   animate={rewardsPhase === 'celebrate' ? { scale: [1, 1.05, 1] } : {}}
                   transition={{ duration: 0.5, repeat: 2 }}
                 >
-                  <motion.div
-                    className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-primary/20 lg:h-20 lg:w-20"
-                    animate={
-                      rewardsPhase === 'distribute' || rewardsPhase === 'celebrate'
-                        ? { rotate: [0, 10, -10, 0] }
-                        : {}
-                    }
-                    transition={{ duration: 0.6, repeat: Infinity, repeatDelay: 1 }}
-                  >
-                    <USDCIcon className="h-8 w-8 lg:h-10 lg:w-10" />
-                  </motion.div>
-                  
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-xs uppercase tracking-wider text-text-muted lg:text-sm">USDC Reward Pool</span>
                     <motion.span 
@@ -1375,8 +1363,6 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                   { rank: 1, name: 'DiamondHands', multiplier: '2.0x', usdc: 400 },
                   { rank: 2, name: 'You', multiplier: '1.5x', usdc: 300, isYou: true },
                   { rank: 3, name: 'MoonWatcher', multiplier: '1.0x', usdc: 200 },
-                  { rank: 4, name: 'CryptoKing', multiplier: '0.75x', usdc: 150 },
-                  { rank: 5, name: 'SatoshiFan', multiplier: '0.5x', usdc: 100 },
                 ].map((agent, i) => (
                   <motion.div
                     key={agent.rank}
@@ -1423,7 +1409,7 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                       animate={{ scale: 1 }}
                       transition={{ delay: i * 0.15 + 0.2, type: 'spring', stiffness: 500 }}
                     >
-                      +{agent.usdc} USDC
+                      +{agent.usdc} <USDCIcon className="inline-block h-4 w-4 -mt-0.5 ml-0.5" />
                     </motion.span>
                   </motion.div>
                 ))}
