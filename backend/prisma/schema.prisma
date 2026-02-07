@@ -370,6 +370,33 @@ model AgentPosition {
   @@map("agent_positions")
 }
 
+model AgentTrade {
+  id               String    @id @default(cuid())
+  agentId          String
+  tokenMint        String
+  tokenSymbol      String?
+  tokenName        String?
+  action           String    // "BUY" | "SELL"
+  tokenAmount      Decimal   @db.Decimal(24, 6)
+  solAmount        Decimal   @db.Decimal(24, 8)
+  signature        String    @unique
+  priorityFee      Int?      // lamports
+  networkFee       Int?      // lamports
+  swapFee          Decimal?  @db.Decimal(24, 8) // SOL
+  totalFees        Decimal?  @db.Decimal(24, 8) // SOL
+  executionMs      Int?      // milliseconds
+  slippageBps      Int?      // basis points
+  priceImpactPct   Decimal?  @db.Decimal(8, 4)
+  attempt          Int       @default(1)
+  createdAt        DateTime  @default(now())
+
+  @@index([agentId, createdAt])
+  @@index([tokenMint])
+  @@index([signature])
+  @@index([action])
+  @@map("agent_trades")
+}
+
 model AgentConversation {
   id        String          @id @default(cuid())
   topic     String

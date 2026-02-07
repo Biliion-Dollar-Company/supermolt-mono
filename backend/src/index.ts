@@ -27,6 +27,7 @@ import { messaging } from './routes/messaging';
 import { voting } from './routes/voting';
 import { profile } from './routes/profile';
 import { treasury } from './routes/treasury.routes';
+import { trading } from './routes/trading.routes';
 
 // USDC Hackathon Routes (Standardized Modules)
 import treasury from './modules/treasury/treasury.routes';
@@ -108,6 +109,9 @@ app.route('/trades', copyTrade); // /trades/copy/* endpoints
 app.route('/positions', positions); // Position tracking
 app.route('/messaging', messaging); // Agent messaging
 app.route('/voting', voting); // Voting system
+
+// Trading routes (Agent trade execution)
+app.route('/trading', trading); // BUY/SELL execution + portfolio management
 
 // Treasury routes (USDC reward distribution)
 app.route('/treasury', treasury); // Treasury management and USDC distribution
