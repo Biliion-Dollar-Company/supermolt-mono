@@ -27,6 +27,7 @@ import { messaging } from './routes/messaging';
 import { voting } from './routes/voting';
 import { profile } from './routes/profile';
 import { treasury } from './routes/treasury.routes';
+import { agentAuth } from './routes/agent-auth.routes';
 // import { trading } from './routes/trading.routes'; // DISABLED for hackathon - passive observation only
 
 // USDC Hackathon Routes (Standardized Modules)
@@ -109,6 +110,7 @@ app.route('/trades', copyTrade); // /trades/copy/* endpoints
 app.route('/positions', positions); // Position tracking
 app.route('/messaging', messaging); // Agent messaging
 app.route('/voting', voting); // Voting system
+app.route('/agent-auth', agentAuth); // Twitter auth + task verification
 
 // Trading routes (Agent trade execution) - DISABLED FOR HACKATHON
 // app.route('/trading', trading); // BUY/SELL execution + portfolio management
