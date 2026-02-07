@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Swords, Wifi, WifiOff, Clock, Users, TrendingUp } from 'lucide-react';
+import { Swords, Wifi, WifiOff, Users, TrendingUp, Clock } from 'lucide-react';
 import { getRecentTrades, getAllPositions } from '@/lib/api';
 import { Trade, Position } from '@/lib/types';
-import { ArenaLeaderboard, TokenDetailModal } from '@/components/arena';
+import { ArenaLeaderboard, TokenDetailContent } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
 
 function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
@@ -79,51 +79,12 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function TokenCard({ token, onClick, isLast }: { token: ArenaToken; onClick: () => void; isLast?: boolean }) {
-  return (
-    <div>
-      <button
-        onClick={onClick}
-        className="w-full text-left p-4 hover:bg-white/[0.03] transition-all cursor-pointer group"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-lg font-bold font-mono text-text-primary group-hover:text-accent-primary transition-colors">
-            {token.tokenSymbol}
-          </span>
-          <span className={`text-sm font-mono ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {token.netPnl >= 0 ? '+' : ''}{token.netPnl.toFixed(2)}%
-          </span>
-        </div>
-
-        <div className="flex items-center gap-4 text-xs text-text-muted">
-          <span className="flex items-center gap-1">
-            <Users className="w-3 h-3" />
-            {token.agentCount} agents
-          </span>
-          <span className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3" />
-            {token.recentTradeCount} trades
-          </span>
-          <span className="flex items-center gap-1 ml-auto">
-            <Clock className="w-3 h-3" />
-            {timeAgo(token.lastTradeTime)}
-          </span>
-        </div>
-      </button>
-      {!isLast && (
-        <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-      )}
-    </div>
-  );
-}
-
 export default function ArenaPage() {
   const [tokens, setTokens] = useState<ArenaToken[]>([]);
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isLive, setIsLive] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -144,9 +105,16 @@ export default function ArenaPage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 15000);
+    const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Auto-select first token when tokens load and nothing is selected
+  useEffect(() => {
+    if (tokens.length > 0 && !selectedToken) {
+      setSelectedToken(tokens[0].tokenSymbol);
+    }
+  }, [tokens, selectedToken]);
 
   return (
     <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%]">
@@ -170,7 +138,7 @@ export default function ArenaPage() {
           </div>
         </div>
 
-        {/* Main layout: leaderboard left, separator, token carousel right */}
+        {/* Main layout: leaderboard left, separator, token feed right */}
         <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
           {/* Leaderboard */}
           <div className="border border-white/[0.06] bg-bg-secondary p-4 sm:p-5">
@@ -185,17 +153,18 @@ export default function ArenaPage() {
             <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
           </div>
 
-          {/* Token Carousel */}
+          {/* Token Grid + Featured Detail */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                Recently Traded Tokens
+                Live Tokens
               </h2>
               <span className="text-xs text-text-muted">{tokens.length} tokens</span>
             </div>
+
             {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 6 }).map((_, i) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
+                {Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="h-20 bg-white/[0.02] animate-pulse rounded" />
                 ))}
               </div>
@@ -204,46 +173,59 @@ export default function ArenaPage() {
                 <p>No recent trading activity</p>
               </div>
             ) : (
-              <div
-                className="relative overflow-hidden h-[600px]"
-                onMouseEnter={() => setIsPaused(true)}
-                onMouseLeave={() => setIsPaused(false)}
-              >
-                {/* Top fade */}
-                <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-bg-primary to-transparent z-10 pointer-events-none" />
-                {/* Bottom fade */}
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-bg-primary to-transparent z-10 pointer-events-none" />
-
-                <div className={`animate-vertical-marquee ${isPaused ? 'paused' : ''}`}>
-                  {/* First set */}
+              <>
+                {/* Token Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 mb-6">
                   {tokens.map((token) => (
-                    <TokenCard
+                    <button
                       key={token.tokenSymbol}
-                      token={token}
                       onClick={() => setSelectedToken(token.tokenSymbol)}
-                    />
-                  ))}
-                  {/* Duplicate for seamless loop */}
-                  {tokens.map((token) => (
-                    <TokenCard
-                      key={`dup-${token.tokenSymbol}`}
-                      token={token}
-                      onClick={() => setSelectedToken(token.tokenSymbol)}
-                    />
+                      className={`text-left p-3 border transition-all cursor-pointer ${
+                        selectedToken === token.tokenSymbol
+                          ? 'border-accent-primary/50 bg-accent-primary/5'
+                          : 'border-white/[0.06] hover:bg-white/[0.03]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-sm font-bold font-mono text-text-primary truncate">
+                          {token.tokenSymbol}
+                        </span>
+                        <span className={`text-xs font-mono ml-1 ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {token.netPnl >= 0 ? '+' : ''}{token.netPnl.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-text-muted">
+                        <span className="flex items-center gap-0.5">
+                          <Users className="w-3 h-3" />
+                          {token.agentCount}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          <TrendingUp className="w-3 h-3" />
+                          {token.recentTradeCount}
+                        </span>
+                        <span className="flex items-center gap-0.5 ml-auto">
+                          <Clock className="w-3 h-3" />
+                          {timeAgo(token.lastTradeTime)}
+                        </span>
+                      </div>
+                    </button>
                   ))}
                 </div>
-              </div>
+
+                {/* Featured Token Detail (inline) */}
+                {selectedToken ? (
+                  <div className="border border-white/[0.06] bg-bg-secondary overflow-hidden">
+                    <TokenDetailContent tokenSymbol={selectedToken} />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-text-muted">
+                    <p>Select a token to view live data</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
-
-        {/* Token Detail Modal */}
-        {selectedToken && (
-          <TokenDetailModal
-            tokenSymbol={selectedToken}
-            onClose={() => setSelectedToken(null)}
-          />
-        )}
       </div>
     </div>
   );

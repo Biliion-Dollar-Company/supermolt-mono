@@ -32,10 +32,61 @@ export interface TokenInfo {
   marketCap?: number;
 }
 
+// Well-known mints that DexScreener can't resolve
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+
+function getWellKnownToken(tokenMint: string): TokenPrice | null {
+  if (tokenMint === SOL_MINT) {
+    return {
+      mint: tokenMint, symbol: 'SOL', name: 'Solana',
+      price: 0, priceUsd: 0, // Will be filled by Jupiter below
+      timestamp: new Date().toISOString(),
+    };
+  }
+  if (tokenMint === USDC_MINT) {
+    return {
+      mint: tokenMint, symbol: 'USDC', name: 'USD Coin',
+      price: 1, priceUsd: 1,
+      timestamp: new Date().toISOString(),
+    };
+  }
+  return null;
+}
+
+/** Quick SOL price from CoinGecko (free, no key) */
+async function getSolPrice(): Promise<number> {
+  try {
+    const resp = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd',
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!resp.ok) return 0;
+    const data = (await resp.json()) as any;
+    return data?.solana?.usd || 0;
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * Get current price of a token from Birdeye, with DexScreener fallback.
  */
 export async function getTokenPrice(tokenMint: string): Promise<TokenPrice | null> {
+  // Handle well-known tokens first (SOL, USDC)
+  const wellKnown = getWellKnownToken(tokenMint);
+  if (wellKnown) {
+    if (wellKnown.priceUsd === 0) {
+      // Need to fetch live price (SOL)
+      const solPrice = await getSolPrice();
+      if (solPrice > 0) {
+        wellKnown.price = solPrice;
+        wellKnown.priceUsd = solPrice;
+      }
+    }
+    return wellKnown;
+  }
+
   // Try Birdeye first (if API key configured)
   if (BIRDEYE_API_KEY) {
     try {

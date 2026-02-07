@@ -21,8 +21,9 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isFirst = true;
     const fetchAll = async () => {
-      setLoading(true);
+      if (isFirst) setLoading(true);
       const [allTrades, allPositions, allVotes, conversations] = await Promise.all([
         getRecentTrades(100),
         getAllPositions(),
@@ -43,8 +44,11 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
       }
 
       setLoading(false);
+      isFirst = false;
     };
     fetchAll();
+    const interval = setInterval(fetchAll, 10000);
+    return () => clearInterval(interval);
   }, [tokenSymbol]);
 
   if (loading) {
@@ -100,7 +104,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
       </div>
 
       {/* Main Content: Two Columns */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'max-h-[350px]' : 'max-h-[50vh]'}`}>
+      <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'max-h-[350px]' : 'max-h-[60vh]'}`}>
         {/* Left: Wallet Positions + Activity */}
         <div className="border-r border-white/[0.06] flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto min-h-0">

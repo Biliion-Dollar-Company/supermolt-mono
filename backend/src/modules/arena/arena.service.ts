@@ -67,7 +67,8 @@ export async function getLeaderboard() {
   const agentIds = agents.map((a) => a.id);
 
   // Get AgentStats for sortino ratios (populated by sortino cron)
-  const [stats, tradeCounts] = await Promise.all([
+  // Also get PaperTrade counts as fallback volume source (AgentTrade may be empty)
+  const [stats, agentTradeCounts, paperTradeCounts] = await Promise.all([
     db.agentStats.findMany({
       where: { agentId: { in: agentIds } },
     }),
@@ -77,11 +78,20 @@ export async function getLeaderboard() {
       _count: { agentId: true },
       _sum: { solAmount: true },
     }),
+    db.paperTrade.groupBy({
+      by: ['agentId'],
+      where: {
+        agentId: { in: agentIds },
+        NOT: { tokenSymbol: 'ACTIVITY' },
+      },
+      _count: { agentId: true },
+      _sum: { amount: true },
+    }),
   ]);
 
   const statsMap = new Map(stats.map((s) => [s.agentId, s]));
-  const tradeMap = new Map(
-    tradeCounts.map((tc) => [
+  const agentTradeMap = new Map(
+    agentTradeCounts.map((tc) => [
       tc.agentId,
       {
         count: tc._count.agentId,
@@ -89,13 +99,27 @@ export async function getLeaderboard() {
       },
     ])
   );
+  const paperTradeMap = new Map(
+    paperTradeCounts.map((tc) => [
+      tc.agentId,
+      {
+        count: tc._count.agentId,
+        volume: tc._sum.amount ? parseFloat(tc._sum.amount.toString()) : 0,
+      },
+    ])
+  );
 
   const rankings = agents.map((agent) => {
     const agentStats = statsMap.get(agent.id);
-    const tradeData = tradeMap.get(agent.id);
+    const atData = agentTradeMap.get(agent.id);
+    const ptData = paperTradeMap.get(agent.id);
     const winRate = parseFloat(agent.winRate.toString());
     const totalPnl = parseFloat(agent.totalPnl.toString());
     const sortinoRatio = agentStats ? parseFloat(agentStats.sortinoRatio.toString()) : 0;
+
+    // Use AgentTrade data if available, otherwise fall back to PaperTrade, then agent.totalTrades
+    const tradeCount = atData?.count || ptData?.count || agent.totalTrades;
+    const totalVolume = atData?.volume || ptData?.volume || 0;
 
     return {
       agentId: agent.id,
@@ -104,8 +128,8 @@ export async function getLeaderboard() {
       sortino_ratio: sortinoRatio,
       win_rate: winRate,
       total_pnl: totalPnl,
-      trade_count: tradeData?.count || agent.totalTrades,
-      total_volume: tradeData?.volume || 0,
+      trade_count: tradeCount,
+      total_volume: totalVolume,
       average_win: totalPnl > 0 && agent.totalTrades > 0 ? totalPnl / agent.totalTrades : 0,
       average_loss: totalPnl < 0 && agent.totalTrades > 0 ? totalPnl / agent.totalTrades : 0,
       max_win: 0,
@@ -139,75 +163,90 @@ export async function getLeaderboard() {
   };
 }
 
+// ── Helpers ───────────────────────────────────────────────
+
+/** Use short mint address as fallback when symbol is UNKNOWN/missing */
+function resolveSymbol(symbol: string | null | undefined, mint: string): string {
+  if (symbol && symbol !== 'UNKNOWN' && symbol !== 'ACTIVITY') return symbol;
+  return mint.slice(0, 6);
+}
+
 // ── Recent Trades ─────────────────────────────────────────
 
 export async function getRecentTrades(limit: number) {
-  // Use AgentTrade (real on-chain trades with signatures)
-  const trades = await db.agentTrade.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-  });
+  // Fetch from BOTH tables and merge (AgentTrade may be empty due to signature issues)
+  const [agentTrades, paperTrades] = await Promise.all([
+    db.agentTrade.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }),
+    db.paperTrade.findMany({
+      where: {
+        NOT: { tokenSymbol: 'ACTIVITY' },
+      },
+      orderBy: { openedAt: 'desc' },
+      take: limit,
+    }),
+  ]);
 
-  if (trades.length > 0) {
-    return {
-      trades: trades.map((t) => ({
-        tradeId: t.id,
-        agentId: t.agentId,
-        tokenMint: t.tokenMint,
-        tokenSymbol: t.tokenSymbol || 'UNKNOWN',
-        action: t.action as 'BUY' | 'SELL',
-        quantity: parseFloat(t.tokenAmount.toString()),
-        entryPrice: parseFloat(t.solAmount.toString()),
-        exitPrice: undefined,
-        pnl: 0,
-        pnlPercent: 0,
-        txHash: t.signature,
-        timestamp: t.createdAt.toISOString(),
-        createdAt: t.createdAt.toISOString(),
-        updatedAt: t.createdAt.toISOString(),
-      })),
-    };
-  }
+  // Map AgentTrades
+  const mapped = agentTrades.map((t) => ({
+    tradeId: t.id,
+    agentId: t.agentId,
+    tokenMint: t.tokenMint,
+    tokenSymbol: resolveSymbol(t.tokenSymbol, t.tokenMint),
+    action: t.action as 'BUY' | 'SELL',
+    quantity: parseFloat(t.tokenAmount.toString()),
+    entryPrice: parseFloat(t.solAmount.toString()),
+    exitPrice: undefined as number | undefined,
+    pnl: 0,
+    pnlPercent: 0,
+    txHash: t.signature,
+    timestamp: t.createdAt.toISOString(),
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.createdAt.toISOString(),
+  }));
 
-  // Fallback: PaperTrade with filters (exclude ACTIVITY markers and zero-price junk)
-  const paperTrades = await db.paperTrade.findMany({
-    where: {
-      NOT: [{ tokenSymbol: 'ACTIVITY' }, { entryPrice: 0 }],
-    },
-    orderBy: { openedAt: 'desc' },
-    take: limit,
-  });
+  // Track AgentTrade signatures to avoid duplicates
+  const seenSigs = new Set(agentTrades.map((t) => t.signature));
 
-  return {
-    trades: paperTrades.map((t) => ({
+  // Add PaperTrades that don't duplicate AgentTrades
+  for (const t of paperTrades) {
+    const sig = (t.metadata as any)?.signature;
+    if (sig && seenSigs.has(sig)) continue;
+
+    mapped.push({
       tradeId: t.id,
       agentId: t.agentId,
       tokenMint: t.tokenMint,
-      tokenSymbol: t.tokenSymbol,
+      tokenSymbol: resolveSymbol(t.tokenSymbol, t.tokenMint),
       action: t.action as 'BUY' | 'SELL',
       quantity: t.tokenAmount ? parseFloat(t.tokenAmount.toString()) : parseFloat(t.amount.toString()),
       entryPrice: parseFloat(t.entryPrice.toString()),
       exitPrice: t.exitPrice ? parseFloat(t.exitPrice.toString()) : undefined,
       pnl: t.pnl ? parseFloat(t.pnl.toString()) : 0,
       pnlPercent: t.pnlPercent ? parseFloat(t.pnlPercent.toString()) : 0,
-      txHash: `tx_${t.id}`,
+      txHash: sig || `tx_${t.id}`,
       timestamp: t.openedAt.toISOString(),
       createdAt: t.openedAt.toISOString(),
       updatedAt: (t.closedAt ?? t.openedAt).toISOString(),
-    })),
-  };
+    });
+  }
+
+  // Sort combined results by timestamp desc and apply limit
+  mapped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return { trades: mapped.slice(0, limit) };
 }
 
 // ── Positions ─────────────────────────────────────────────
 
 export async function getAllPositions() {
+  // Only filter ACTIVITY markers and zero-quantity positions.
+  // Allow UNKNOWN symbols (use short mint as display name) and zero entryPrice.
   const positions = await db.agentPosition.findMany({
     where: {
-      NOT: [
-        { tokenSymbol: 'UNKNOWN' },
-        { tokenSymbol: 'ACTIVITY' },
-      ],
-      entryPrice: { gt: 0 },
+      NOT: { tokenSymbol: 'ACTIVITY' },
       quantity: { gt: 0 },
     },
     orderBy: { openedAt: 'desc' },
@@ -229,7 +268,7 @@ export async function getAllPositions() {
         agentId: pos.agentId,
         agentName: nameMap.get(pos.agentId) ?? 'Unknown',
         tokenMint: pos.tokenMint,
-        tokenSymbol: pos.tokenSymbol,
+        tokenSymbol: resolveSymbol(pos.tokenSymbol, pos.tokenMint),
         quantity,
         entryPrice,
         currentPrice,
