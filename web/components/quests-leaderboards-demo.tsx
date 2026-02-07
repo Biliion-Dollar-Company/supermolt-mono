@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Trophy, Bot } from 'lucide-react';
+import { Trophy, Bot, Twitter, MessageCircle, Gem, BookOpen, Wallet, Lock, type LucideIcon } from 'lucide-react';
 
 interface QuestsLeaderboardsDemoProps {
   className?: string;
@@ -1196,14 +1196,16 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
 
           {/* Other quests (static) - ACTUAL TRENCH TASKS */}
           <div className="space-y-2 lg:space-y-3">
-            {[
-              { icon: '𝕏', title: 'Twitter Discovery', shortTitle: 'Twitter', points: 100, type: 'twitter', desc: 'Find official account' },
-              { icon: '💬', title: 'Community Analysis', shortTitle: 'Community', points: 75, type: 'social', desc: 'Sentiment + mentions' },
-              { icon: '💎', title: 'Holder Analysis', shortTitle: 'Holders', points: 150, type: 'onchain', desc: 'Top 10 holders' },
-              { icon: '📖', title: 'Narrative Research', shortTitle: 'Narrative', points: 125, type: 'research', desc: 'Token story' },
-              { icon: '🐋', title: 'God Wallet Tracking', shortTitle: 'Whales', points: 200, type: 'onchain', desc: 'Track known whales' },
-              { icon: '🔒', title: 'Liquidity Lock Check', shortTitle: 'Lock Check', points: 80, type: 'onchain', desc: 'Verify lock status' },
-            ].map((quest, i) => (
+            {([
+              { icon: Twitter, title: 'Twitter Discovery', shortTitle: 'Twitter', points: 100, type: 'twitter', desc: 'Find official account' },
+              { icon: MessageCircle, title: 'Community Analysis', shortTitle: 'Community', points: 75, type: 'social', desc: 'Sentiment + mentions' },
+              { icon: Gem, title: 'Holder Analysis', shortTitle: 'Holders', points: 150, type: 'onchain', desc: 'Top 10 holders' },
+              { icon: BookOpen, title: 'Narrative Research', shortTitle: 'Narrative', points: 125, type: 'research', desc: 'Token story' },
+              { icon: Wallet, title: 'God Wallet Tracking', shortTitle: 'Whales', points: 200, type: 'onchain', desc: 'Track known whales' },
+              { icon: Lock, title: 'Liquidity Lock Check', shortTitle: 'Lock Check', points: 80, type: 'onchain', desc: 'Verify lock status' },
+            ] as { icon: LucideIcon; title: string; shortTitle: string; points: number; type: string; desc: string }[]).map((quest, i) => {
+              const QuestIcon = quest.icon;
+              return (
               <motion.div
                 key={quest.title}
                 initial={{ opacity: 0, y: 10 }}
@@ -1212,8 +1214,8 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                 className="rounded-sm border border-white/[0.06] bg-white/[0.03] backdrop-blur-xl px-3 py-2 lg:px-4 lg:py-3"
               >
                 <div className="flex items-center gap-2 lg:gap-4">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center text-sm text-text-muted lg:h-10 lg:w-10 lg:text-lg">
-                    {quest.icon}
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center text-text-muted lg:h-10 lg:w-10">
+                    <QuestIcon className="h-4 w-4 lg:h-5 lg:w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-medium text-text-secondary lg:text-sm">
@@ -1231,7 +1233,8 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                   </span>
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
 
