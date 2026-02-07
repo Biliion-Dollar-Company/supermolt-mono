@@ -202,6 +202,14 @@ export async function getRecentTrades(limit: number) {
 
 export async function getAllPositions() {
   const positions = await db.agentPosition.findMany({
+    where: {
+      NOT: [
+        { tokenSymbol: 'UNKNOWN' },
+        { tokenSymbol: 'ACTIVITY' },
+      ],
+      entryPrice: { gt: 0 },
+      quantity: { gt: 0 },
+    },
     orderBy: { openedAt: 'desc' },
   });
 

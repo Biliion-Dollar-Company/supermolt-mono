@@ -33,53 +33,84 @@ export interface TokenInfo {
 }
 
 /**
- * Get current price of a token from Birdeye
+ * Get current price of a token from Birdeye, with DexScreener fallback.
  */
 export async function getTokenPrice(tokenMint: string): Promise<TokenPrice | null> {
-  try {
-    if (!BIRDEYE_API_KEY) {
-      console.warn('BIRDEYE_API_KEY not set, cannot fetch price');
-      return null;
-    }
+  // Try Birdeye first (if API key configured)
+  if (BIRDEYE_API_KEY) {
+    try {
+      const url = `${BIRDEYE_API_URL}/defi/token_price?address=${tokenMint}`;
+      const response = await fetch(url, {
+        headers: { 'X-API-KEY': BIRDEYE_API_KEY, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      });
 
-    const url = `${BIRDEYE_API_URL}/defi/token_price?address=${tokenMint}`;
-
-    const response = await fetch(url, {
-      headers: {
-        'X-API-KEY': BIRDEYE_API_KEY,
-        'Accept': 'application/json'
+      if (response.ok) {
+        const data = (await response.json()) as any;
+        if (data.success && data.data) {
+          const tokenData = data.data;
+          return {
+            mint: tokenMint,
+            symbol: tokenData.symbol || tokenData.name,
+            name: tokenData.name,
+            price: tokenData.price || 0,
+            priceUsd: tokenData.price || 0,
+            liquidity: tokenData.liquidity,
+            marketCap: tokenData.marketCap,
+            volume24h: tokenData.volume24h,
+            change24h: tokenData.change24h,
+            decimals: tokenData.decimals,
+            timestamp: new Date().toISOString()
+          };
+        }
       }
-    });
-
-    if (!response.ok) {
-      console.error(`Birdeye API error: ${response.status} ${response.statusText}`);
-      return null;
+    } catch (_) {
+      // Fall through to DexScreener
     }
+  }
+
+  // Fallback: DexScreener (free, no API key)
+  return getDexScreenerPrice(tokenMint);
+}
+
+/**
+ * DexScreener fallback — free API, no key required.
+ * Returns token price + metadata from the highest-liquidity pair.
+ */
+async function getDexScreenerPrice(tokenMint: string): Promise<TokenPrice | null> {
+  try {
+    const response = await fetch(
+      `https://api.dexscreener.com/latest/dex/tokens/${tokenMint}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (!response.ok) return null;
 
     const data = (await response.json()) as any;
+    const pairs = data?.pairs;
+    if (!pairs || pairs.length === 0) return null;
 
-    if (!data.success || !data.data) {
-      console.warn(`No price data for token ${tokenMint}`);
-      return null;
-    }
+    // Pick the pair with highest liquidity
+    const best = pairs.reduce((a: any, b: any) =>
+      (b.liquidity?.usd || 0) > (a.liquidity?.usd || 0) ? b : a
+    );
 
-    const tokenData = data.data;
+    const baseToken = best.baseToken || {};
+    const priceUsd = parseFloat(best.priceUsd) || 0;
 
     return {
       mint: tokenMint,
-      symbol: tokenData.symbol || tokenData.name,
-      name: tokenData.name,
-      price: tokenData.price || 0,
-      priceUsd: tokenData.price || 0,
-      liquidity: tokenData.liquidity,
-      marketCap: tokenData.marketCap,
-      volume24h: tokenData.volume24h,
-      change24h: tokenData.change24h,
-      decimals: tokenData.decimals,
+      symbol: baseToken.symbol || undefined,
+      name: baseToken.name || undefined,
+      price: priceUsd,
+      priceUsd,
+      liquidity: best.liquidity?.usd,
+      marketCap: best.marketCap,
+      volume24h: best.volume?.h24,
+      change24h: best.priceChange?.h24,
       timestamp: new Date().toISOString()
     };
-  } catch (error) {
-    console.error('Failed to fetch token price from Birdeye:', error);
+  } catch (_) {
     return null;
   }
 }
