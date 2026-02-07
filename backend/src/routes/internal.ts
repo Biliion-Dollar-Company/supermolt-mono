@@ -249,4 +249,99 @@ internal.post('/agents/create-observers', async (c) => {
   }
 });
 
+// POST /internal/agents/create-two-more — Create agents 6 & 7
+internal.post('/agents/create-two-more', async (c) => {
+  try {
+    console.log('🚀 Creating Agents #6 and #7...');
+
+    const NEW_AGENTS = [
+      {
+        id: 'obs_6a9f8e2c1d5b4a3f',
+        userId: 'AFKqWBiPYstDy2zNqVWNNG9JXmKLtq2XmJ8XEnhQsEpT',
+        name: 'Agent Zeta',
+        persona: 'Technical Analyst',
+        strategy: 'Charts, indicators, and price action patterns',
+        focusAreas: ['support_resistance', 'fibonacci', 'rsi', 'macd', 'chart_patterns'],
+        emoji: '📈',
+        traits: ['technical', 'chart-focused', 'pattern-recognition'],
+        secretKey: 'n3FT19SBKhdh91NUXBjk54DBsiSu176s14zuf1ZpaAbZjRADJbYPJyVj6YJGLrXsemUaK3d6p4Edmq3LdTonp2P'
+      },
+      {
+        id: 'obs_7b8c9d3e2f6g5h4i',
+        userId: 'AQbvJQYc5T3JwQ5Gx1VTcA1rP6nXnCux65PGaNAftiPv',
+        name: 'Agent Theta',
+        persona: 'Sentiment Tracker',
+        strategy: 'Social media, community vibes, and narrative strength',
+        focusAreas: ['twitter_sentiment', 'telegram_activity', 'narrative', 'community_strength'],
+        emoji: '🧠',
+        traits: ['social', 'sentiment-driven', 'community-focused'],
+        secretKey: '2h5VvFiXMnYdatVbrzq5ZybFDF1omo6iiBYeWkrzeqb2QjaC88hteGocqs9ngThdAmsJKgQ1MWiyjw4Tuh6LDrtC'
+      }
+    ];
+
+    const createdAgents = [];
+    const skippedAgents = [];
+
+    for (const agentData of NEW_AGENTS) {
+      const existing = await db.tradingAgent.findUnique({
+        where: { id: agentData.id }
+      });
+
+      if (existing) {
+        console.log(`⚠️  ${agentData.emoji} ${agentData.name} already exists`);
+        skippedAgents.push(agentData.name);
+        continue;
+      }
+
+      const agent = await db.tradingAgent.create({
+        data: {
+          id: agentData.id,
+          userId: agentData.userId,
+          archetypeId: 'observer',
+          name: agentData.name,
+          status: 'ACTIVE',
+          paperBalance: 0,
+          config: {
+            persona: agentData.persona,
+            strategy: agentData.strategy,
+            focusAreas: agentData.focusAreas,
+            emoji: agentData.emoji,
+            traits: agentData.traits,
+            role: 'observer',
+            observing: '9U5PtsCxkma37wwMRmPLeLVqwGHvHMs7fyLaL47ovmTn',
+            secretKey: agentData.secretKey
+          }
+        }
+      });
+
+      console.log(`✅ Created ${agentData.emoji} ${agentData.name}`);
+      createdAgents.push(agent);
+    }
+
+    const allObservers = await db.tradingAgent.findMany({
+      where: { archetypeId: 'observer' },
+      select: { id: true, name: true, status: true, config: true }
+    });
+
+    console.log(`✅ Complete! Created: ${createdAgents.length}, Total: ${allObservers.length}`);
+
+    return c.json({
+      success: true,
+      data: {
+        created: createdAgents.length,
+        skipped: skippedAgents.length,
+        totalObservers: allObservers.length,
+        agents: allObservers
+      }
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to create agents';
+    console.error('Create agents error:', error);
+    return c.json(
+      { success: false, error: { code: 'INTERNAL_ERROR', message } },
+      500
+    );
+  }
+});
+
 export { internal };
