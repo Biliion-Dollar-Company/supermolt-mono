@@ -344,4 +344,80 @@ internal.post('/agents/create-two-more', async (c) => {
   }
 });
 
+// POST /internal/cleanup/purge-non-superrouter — Delete all fake data for non-SR agents
+internal.post('/cleanup/purge-non-superrouter', async (c) => {
+  try {
+    console.log('🧹 Starting purge of non-SuperRouter agent data...');
+
+    const KEEP_IDS = [
+      'cml7389hz0000qu01djafchsn',  // SuperRouter
+      'obs_2d699d1509105cd0',        // Alpha
+      'obs_d5e20717b2f7a46d',        // Beta
+      'obs_f235dbdc98f3a578',        // Gamma
+      'obs_b66d4c1a7ee58537',        // Delta
+      'obs_b84563ff6101876e',        // Epsilon
+      'obs_6a9f8e2c1d5b4a3f',        // Zeta
+      'obs_7b8c9d3e2f6g5h4i',        // Theta
+    ];
+
+    // Count before
+    const totalAgentsBefore = await db.tradingAgent.count();
+    const keepCount = await db.tradingAgent.count({ where: { id: { in: KEEP_IDS } } });
+
+    // 1. Delete AgentStats for non-preserved agents
+    const deletedStats = await db.agentStats.deleteMany({
+      where: { agentId: { notIn: KEEP_IDS } },
+    });
+    console.log(`  Deleted ${deletedStats.count} AgentStats`);
+
+    // 2. Delete AgentPositions for non-preserved agents
+    const deletedPositions = await db.agentPosition.deleteMany({
+      where: { agentId: { notIn: KEEP_IDS } },
+    });
+    console.log(`  Deleted ${deletedPositions.count} AgentPositions`);
+
+    // 3. Delete AgentTrades for non-preserved agents
+    const deletedAgentTrades = await db.agentTrade.deleteMany({
+      where: { agentId: { notIn: KEEP_IDS } },
+    });
+    console.log(`  Deleted ${deletedAgentTrades.count} AgentTrades`);
+
+    // 4. Delete TradingAgent records (cascades PaperTrade + TradeFeedback)
+    const deletedAgents = await db.tradingAgent.deleteMany({
+      where: { id: { notIn: KEEP_IDS } },
+    });
+    console.log(`  Deleted ${deletedAgents.count} TradingAgents (+ cascaded PaperTrades & Feedback)`);
+
+    // Count after
+    const totalAgentsAfter = await db.tradingAgent.count();
+    const remainingPositions = await db.agentPosition.count();
+    const remainingTrades = await db.agentTrade.count();
+
+    const summary = {
+      before: { totalAgents: totalAgentsBefore, preserved: keepCount },
+      deleted: {
+        agentStats: deletedStats.count,
+        agentPositions: deletedPositions.count,
+        agentTrades: deletedAgentTrades.count,
+        tradingAgents: deletedAgents.count,
+      },
+      after: {
+        totalAgents: totalAgentsAfter,
+        remainingPositions,
+        remainingTrades,
+      },
+    };
+
+    console.log('🧹 Purge complete:', JSON.stringify(summary, null, 2));
+    return c.json({ success: true, data: summary });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to purge data';
+    console.error('Purge error:', error);
+    return c.json(
+      { success: false, error: { code: 'INTERNAL_ERROR', message } },
+      500
+    );
+  }
+});
+
 export { internal };
