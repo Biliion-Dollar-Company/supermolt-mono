@@ -1,0 +1,75 @@
+{
+  "timestamp": 1770494334194,
+  "agentName": "test_agent_e2e_1770494334194",
+  "publicKey": "528RfjEwgpdP5Rfrf9Ahvj46DWEG1NfYJ4CERwTQKV6q",
+  "agentId": "cmlcqm3vo002fo402jp5lsxs9",
+  "results": [
+    {
+      "step": "1. Wallet Generation",
+      "status": "PASS",
+      "details": "Generated wallet: 528RfjEwgpdP5Rfrf9Ahvj46DWEG1NfYJ4CERwTQKV6q",
+      "data": {
+        "publicKey": "528RfjEwgpdP5Rfrf9Ahvj46DWEG1NfYJ4CERwTQKV6q",
+        "secretKeyLength": 88
+      }
+    },
+    {
+      "step": "2. Challenge Request",
+      "status": "PASS",
+      "details": "Challenge received",
+      "data": {
+        "nonce": "3776d582a3a18a1e22b49f320a9796b7e1bc337d36fca53f77976ea094ceb736",
+        "statement": "Sign this message to authenticate your Solana agent with Trench",
+        "expiresIn": 300
+      }
+    },
+    {
+      "step": "3. Sign Challenge",
+      "status": "PASS",
+      "details": "Signature generated",
+      "data": {
+        "nonceLength": 64,
+        "signatureLength": 88
+      }
+    },
+    {
+      "step": "4. SIWS Verification",
+      "status": "PASS",
+      "details": "JWT token received",
+      "data": {
+        "hasToken": true,
+        "hasRefreshToken": true,
+        "agentId": "cmlcqm3vo002fo402jp5lsxs9",
+        "agentPubkey": "528RfjEwgpdP5Rfrf9Ahvj46DWEG1NfYJ4CERwTQKV6q"
+      }
+    },
+    {
+      "step": "5. Monitoring Status",
+      "status": "PASS",
+      "details": "Skipped (requires internal API key, wallet added during auth)",
+      "data": {
+        "note": "Wallet automatically added to Helius monitoring during SIWS auth"
+      }
+    },
+    {
+      "step": "6. Submit Call",
+      "status": "FAIL",
+      "details": "HTTP 400: {\"success\":false,\"error\":{\"code\":\"NOT_FOUND\",\"message\":\"Scanner cmlcqm3vo002fo402jp5lsxs9 not found\",\"timestamp\":\"2026-02-07T19:58:55.061Z\"}}"
+    },
+    {
+      "step": "7. Leaderboard Check",
+      "status": "FAIL",
+      "details": "Agent test_agent_e2e_1770494334194 NOT found on leaderboard",
+      "data": {
+        "agentId": "cmlcqm3vo002fo402jp5lsxs9",
+        "totalRankings": 5
+      }
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 2,
+    "total": 7,
+    "successRate": 71.42857142857143
+  }
+}

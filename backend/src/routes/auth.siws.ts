@@ -80,6 +80,27 @@ siwsAuthRoutes.post('/agent/verify', async (c) => {
       });
     }
 
+    // 🔥 AUTO-CREATE SCANNER: Create Scanner record for leaderboard/calls system
+    if (isNewAgent) {
+      try {
+        const scanner = await db.scanner.create({
+          data: {
+            agentId: agent.id,
+            name: agent.name,
+            pubkey: pubkey,
+            privateKey: '', // Not needed for observer agents
+            strategy: 'general',
+            description: 'Auto-created agent scanner',
+            active: true
+          }
+        });
+        console.log(`✅ Created Scanner record for agent ${agent.id}`);
+      } catch (error) {
+        console.error(`⚠️  Failed to create Scanner record:`, error);
+        // Don't block if scanner creation fails
+      }
+    }
+
     // 🔥 DYNAMIC WALLET MONITORING: Add this wallet to Helius monitor (all agents, not just new ones)
     try {
       const monitor = await getHeliusMonitorInstance();

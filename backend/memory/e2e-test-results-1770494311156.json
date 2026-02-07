@@ -1,0 +1,68 @@
+{
+  "timestamp": 1770494311156,
+  "agentName": "test_agent_e2e_1770494311156",
+  "publicKey": "FrasUHnG2x27GEFHzJGDXNq3ecoMgzwgMnEfKVcowYr2",
+  "results": [
+    {
+      "step": "1. Wallet Generation",
+      "status": "PASS",
+      "details": "Generated wallet: FrasUHnG2x27GEFHzJGDXNq3ecoMgzwgMnEfKVcowYr2",
+      "data": {
+        "publicKey": "FrasUHnG2x27GEFHzJGDXNq3ecoMgzwgMnEfKVcowYr2",
+        "secretKeyLength": 88
+      }
+    },
+    {
+      "step": "2. Challenge Request",
+      "status": "PASS",
+      "details": "Challenge received",
+      "data": {
+        "nonce": "632b0e2b1bb5fde02765612d846ca28657f831973ca8917aa4240b9865469af6",
+        "statement": "Sign this message to authenticate your Solana agent with Trench",
+        "expiresIn": 300
+      }
+    },
+    {
+      "step": "3. Sign Challenge",
+      "status": "PASS",
+      "details": "Signature generated",
+      "data": {
+        "nonceLength": 64,
+        "signatureLength": 88
+      }
+    },
+    {
+      "step": "4. SIWS Verification",
+      "status": "PASS",
+      "details": "JWT token received",
+      "data": {
+        "hasToken": true,
+        "hasRefreshToken": true
+      }
+    },
+    {
+      "step": "5. Monitoring Status",
+      "status": "FAIL",
+      "details": "HTTP 401: {\"success\":false,\"error\":{\"code\":\"UNAUTHORIZED\",\"message\":\"Invalid API key\"}}"
+    },
+    {
+      "step": "6. Submit Call",
+      "status": "FAIL",
+      "details": "HTTP 400: {\"success\":false,\"error\":{\"code\":\"VALIDATION_ERROR\",\"message\":\"Missing required fields: scannerId, tokenAddress, convictionScore\",\"timestamp\":\"2026-02-07T19:58:31.841Z\"}}"
+    },
+    {
+      "step": "7. Leaderboard Check",
+      "status": "FAIL",
+      "details": "Agent test_agent_e2e_1770494311156 NOT found on leaderboard",
+      "data": {
+        "totalRankings": 5
+      }
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 3,
+    "total": 7,
+    "successRate": 57.14285714285714
+  }
+}
