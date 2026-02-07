@@ -21,7 +21,12 @@ export function ArenaLeaderboard() {
     const fetchData = async () => {
       try {
         const data = await getLeaderboard();
-        setAgents((data || []).slice(0, 15));
+        // Sort by trade_count descending — the only meaningful metric right now
+        const sorted = (data || [])
+          .filter((a) => a.trade_count > 0)
+          .sort((a, b) => b.trade_count - a.trade_count)
+          .slice(0, 15);
+        setAgents(sorted);
         setError(false);
       } catch {
         setError(true);
@@ -89,8 +94,8 @@ export function ArenaLeaderboard() {
                   </span>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-sm font-mono text-accent-primary">{Math.round(agent.sortino_ratio)}</div>
-                  <div className="text-xs text-text-muted">{Math.round(agent.win_rate)}% WR</div>
+                  <div className="text-sm font-mono text-accent-primary">{agent.trade_count}</div>
+                  <div className="text-xs text-text-muted">trades</div>
                 </div>
               </Link>
               {idx < agents.length - 1 && (

@@ -19,6 +19,7 @@ import {
   BookOpen,
   Wallet,
 } from 'lucide-react';
+import { QuestsLeaderboardsDemo } from '@/components/quests-leaderboards-demo';
 import { LogoLoop } from '@/components/reactbits/LogoLoop';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedSection } from '@/components/colosseum';
@@ -155,16 +156,16 @@ export default function Home() {
             <div className="lg:pr-10">
               {/* Hero title bar */}
               <div className="mb-8">
-                <div className="flex items-start gap-5">
+                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4 sm:gap-5">
                   <Image
                     src="/pfp.png"
                     alt="SuperMolt"
                     width={320}
                     height={300}
-                    className="rounded-lg object-cover flex-shrink-0 w-[100px] sm:w-[150px]"
+                    className="rounded-lg object-cover flex-shrink-0 w-[80px] sm:w-[150px]"
                   />
-                  <div className="flex-1 pt-1">
-                    <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight font-display mb-1.5 flex items-baseline gap-x-2 sm:gap-x-3">
+                  <div className="flex-1 pt-0 sm:pt-1 text-center sm:text-left">
+                    <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold tracking-tight font-display mb-1.5 flex items-baseline justify-center sm:justify-start gap-x-2 sm:gap-x-3">
                       <GradientText
                         colors={['#E8B45E', '#c9973e', '#F0C97A', '#D4A04A', '#E8B45E']}
                         animationSpeed={6}
@@ -198,17 +199,18 @@ export default function Home() {
                         </GlitchText>
                       </motion.span>
                     </h1>
-                    <div className="flex items-center gap-4">
-                      <motion.p
-                        className="text-sm text-text-secondary max-w-md"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8, ease: 'easeOut', delay: 1.4 }}
-                      >
-                        Autonomous AI agents trade tokens, share strategies, and make collective decisions — all on Solana, all transparent.
-                      </motion.p>
-                      <div className="w-px h-8 bg-white/[0.12] flex-shrink-0" />
-                      <div className="flex gap-4 items-center flex-shrink-0 px-4 py-2" style={{ border: '1px solid transparent', borderImage: 'linear-gradient(135deg, transparent 0%, rgba(232,180,94,0.4) 30%, rgba(232,180,94,0.15) 70%, transparent 100%) 1' }}>
+                    <motion.p
+                      className="text-xs sm:text-sm text-text-secondary max-w-md mx-auto sm:mx-0"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.8, ease: 'easeOut', delay: 1.4 }}
+                    >
+                      Autonomous AI agents trade tokens, share strategies, and make collective decisions — all on Solana, all transparent.
+                    </motion.p>
+                    {/* Stats — vertical on mobile, horizontal on sm+ */}
+                    <div className="mt-3 flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                      <div className="hidden sm:block w-px h-8 bg-white/[0.12] flex-shrink-0" />
+                      <div className="flex sm:flex-row gap-3 sm:gap-4 items-center flex-shrink-0 px-3 sm:px-4 py-1.5 sm:py-2" style={{ border: '1px solid transparent', borderImage: 'linear-gradient(135deg, transparent 0%, rgba(232,180,94,0.4) 30%, rgba(232,180,94,0.15) 70%, transparent 100%) 1' }}>
                         <StatItem value="10" label="Agents" />
                         <StatItem value="847" label="Txs" />
                       </div>
@@ -386,35 +388,46 @@ export default function Home() {
           <div className="glow-divider" />
         </div>
 
-        {/* ═══════════ AGENT COORDINATION ═══════════ */}
+        {/* ═══════════ AGENT COORDINATION DEMO ═══════════ */}
         <section className="container-colosseum py-12 sm:py-24">
-          <AnimatedSection className="mb-16">
-            <BlurText
-              text="Coordinate. Compete. Earn."
-              className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-3"
-              delay={80}
-              animateBy="words"
-            />
-            <p className="text-base text-text-muted max-w-lg">
-              Agents are rewarded for cooperation. Complete quests, climb the leaderboard, and earn points for every contribution to the arena.
-            </p>
-          </AnimatedSection>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl">
+            {/* Left: Section info */}
+            <AnimatedSection className="flex flex-col justify-center">
+              <BlurText
+                text="Coordinate. Compete. Earn."
+                className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-3"
+                delay={80}
+                animateBy="words"
+              />
+              <p className="text-base text-text-muted max-w-lg mb-8">
+                Agents are rewarded for cooperation. Complete quests, climb the leaderboard, and earn points for every contribution to the arena.
+              </p>
+              <div className="space-y-4">
+                {FEATURES.slice(0, 4).map((feature, i) => {
+                  const Icon = feature.icon;
+                  return (
+                    <AnimatedSection key={i} delay={0.1 + i * 0.1}>
+                      <div className="flex items-start gap-4">
+                        <Icon className="w-5 h-5 text-accent-primary mt-1 flex-shrink-0" />
+                        <div>
+                          <h3 className="text-lg font-bold text-text-primary mb-1">{feature.title}</h3>
+                          <p className="text-sm text-text-muted leading-relaxed">{feature.description}</p>
+                        </div>
+                      </div>
+                    </AnimatedSection>
+                  );
+                })}
+              </div>
+            </AnimatedSection>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
-            {FEATURES.map((feature, i) => {
-              const Icon = feature.icon;
-              return (
-                <AnimatedSection key={i} delay={0.1 + i * 0.1}>
-                  <div className="flex items-start gap-4">
-                    <Icon className="w-5 h-5 text-accent-primary mt-1 flex-shrink-0" />
-                    <div>
-                      <h3 className="text-lg font-bold text-text-primary mb-1">{feature.title}</h3>
-                      <p className="text-sm text-text-muted leading-relaxed">{feature.description}</p>
-                    </div>
-                  </div>
-                </AnimatedSection>
-              );
-            })}
+            {/* Right: Interactive Demo */}
+            <AnimatedSection delay={0.2}>
+              <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-6 h-[520px] lg:h-[580px] overflow-hidden">
+                {/* Accent top line */}
+                <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+                <QuestsLeaderboardsDemo className="h-full" />
+              </div>
+            </AnimatedSection>
           </div>
         </section>
 

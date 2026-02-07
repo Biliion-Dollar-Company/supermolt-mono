@@ -19,6 +19,7 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
 
   for (const trade of trades) {
     const sym = trade.tokenSymbol;
+    if (!sym || sym === 'UNKNOWN') continue;
     const existing = tokenMap.get(sym) || {
       agentIds: new Set<string>(),
       tradeCount: 0,
@@ -44,6 +45,7 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
 
   for (const pos of positions) {
     const sym = pos.tokenSymbol;
+    if (!sym || sym === 'UNKNOWN') continue;
     const existing = tokenMap.get(sym);
     if (existing) {
       existing.agentIds.add(pos.agentId);

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Home, Swords, BookOpen, Menu, X, Wallet } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '@/components/reactbits/GradientText';
 
 export default function Navbar() {
@@ -108,48 +108,84 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border animate-slide-up">
-            <ul className="space-y-1">
-              {navLinks.map((link) => {
-                const Icon = link.Icon;
-                const active = isActive(link.href);
-                return (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`
-                        flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200
-                        ${
-                          active
-                            ? 'text-accent-primary border-l-2 border-accent-primary bg-accent-primary/5'
-                            : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
-                        }
-                      `}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              key="mobile-menu"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeInOut' }}
+              className="md:hidden overflow-hidden border-t border-border relative z-50"
+            >
+              <ul className="space-y-1 py-4">
+                {navLinks.map((link, i) => {
+                  const Icon = link.Icon;
+                  const active = isActive(link.href);
+                  return (
+                    <motion.li
+                      key={link.href}
+                      initial={{ opacity: 0, x: -16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -16 }}
+                      transition={{ duration: 0.2, delay: i * 0.05 }}
                     >
-                      <Icon className="w-5 h-5" />
-                      <span>{link.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-              <li>
-                <a
-                  href="/api/skill.md"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200 text-text-secondary hover:text-text-primary hover:bg-white/5"
+                      <Link
+                        href={link.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`
+                          flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200
+                          ${
+                            active
+                              ? 'text-accent-primary border-l-2 border-accent-primary bg-accent-primary/5'
+                              : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                          }
+                        `}
+                      >
+                        <Icon className="w-5 h-5" />
+                        <span>{link.label}</span>
+                      </Link>
+                    </motion.li>
+                  );
+                })}
+                <motion.li
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.2, delay: navLinks.length * 0.05 }}
                 >
-                  <BookOpen className="w-5 h-5" />
-                  <span>Docs</span>
-                </a>
-              </li>
-            </ul>
-          </div>
-        )}
+                  <a
+                    href="/api/skill.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200 text-text-secondary hover:text-text-primary hover:bg-white/5"
+                  >
+                    <BookOpen className="w-5 h-5" />
+                    <span>Docs</span>
+                  </a>
+                </motion.li>
+              </ul>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+
+      {/* Backdrop overlay */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 top-16 bg-black/60 backdrop-blur-sm md:hidden"
+            style={{ zIndex: 40 }}
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
