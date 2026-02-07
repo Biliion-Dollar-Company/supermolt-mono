@@ -7,6 +7,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { getTokenPrice } from '../../lib/birdeye';
 
 const db = new PrismaClient();
 
@@ -163,12 +164,51 @@ export async function getLeaderboard() {
   };
 }
 
-// ── Helpers ───────────────────────────────────────────────
+// ── Symbol Resolution (DexScreener + cache) ──────────────
 
-/** Use short mint address as fallback when symbol is UNKNOWN/missing */
+/** In-memory cache: mint → resolved symbol. Survives across requests, resets on redeploy. */
+const symbolCache = new Map<string, string>();
+
+/** Check if a symbol looks unresolved (UNKNOWN, ACTIVITY, or short mint stub) */
+function isUnresolved(symbol: string | null | undefined): boolean {
+  if (!symbol || symbol === 'UNKNOWN' || symbol === 'ACTIVITY') return true;
+  // If it looks like a truncated mint (6 hex-ish chars), treat as unresolved
+  if (symbol.length <= 6 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(symbol)) return true;
+  return false;
+}
+
+/** Resolve a single symbol synchronously from cache, or return short mint fallback */
 function resolveSymbol(symbol: string | null | undefined, mint: string): string {
   if (symbol && symbol !== 'UNKNOWN' && symbol !== 'ACTIVITY') return symbol;
-  return mint.slice(0, 6);
+  return symbolCache.get(mint) || mint.slice(0, 6);
+}
+
+/**
+ * Batch-resolve symbols for a list of mints via DexScreener.
+ * Populates the in-memory cache. Call before mapping results.
+ */
+async function batchResolveSymbols(items: { symbol: string | null | undefined; mint: string }[]): Promise<void> {
+  const toResolve = items
+    .filter((i) => isUnresolved(i.symbol) && !symbolCache.has(i.mint))
+    .map((i) => i.mint);
+
+  // Deduplicate
+  const unique = [...new Set(toResolve)];
+  if (unique.length === 0) return;
+
+  // Resolve in parallel (DexScreener is free, no key needed)
+  await Promise.all(
+    unique.map(async (mint) => {
+      try {
+        const price = await getTokenPrice(mint);
+        if (price?.symbol) {
+          symbolCache.set(mint, price.symbol);
+        }
+      } catch {
+        // Leave uncached — will use short mint fallback
+      }
+    })
+  );
 }
 
 // ── Recent Trades ─────────────────────────────────────────
@@ -187,6 +227,12 @@ export async function getRecentTrades(limit: number) {
       orderBy: { openedAt: 'desc' },
       take: limit,
     }),
+  ]);
+
+  // Batch-resolve unknown symbols from DexScreener
+  await batchResolveSymbols([
+    ...agentTrades.map((t) => ({ symbol: t.tokenSymbol, mint: t.tokenMint })),
+    ...paperTrades.map((t) => ({ symbol: t.tokenSymbol, mint: t.tokenMint })),
   ]);
 
   // Map AgentTrades
@@ -251,6 +297,11 @@ export async function getAllPositions() {
     },
     orderBy: { openedAt: 'desc' },
   });
+
+  // Batch-resolve unknown symbols from DexScreener
+  await batchResolveSymbols(
+    positions.map((p) => ({ symbol: p.tokenSymbol, mint: p.tokenMint }))
+  );
 
   // Gather agent names
   const agentIds = [...new Set(positions.map((p) => p.agentId))];
