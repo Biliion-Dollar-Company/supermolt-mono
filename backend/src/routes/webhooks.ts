@@ -5,6 +5,7 @@ import { extractSwapsFromTransaction } from '../lib/swap-parser';
 import { getTokenPrice } from '../lib/birdeye';
 import { PositionTracker } from '../services/position-tracker';
 import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-observer';
+import { closePaperTrade } from '../services/trade.service';
 
 const db = new PrismaClient();
 const positionTracker = new PositionTracker(db);
@@ -86,8 +87,90 @@ function extractSignerWallet(transaction: any): string | null {
   }
 }
 
+// ── Constants for BUY/SELL detection ─────────────────────
+
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+const USDC_MINT = process.env.USDC_MINT || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
+const isBaseCurrency = (mint: string) => mint === SOL_MINT || mint === USDC_MINT;
+
 /**
- * Create trade record in database
+ * Create AgentTrade record (real on-chain trade with signature).
+ * Silently skips duplicates (P2002 = unique constraint on signature).
+ */
+async function safeCreateAgentTrade(agentId: string, data: {
+  tokenMint: string; tokenSymbol: string; tokenName: string;
+  action: string; tokenAmount: number; solAmount: number; signature: string;
+}) {
+  try {
+    await db.agentTrade.create({ data: { agentId, ...data } });
+  } catch (e: any) {
+    if (e?.code === 'P2002') {
+      console.log(`[AGENT_TRADE] Duplicate sig ${data.signature.slice(0, 16)}... — skipped`);
+    } else {
+      console.error('[AGENT_TRADE] Failed to create:', e);
+    }
+  }
+}
+
+/**
+ * Close all OPEN PaperTrades for an agent+token when the position is fully exited.
+ * Distributes sale proceeds proportionally across trades by cost basis.
+ * Uses closePaperTrade() for atomic agent stats recalculation.
+ */
+async function closeMatchingPaperTrades(
+  agentId: string,
+  tokenMint: string,
+  solReceived: number,
+  currentSolPrice: number
+) {
+  const openTrades = await db.paperTrade.findMany({
+    where: { agentId, tokenMint, status: 'OPEN' },
+    orderBy: { openedAt: 'asc' },
+  });
+
+  if (openTrades.length === 0) {
+    console.log(`[PNL] No OPEN PaperTrades found for ${tokenMint.slice(0, 8)}... — skipping`);
+    return;
+  }
+
+  console.log(`[PNL] Closing ${openTrades.length} PaperTrades for ${tokenMint.slice(0, 8)}...`);
+
+  // Calculate total cost basis across all open trades for proportional split
+  const totalCostBasis = openTrades.reduce((sum, t) => {
+    const solSpent = parseFloat(t.amount.toString());
+    const solPriceAtBuy = parseFloat(t.entryPrice.toString());
+    return sum + solSpent * solPriceAtBuy;
+  }, 0);
+
+  for (const trade of openTrades) {
+    const solSpent = parseFloat(trade.amount.toString());
+    const solPriceAtBuy = parseFloat(trade.entryPrice.toString());
+    const costBasisUSD = solSpent * solPriceAtBuy;
+
+    let pnl = 0;
+    let pnlPercent = 0;
+    const exitPrice = currentSolPrice;
+
+    if (costBasisUSD > 0 && solReceived > 0 && currentSolPrice > 0 && totalCostBasis > 0) {
+      const share = costBasisUSD / totalCostBasis;
+      const proceedsUSD = solReceived * currentSolPrice * share;
+      pnl = proceedsUSD - costBasisUSD;
+      pnlPercent = (pnl / costBasisUSD) * 100;
+    }
+
+    try {
+      await closePaperTrade({ tradeId: trade.id, exitPrice, pnl, pnlPercent });
+      console.log(`  [PNL] Closed ${trade.id.slice(0, 8)}: PnL $${pnl.toFixed(2)} (${pnlPercent.toFixed(1)}%)`);
+    } catch (e) {
+      console.error(`  [PNL] Failed to close trade ${trade.id}:`, e);
+    }
+  }
+}
+
+/**
+ * Create trade record in database.
+ * Detects BUY vs SELL from base-currency check, creates proper PaperTrade + AgentTrade,
+ * and closes PaperTrades with PnL when positions fully exit.
  */
 async function createTradeRecord(
   agentUserId: string,
@@ -102,149 +185,195 @@ async function createTradeRecord(
     // If agent doesn't exist, AUTO-CREATE it
     if (!agent) {
       try {
-        console.log(`🟡 Agent not found for ${agentUserId}, creating...`);
-        
+        console.log(`[AGENT] Not found for ${agentUserId}, creating...`);
         const agentName = `Agent-${agentUserId.slice(0, 6)}`;
-        
         agent = await db.tradingAgent.create({
           data: {
             userId: agentUserId,
-            archetypeId: 'default-archetype', // Default archetype for webhook-created agents
+            archetypeId: 'default-archetype',
             name: agentName,
             status: 'ACTIVE',
             totalTrades: 0,
             winRate: 0,
             totalPnl: 0
-            // Note: maxDrawdown, score removed - not in schema yet
           }
         });
-        
-        console.log(`✅ Created new agent:`, {
-          agentId: agent.id,
-          pubkey: agentUserId,
-          name: agentName
-        });
+        console.log(`[AGENT] Created: ${agent.id} for ${agentUserId.slice(0, 8)}...`);
       } catch (createError) {
-        console.error(`❌ Failed to create agent:`, {
-          pubkey: agentUserId,
-          error: createError instanceof Error ? createError.message : String(createError)
-        });
+        console.error(`[AGENT] Failed to create for ${agentUserId}:`, createError instanceof Error ? createError.message : String(createError));
         throw createError;
       }
     }
-
-    console.log('Creating trade for agent:', {
-      agentId: agent.id,
-      pubkey: agentUserId,
-      outputToken: swapData.outputMint
-    });
 
     // Get token prices from Birdeye
     const inputPrice = await getTokenPrice(swapData.inputMint);
     const outputPrice = await getTokenPrice(swapData.outputMint);
 
-    // Create paper trade record
-    const trade = await db.paperTrade.create({
-      data: {
-        agentId: agent.id,
-        tokenMint: swapData.outputMint,
-        tokenSymbol: outputPrice?.symbol || 'UNKNOWN',
-        tokenName: outputPrice?.name || 'Unknown',
-        action: 'BUY', // Simplified - could detect BUY vs SELL from input/output
-        entryPrice: inputPrice?.priceUsd || 0,
-        amount: swapData.inputAmount || 0,
-        tokenAmount: swapData.outputAmount,
-        marketCap: outputPrice?.marketCap,
-        liquidity: outputPrice?.liquidity,
-        metadata: {
-          dex: swapData.dex,
-          signature: swapData.signature,
-          inputMint: swapData.inputMint,
-          outputMint: swapData.outputMint,
-          source: 'helius-webhook'
-        },
-        signalSource: swapData.dex || 'unknown',
-        confidence: 100
-      }
-    });
+    // Detect BUY vs SELL
+    const isBuy = isBaseCurrency(swapData.inputMint);
+    const isSell = isBaseCurrency(swapData.outputMint);
 
-    console.log('✅ Trade record created:', {
-      tradeId: trade.id,
-      agentId: agent.id,
-      tokenMint: swapData.outputMint,
-      symbol: outputPrice?.symbol,
-      amount: swapData.inputAmount,
-      dex: swapData.dex,
-      signature: swapData.signature
-    });
+    if (isBuy) {
+      // ── BUY: SOL/USDC → Token ──────────────────────────
+      const tokenMint = swapData.outputMint;
+      const tokenSymbol = outputPrice?.symbol || 'UNKNOWN';
+      const tokenName = outputPrice?.name || 'Unknown';
 
-    // Update position tracking
-    try {
-      // Determine if this is a BUY or SELL
-      // If input is SOL/USDC (common base currencies), it's a BUY
-      // If output is SOL/USDC, it's a SELL
-      const SOL_MINT = 'So11111111111111111111111111111111111111112';
-      const USDC_MINT = process.env.USDC_MINT || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'; // Devnet by default
-      const isBaseCurrency = (mint: string) => 
-        mint === SOL_MINT || mint === USDC_MINT;
+      console.log(`[TRADE] BUY ${tokenSymbol} for agent ${agent.id.slice(0, 8)}...`);
 
-      const isBuy = isBaseCurrency(swapData.inputMint);
-      const isSell = isBaseCurrency(swapData.outputMint);
-
-      if (isBuy) {
-        // Buying token with SOL/USDC
-        await positionTracker.onBuy(
-          agent.id,
-          swapData.outputMint,
-          outputPrice?.symbol || 'UNKNOWN',
-          outputPrice?.name || 'Unknown',
-          swapData.outputAmount,
-          outputPrice?.priceUsd || 0
-        );
-        console.log('✅ [POSITION] Buy position updated');
-      } else if (isSell) {
-        // Selling token for SOL/USDC
-        await positionTracker.onSell(
-          agent.id,
-          swapData.inputMint,
-          swapData.inputAmount,
-          inputPrice?.priceUsd || 0
-        );
-        console.log('✅ [POSITION] Sell position updated');
-      } else {
-        // Token-to-token swap - treat as sell input, buy output
-        console.log('⚠️ [POSITION] Token-to-token swap detected - tracking both sides');
-        await positionTracker.onSell(
-          agent.id,
-          swapData.inputMint,
-          swapData.inputAmount,
-          inputPrice?.priceUsd || 0
-        );
-        await positionTracker.onBuy(
-          agent.id,
-          swapData.outputMint,
-          outputPrice?.symbol || 'UNKNOWN',
-          outputPrice?.name || 'Unknown',
-          swapData.outputAmount,
-          outputPrice?.priceUsd || 0
-        );
-      }
-    } catch (positionError) {
-      console.error('❌ [POSITION] Failed to update position:', positionError);
-      // Don't throw - position tracking shouldn't block trade recording
-    }
-
-    // Update agent stats
-    await db.tradingAgent.update({
-      where: { id: agent.id },
-      data: {
-        totalTrades: {
-          increment: 1
+      // Create OPEN PaperTrade
+      await db.paperTrade.create({
+        data: {
+          agentId: agent.id,
+          tokenMint,
+          tokenSymbol,
+          tokenName,
+          action: 'BUY',
+          entryPrice: inputPrice?.priceUsd || 0,   // SOL price USD at buy time
+          amount: swapData.inputAmount || 0,         // SOL spent
+          tokenAmount: swapData.outputAmount,        // Tokens received
+          marketCap: outputPrice?.marketCap,
+          liquidity: outputPrice?.liquidity,
+          metadata: {
+            dex: swapData.dex,
+            signature: swapData.signature,
+            inputMint: swapData.inputMint,
+            outputMint: swapData.outputMint,
+            source: 'helius-webhook'
+          },
+          signalSource: swapData.dex || 'unknown',
+          confidence: 100,
         }
+      });
+
+      // Create AgentTrade (real on-chain record)
+      await safeCreateAgentTrade(agent.id, {
+        tokenMint,
+        tokenSymbol,
+        tokenName,
+        action: 'BUY',
+        tokenAmount: swapData.outputAmount || 0,
+        solAmount: swapData.inputAmount || 0,
+        signature: swapData.signature,
+      });
+
+      // Update position
+      await positionTracker.onBuy(
+        agent.id, tokenMint, tokenSymbol, tokenName,
+        swapData.outputAmount, outputPrice?.priceUsd || 0
+      );
+
+      console.log(`[TRADE] BUY recorded: ${swapData.inputAmount} SOL → ${swapData.outputAmount} ${tokenSymbol}`);
+
+    } else if (isSell) {
+      // ── SELL: Token → SOL/USDC ─────────────────────────
+      const tokenMint = swapData.inputMint;
+      const tokenSymbol = inputPrice?.symbol || 'UNKNOWN';
+      const tokenName = inputPrice?.name || 'Unknown';
+      const solReceived = swapData.outputAmount || 0;
+      const currentSolPrice = outputPrice?.priceUsd || 0;
+
+      console.log(`[TRADE] SELL ${tokenSymbol} for agent ${agent.id.slice(0, 8)}...`);
+
+      // Create AgentTrade
+      await safeCreateAgentTrade(agent.id, {
+        tokenMint,
+        tokenSymbol,
+        tokenName,
+        action: 'SELL',
+        tokenAmount: swapData.inputAmount || 0,
+        solAmount: solReceived,
+        signature: swapData.signature,
+      });
+
+      // Update position FIRST (may delete if fully closed)
+      await positionTracker.onSell(
+        agent.id, tokenMint, swapData.inputAmount, inputPrice?.priceUsd || 0
+      );
+
+      // Check if position is now fully closed
+      const positionStillExists = await db.agentPosition.findUnique({
+        where: { agentId_tokenMint: { agentId: agent.id, tokenMint } }
+      });
+
+      if (!positionStillExists) {
+        // Position fully closed — close all OPEN PaperTrades for this token with PnL
+        await closeMatchingPaperTrades(agent.id, tokenMint, solReceived, currentSolPrice);
+      } else {
+        console.log(`[TRADE] Partial sell — position still open for ${tokenMint.slice(0, 8)}...`);
       }
-    });
+
+      console.log(`[TRADE] SELL recorded: ${swapData.inputAmount} ${tokenSymbol} → ${solReceived} SOL`);
+
+    } else {
+      // ── Token-to-Token: Token A → Token B ──────────────
+      const inputMint = swapData.inputMint;
+      const outputMint = swapData.outputMint;
+      const inputSymbol = inputPrice?.symbol || 'UNKNOWN';
+      const outputSymbol = outputPrice?.symbol || 'UNKNOWN';
+      const outputName = outputPrice?.name || 'Unknown';
+
+      console.log(`[TRADE] Token-to-token: ${inputSymbol} → ${outputSymbol} for agent ${agent.id.slice(0, 8)}...`);
+
+      // Create AgentTrade for the BUY side (output token)
+      await safeCreateAgentTrade(agent.id, {
+        tokenMint: outputMint,
+        tokenSymbol: outputSymbol,
+        tokenName: outputName,
+        action: 'BUY',
+        tokenAmount: swapData.outputAmount || 0,
+        solAmount: swapData.inputAmount || 0,
+        signature: swapData.signature,
+      });
+
+      // Sell side: update position
+      await positionTracker.onSell(
+        agent.id, inputMint, swapData.inputAmount, inputPrice?.priceUsd || 0
+      );
+
+      // Check if input token position is fully closed
+      const inputPosExists = await db.agentPosition.findUnique({
+        where: { agentId_tokenMint: { agentId: agent.id, tokenMint: inputMint } }
+      });
+      if (!inputPosExists) {
+        // Close PaperTrades for the sold token (no SOL proceeds — token-to-token)
+        await closeMatchingPaperTrades(agent.id, inputMint, 0, 0);
+      }
+
+      // Buy side: create PaperTrade for output token + update position
+      await db.paperTrade.create({
+        data: {
+          agentId: agent.id,
+          tokenMint: outputMint,
+          tokenSymbol: outputSymbol,
+          tokenName: outputName,
+          action: 'BUY',
+          entryPrice: outputPrice?.priceUsd || 0,
+          amount: swapData.inputAmount || 0,
+          tokenAmount: swapData.outputAmount,
+          marketCap: outputPrice?.marketCap,
+          liquidity: outputPrice?.liquidity,
+          metadata: {
+            dex: swapData.dex,
+            signature: swapData.signature,
+            inputMint: swapData.inputMint,
+            outputMint: swapData.outputMint,
+            source: 'helius-webhook'
+          },
+          signalSource: swapData.dex || 'unknown',
+          confidence: 100,
+        }
+      });
+
+      await positionTracker.onBuy(
+        agent.id, outputMint, outputSymbol, outputName,
+        swapData.outputAmount, outputPrice?.priceUsd || 0
+      );
+
+      console.log(`[TRADE] Token-to-token recorded: ${inputSymbol} → ${outputSymbol}`);
+    }
   } catch (error) {
-    console.error('Failed to create trade record:', error);
+    console.error('[TRADE] Failed to create trade record:', error);
   }
 }
 

@@ -115,8 +115,9 @@ export async function getLeaderboard() {
     };
   });
 
-  // Sort: sortino desc, then win rate desc, then total PnL desc
+  // Sort: trade_count desc (most active first), then sortino, win rate, PnL
   rankings.sort((a, b) => {
+    if (b.trade_count !== a.trade_count) return b.trade_count - a.trade_count;
     if (b.sortino_ratio !== a.sortino_ratio) return b.sortino_ratio - a.sortino_ratio;
     if (b.win_rate !== a.win_rate) return b.win_rate - a.win_rate;
     return b.total_pnl - a.total_pnl;
