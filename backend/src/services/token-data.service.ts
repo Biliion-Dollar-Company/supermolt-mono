@@ -23,9 +23,11 @@ export async function fetchTokenMetrics(tokenMint: string): Promise<TokenMetrics
   try {
     console.log(`📊 Fetching real token data for ${tokenMint.substring(0, 8)}...`);
     
-    // DexScreener API (free, public)
+    // DexScreener API (free, public) with 5s timeout
     const url = `https://api.dexscreener.com/latest/dex/tokens/${tokenMint}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
     
     if (!response.ok) {
       console.warn(`⚠️  DexScreener API failed (${response.status}), using fallback`);
@@ -63,7 +65,12 @@ export async function fetchTokenMetrics(tokenMint: string): Promise<TokenMetrics
     
     return metrics;
   } catch (error) {
-    console.error(`❌ Error fetching token data:`, error);
+    // Log error with context but don't leak stack traces
+    console.error(`❌ Error fetching token data:`, {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      tokenMint: tokenMint.substring(0, 8),
+      timestamp: new Date().toISOString()
+    });
     return getFallbackData();
   }
 }
