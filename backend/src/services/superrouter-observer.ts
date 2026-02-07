@@ -29,9 +29,11 @@ async function fetchTokenData(tokenMint: string) {
   console.log(`📊 Fetching REAL token data for ${tokenMint.substring(0, 8)}...`);
   
   try {
-    // DexScreener API (free, public, no key needed)
+    // DexScreener API (free, public, no key needed) with 5s timeout
     const url = `https://api.dexscreener.com/latest/dex/tokens/${tokenMint}`;
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
     
     if (!response.ok) {
       console.warn(`⚠️  DexScreener API failed (${response.status}), using fallback`);
@@ -71,7 +73,12 @@ async function fetchTokenData(tokenMint: string) {
     
     return metrics;
   } catch (error) {
-    console.error(`❌ Error fetching token data:`, error);
+    // Log error with context but don't leak stack traces
+    console.error(`❌ Error fetching token data:`, {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      tokenMint: tokenMint.substring(0, 8),
+      timestamp: new Date().toISOString()
+    });
     return getFallbackData();
   }
 }
@@ -187,7 +194,17 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   } catch (error) {
-    console.error('❌ Error handling SuperRouter trade:', error);
+    // Log error with context for debugging, but don't leak sensitive data
+    console.error('❌ Error handling SuperRouter trade:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      signature: trade.signature,
+      tokenMint: trade.tokenMint.substring(0, 8),
+      action: trade.action,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Critical: Don't re-throw - this would break webhook response
+    // Helius needs a 200 OK even if our processing fails
   }
 }
 
@@ -204,7 +221,11 @@ async function createAgentTasksAsync(tokenMint: string, tokenSymbol?: string): P
     console.log(`\n✅ Created ${result.taskIds.length} agent tasks (${result.totalXP} XP available)\n`);
   } catch (error) {
     // Log but don't throw - task creation is non-critical
-    console.error('⚠️  Agent task creation failed (non-critical):', error);
+    console.error('⚠️  Agent task creation failed (non-critical):', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      tokenMint: tokenMint.substring(0, 8),
+      timestamp: new Date().toISOString()
+    });
   }
 }
 
