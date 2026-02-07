@@ -5,12 +5,9 @@
 
 import { Hono } from 'hono';
 import { EpochService } from './epoch.service';
-import { ApiResponse } from '../../types/api';
-import {
+import type {
   CreateEpochDto,
-  EpochDto,
   UpdateEpochStatusDto,
-  EpochListDto,
 } from './dto/epoch.dto';
 
 const app = new Hono();
@@ -32,7 +29,7 @@ const requireAdmin = async (c: any, next: any) => {
   const expectedKey = process.env.ADMIN_API_KEY;
 
   if (!expectedKey) {
-    return c.json<ApiResponse<null>>(
+    return c.json(
       {
         success: false,
         error: {
@@ -46,7 +43,7 @@ const requireAdmin = async (c: any, next: any) => {
   }
 
   if (!adminKey || adminKey !== expectedKey) {
-    return c.json<ApiResponse<null>>(
+    return c.json(
       {
         success: false,
         error: {
@@ -68,11 +65,11 @@ const requireAdmin = async (c: any, next: any) => {
  */
 app.post('/', requireAdmin, async (c) => {
   try {
-    const body = await c.req.json<CreateEpochDto>();
+    const body = await c.req.json();
 
     // Validate required fields
     if (!body.name || !body.startAt || !body.endAt) {
-      return c.json<ApiResponse<null>>(
+      return c.json(
         {
           success: false,
           error: {
@@ -90,7 +87,7 @@ app.post('/', requireAdmin, async (c) => {
     const endAt = new Date(body.endAt);
 
     if (isNaN(startAt.getTime()) || isNaN(endAt.getTime())) {
-      return c.json<ApiResponse<null>>(
+      return c.json(
         {
           success: false,
           error: {
@@ -104,7 +101,7 @@ app.post('/', requireAdmin, async (c) => {
     }
 
     if (endAt <= startAt) {
-      return c.json<ApiResponse<null>>(
+      return c.json(
         {
           success: false,
           error: {
@@ -119,7 +116,7 @@ app.post('/', requireAdmin, async (c) => {
 
     const epoch = await getEpochService().create(body);
 
-    return c.json<ApiResponse<EpochDto>>(
+    return c.json(
       {
         success: true,
         data: epoch,
@@ -128,7 +125,7 @@ app.post('/', requireAdmin, async (c) => {
     );
   } catch (error: any) {
     console.error('[Epoch Routes] Create epoch error:', error);
-    return c.json<ApiResponse<null>>(
+    return c.json(
       {
         success: false,
         error: {
@@ -151,13 +148,13 @@ app.get('/', async (c) => {
     // Note: getAll() doesn't support filtering by status yet, returns all epochs
     const result = await getEpochService().getAll();
 
-    return c.json<ApiResponse<EpochListDto>>({
+    return c.json({
       success: true,
       data: result,
     });
   } catch (error: any) {
     console.error('[Epoch Routes] List epochs error:', error);
-    return c.json<ApiResponse<null>>(
+    return c.json(
       {
         success: false,
         error: {
@@ -180,7 +177,7 @@ app.get('/active', async (c) => {
     const epoch = await getEpochService().getActive();
 
     if (!epoch) {
-      return c.json<ApiResponse<null>>(
+      return c.json(
         {
           success: false,
           error: {
@@ -193,13 +190,13 @@ app.get('/active', async (c) => {
       );
     }
 
-    return c.json<ApiResponse<EpochDto>>({
+    return c.json({
       success: true,
       data: epoch,
     });
   } catch (error: any) {
     console.error('[Epoch Routes] Get active epoch error:', error);
-    return c.json<ApiResponse<null>>(
+    return c.json(
       {
         success: false,
         error: {
@@ -222,13 +219,13 @@ app.get('/:id', async (c) => {
     const id = c.req.param('id');
     const epoch = await getEpochService().getById(id);
 
-    return c.json<ApiResponse<EpochDto>>({
+    return c.json({
       success: true,
       data: epoch,
     });
   } catch (error: any) {
     console.error('[Epoch Routes] Get epoch error:', error);
-    return c.json<ApiResponse<null>>(
+    return c.json(
       {
         success: false,
         error: {
@@ -249,10 +246,10 @@ app.get('/:id', async (c) => {
 app.patch('/:id/status', requireAdmin, async (c) => {
   try {
     const id = c.req.param('id');
-    const body = await c.req.json<UpdateEpochStatusDto>();
+    const body = await c.req.json();
 
     if (!body.status) {
-      return c.json<ApiResponse<null>>(
+      return c.json(
         {
           success: false,
           error: {
@@ -267,7 +264,7 @@ app.patch('/:id/status', requireAdmin, async (c) => {
 
     const validStatuses = ['ACTIVE', 'ENDED', 'PAID'];
     if (!validStatuses.includes(body.status)) {
-      return c.json<ApiResponse<null>>(
+      return c.json(
         {
           success: false,
           error: {
@@ -282,13 +279,13 @@ app.patch('/:id/status', requireAdmin, async (c) => {
 
     const epoch = await getEpochService().updateStatus(id, body.status);
 
-    return c.json<ApiResponse<EpochDto>>({
+    return c.json({
       success: true,
       data: epoch,
     });
   } catch (error: any) {
     console.error('[Epoch Routes] Update epoch status error:', error);
-    return c.json<ApiResponse<null>>(
+    return c.json(
       {
         success: false,
         error: {
@@ -311,13 +308,13 @@ app.post('/:id/end', requireAdmin, async (c) => {
     const id = c.req.param('id');
     const epoch = await getEpochService().end(id);
 
-    return c.json<ApiResponse<EpochDto>>({
+    return c.json({
       success: true,
       data: epoch,
     });
   } catch (error: any) {
     console.error('[Epoch Routes] End epoch error:', error);
-    return c.json<ApiResponse<null>>(
+    return c.json(
       {
         success: false,
         error: {

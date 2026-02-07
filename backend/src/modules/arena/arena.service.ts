@@ -36,67 +36,104 @@ async function buildAgentNameMap(agentIds: string[]): Promise<Map<string, string
 // ── Leaderboard ───────────────────────────────────────────
 
 export async function getLeaderboard() {
+  // Get active epoch for USDC pool display
   const activeEpoch = await db.scannerEpoch.findFirst({
     where: { status: 'ACTIVE' },
     orderBy: { startAt: 'desc' },
   });
 
-  if (!activeEpoch) {
-    // Return empty rankings with zeroed epoch fields
+  // Get ALL active trading agents (SuperRouter + authenticated agents + observers)
+  const agents = await db.tradingAgent.findMany({
+    where: { status: 'ACTIVE' },
+  });
+
+  if (agents.length === 0) {
     return {
       success: true,
       data: {
-        epochId: '',
-        epochName: 'No Active Epoch',
-        epochNumber: 0,
-        startAt: new Date().toISOString(),
-        endAt: new Date().toISOString(),
-        status: 'INACTIVE',
-        usdcPool: 0,
-        baseAllocation: 0,
+        epochId: activeEpoch?.id || '',
+        epochName: activeEpoch?.name || 'Live Arena',
+        epochNumber: activeEpoch?.epochNumber || 1,
+        startAt: activeEpoch?.startAt?.toISOString() || new Date().toISOString(),
+        endAt: activeEpoch?.endAt?.toISOString() || new Date().toISOString(),
+        status: activeEpoch?.status || 'ACTIVE',
+        usdcPool: activeEpoch ? parseFloat(activeEpoch.usdcPool.toString()) : 0,
+        baseAllocation: activeEpoch ? parseFloat(activeEpoch.baseAllocation.toString()) : 0,
         rankings: [],
       },
     };
   }
 
-  const rankings = await db.scannerRanking.findMany({
-    where: { epochId: activeEpoch.id },
-    include: { scanner: true },
-    orderBy: { performanceScore: 'desc' },
+  const agentIds = agents.map((a) => a.id);
+
+  // Get AgentStats for sortino ratios (populated by sortino cron)
+  const [stats, tradeCounts] = await Promise.all([
+    db.agentStats.findMany({
+      where: { agentId: { in: agentIds } },
+    }),
+    db.agentTrade.groupBy({
+      by: ['agentId'],
+      where: { agentId: { in: agentIds } },
+      _count: { agentId: true },
+      _sum: { solAmount: true },
+    }),
+  ]);
+
+  const statsMap = new Map(stats.map((s) => [s.agentId, s]));
+  const tradeMap = new Map(
+    tradeCounts.map((tc) => [
+      tc.agentId,
+      {
+        count: tc._count.agentId,
+        volume: tc._sum.solAmount ? parseFloat(tc._sum.solAmount.toString()) : 0,
+      },
+    ])
+  );
+
+  const rankings = agents.map((agent) => {
+    const agentStats = statsMap.get(agent.id);
+    const tradeData = tradeMap.get(agent.id);
+    const winRate = parseFloat(agent.winRate.toString());
+    const totalPnl = parseFloat(agent.totalPnl.toString());
+    const sortinoRatio = agentStats ? parseFloat(agentStats.sortinoRatio.toString()) : 0;
+
+    return {
+      agentId: agent.id,
+      agentName: agent.displayName || agent.name,
+      walletAddress: agent.userId,
+      sortino_ratio: sortinoRatio,
+      win_rate: winRate,
+      total_pnl: totalPnl,
+      trade_count: tradeData?.count || agent.totalTrades,
+      total_volume: tradeData?.volume || 0,
+      average_win: totalPnl > 0 && agent.totalTrades > 0 ? totalPnl / agent.totalTrades : 0,
+      average_loss: totalPnl < 0 && agent.totalTrades > 0 ? totalPnl / agent.totalTrades : 0,
+      max_win: 0,
+      max_loss: 0,
+      createdAt: agent.createdAt.toISOString(),
+      updatedAt: agent.updatedAt.toISOString(),
+    };
   });
 
-  const agents = rankings.map((r) => {
-    const avgReturn = parseFloat(r.avgReturn.toString());
-    return {
-      agentId: r.scanner.agentId,
-      agentName: r.scanner.name,
-      walletAddress: r.scanner.pubkey,
-      sortino_ratio: parseFloat(r.performanceScore.toString()) / 10,
-      win_rate: parseFloat(r.winRate.toString()),
-      total_pnl: parseFloat(r.totalPnl.toString()),
-      trade_count: r.totalCalls,
-      total_volume: parseFloat(r.usdcAllocated.toString()),
-      average_win: avgReturn > 0 ? avgReturn : 0,
-      average_loss: avgReturn < 0 ? avgReturn : 0,
-      max_win: r.maxWinStreak,
-      max_loss: 0,
-      createdAt: r.createdAt.toISOString(),
-      updatedAt: r.updatedAt.toISOString(),
-    };
+  // Sort: sortino desc, then win rate desc, then total PnL desc
+  rankings.sort((a, b) => {
+    if (b.sortino_ratio !== a.sortino_ratio) return b.sortino_ratio - a.sortino_ratio;
+    if (b.win_rate !== a.win_rate) return b.win_rate - a.win_rate;
+    return b.total_pnl - a.total_pnl;
   });
 
   return {
     success: true,
     data: {
-      epochId: activeEpoch.id,
-      epochName: activeEpoch.name,
-      epochNumber: activeEpoch.epochNumber,
-      startAt: activeEpoch.startAt.toISOString(),
-      endAt: activeEpoch.endAt.toISOString(),
-      status: activeEpoch.status,
-      usdcPool: parseFloat(activeEpoch.usdcPool.toString()),
-      baseAllocation: parseFloat(activeEpoch.baseAllocation.toString()),
-      rankings: agents,
+      epochId: activeEpoch?.id || '',
+      epochName: activeEpoch?.name || 'Live Arena',
+      epochNumber: activeEpoch?.epochNumber || 1,
+      startAt: activeEpoch?.startAt?.toISOString() || new Date().toISOString(),
+      endAt: activeEpoch?.endAt?.toISOString() || new Date().toISOString(),
+      status: activeEpoch?.status || 'ACTIVE',
+      usdcPool: activeEpoch ? parseFloat(activeEpoch.usdcPool.toString()) : 0,
+      baseAllocation: activeEpoch ? parseFloat(activeEpoch.baseAllocation.toString()) : 0,
+      rankings,
     },
   };
 }
@@ -104,13 +141,44 @@ export async function getLeaderboard() {
 // ── Recent Trades ─────────────────────────────────────────
 
 export async function getRecentTrades(limit: number) {
-  const trades = await db.paperTrade.findMany({
+  // Use AgentTrade (real on-chain trades with signatures)
+  const trades = await db.agentTrade.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  });
+
+  if (trades.length > 0) {
+    return {
+      trades: trades.map((t) => ({
+        tradeId: t.id,
+        agentId: t.agentId,
+        tokenMint: t.tokenMint,
+        tokenSymbol: t.tokenSymbol || 'UNKNOWN',
+        action: t.action as 'BUY' | 'SELL',
+        quantity: parseFloat(t.tokenAmount.toString()),
+        entryPrice: parseFloat(t.solAmount.toString()),
+        exitPrice: undefined,
+        pnl: 0,
+        pnlPercent: 0,
+        txHash: t.signature,
+        timestamp: t.createdAt.toISOString(),
+        createdAt: t.createdAt.toISOString(),
+        updatedAt: t.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  // Fallback: PaperTrade with filters (exclude ACTIVITY markers and zero-price junk)
+  const paperTrades = await db.paperTrade.findMany({
+    where: {
+      NOT: [{ tokenSymbol: 'ACTIVITY' }, { entryPrice: 0 }],
+    },
     orderBy: { openedAt: 'desc' },
     take: limit,
   });
 
   return {
-    trades: trades.map((t) => ({
+    trades: paperTrades.map((t) => ({
       tradeId: t.id,
       agentId: t.agentId,
       tokenMint: t.tokenMint,

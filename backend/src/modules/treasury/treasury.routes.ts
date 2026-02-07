@@ -35,6 +35,7 @@ app.get('/status', async (c) => {
     
     const response: TreasuryStatusDto = {
       ...status,
+      currentEpoch: null, // TODO: query active epoch
       treasuryWallet: getTreasuryService().getTreasuryPublicKey() || 'unknown',
       lastUpdated: new Date().toISOString()
     };
@@ -98,30 +99,33 @@ app.post('/distribute/:epochId', adminAuth, async (c) => {
     const { epochId } = c.req.param();
     
     // Execute distribution
-    const result = await getTreasuryService().distributeEpochRewards(epochId);
+    const result = await getTreasuryService().distributeRewards(epochId);
     
-    if (!result.success) {
-      return c.json(
-        createErrorResponse(
-          ErrorCodes.ALLOCATION_FAILED,
-          'No rankings found for epoch'
-        ),
-        400
-      );
-    }
-    
-    const successCount = result.transactions.filter(t => t.status === 'success').length;
-    const failedCount = result.transactions.filter(t => t.status === 'failed').length;
-    const totalAmount = result.allocations.reduce((sum, a) => sum + a.usdcAmount, 0);
-    
+    const successCount = result.allocations.filter((t: any) => t.status === 'success').length;
+    const failedCount = result.allocations.filter((t: any) => t.status === 'failed').length;
+    const totalAmount = result.allocations.reduce((sum: number, a: any) => sum + (a.amount || 0), 0);
+
     const response: DistributionResultDto = {
-      epochId: result.epochId || epochId,
-      epochName: result.epochName || 'Unknown',
-      allocations: result.allocations,
-      transactions: result.transactions.map(t => ({
-        ...t,
-        scannerName: result.allocations.find(a => a.scannerId === t.scannerId)?.scannerName || 'Unknown',
-        amount: result.allocations.find(a => a.scannerId === t.scannerId)?.usdcAmount || 0
+      epochId,
+      epochName: 'USDC Distribution',
+      allocations: result.allocations.map((a: any) => ({
+        scannerId: a.scannerId,
+        scannerName: a.scannerName,
+        pubkey: a.pubkey || '',
+        rank: a.rank || 0,
+        performanceScore: a.performanceScore || 0,
+        winRate: a.winRate || 0,
+        totalCalls: a.totalCalls || 0,
+        usdcAmount: a.amount || 0,
+        multiplier: 1,
+      })),
+      transactions: result.allocations.map((t: any) => ({
+        scannerId: t.scannerId,
+        scannerName: t.scannerName,
+        signature: t.signature || '',
+        status: t.status,
+        amount: t.amount || 0,
+        error: t.error,
       })),
       summary: {
         total: Math.round(totalAmount * 100) / 100,
@@ -157,41 +161,37 @@ app.post('/distribute/:epochId', adminAuth, async (c) => {
 app.get('/scanner/:scannerId/allocations', async (c) => {
   try {
     const { scannerId } = c.req.param();
-    const allocations = await getTreasuryService().getScannerAllocations(scannerId);
-    
+    const result = await getTreasuryService().getScannerAllocations(scannerId);
+
     // Query scanner directly from database
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
     const scanner = await prisma.scanner.findUnique({ where: { id: scannerId } });
-    
+
     if (!scanner) {
       return c.json(
         createErrorResponse(ErrorCodes.NOT_FOUND, 'Scanner not found'),
         404
       );
     }
-    
-    const totalEarned = allocations
-      .filter(a => a.status === 'completed')
-      .reduce((sum, a) => sum + parseFloat(a.amount.toString()), 0);
-    
+
     const response: ScannerAllocationsDto = {
       scannerId,
       scannerName: scanner.name,
-      allocations: allocations.map(a => ({
-        id: a.id,
+      allocations: result.allocations.map((a: any) => ({
+        id: a.epochId,
         epochId: a.epochId,
-        epochName: 'Epoch ' + a.epochId.substring(0, 8), // TODO: join with epoch
-        amount: parseFloat(a.amount.toString()),
-        performanceScore: parseFloat(a.performanceScore.toString()),
-        rank: a.rank,
-        txSignature: a.txSignature,
+        epochName: a.epochName || 'Unknown',
+        amount: a.amount,
+        performanceScore: 0,
+        rank: a.rank || 0,
+        txSignature: a.txSignature || null,
         status: a.status as 'pending' | 'completed' | 'failed',
-        createdAt: a.createdAt.toISOString(),
-        completedAt: a.completedAt?.toISOString() || null
+        createdAt: a.createdAt,
+        completedAt: null
       })),
-      totalEarned: Math.round(totalEarned * 100) / 100,
-      allocationCount: allocations.length
+      totalEarned: Math.round(result.totalEarned * 100) / 100,
+      allocationCount: result.allocations.length
     };
     
     return c.json(createSuccessResponse(response));
@@ -214,9 +214,8 @@ app.get('/epoch/:epochId/allocations', async (c) => {
     // Query allocations directly from database
     const { PrismaClient } = await import('@prisma/client');
     const prisma = new PrismaClient();
-    const allocations = await prisma.scannerAllocation.findMany({
+    const allocations = await prisma.treasuryAllocation.findMany({
       where: { epochId },
-      include: { scanner: true },
       orderBy: { rank: 'asc' }
     });
     

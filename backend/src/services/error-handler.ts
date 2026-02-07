@@ -197,7 +197,7 @@ export function errorHandler(err: Error, c: Context) {
         success: false,
         ...err.toJSON(),
       },
-      err.statusCode
+      err.statusCode as 400 | 401 | 403 | 404 | 409 | 500
     );
   }
 

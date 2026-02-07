@@ -3,17 +3,15 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import * as jwt from 'jose';
 import * as siwsService from '../services/siws.service';
 import { z } from 'zod';
-import { getHeliusMonitor } from '../index';
-
 const db = new PrismaClient();
 
 // Dynamic import to avoid circular dependency issues
 let heliusMonitor: any = null;
-async function getHeliusMonitor() {
+async function getHeliusMonitorInstance() {
   if (!heliusMonitor) {
     try {
       const indexModule = await import('../index.js');
-      heliusMonitor = indexModule.heliusMonitor;
+      heliusMonitor = indexModule.getHeliusMonitor();
     } catch (error) {
       console.warn('⚠️  Could not import heliusMonitor:', error);
     }
@@ -84,7 +82,7 @@ siwsAuthRoutes.post('/agent/verify', async (c) => {
 
     // 🔥 DYNAMIC WALLET MONITORING: Add this wallet to Helius monitor (all agents, not just new ones)
     try {
-      const monitor = await getHeliusMonitor();
+      const monitor = await getHeliusMonitorInstance();
       if (monitor) {
         monitor.addWallet(pubkey);
         console.log(`✅ Added wallet ${pubkey.slice(0, 8)}... to Helius monitoring`);

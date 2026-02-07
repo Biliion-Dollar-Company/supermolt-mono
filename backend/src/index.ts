@@ -26,12 +26,11 @@ import { positions } from './routes/positions';
 import { messaging } from './routes/messaging';
 import { voting } from './routes/voting';
 import { profile } from './routes/profile';
-import { treasury } from './routes/treasury.routes';
 import { agentAuth } from './routes/agent-auth.routes';
 // import { trading } from './routes/trading.routes'; // DISABLED for hackathon - passive observation only
 
 // USDC Hackathon Routes (Standardized Modules)
-import treasury from './modules/treasury/treasury.routes';
+import treasuryModule from './modules/treasury/treasury.routes';
 import leaderboard from './modules/leaderboard/leaderboard.routes';
 import epochs from './modules/epoch/epoch.routes';
 import calls from './modules/scanner-calls/scanner-calls.routes';
@@ -119,13 +118,13 @@ app.route('/agent-auth', agentAuth); // Twitter auth + task verification
 // We only observe on-chain activity, show positions, enable conversations
 
 // Treasury routes (USDC reward distribution)
-app.route('/treasury', treasury); // Treasury management and USDC distribution
+app.route('/treasury', treasuryModule); // Treasury management and USDC distribution
 
 // Internal routes (API key required — DevPrint → SR-Mobile)
 app.route('/internal', internal);
 
 // USDC Hackathon API Routes (Public for hackathon demo)
-app.route('/api/treasury', treasury);
+app.route('/api/treasury', treasuryModule);
 app.route('/api/leaderboard', leaderboard);
 app.route('/api/epochs', epochs);
 app.route('/api/calls', calls);

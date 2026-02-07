@@ -8,7 +8,7 @@ async function getHeliusMonitor() {
   if (!heliusMonitor) {
     try {
       const indexModule = await import('../index.js');
-      heliusMonitor = indexModule.heliusMonitor;
+      heliusMonitor = indexModule.getHeliusMonitor();
     } catch (error) {
       console.warn('⚠️  Could not import heliusMonitor:', error);
     }

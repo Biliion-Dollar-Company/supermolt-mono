@@ -143,13 +143,16 @@ agentAuth.post('/twitter/verify', async (c) => {
       }, 400);
     }
 
+    // Fetch agent to merge config
+    const agentRecord = await prisma.tradingAgent.findUnique({ where: { id: agentId } });
+
     // Update agent with Twitter handle
     await prisma.tradingAgent.update({
       where: { id: agentId },
       data: {
         twitterHandle: `@${twitterHandle}`,
         config: {
-          ...(typeof agent.config === 'object' ? agent.config : {}),
+          ...(typeof agentRecord?.config === 'object' ? agentRecord.config as Record<string, unknown> : {}),
           twitterVerified: true,
           twitterVerifiedAt: new Date().toISOString(),
           twitterUsername: twitterHandle

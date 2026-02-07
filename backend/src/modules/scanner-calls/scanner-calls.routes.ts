@@ -32,7 +32,7 @@ function getCallsService() {
  */
 app.post('/', async (c) => {
   try {
-    const body = await c.req.json<SubmitCallDto>();
+    const body = await c.req.json();
     
     // Validation
     if (!body.scannerId || !body.tokenAddress || body.convictionScore === undefined) {
@@ -151,7 +151,7 @@ app.get('/:callId', async (c) => {
 const closeHandler = async (c: any) => {
   try {
     const { callId } = c.req.param();
-    const body = await c.req.json<CloseCallDto>();
+    const body = await c.req.json();
     
     if (!body.exitPrice || !body.status) {
       return c.json(

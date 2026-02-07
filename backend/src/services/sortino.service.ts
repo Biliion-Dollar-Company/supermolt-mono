@@ -36,10 +36,16 @@ export class SortinoService {
    * Only negative returns are used for downside deviation
    */
   async calculateAgentSortino(agentId: string): Promise<AgentMetrics | null> {
-    // Fetch all trades for this agent from FeedActivity
-    const trades = await this.db.feedActivity.findMany({
-      where: { agentId },
-      orderBy: { timestamp: 'asc' },
+    // Fetch closed trades with PnL from PaperTrade (FeedActivity is empty)
+    // Filter out ACTIVITY markers and zero-price junk records
+    const trades = await this.db.paperTrade.findMany({
+      where: {
+        agentId,
+        status: 'CLOSED',
+        pnl: { not: null },
+        NOT: [{ tokenSymbol: 'ACTIVITY' }, { entryPrice: 0 }],
+      },
+      orderBy: { openedAt: 'asc' },
     });
 
     if (trades.length === 0) {
@@ -150,8 +156,13 @@ export class SortinoService {
    * Calculate and store metrics for all agents with trades
    */
   async calculateAllAgents(): Promise<void> {
-    // Get all unique agent IDs from FeedActivity
-    const agentIds = await this.db.feedActivity.findMany({
+    // Get all unique agent IDs from PaperTrade (closed trades with PnL)
+    const agentIds = await this.db.paperTrade.findMany({
+      where: {
+        status: 'CLOSED',
+        pnl: { not: null },
+        NOT: [{ tokenSymbol: 'ACTIVITY' }, { entryPrice: 0 }],
+      },
       select: { agentId: true },
       distinct: ['agentId'],
     });

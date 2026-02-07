@@ -4,7 +4,7 @@
  * Business logic for scanner token predictions and trades
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { ScannerRepository, EpochRepository } from '../../repositories';
 import type {
   SubmitCallDto,
@@ -198,8 +198,8 @@ export class ScannerCallsService {
       totalCalls: newTotalCalls,
       winningCalls: newWins,
       losingCalls: newLosses,
-      winRate: newWinRate,
-      performanceScore
+      winRate: new Prisma.Decimal(newWinRate),
+      performanceScore: new Prisma.Decimal(performanceScore)
     });
   }
 

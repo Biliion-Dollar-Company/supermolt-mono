@@ -3,7 +3,7 @@
  * Tracks agent holdings in real-time based on trades
  */
 
-import { PrismaClient, Decimal } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { getTokenPrice } from '../lib/birdeye';
 
 export interface PositionData {
@@ -61,8 +61,8 @@ export class PositionTracker {
             },
           },
           data: {
-            quantity: new Decimal(newQty),
-            entryPrice: new Decimal(newEntryPrice),
+            quantity: new Prisma.Decimal(newQty),
+            entryPrice: new Prisma.Decimal(newEntryPrice),
             updatedAt: new Date(),
           },
         });
@@ -82,8 +82,8 @@ export class PositionTracker {
             tokenMint,
             tokenSymbol,
             tokenName,
-            quantity: new Decimal(quantity),
-            entryPrice: new Decimal(pricePerToken),
+            quantity: new Prisma.Decimal(quantity),
+            entryPrice: new Prisma.Decimal(pricePerToken),
           },
         });
 
@@ -156,7 +156,7 @@ export class PositionTracker {
             },
           },
           data: {
-            quantity: new Decimal(newQty),
+            quantity: new Prisma.Decimal(newQty),
             updatedAt: new Date(),
           },
         });
@@ -299,9 +299,9 @@ export class PositionTracker {
           await this.db.agentPosition.update({
             where: { id: pos.id },
             data: {
-              currentValue: new Decimal(currentValue),
-              pnl: new Decimal(pnl),
-              pnlPercent: new Decimal(pnlPercent),
+              currentValue: new Prisma.Decimal(currentValue),
+              pnl: new Prisma.Decimal(pnl),
+              pnlPercent: new Prisma.Decimal(pnlPercent),
               updatedAt: new Date(),
             },
           });

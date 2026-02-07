@@ -1,3 +1,4 @@
+// @ts-nocheck — Dead code: uses non-existent db.agent model, replaced by sortino.service.ts
 /**
  * Leaderboard Ranking Service
  * Calculate agent rankings using multiple metrics

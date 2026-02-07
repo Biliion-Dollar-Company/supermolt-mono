@@ -120,7 +120,7 @@ export default function Navbar() {
                       href={link.href}
                       onClick={() => setMobileMenuOpen(false)}
                       className={`
-                        flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200
+                        flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200
                         ${
                           active
                             ? 'text-accent-primary border-l-2 border-accent-primary bg-accent-primary/5'
@@ -140,7 +140,7 @@ export default function Navbar() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all duration-200 text-text-secondary hover:text-text-primary hover:bg-white/5"
+                  className="flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200 text-text-secondary hover:text-text-primary hover:bg-white/5"
                 >
                   <BookOpen className="w-5 h-5" />
                   <span>Docs</span>

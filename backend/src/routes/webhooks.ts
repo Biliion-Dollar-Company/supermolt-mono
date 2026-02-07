@@ -396,15 +396,15 @@ webhooks.post('/solana', async (c) => {
             
             // Determine BUY or SELL action
             const isBuy = swap.inputMint === 'So11111111111111111111111111111111111111112'; // SOL mint
-            const action = isBuy ? 'BUY' : 'SELL';
-            
+            const action: 'BUY' | 'SELL' = isBuy ? 'BUY' : 'SELL';
+
             // Build trade event for observers
             const tradeEvent = {
               signature: swap.signature,
               walletAddress: signerWallet,
               tokenMint: isBuy ? swap.outputMint : swap.inputMint,
-              tokenSymbol: undefined, // Will be fetched by observer
-              tokenName: undefined,
+              tokenSymbol: undefined as string | undefined,
+              tokenName: undefined as string | undefined,
               action,
               amount: isBuy ? swap.inputAmount : swap.outputAmount,
               timestamp: new Date(swap.timestamp || Date.now())

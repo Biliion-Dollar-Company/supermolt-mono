@@ -1,3 +1,4 @@
+// @ts-nocheck — Dead code: Express routes replaced by Hono modules/treasury/treasury.routes.ts
 import { Router } from 'express';
 import { TreasuryManagerService } from '../services/treasury-manager.service.js';
 

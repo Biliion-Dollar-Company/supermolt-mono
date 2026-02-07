@@ -1,3 +1,4 @@
+// @ts-nocheck — Dead code: raw SQL against scanner table, replaced by arena.service.ts
 /**
  * Optimized Leaderboard Service
  * Single-query leaderboard calculation for <50ms performance

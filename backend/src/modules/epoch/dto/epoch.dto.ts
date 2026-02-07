@@ -46,5 +46,5 @@ export interface UpdateEpochStatusDto {
 export interface EpochListDto {
   epochs: EpochDto[];
   total: number;
-  active: number | null;
+  active: string | null;
 }

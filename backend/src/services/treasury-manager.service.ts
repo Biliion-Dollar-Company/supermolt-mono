@@ -415,18 +415,17 @@ export class TreasuryManagerService {
   async getScannerAllocations(scannerId: string) {
     const allocations = await prisma.treasuryAllocation.findMany({
       where: { scannerId },
-      include: {
-        epoch: {
-          select: {
-            epochNumber: true,
-            name: true,
-          },
-        },
-      },
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    // Lookup epoch names separately (no relation defined)
+    const epochIds = [...new Set(allocations.map((a) => a.epochId))];
+    const epochs = epochIds.length > 0
+      ? await prisma.scannerEpoch.findMany({ where: { id: { in: epochIds } }, select: { id: true, name: true } })
+      : [];
+    const epochNameMap = new Map(epochs.map((e) => [e.id, e.name]));
 
     const totalEarned = allocations
       .filter((a) => a.status === 'completed')
@@ -435,7 +434,7 @@ export class TreasuryManagerService {
     return {
       allocations: allocations.map((a) => ({
         epochId: a.epochId,
-        epochName: a.epoch?.name || 'Unknown',
+        epochName: epochNameMap.get(a.epochId) || 'Unknown',
         amount: Number(a.amount),
         rank: a.rank,
         txSignature: a.txSignature,

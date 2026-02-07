@@ -30,7 +30,7 @@ async function fetchGodWalletActivity(): Promise<Transaction[]> {
   }
   
   const transactions: Transaction[] = [];
-  const { parseSwapFromTransaction } = await import('../lib/swap-parser');
+  const { parseSwapInstruction } = await import('../lib/swap-parser');
   
   for (const wallet of GOD_WALLETS) {
     try {
@@ -45,7 +45,7 @@ async function fetchGodWalletActivity(): Promise<Transaction[]> {
       
       // Parse each transaction using our swap parser
       for (const tx of data) {
-        const swapInfo = parseSwapFromTransaction(tx);
+        const swapInfo = parseSwapInstruction(tx);
         
         if (!swapInfo) continue;
         

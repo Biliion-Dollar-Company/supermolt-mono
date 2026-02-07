@@ -13,6 +13,7 @@ const SUPERROUTER_WALLET = '9U5PtsCxkma37wwMRmPLeLVqwGHvHMs7fyLaL47ovmTn';
 
 interface SuperRouterTrade {
   signature: string;
+  walletAddress?: string;
   tokenMint: string;
   tokenSymbol?: string;
   tokenName?: string;
@@ -50,7 +51,7 @@ async function fetchTokenData(tokenMint: string) {
     )[0];
     
     const metrics = {
-      holders: null, // DexScreener doesn't provide this
+      holders: undefined, // DexScreener doesn't provide this
       liquidity: pair.liquidity?.usd || 0,
       volume24h: pair.volume?.h24 || 0,
       priceChange24h: pair.priceChange?.h24 || 0,
@@ -96,7 +97,7 @@ function determineSmartMoney(pair: any): 'IN' | 'OUT' | 'NEUTRAL' {
  */
 function getFallbackData() {
   return {
-    holders: null,
+    holders: undefined,
     liquidity: 50000,
     volume24h: 100000,
     priceChange24h: 0,
@@ -136,7 +137,8 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
 
     // Step 2: Generate analyses from all 5 agents
     console.log('🤖 Generating agent analyses...\n');
-    const analyses = await analyzeSuperRouterTrade(trade, tokenData);
+    const tradeEvent = { ...trade, walletAddress: trade.walletAddress || SUPERROUTER_WALLET };
+    const analyses = await analyzeSuperRouterTrade(tradeEvent, tokenData);
 
     // Step 3: Create conversation
     const conversation = await db.agentConversation.create({

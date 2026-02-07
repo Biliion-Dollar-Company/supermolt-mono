@@ -1,3 +1,4 @@
+// @ts-nocheck — Dead code: Express routes replaced by Hono modules/leaderboard
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 
