@@ -50,7 +50,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <ul className="hidden md:flex gap-1 items-center h-full">
+          <ul className="hidden md:flex gap-2 items-center h-full">
             {navLinks.map((link) => {
               const Icon = link.Icon;
               const active = isActive(link.href);
@@ -59,7 +59,7 @@ export default function Navbar() {
                   <Link
                     href={link.href}
                     className={`
-                      relative flex items-center gap-2 px-4 py-2 font-medium transition-all duration-200
+                      relative flex items-center gap-2.5 px-5 py-2.5 rounded-none font-medium transition-all duration-200
                       ${
                         active
                           ? 'text-accent-primary'
@@ -67,8 +67,8 @@ export default function Navbar() {
                       }
                     `}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm">{link.label}</span>
+                    <Icon className="w-5 h-5" />
+                    <span className="text-base">{link.label}</span>
                   </Link>
                   {active && (
                     <motion.div
@@ -85,10 +85,10 @@ export default function Navbar() {
                 href="/api/skill.md"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative flex items-center gap-2 px-4 py-2 font-medium transition-all duration-200 text-text-secondary hover:text-text-primary"
+                className="relative flex items-center gap-2.5 px-5 py-2.5 font-medium transition-all duration-200 text-text-secondary hover:text-text-primary"
               >
-                <BookOpen className="w-4 h-4" />
-                <span className="text-sm">Docs</span>
+                <BookOpen className="w-5 h-5" />
+                <span className="text-base">Docs</span>
               </a>
             </li>
           </ul>

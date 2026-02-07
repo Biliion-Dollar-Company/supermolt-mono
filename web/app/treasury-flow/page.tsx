@@ -1,10 +1,14 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import {
   DollarSign, Clock, Bot, BarChart3, Trophy, Wallet,
   TrendingUp, Users, Vote, ArrowDown, Shield, Activity,
 } from 'lucide-react';
+
+const Dither = dynamic(() => import('@/components/reactbits/Dither'), { ssr: false });
+const LaserFlow = dynamic(() => import('@/components/reactbits/LaserFlow'), { ssr: false });
 
 /* ── Animated SVG connector ── */
 function CurvedConnector({ direction }: { direction: 'left-to-right' | 'right-to-left' }) {
@@ -71,7 +75,7 @@ function FlowCard({
   step,
   side,
 }: {
-  icon: React.ElementType;
+  icon: React.ComponentType<{ className?: string }>;
   title: string;
   subtitle: string;
   details?: string[];
@@ -189,15 +193,20 @@ function FlowCard({
 /* ── Main page ── */
 export default function TreasuryFlowPage() {
   return (
-    <div className="min-h-screen bg-bg-primary pt-24 pb-20 px-4 sm:px-6 relative overflow-hidden">
-      {/* Dot grid background */}
-      <div
-        className="absolute inset-0 opacity-[0.025] pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-      />
+    <div className="min-h-screen bg-bg-primary pt-40 pb-20 px-4 sm:px-6 relative overflow-hidden">
+      {/* Dither wave background */}
+      <div className="absolute inset-0 pointer-events-none opacity-40">
+        <Dither
+          waveColor={[0.5, 0.5, 0.5]}
+          disableAnimation={false}
+          enableMouseInteraction
+          mouseRadius={0.3}
+          colorNum={27.2}
+          waveAmplitude={0.3}
+          waveFrequency={3}
+          waveSpeed={0.05}
+        />
+      </div>
 
       <div className="max-w-5xl mx-auto relative">
         {/* Header */}
@@ -215,8 +224,32 @@ export default function TreasuryFlowPage() {
           </p>
         </motion.div>
 
+        {/* LaserFlow — absolute, flows from navbar down into first card */}
+        <div
+          className="absolute top-[-160px] left-0 lg:w-[55%] h-[800px] pointer-events-none"
+          style={{ zIndex: 1 }}
+        >
+          <LaserFlow
+            color="#E8B45E"
+            horizontalBeamOffset={0.0}
+            verticalBeamOffset={0.1}
+            horizontalSizing={0.98}
+            verticalSizing={2}
+            wispDensity={1}
+            wispSpeed={15}
+            wispIntensity={5}
+            flowSpeed={0.35}
+            flowStrength={0.25}
+            fogIntensity={0.45}
+            fogScale={0.3}
+            fogFallSpeed={0.6}
+            decay={1.1}
+            falloffStart={1.2}
+          />
+        </div>
+
         {/* Map flow */}
-        <div className="flex flex-col items-center lg:items-stretch">
+        <div className="flex flex-col items-center lg:items-stretch relative" style={{ zIndex: 2 }}>
 
           {/* 1 — USDC Pool */}
           <FlowCard
