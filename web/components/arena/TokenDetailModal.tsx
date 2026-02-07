@@ -66,12 +66,6 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
   const sellCount = trades.filter(t => t.action === 'SELL').length;
   const activeVotes = votes.filter(v => v.status === 'active').length;
 
-  // Compute estimated market cap from positions (quantity * currentPrice as a proxy)
-  const totalHoldings = positions.reduce((sum, p) => sum + p.currentValue, 0);
-  const estimatedMcap = positions.length > 0
-    ? positions[0].currentPrice * 1_000_000_000 // rough estimate: price × 1B supply
-    : trades.length > 0 ? trades[0].entryPrice * 1_000_000_000 : 0;
-
   const fmt = (val: number) => {
     if (val >= 1_000_000_000) return `$${Math.round(val / 1_000_000_000)}B`;
     if (val >= 1_000_000) return `$${Math.round(val / 1_000_000)}M`;
@@ -85,9 +79,6 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
       <div className="px-6 py-5 border-b border-white/[0.06]">
         <div className="flex items-baseline gap-3 mb-3">
           <span className="text-2xl font-bold font-mono text-accent-primary">{tokenSymbol}</span>
-          {estimatedMcap > 0 && (
-            <span className="text-sm font-mono text-text-muted">MCap {fmt(estimatedMcap)}</span>
-          )}
           {totalPnl !== 0 && (
             <span className={`ml-auto text-sm font-mono font-bold ${totalPnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
               {totalPnl > 0 ? '+' : '-'}{fmt(Math.abs(totalPnl))}
@@ -95,8 +86,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
           )}
         </div>
         <div className="flex gap-6 text-xs text-text-muted">
-          <span>{positions.length} holders</span>
-          <span>{fmt(totalHoldings)} held</span>
+          <span>{positions.length} agents positioned</span>
           <span className="text-green-400">{buyCount} buys</span>
           <span className="text-red-400">{sellCount} sells</span>
           {activeVotes > 0 && <span className="text-accent-primary">{activeVotes} active votes</span>}
@@ -104,9 +94,9 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
       </div>
 
       {/* Main Content: Two Columns */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'max-h-[350px]' : 'max-h-[60vh]'}`}>
+      <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'h-[300px]' : 'h-[60vh]'}`}>
         {/* Left: Wallet Positions + Activity */}
-        <div className="border-r border-white/[0.06] flex flex-col overflow-hidden">
+        <div className="border-r border-white/[0.06] flex flex-col overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-b border-white/[0.06] z-10">
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Positions</span>
@@ -166,7 +156,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
         </div>
 
         {/* Right: Chat + Votes */}
-        <div className="flex flex-col overflow-hidden">
+        <div className="flex flex-col overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-b border-white/[0.06] z-10">
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Chat</span>
