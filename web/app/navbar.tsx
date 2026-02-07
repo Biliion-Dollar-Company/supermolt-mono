@@ -44,11 +44,11 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <Image
-              src="/pfp.jpg"
+              src="/pfp.png"
               alt="SuperMolt"
-              width={40}
-              height={28}
-              className="rounded object-cover transition-transform group-hover:scale-105"
+              width={56}
+              height={52}
+              className="rounded object-cover transition-transform group-hover:scale-105 w-[56px] h-auto"
             />
             <div>
               <GradientText
