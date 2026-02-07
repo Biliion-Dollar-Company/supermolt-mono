@@ -1,0 +1,100 @@
+{
+  "timestamp": 1770494503019,
+  "agentName": "test_agent_e2e_1770494503019",
+  "publicKey": "Got4cHabwgCeMrqJVhTK2cHkqMGChkF6hCr67ukDN5tp",
+  "agentId": "cmlcqpqbc0003pm0292d3e112",
+  "results": [
+    {
+      "step": "1. Wallet Generation",
+      "status": "PASS",
+      "details": "Generated wallet: Got4cHabwgCeMrqJVhTK2cHkqMGChkF6hCr67ukDN5tp",
+      "data": {
+        "publicKey": "Got4cHabwgCeMrqJVhTK2cHkqMGChkF6hCr67ukDN5tp",
+        "secretKeyLength": 88
+      }
+    },
+    {
+      "step": "2. Challenge Request",
+      "status": "PASS",
+      "details": "Challenge received",
+      "data": {
+        "nonce": "52c3afb457e4b2f5e6d3f82e10a41e5643cda560fe54949ebf49660392987375",
+        "statement": "Sign this message to authenticate your Solana agent with Trench",
+        "expiresIn": 300
+      }
+    },
+    {
+      "step": "3. Sign Challenge",
+      "status": "PASS",
+      "details": "Signature generated",
+      "data": {
+        "nonceLength": 64,
+        "signatureLength": 88
+      }
+    },
+    {
+      "step": "4. SIWS Verification",
+      "status": "PASS",
+      "details": "JWT token received",
+      "data": {
+        "hasToken": true,
+        "hasRefreshToken": true,
+        "agentId": "cmlcqpqbc0003pm0292d3e112",
+        "agentPubkey": "Got4cHabwgCeMrqJVhTK2cHkqMGChkF6hCr67ukDN5tp"
+      }
+    },
+    {
+      "step": "5. Monitoring Status",
+      "status": "PASS",
+      "details": "Skipped (requires internal API key, wallet added during auth)",
+      "data": {
+        "note": "Wallet automatically added to Helius monitoring during SIWS auth"
+      }
+    },
+    {
+      "step": "6. Submit Call",
+      "status": "PASS",
+      "details": "Test call submitted",
+      "data": {
+        "id": "41548027-2672-449a-bb21-37b4b6dbbd2f",
+        "scannerId": "53dcd11e-78d0-48c1-ab5f-c3a885cefa60",
+        "scannerName": "Agent-Got4cH",
+        "epochId": "ab09bf12-2b88-407e-838f-3235df80f8e7",
+        "tokenAddress": "So11111111111111111111111111111111111111112",
+        "tokenSymbol": "SOL",
+        "tokenName": null,
+        "convictionScore": 0.75,
+        "reasoning": [
+          "E2E test call",
+          "Automated validation"
+        ],
+        "entryPrice": null,
+        "exitPrice": null,
+        "currentPrice": null,
+        "pnlPercent": null,
+        "pnlUsd": null,
+        "status": "open",
+        "takeProfitPct": 50,
+        "stopLossPct": 20,
+        "expiresAt": null,
+        "createdAt": "2026-02-07T20:01:44.066Z",
+        "closedAt": null
+      }
+    },
+    {
+      "step": "7. Leaderboard Check",
+      "status": "FAIL",
+      "details": "Agent test_agent_e2e_1770494503019 NOT found on leaderboard",
+      "data": {
+        "agentId": "cmlcqpqbc0003pm0292d3e112",
+        "totalRankings": 6
+      }
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 1,
+    "total": 7,
+    "successRate": 85.71428571428571
+  }
+}

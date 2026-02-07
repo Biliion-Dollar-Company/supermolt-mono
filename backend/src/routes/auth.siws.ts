@@ -3,6 +3,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import * as jwt from 'jose';
 import * as siwsService from '../services/siws.service';
 import { z } from 'zod';
+import { rateLimiter } from 'hono-rate-limiter';
 const db = new PrismaClient();
 
 // Dynamic import to avoid circular dependency issues
@@ -22,13 +23,25 @@ async function getHeliusMonitorInstance() {
 // Initialize Hono router
 export const siwsAuthRoutes = new Hono();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-min-32-chars-required';
+// SECURITY: Rate limiter for auth endpoints (prevent brute force)
+const authLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 20, // 20 requests per window per IP
+  standardHeaders: 'draft-6',
+  keyGenerator: (c) => c.req.header('x-forwarded-for') || c.req.header('x-real-ip') || 'unknown'
+});
+
+// SECURITY: JWT_SECRET must be set - no fallback allowed
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET must be set in environment and be at least 32 characters');
+}
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 // GET /auth/agent/challenge
 // Returns a nonce for agent to sign
-siwsAuthRoutes.get('/agent/challenge', async (c) => {
+siwsAuthRoutes.get('/agent/challenge', authLimiter, async (c) => {
   const nonce = siwsService.generateNonce();
   siwsService.storeNonce(nonce);
 
@@ -47,7 +60,7 @@ const verifySIWSSchema = z.object({
   nonce: z.string()
 });
 
-siwsAuthRoutes.post('/agent/verify', async (c) => {
+siwsAuthRoutes.post('/agent/verify', authLimiter, async (c) => {
   try {
     const body = await c.req.json();
     const { pubkey, signature, nonce } = verifySIWSSchema.parse(body);
@@ -166,7 +179,7 @@ const refreshSIWSSchema = z.object({
   refreshToken: z.string()
 });
 
-siwsAuthRoutes.post('/agent/refresh', async (c) => {
+siwsAuthRoutes.post('/agent/refresh', authLimiter, async (c) => {
   try {
     const body = await c.req.json();
     const { refreshToken } = refreshSIWSSchema.parse(body);
