@@ -29,9 +29,11 @@ app.get('/', async (c) => {
     const leaderboard = await getLeaderboardService().getCurrentLeaderboard();
     
     if (!leaderboard) {
+      const aggregateStats = await getLeaderboardService().getAggregateStats();
       return c.json(createSuccessResponse({
         message: 'No active epoch',
-        rankings: []
+        rankings: [],
+        ...aggregateStats
       }));
     }
     

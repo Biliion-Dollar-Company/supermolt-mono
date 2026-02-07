@@ -77,36 +77,41 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function TokenCard({ token, onClick }: { token: ArenaToken; onClick: () => void }) {
+function TokenCard({ token, onClick, isLast }: { token: ArenaToken; onClick: () => void; isLast?: boolean }) {
   return (
-    <button
-      onClick={onClick}
-      className="w-full text-left border border-white/[0.06] p-4 hover:bg-white/[0.03] hover:border-accent-primary/20 transition-all cursor-pointer group mb-3"
-    >
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-lg font-bold font-mono text-text-primary group-hover:text-accent-primary transition-colors">
-          {token.tokenSymbol}
-        </span>
-        <span className={`text-sm font-mono ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-          {token.netPnl >= 0 ? '+' : ''}{token.netPnl.toFixed(2)}%
-        </span>
-      </div>
+    <div>
+      <button
+        onClick={onClick}
+        className="w-full text-left p-4 hover:bg-white/[0.03] transition-all cursor-pointer group"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-lg font-bold font-mono text-text-primary group-hover:text-accent-primary transition-colors">
+            {token.tokenSymbol}
+          </span>
+          <span className={`text-sm font-mono ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {token.netPnl >= 0 ? '+' : ''}{token.netPnl.toFixed(2)}%
+          </span>
+        </div>
 
-      <div className="flex items-center gap-4 text-xs text-text-muted">
-        <span className="flex items-center gap-1">
-          <Users className="w-3 h-3" />
-          {token.agentCount} agents
-        </span>
-        <span className="flex items-center gap-1">
-          <TrendingUp className="w-3 h-3" />
-          {token.recentTradeCount} trades
-        </span>
-        <span className="flex items-center gap-1 ml-auto">
-          <Clock className="w-3 h-3" />
-          {timeAgo(token.lastTradeTime)}
-        </span>
-      </div>
-    </button>
+        <div className="flex items-center gap-4 text-xs text-text-muted">
+          <span className="flex items-center gap-1">
+            <Users className="w-3 h-3" />
+            {token.agentCount} agents
+          </span>
+          <span className="flex items-center gap-1">
+            <TrendingUp className="w-3 h-3" />
+            {token.recentTradeCount} trades
+          </span>
+          <span className="flex items-center gap-1 ml-auto">
+            <Clock className="w-3 h-3" />
+            {timeAgo(token.lastTradeTime)}
+          </span>
+        </div>
+      </button>
+      {!isLast && (
+        <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      )}
+    </div>
   );
 }
 
@@ -163,14 +168,19 @@ export default function ArenaPage() {
           </div>
         </div>
 
-        {/* Main layout: leaderboard left, token carousel right */}
-        <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
+        {/* Main layout: leaderboard left, separator, token carousel right */}
+        <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
           {/* Leaderboard */}
           <div className="border border-white/[0.06] bg-bg-secondary p-4 sm:p-5">
             <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">
               Leaderboard
             </h2>
             <ArenaLeaderboard />
+          </div>
+
+          {/* Vertical Separator */}
+          <div className="hidden lg:flex justify-center">
+            <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
           </div>
 
           {/* Token Carousel */}

@@ -17,6 +17,7 @@ import {
   Check,
   Swords,
   BookOpen,
+  Wallet,
 } from 'lucide-react';
 import { QuestsLeaderboardsDemo } from '@/components/quests-leaderboards-demo';
 import { LogoLoop } from '@/components/reactbits/LogoLoop';
@@ -525,6 +526,7 @@ function SpectatorOnboarding() {
       <div className="space-y-1">
         {[
           { href: '/arena', label: 'Arena', icon: Swords, desc: 'Live token activity and agent rankings' },
+          { href: '/treasury-flow', label: 'Treasury', icon: Wallet, desc: 'USDC reward distribution and epoch payouts' },
           { href: '/api/skill.md', label: 'API Documentation', icon: BookOpen, desc: 'Full API reference for building agents', external: true },
         ].map((item) => {
           const Icon = item.icon;

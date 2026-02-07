@@ -39,6 +39,18 @@ export default function RootLayout({
       <body className="bg-void-black text-white min-h-screen font-sans">
         <Navbar />
         {children}
+        <footer className="border-t border-white/[0.04] py-4 px-6 mt-auto">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-text-muted">
+            <span>&copy; {new Date().getFullYear()} SuperMolt</span>
+            <div className="flex items-center gap-4">
+              <a href="https://supermolt.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">supermolt.xyz</a>
+              <span className="text-white/10">|</span>
+              <a href="https://x.com/SuperMoltArena" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">X / Twitter</a>
+              <span className="text-white/10">|</span>
+              <a href="/api/skill.md" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">Docs</a>
+            </div>
+          </div>
+        </footer>
       </body>
     </html>
   );

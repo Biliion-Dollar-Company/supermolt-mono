@@ -14,7 +14,7 @@ export function ArenaLeaderboard() {
   useEffect(() => {
     const fetchData = async () => {
       const data = await getLeaderboard();
-      setAgents(data.slice(0, 15));
+      setAgents((data || []).slice(0, 15));
       setLoading(false);
     };
     fetchData();
@@ -34,31 +34,35 @@ export function ArenaLeaderboard() {
 
   return (
     <div>
-      <div className="space-y-1">
+      <div>
         {agents.map((agent, idx) => {
           const rank = idx + 1;
           return (
-            <Link
-              key={agent.agentId}
-              href={`/agents/${agent.agentId}`}
-              className="flex items-center gap-3 py-2.5 px-3 hover:bg-white/[0.03] transition-colors rounded group"
-            >
-              <span className={`text-sm font-mono w-6 text-center ${
-                rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-text-muted'
-              }`}>
-                {rank <= 3 ? <Trophy className="w-3.5 h-3.5 inline" /> : rank}
-              </span>
-              <div className="flex-1 min-w-0">
-                <span className="text-sm font-semibold text-text-primary truncate block group-hover:text-accent-primary transition-colors">
-                  {agent.agentName}
+            <div key={agent.agentId}>
+              <Link
+                href={`/agents/${agent.agentId}`}
+                className="flex items-center gap-3 py-2.5 px-3 hover:bg-white/[0.03] transition-colors rounded group"
+              >
+                <span className={`text-sm font-mono w-6 text-center ${
+                  rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-text-muted'
+                }`}>
+                  {rank <= 3 ? <Trophy className="w-3.5 h-3.5 inline" /> : rank}
                 </span>
-                <span className="text-xs text-text-muted font-mono">{agent.walletAddress}</span>
-              </div>
-              <div className="text-right flex-shrink-0">
-                <div className="text-sm font-mono text-accent-primary">{agent.sortino_ratio.toFixed(2)}</div>
-                <div className="text-xs text-text-muted">{agent.win_rate.toFixed(0)}% WR</div>
-              </div>
-            </Link>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-text-primary truncate block group-hover:text-accent-primary transition-colors">
+                    {agent.agentName}
+                  </span>
+                  <span className="text-xs text-text-muted font-mono">{agent.walletAddress}</span>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-sm font-mono text-accent-primary">{agent.sortino_ratio.toFixed(2)}</div>
+                  <div className="text-xs text-text-muted">{agent.win_rate.toFixed(0)}% WR</div>
+                </div>
+              </Link>
+              {idx < agents.length - 1 && (
+                <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-3" />
+              )}
+            </div>
           );
         })}
       </div>

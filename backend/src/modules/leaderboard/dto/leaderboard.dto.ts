@@ -47,6 +47,11 @@ export interface LeaderboardDto {
   baseAllocation: number;
   rankings: LeaderboardEntryDto[];
   totalScanners: number;
+
+  // Aggregate stats for homepage
+  totalMessages: number;
+  totalVolume: number;
+  totalTransactions: number;
 }
 
 /**

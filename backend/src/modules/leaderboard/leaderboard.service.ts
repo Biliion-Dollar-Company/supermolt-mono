@@ -91,6 +91,8 @@ export class LeaderboardService {
       };
     });
 
+    const aggregateStats = await this.getAggregateStats();
+
     return {
       epochId: epoch.id,
       epochName: epoch.name,
@@ -101,7 +103,31 @@ export class LeaderboardService {
       usdcPool: parseFloat(epoch.usdcPool.toString()),
       baseAllocation,
       rankings: leaderboard,
-      totalScanners: leaderboard.length
+      totalScanners: leaderboard.length,
+      ...aggregateStats
+    };
+  }
+
+  /**
+   * Get aggregate stats for homepage (totalMessages, totalVolume, totalTransactions)
+   */
+  async getAggregateStats(): Promise<Pick<LeaderboardDto, 'totalMessages' | 'totalVolume' | 'totalTransactions'>> {
+    const [totalMessages, totalTransactions, volumeAgg] = await Promise.all([
+      this.prisma.agentMessage.count(),
+      this.prisma.scannerCall.count(),
+      this.prisma.scannerRanking.aggregate({
+        _sum: { usdcAllocated: true }
+      })
+    ]);
+
+    const totalVolume = parseFloat(
+      (volumeAgg._sum.usdcAllocated ?? 0).toString()
+    );
+
+    return {
+      totalMessages,
+      totalVolume: Math.round(totalVolume * 100) / 100,
+      totalTransactions
     };
   }
 
