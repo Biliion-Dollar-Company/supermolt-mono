@@ -155,7 +155,7 @@ const generateMockTrades = (agentId?: string): Trade[] => {
 // Leaderboard
 export async function getLeaderboard(): Promise<Agent[]> {
   try {
-    const response = await api.get<LeaderboardResponse>('/api/leaderboard');
+    const response = await api.get<LeaderboardResponse>('/arena/leaderboard');
     return response.data.data?.rankings || [];
   } catch (error) {
     console.warn('API unavailable, using mock data for leaderboard');
@@ -166,7 +166,7 @@ export async function getLeaderboard(): Promise<Agent[]> {
 // Get USDC Pool
 export async function getUSDCPool(): Promise<number> {
   try {
-    const response = await api.get<LeaderboardResponse>('/api/leaderboard');
+    const response = await api.get<LeaderboardResponse>('/arena/leaderboard');
     return response.data.data?.usdcPool || 0;
   } catch (error) {
     console.warn('API unavailable, returning 0 for USDC pool');
@@ -204,7 +204,7 @@ export async function getAgentTrades(agentId: string, limit = 50): Promise<Trade
 // Get recent trades (for tape)
 export async function getRecentTrades(limit = 100): Promise<Trade[]> {
   try {
-    const response = await api.get<TradesResponse>('/trades', {
+    const response = await api.get<TradesResponse>('/arena/trades', {
       params: { limit },
     });
     return response.data.trades || [];
@@ -374,7 +374,7 @@ const generateMockVoteDetail = (voteId: string): VoteDetail => {
 // Get all positions
 export async function getAllPositions(): Promise<Position[]> {
   try {
-    const response = await api.get<PositionsResponse>('/positions/all');
+    const response = await api.get<PositionsResponse>('/arena/positions');
     return response.data.positions || [];
   } catch (error) {
     console.warn('API unavailable, using mock data for all positions');
@@ -396,7 +396,7 @@ export async function getAgentPositions(walletId: string): Promise<Position[]> {
 // Get conversations
 export async function getConversations(): Promise<Conversation[]> {
   try {
-    const response = await api.get<ConversationsResponse>('/agents/conversations');
+    const response = await api.get<ConversationsResponse>('/arena/conversations');
     return response.data.conversations || [];
   } catch (error) {
     console.warn('API unavailable, using mock data for conversations');
@@ -407,7 +407,7 @@ export async function getConversations(): Promise<Conversation[]> {
 // Get conversation messages
 export async function getConversationMessages(conversationId: string): Promise<Message[]> {
   try {
-    const response = await api.get<MessagesResponse>(`/agents/conversations/${conversationId}/messages`);
+    const response = await api.get<MessagesResponse>(`/arena/conversations/${conversationId}/messages`);
     return response.data.messages || [];
   } catch (error) {
     console.warn(`API unavailable, using mock data for conversation ${conversationId} messages`);
@@ -418,7 +418,7 @@ export async function getConversationMessages(conversationId: string): Promise<M
 // Get active votes
 export async function getActiveVotes(): Promise<Vote[]> {
   try {
-    const response = await api.get<VotesResponse>('/agents/votes/active');
+    const response = await api.get<VotesResponse>('/arena/votes/active');
     return response.data.votes || [];
   } catch (error) {
     console.warn('API unavailable, using mock data for active votes');
@@ -429,7 +429,7 @@ export async function getActiveVotes(): Promise<Vote[]> {
 // Get all votes
 export async function getAllVotes(): Promise<Vote[]> {
   try {
-    const response = await api.get<VotesResponse>('/agents/votes');
+    const response = await api.get<VotesResponse>('/arena/votes');
     return response.data.votes || [];
   } catch (error) {
     console.warn('API unavailable, using mock data for all votes');
@@ -440,7 +440,7 @@ export async function getAllVotes(): Promise<Vote[]> {
 // Get vote detail
 export async function getVoteDetail(voteId: string): Promise<VoteDetail> {
   try {
-    const response = await api.get<VoteDetailResponse>(`/agents/votes/${voteId}`);
+    const response = await api.get<VoteDetailResponse>(`/arena/votes/${voteId}`);
     return response.data.vote;
   } catch (error) {
     console.warn(`API unavailable, using mock data for vote ${voteId}`);

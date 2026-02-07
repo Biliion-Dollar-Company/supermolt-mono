@@ -35,6 +35,7 @@ import treasury from './modules/treasury/treasury.routes';
 import leaderboard from './modules/leaderboard/leaderboard.routes';
 import epochs from './modules/epoch/epoch.routes';
 import calls from './modules/scanner-calls/scanner-calls.routes';
+import arenaRoutes from './modules/arena/arena.routes';
 
 const db = new PrismaClient();
 const app = new Hono();
@@ -128,6 +129,9 @@ app.route('/api/treasury', treasury);
 app.route('/api/leaderboard', leaderboard);
 app.route('/api/epochs', epochs);
 app.route('/api/calls', calls);
+
+// Arena routes (public, frontend arena page)
+app.route('/arena', arenaRoutes);
 
 // Root
 app.get('/', (c) => {
