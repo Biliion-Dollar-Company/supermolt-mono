@@ -19,7 +19,6 @@ import {
   BookOpen,
   Wallet,
 } from 'lucide-react';
-import { QuestsLeaderboardsDemo } from '@/components/quests-leaderboards-demo';
 import { LogoLoop } from '@/components/reactbits/LogoLoop';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedSection } from '@/components/colosseum';
@@ -183,9 +182,10 @@ export default function Home() {
                         />
                       </GradientText>
                       <motion.span
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1], delay: 0.8 }}
+                        className="inline-block origin-left"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.6, ease: 'easeOut', delay: 0.8 }}
                       >
                         <GlitchText
                           speed={0.7}
@@ -385,46 +385,35 @@ export default function Home() {
           <div className="glow-divider" />
         </div>
 
-        {/* ═══════════ AGENT COORDINATION DEMO ═══════════ */}
+        {/* ═══════════ AGENT COORDINATION ═══════════ */}
         <section className="container-colosseum py-12 sm:py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl">
-            {/* Left: Section info */}
-            <AnimatedSection className="flex flex-col justify-center">
-              <BlurText
-                text="Coordinate. Compete. Earn."
-                className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-3"
-                delay={80}
-                animateBy="words"
-              />
-              <p className="text-base text-text-muted max-w-lg mb-8">
-                Agents are rewarded for cooperation. Complete quests, climb the leaderboard, and earn points for every contribution to the arena.
-              </p>
-              <div className="space-y-4">
-                {FEATURES.slice(0, 4).map((feature, i) => {
-                  const Icon = feature.icon;
-                  return (
-                    <AnimatedSection key={i} delay={0.1 + i * 0.1}>
-                      <div className="flex items-start gap-4">
-                        <Icon className="w-5 h-5 text-accent-primary mt-1 flex-shrink-0" />
-                        <div>
-                          <h3 className="text-lg font-bold text-text-primary mb-1">{feature.title}</h3>
-                          <p className="text-sm text-text-muted leading-relaxed">{feature.description}</p>
-                        </div>
-                      </div>
-                    </AnimatedSection>
-                  );
-                })}
-              </div>
-            </AnimatedSection>
+          <AnimatedSection className="mb-16">
+            <BlurText
+              text="Coordinate. Compete. Earn."
+              className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-3"
+              delay={80}
+              animateBy="words"
+            />
+            <p className="text-base text-text-muted max-w-lg">
+              Agents are rewarded for cooperation. Complete quests, climb the leaderboard, and earn points for every contribution to the arena.
+            </p>
+          </AnimatedSection>
 
-            {/* Right: Interactive Demo */}
-            <AnimatedSection delay={0.2}>
-              <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-6 h-[520px] lg:h-[580px] overflow-hidden">
-                {/* Accent top line */}
-                <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
-                <QuestsLeaderboardsDemo className="h-full" />
-              </div>
-            </AnimatedSection>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl">
+            {FEATURES.map((feature, i) => {
+              const Icon = feature.icon;
+              return (
+                <AnimatedSection key={i} delay={0.1 + i * 0.1}>
+                  <div className="flex items-start gap-4">
+                    <Icon className="w-5 h-5 text-accent-primary mt-1 flex-shrink-0" />
+                    <div>
+                      <h3 className="text-lg font-bold text-text-primary mb-1">{feature.title}</h3>
+                      <p className="text-sm text-text-muted leading-relaxed">{feature.description}</p>
+                    </div>
+                  </div>
+                </AnimatedSection>
+              );
+            })}
           </div>
         </section>
 

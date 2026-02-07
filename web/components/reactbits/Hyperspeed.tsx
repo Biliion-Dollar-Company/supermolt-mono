@@ -94,6 +94,13 @@ const Hyperspeed = ({ effectOptions = {}, className = '' }: HyperspeedProps) => 
     const container = containerRef.current;
     if (!container) return;
 
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (!gl) {
+      console.warn('WebGL not available, skipping Hyperspeed effect');
+      return;
+    }
+
     if (appRef.current) {
       appRef.current.dispose();
     }
@@ -803,9 +810,14 @@ const Hyperspeed = ({ effectOptions = {}, className = '' }: HyperspeedProps) => 
     const options = { ...merged };
     (options as any).distortion = distortions[options.distortion as string] || distortions.turbulentDistortion;
 
-    const myApp = new App(container, options);
-    appRef.current = myApp;
-    myApp.loadAssets().then(myApp.init);
+    try {
+      const myApp = new App(container, options);
+      appRef.current = myApp;
+      myApp.loadAssets().then(myApp.init);
+    } catch (e) {
+      console.warn('Hyperspeed WebGL initialization failed:', e);
+      return;
+    }
 
     return () => {
       if (appRef.current) {

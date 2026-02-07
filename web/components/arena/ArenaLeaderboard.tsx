@@ -2,20 +2,32 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Trophy, ArrowRight } from 'lucide-react';
+import { Trophy, ArrowRight, Copy, Check } from 'lucide-react';
 import { getLeaderboard } from '@/lib/api';
 import { Agent } from '@/lib/types';
-import { Badge } from '@/components/colosseum';
+
+function shortenAddress(addr: string): string {
+  if (addr.length <= 11) return addr;
+  return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+}
 
 export function ArenaLeaderboard() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      const data = await getLeaderboard();
-      setAgents((data || []).slice(0, 15));
-      setLoading(false);
+      try {
+        const data = await getLeaderboard();
+        setAgents((data || []).slice(0, 15));
+        setError(false);
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
     const interval = setInterval(fetchData, 10000);
@@ -28,6 +40,14 @@ export function ArenaLeaderboard() {
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="h-12 bg-white/[0.02] animate-pulse rounded" />
         ))}
+      </div>
+    );
+  }
+
+  if (error || agents.length === 0) {
+    return (
+      <div className="text-center py-8 text-text-muted text-sm">
+        No leaderboard data available
       </div>
     );
   }
@@ -52,11 +72,25 @@ export function ArenaLeaderboard() {
                   <span className="text-sm font-semibold text-text-primary truncate block group-hover:text-accent-primary transition-colors">
                     {agent.agentName}
                   </span>
-                  <span className="text-xs text-text-muted font-mono">{agent.walletAddress}</span>
+                  <span className="flex items-center gap-1 text-xs text-text-muted font-mono">
+                    {shortenAddress(agent.walletAddress)}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(agent.walletAddress);
+                        setCopiedId(agent.agentId);
+                        setTimeout(() => setCopiedId(null), 1500);
+                      }}
+                      className="hover:text-text-secondary transition-colors"
+                    >
+                      {copiedId === agent.agentId ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </span>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="text-sm font-mono text-accent-primary">{agent.sortino_ratio.toFixed(2)}</div>
-                  <div className="text-xs text-text-muted">{agent.win_rate.toFixed(0)}% WR</div>
+                  <div className="text-sm font-mono text-accent-primary">{Math.round(agent.sortino_ratio)}</div>
+                  <div className="text-xs text-text-muted">{Math.round(agent.win_rate)}% WR</div>
                 </div>
               </Link>
               {idx < agents.length - 1 && (
