@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Orbitron, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import Navbar from './navbar';
+import SmoothScroll from '@/components/SmoothScroll';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -37,6 +38,7 @@ export default function RootLayout({
       className={`dark ${orbitron.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
       <body className="bg-void-black text-white min-h-screen font-sans">
+        <SmoothScroll />
         <Navbar />
         {children}
         <footer className="border-t border-white/[0.04] py-4 px-6 mt-auto">

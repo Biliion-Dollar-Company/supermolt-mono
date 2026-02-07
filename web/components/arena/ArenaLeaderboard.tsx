@@ -59,7 +59,7 @@ export function ArenaLeaderboard() {
 
   return (
     <div>
-      <div>
+      <div className="max-h-[420px] overflow-y-auto scrollbar-custom">
         {agents.map((agent, idx) => {
           const rank = idx + 1;
           return (

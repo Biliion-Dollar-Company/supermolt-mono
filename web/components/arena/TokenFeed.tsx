@@ -5,6 +5,7 @@ import { Clock, Users, TrendingUp } from 'lucide-react';
 
 export interface ArenaToken {
   tokenSymbol: string;
+  tokenMint: string;
   agentCount: number;
   recentTradeCount: number;
   lastTradeTime: string;

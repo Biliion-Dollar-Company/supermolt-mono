@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Swords, Wifi, WifiOff, Users, TrendingUp, Clock } from 'lucide-react';
+import { Swords, Wifi, WifiOff, Copy, Check } from 'lucide-react';
 import { getRecentTrades, getAllPositions } from '@/lib/api';
 import { Trade, Position } from '@/lib/types';
 import { ArenaLeaderboard, TokenDetailContent } from '@/components/arena';
@@ -15,6 +15,7 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
     totalVolume: number;
     pnlSum: number;
     pnlCount: number;
+    tokenMint: string;
   }>();
 
   for (const trade of trades) {
@@ -27,6 +28,7 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
       totalVolume: 0,
       pnlSum: 0,
       pnlCount: 0,
+      tokenMint: trade.tokenMint || '',
     };
 
     existing.agentIds.add(trade.agentId);
@@ -39,6 +41,9 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
     if (new Date(trade.timestamp) > new Date(existing.lastTradeTime)) {
       existing.lastTradeTime = trade.timestamp;
     }
+    if (!existing.tokenMint && trade.tokenMint) {
+      existing.tokenMint = trade.tokenMint;
+    }
 
     tokenMap.set(sym, existing);
   }
@@ -49,6 +54,9 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
     const existing = tokenMap.get(sym);
     if (existing) {
       existing.agentIds.add(pos.agentId);
+      if (!existing.tokenMint && pos.tokenMint) {
+        existing.tokenMint = pos.tokenMint;
+      }
     }
   }
 
@@ -56,6 +64,7 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
   for (const [symbol, data] of tokenMap) {
     tokens.push({
       tokenSymbol: symbol,
+      tokenMint: data.tokenMint,
       agentCount: data.agentIds.size,
       recentTradeCount: data.tradeCount,
       lastTradeTime: data.lastTradeTime,
@@ -69,14 +78,48 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
   return tokens;
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
+
+function TokenChip({
+  token,
+  isSelected,
+  onSelect,
+}: {
+  token: ArenaToken;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      onClick={onSelect}
+      className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 border transition-all cursor-pointer ${
+        isSelected
+          ? 'border-accent-primary/50 bg-accent-primary/5'
+          : 'border-white/[0.06] hover:bg-white/[0.03]'
+      }`}
+    >
+      <span className="text-sm font-bold font-mono text-text-primary whitespace-nowrap">
+        {token.tokenSymbol}
+      </span>
+      <span className={`text-xs font-mono ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        {token.netPnl >= 0 ? '+' : ''}{Math.round(token.netPnl)}%
+      </span>
+      {token.tokenMint && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(token.tokenMint);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          }}
+          className="text-text-muted hover:text-text-secondary transition-colors ml-0.5"
+        >
+          {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+        </button>
+      )}
+    </button>
+  );
 }
 
 export default function ArenaPage() {
@@ -85,6 +128,7 @@ export default function ArenaPage() {
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isLive, setIsLive] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -153,8 +197,8 @@ export default function ArenaPage() {
             <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
           </div>
 
-          {/* Token Grid + Featured Detail */}
-          <div>
+          {/* Token Marquee + Featured Detail */}
+          <div className="min-w-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
                 Live Tokens
@@ -163,9 +207,9 @@ export default function ArenaPage() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="h-20 bg-white/[0.02] animate-pulse rounded" />
+              <div className="flex gap-2 overflow-hidden">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="h-10 w-32 bg-white/[0.02] animate-pulse rounded flex-shrink-0" />
                 ))}
               </div>
             ) : tokens.length === 0 ? (
@@ -174,48 +218,42 @@ export default function ArenaPage() {
               </div>
             ) : (
               <>
-                {/* Token Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2 mb-6">
-                  {tokens.map((token) => (
-                    <button
-                      key={token.tokenSymbol}
-                      onClick={() => setSelectedToken(token.tokenSymbol)}
-                      className={`text-left p-3 border transition-all cursor-pointer ${
-                        selectedToken === token.tokenSymbol
-                          ? 'border-accent-primary/50 bg-accent-primary/5'
-                          : 'border-white/[0.06] hover:bg-white/[0.03]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-sm font-bold font-mono text-text-primary truncate">
-                          {token.tokenSymbol}
-                        </span>
-                        <span className={`text-xs font-mono ml-1 ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {token.netPnl >= 0 ? '+' : ''}{token.netPnl.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[11px] text-text-muted">
-                        <span className="flex items-center gap-0.5">
-                          <Users className="w-3 h-3" />
-                          {token.agentCount}
-                        </span>
-                        <span className="flex items-center gap-0.5">
-                          <TrendingUp className="w-3 h-3" />
-                          {token.recentTradeCount}
-                        </span>
-                        <span className="flex items-center gap-0.5 ml-auto">
-                          <Clock className="w-3 h-3" />
-                          {timeAgo(token.lastTradeTime)}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
+                {/* Token Marquee */}
+                <div
+                  className="relative overflow-hidden mb-6"
+                  onMouseEnter={() => setIsPaused(true)}
+                  onMouseLeave={() => setIsPaused(false)}
+                >
+                  {/* Left fade */}
+                  <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
+                  {/* Right fade */}
+                  <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none" />
+
+                  <div className={`flex gap-2 animate-marquee ${isPaused ? '[animation-play-state:paused]' : ''}`}>
+                    {tokens.map((token) => (
+                      <TokenChip
+                        key={token.tokenSymbol}
+                        token={token}
+                        isSelected={selectedToken === token.tokenSymbol}
+                        onSelect={() => setSelectedToken(token.tokenSymbol)}
+                      />
+                    ))}
+                    {/* Duplicate for seamless loop */}
+                    {tokens.map((token) => (
+                      <TokenChip
+                        key={`dup-${token.tokenSymbol}`}
+                        token={token}
+                        isSelected={selectedToken === token.tokenSymbol}
+                        onSelect={() => setSelectedToken(token.tokenSymbol)}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 {/* Featured Token Detail (inline) */}
                 {selectedToken ? (
                   <div className="border border-white/[0.06] bg-bg-secondary overflow-hidden">
-                    <TokenDetailContent tokenSymbol={selectedToken} />
+                    <TokenDetailContent tokenSymbol={selectedToken} compact />
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-64 text-text-muted">

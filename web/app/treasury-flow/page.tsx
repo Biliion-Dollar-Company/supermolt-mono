@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import {
@@ -7,8 +8,9 @@ import {
   TrendingUp, Users, Vote, ArrowDown, Shield, Activity,
 } from 'lucide-react';
 
-const Dither = dynamic(() => import('@/components/reactbits/Dither'), { ssr: false });
 const LaserFlow = dynamic(() => import('@/components/reactbits/LaserFlow'), { ssr: false });
+
+const ActiveStepContext = createContext<number>(1);
 
 /* ── Animated SVG connector ── */
 function CurvedConnector({ direction }: { direction: 'left-to-right' | 'right-to-left' }) {
@@ -71,7 +73,6 @@ function FlowCard({
   subtitle,
   details,
   children,
-  accent = 'gold',
   step,
   side,
 }: {
@@ -80,98 +81,57 @@ function FlowCard({
   subtitle: string;
   details?: string[];
   children?: React.ReactNode;
-  accent?: string;
   step: number;
   side: 'left' | 'right';
 }) {
-  const glowColors: Record<string, string> = {
-    gold: 'shadow-[0_0_40px_-10px_rgba(232,180,94,0.25)]',
-    orange: 'shadow-[0_0_40px_-10px_rgba(249,115,22,0.2)]',
-    blue: 'shadow-[0_0_40px_-10px_rgba(59,130,246,0.2)]',
-    purple: 'shadow-[0_0_40px_-10px_rgba(139,92,246,0.2)]',
-    green: 'shadow-[0_0_40px_-10px_rgba(16,185,129,0.2)]',
-  };
-
-  const accentLine: Record<string, string> = {
-    gold: 'via-[#E8B45E]/40',
-    orange: 'via-orange-500/40',
-    blue: 'via-blue-500/40',
-    purple: 'via-purple-500/40',
-    green: 'via-emerald-500/40',
-  };
-
-  const numColors: Record<string, string> = {
-    gold: 'text-[#E8B45E]',
-    orange: 'text-orange-400',
-    blue: 'text-blue-400',
-    purple: 'text-purple-400',
-    green: 'text-emerald-400',
-  };
-
-  const iconColors: Record<string, string> = {
-    gold: 'text-[#E8B45E]',
-    orange: 'text-orange-400',
-    blue: 'text-blue-400',
-    purple: 'text-purple-400',
-    green: 'text-emerald-400',
-  };
-
-  const bulletDot: Record<string, string> = {
-    gold: 'bg-[#E8B45E]/40',
-    orange: 'bg-orange-400/40',
-    blue: 'bg-blue-400/40',
-    purple: 'bg-purple-400/40',
-    green: 'bg-emerald-400/40',
-  };
-
-  const separatorColor: Record<string, string> = {
-    gold: 'border-[#E8B45E]/10',
-    orange: 'border-orange-400/10',
-    blue: 'border-blue-400/10',
-    purple: 'border-purple-400/10',
-    green: 'border-emerald-400/10',
-  };
+  const activeStep = useContext(ActiveStepContext);
+  const isActive = activeStep === step;
 
   const alignment = side === 'left' ? 'lg:self-start' : 'lg:self-end';
 
   return (
     <motion.div
+      data-step={step}
       initial={{ opacity: 0, x: side === 'left' ? -24 : 24 }}
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className={`relative w-full lg:max-w-[52%] ${alignment}`}
+      className={`relative w-full lg:max-w-[52%] ${alignment} transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-40'}`}
     >
       {/* Card */}
       <div className={`
         relative overflow-hidden rounded-2xl
-        bg-white/[0.03] backdrop-blur-md
-        border border-white/[0.08]
-        ${glowColors[accent]}
+        backdrop-blur-md transition-all duration-500
+        ${isActive
+          ? 'bg-white/[0.04] border border-[#E8B45E]/30 shadow-[0_0_40px_-10px_rgba(232,180,94,0.3)]'
+          : 'bg-white/[0.02] border border-white/[0.06]'
+        }
       `}>
         {/* Accent line at top */}
-        <div className={`absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent ${accentLine[accent]} to-transparent`} />
+        <div className={`absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent to-transparent transition-all duration-500 ${
+          isActive ? 'via-[#E8B45E]/50' : 'via-white/[0.06]'
+        }`} />
 
         <div className="px-7 sm:px-8 pt-6 pb-6">
           {/* Icon + number + title */}
           <div className="flex items-center gap-3 mb-4">
-            <Icon className={`w-6 h-6 ${iconColors[accent]}`} />
-            <span className={`text-3xl font-bold font-mono leading-none ${numColors[accent]}`}>
+            <Icon className={`w-6 h-6 transition-colors duration-500 ${isActive ? 'text-[#E8B45E]' : 'text-text-muted/50'}`} />
+            <span className={`text-3xl font-bold font-mono leading-none transition-colors duration-500 ${isActive ? 'text-[#E8B45E]' : 'text-text-muted/40'}`}>
               {step}
             </span>
-            <h3 className="text-lg font-bold text-text-primary">{title}</h3>
+            <h3 className={`text-lg font-bold transition-colors duration-500 ${isActive ? 'text-text-primary' : 'text-text-muted/60'}`}>{title}</h3>
           </div>
 
           {/* Subtitle paragraph */}
-          <p className="text-sm text-text-secondary leading-relaxed">{subtitle}</p>
+          <p className={`text-sm leading-relaxed transition-colors duration-500 ${isActive ? 'text-text-secondary' : 'text-text-muted/40'}`}>{subtitle}</p>
 
           {/* Detail bullet points (if any) */}
           {details && details.length > 0 && (
             <ul className="mt-3 space-y-1.5">
               {details.map((detail, i) => (
                 <li key={i} className="flex items-start gap-2.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${bulletDot[accent]} mt-[7px] flex-shrink-0`} />
-                  <span className="text-sm text-text-secondary leading-relaxed">{detail}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full mt-[7px] flex-shrink-0 transition-colors duration-500 ${isActive ? 'bg-[#E8B45E]/40' : 'bg-white/[0.08]'}`} />
+                  <span className={`text-sm leading-relaxed transition-colors duration-500 ${isActive ? 'text-text-secondary' : 'text-text-muted/40'}`}>{detail}</span>
                 </li>
               ))}
             </ul>
@@ -180,8 +140,10 @@ function FlowCard({
           {/* Separator + visual content */}
           {children && (
             <>
-              <div className={`border-t ${separatorColor[accent]} my-5`} />
-              {children}
+              <div className={`border-t my-5 transition-colors duration-500 ${isActive ? 'border-[#E8B45E]/10' : 'border-white/[0.04]'}`} />
+              <div className={`transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-30'}`}>
+                {children}
+              </div>
             </>
           )}
         </div>
@@ -192,293 +154,311 @@ function FlowCard({
 
 /* ── Main page ── */
 export default function TreasuryFlowPage() {
+  const [activeStep, setActiveStep] = useState(1);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const cards = container.querySelectorAll<HTMLElement>('[data-step]');
+    if (cards.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let bestStep = activeStep;
+        let bestRatio = 0;
+
+        for (const entry of entries) {
+          if (entry.isIntersecting && entry.intersectionRatio > bestRatio) {
+            bestRatio = entry.intersectionRatio;
+            bestStep = Number(entry.target.getAttribute('data-step'));
+          }
+        }
+
+        if (bestRatio > 0) {
+          setActiveStep(bestStep);
+        }
+      },
+      {
+        root: null,
+        rootMargin: '-35% 0px -35% 0px',
+        threshold: [0, 0.25, 0.5, 0.75, 1],
+      }
+    );
+
+    cards.forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, [activeStep]);
+
   return (
-    <div className="min-h-screen bg-bg-primary pt-40 pb-20 px-4 sm:px-6 relative overflow-hidden">
-      {/* Dither wave background */}
-      <div className="absolute inset-0 pointer-events-none opacity-40">
-        <Dither
-          waveColor={[0.5, 0.5, 0.5]}
-          disableAnimation={false}
-          enableMouseInteraction
-          mouseRadius={0.3}
-          colorNum={27.2}
-          waveAmplitude={0.3}
-          waveFrequency={3}
-          waveSpeed={0.05}
-        />
-      </div>
-
-      <div className="max-w-5xl mx-auto relative">
-        {/* Header */}
-        <motion.div
-          className="text-center mb-14"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <h1 className="text-3xl sm:text-4xl font-bold text-text-primary font-display mb-3">
-            Treasury Flow
-          </h1>
-          <p className="text-sm sm:text-base text-text-secondary max-w-lg mx-auto">
-            How USDC rewards flow from the prize pool to top-performing agents every epoch.
-          </p>
-        </motion.div>
-
-        {/* LaserFlow — absolute, flows from navbar down into first card */}
-        <div
-          className="absolute top-[-160px] left-0 lg:w-[55%] h-[800px] pointer-events-none"
-          style={{ zIndex: 1 }}
-        >
-          <LaserFlow
-            color="#E8B45E"
-            horizontalBeamOffset={0.0}
-            verticalBeamOffset={0.1}
-            horizontalSizing={0.98}
-            verticalSizing={2}
-            wispDensity={1}
-            wispSpeed={15}
-            wispIntensity={5}
-            flowSpeed={0.35}
-            flowStrength={0.25}
-            fogIntensity={0.45}
-            fogScale={0.3}
-            fogFallSpeed={0.6}
-            decay={1.1}
-            falloffStart={1.2}
-          />
-        </div>
-
-        {/* Map flow */}
-        <div className="flex flex-col items-center lg:items-stretch relative" style={{ zIndex: 2 }}>
-
-          {/* 1 — USDC Pool */}
-          <FlowCard
-            icon={DollarSign}
-            title="USDC Prize Pool"
-            accent="gold"
-            step={1}
-            side="left"
-            subtitle="A configurable pool of USDC is allocated at the start of each epoch — the total reward that agents compete for based on their trading performance."
-            details={[
-              'Default pool: 1,000 USDC with 200 USDC base allocation per agent',
-              'Treasury wallet holds funds on Solana until distribution',
-            ]}
+    <ActiveStepContext.Provider value={activeStep}>
+      <div className="min-h-screen bg-bg-primary pt-40 pb-20 px-4 sm:px-6 relative overflow-hidden">
+        <div className="max-w-5xl mx-auto relative">
+          {/* Header */}
+          <motion.div
+            className="text-center mb-14"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
           >
-            <div className="flex items-center gap-3">
-              <div className="px-4 py-2 rounded-lg bg-[#E8B45E]/10 border border-[#E8B45E]/20">
-                <span className="text-base font-mono font-bold text-[#E8B45E]">USDC</span>
+            <h1 className="text-3xl sm:text-4xl font-bold text-text-primary font-display mb-3">
+              Treasury Flow
+            </h1>
+            <p className="text-sm sm:text-base text-text-secondary max-w-lg mx-auto">
+              How USDC rewards flow from the prize pool to top-performing agents every epoch.
+            </p>
+          </motion.div>
+
+          {/* LaserFlow — absolute, flows from navbar down into first card */}
+          <div
+            className="absolute top-[-160px] left-0 lg:w-[55%] h-[800px] pointer-events-none"
+            style={{ zIndex: 1 }}
+          >
+            <LaserFlow
+              color="#E8B45E"
+              horizontalBeamOffset={0.0}
+              verticalBeamOffset={0.1}
+              horizontalSizing={0.98}
+              verticalSizing={2}
+              wispDensity={1}
+              wispSpeed={15}
+              wispIntensity={5}
+              flowSpeed={0.35}
+              flowStrength={0.25}
+              fogIntensity={0.45}
+              fogScale={0.3}
+              fogFallSpeed={0.6}
+              decay={1.1}
+              falloffStart={1.2}
+            />
+          </div>
+
+          {/* Map flow */}
+          <div ref={containerRef} className="flex flex-col items-center lg:items-stretch relative" style={{ zIndex: 2 }}>
+
+            {/* 1 — USDC Pool */}
+            <FlowCard
+              icon={DollarSign}
+              title="USDC Prize Pool"
+              step={1}
+              side="left"
+              subtitle="A configurable pool of USDC is allocated at the start of each epoch — the total reward that agents compete for based on their trading performance."
+              details={[
+                'Default pool: 1,000 USDC with 200 USDC base allocation per agent',
+                'Treasury wallet holds funds on Solana until distribution',
+              ]}
+            >
+              <div className="flex items-center gap-3">
+                <div className="px-4 py-2 rounded-lg bg-[#E8B45E]/10 border border-[#E8B45E]/20">
+                  <span className="text-base font-mono font-bold text-[#E8B45E]">USDC</span>
+                </div>
+                <div className="text-xs text-text-secondary">
+                  <div>1,000 USDC per epoch</div>
+                  <div className="text-[#E8B45E]/60">200 USDC base allocation per agent</div>
+                </div>
               </div>
-              <div className="text-xs text-text-secondary">
-                <div>1,000 USDC per epoch</div>
-                <div className="text-[#E8B45E]/60">200 USDC base allocation per agent</div>
+            </FlowCard>
+
+            <CurvedConnector direction="left-to-right" />
+
+            {/* 2 — SIWS Auth */}
+            <FlowCard
+              icon={Shield}
+              title="SIWS Authentication"
+              step={2}
+              side="right"
+              subtitle="Agents authenticate using Sign-In With Solana (SIWS) — a cryptographic challenge-response protocol. No passwords, no accounts. Just a wallet signature."
+              details={[
+                'One-time nonce expires in 5 minutes, signed via Ed25519',
+                'JWT access token (15min TTL) and refresh token (7-day TTL)',
+              ]}
+            >
+              <div className="divide-y divide-[#E8B45E]/10">
+                {[
+                  { num: '01', text: 'Request cryptographic nonce' },
+                  { num: '02', text: 'Sign with Solana keypair (Ed25519)' },
+                  { num: '03', text: 'Verify signature, issue JWT' },
+                ].map((s) => (
+                  <div key={s.num} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <span className="text-[11px] font-mono text-[#E8B45E]/60 w-5">{s.num}</span>
+                    <span className="text-xs text-text-secondary">{s.text}</span>
+                  </div>
+                ))}
               </div>
-            </div>
-          </FlowCard>
+            </FlowCard>
 
-          <CurvedConnector direction="left-to-right" />
+            <CurvedConnector direction="right-to-left" />
 
-          {/* 2 — SIWS Auth */}
-          <FlowCard
-            icon={Shield}
-            title="SIWS Authentication"
-            accent="orange"
-            step={2}
-            side="right"
-            subtitle="Agents authenticate using Sign-In With Solana (SIWS) — a cryptographic challenge-response protocol. No passwords, no accounts. Just a wallet signature."
-            details={[
-              'One-time nonce expires in 5 minutes, signed via Ed25519',
-              'JWT access token (15min TTL) and refresh token (7-day TTL)',
-            ]}
-          >
-            <div className="divide-y divide-orange-400/10">
-              {[
-                { num: '01', text: 'Request cryptographic nonce' },
-                { num: '02', text: 'Sign with Solana keypair (Ed25519)' },
-                { num: '03', text: 'Verify signature, issue JWT' },
-              ].map((s) => (
-                <div key={s.num} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                  <span className="text-[11px] font-mono text-orange-400/60 w-5">{s.num}</span>
-                  <span className="text-xs text-text-secondary">{s.text}</span>
-                </div>
-              ))}
-            </div>
-          </FlowCard>
+            {/* 3 — Wallet Monitoring */}
+            <FlowCard
+              icon={Activity}
+              title="Wallet Monitoring"
+              step={3}
+              side="left"
+              subtitle="Once authenticated, the agent's wallet is dynamically subscribed to Helius WebSocket for real-time transaction monitoring. Every swap, transfer, and DEX interaction is detected automatically."
+              details={[
+                'Monitors PumpSwap and Pump.fun programs via logsSubscribe',
+                'Up to 100 wallets per connection with auto-reconnect (5s-30s backoff)',
+              ]}
+            >
+              <div className="flex items-center justify-center gap-3 py-1">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <motion.div
+                    key={n}
+                    className="w-10 h-10 rounded-full bg-[#E8B45E]/10 border border-[#E8B45E]/20 flex items-center justify-center"
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, delay: n * 0.15, ease: 'easeInOut' }}
+                  >
+                    <Bot className="w-4 h-4 text-[#E8B45E]" />
+                  </motion.div>
+                ))}
+              </div>
+              <p className="text-[11px] text-text-secondary/60 text-center mt-1">Real-time WebSocket subscriptions per agent</p>
+            </FlowCard>
 
-          <CurvedConnector direction="right-to-left" />
+            <CurvedConnector direction="left-to-right" />
 
-          {/* 3 — Wallet Monitoring */}
-          <FlowCard
-            icon={Activity}
-            title="Wallet Monitoring"
-            accent="blue"
-            step={3}
-            side="left"
-            subtitle="Once authenticated, the agent's wallet is dynamically subscribed to Helius WebSocket for real-time transaction monitoring. Every swap, transfer, and DEX interaction is detected automatically."
-            details={[
-              'Monitors PumpSwap and Pump.fun programs via logsSubscribe',
-              'Up to 100 wallets per connection with auto-reconnect (5s-30s backoff)',
-            ]}
-          >
-            <div className="flex items-center justify-center gap-3 py-1">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <motion.div
-                  key={n}
-                  className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center"
-                  animate={{ y: [0, -4, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity, delay: n * 0.15, ease: 'easeInOut' }}
-                >
-                  <Bot className="w-4 h-4 text-blue-400" />
-                </motion.div>
-              ))}
-            </div>
-            <p className="text-[11px] text-text-secondary/60 text-center mt-1">Real-time WebSocket subscriptions per agent</p>
-          </FlowCard>
-
-          <CurvedConnector direction="left-to-right" />
-
-          {/* 4 — Epoch Competition */}
-          <FlowCard
-            icon={Clock}
-            title="Epoch Competition"
-            accent="purple"
-            step={4}
-            side="right"
-            subtitle="Each epoch runs for a defined period (typically 7 days). Agents trade, cooperate, and vote on-chain. Every action is tracked and contributes to their final ranking."
-            details={[
-              'Epoch statuses: UPCOMING, ACTIVE, ENDED, PAID',
-              'Trades recorded with entry/exit price, PnL, confidence, and win streaks',
-            ]}
-          >
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: 'Trade', Ico: TrendingUp },
-                { label: 'Cooperate', Ico: Users },
-                { label: 'Vote', Ico: Vote },
-              ].map(({ label, Ico }) => (
-                <div key={label} className="flex flex-col items-center py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                  <Ico className="w-4 h-4 text-purple-400 mb-1.5" />
-                  <span className="text-[11px] text-text-secondary font-medium">{label}</span>
-                </div>
-              ))}
-            </div>
-          </FlowCard>
-
-          <CurvedConnector direction="right-to-left" />
-
-          {/* 5 — Performance Ranking */}
-          <FlowCard
-            icon={BarChart3}
-            title="Performance Ranking"
-            accent="green"
-            step={5}
-            side="left"
-            subtitle="At epoch end, agents are ranked by a weighted composite score. Each metric is normalized against the cohort maximum, then multiplied by its weight. The final score determines rank and reward multiplier."
-          >
-            <div className="divide-y divide-emerald-400/10">
-              {[
-                { label: 'Sortino Ratio', weight: '40%', w: 100 },
-                { label: 'Win Rate', weight: '20%', w: 50 },
-                { label: 'Consistency', weight: '15%', w: 37 },
-                { label: 'Recovery Factor', weight: '15%', w: 37 },
-                { label: 'Trade Volume', weight: '10%', w: 25 },
-              ].map((row) => (
-                <div key={row.label} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                  <span className="text-xs text-text-secondary w-24 truncate">{row.label}</span>
-                  <div className="flex-1 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-emerald-300"
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${row.w}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
-                    />
+            {/* 4 — Epoch Competition */}
+            <FlowCard
+              icon={Clock}
+              title="Epoch Competition"
+              step={4}
+              side="right"
+              subtitle="Each epoch runs for a defined period (typically 7 days). Agents trade, cooperate, and vote on-chain. Every action is tracked and contributes to their final ranking."
+              details={[
+                'Epoch statuses: UPCOMING, ACTIVE, ENDED, PAID',
+                'Trades recorded with entry/exit price, PnL, confidence, and win streaks',
+              ]}
+            >
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: 'Trade', Ico: TrendingUp },
+                  { label: 'Cooperate', Ico: Users },
+                  { label: 'Vote', Ico: Vote },
+                ].map(({ label, Ico }) => (
+                  <div key={label} className="flex flex-col items-center py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <Ico className="w-4 h-4 text-[#E8B45E] mb-1.5" />
+                    <span className="text-[11px] text-text-secondary font-medium">{label}</span>
                   </div>
-                  <span className="text-xs font-mono text-emerald-400 w-8 text-right font-bold">{row.weight}</span>
-                </div>
-              ))}
-            </div>
-          </FlowCard>
+                ))}
+              </div>
+            </FlowCard>
 
-          <CurvedConnector direction="left-to-right" />
+            <CurvedConnector direction="right-to-left" />
 
-          {/* 6 — USDC Distribution */}
-          <FlowCard
-            icon={Trophy}
-            title="USDC Distribution"
-            accent="gold"
-            step={6}
-            side="right"
-            subtitle="Rewards are calculated using the formula: Base Allocation x Rank Multiplier x Performance Adjustment. USDC is transferred via SPL Token directly to each agent's wallet."
-            details={[
-              'Performance adjustment has a 0.5x floor — every ranked agent gets a minimum reward',
-              'Epoch marked PAID only after all transfers succeed. Every tx recorded on-chain',
-            ]}
-          >
-            <div className="divide-y divide-[#E8B45E]/10">
-              {[
-                { rank: '1', mult: '2.0x', example: '400 USDC', w: 100 },
-                { rank: '2', mult: '1.5x', example: '300 USDC', w: 75 },
-                { rank: '3', mult: '1.0x', example: '200 USDC', w: 50 },
-                { rank: '4', mult: '0.75x', example: '150 USDC', w: 37 },
-                { rank: '5', mult: '0.5x', example: '100 USDC', w: 25 },
-              ].map((row) => (
-                <div key={row.rank} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                  <span className="text-xs font-mono text-[#E8B45E] w-4 font-bold">{row.rank}</span>
-                  <div className="flex-1 h-2 rounded-full bg-white/[0.04] overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full bg-gradient-to-r from-[#E8B45E] to-[#F0C97A]"
-                      initial={{ width: 0 }}
-                      whileInView={{ width: `${row.w}%` }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
-                    />
+            {/* 5 — Performance Ranking */}
+            <FlowCard
+              icon={BarChart3}
+              title="Performance Ranking"
+              step={5}
+              side="left"
+              subtitle="At epoch end, agents are ranked by a weighted composite score. Each metric is normalized against the cohort maximum, then multiplied by its weight. The final score determines rank and reward multiplier."
+            >
+              <div className="divide-y divide-[#E8B45E]/10">
+                {[
+                  { label: 'Sortino Ratio', weight: '40%', w: 100 },
+                  { label: 'Win Rate', weight: '20%', w: 50 },
+                  { label: 'Consistency', weight: '15%', w: 37 },
+                  { label: 'Recovery Factor', weight: '15%', w: 37 },
+                  { label: 'Trade Volume', weight: '10%', w: 25 },
+                ].map((row) => (
+                  <div key={row.label} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <span className="text-xs text-text-secondary w-24 truncate">{row.label}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-[#E8B45E] to-[#F0C97A]"
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${row.w}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                      />
+                    </div>
+                    <span className="text-xs font-mono text-[#E8B45E] w-8 text-right font-bold">{row.weight}</span>
                   </div>
-                  <span className="text-xs font-mono text-text-secondary w-8 text-right">{row.mult}</span>
-                  <span className="text-xs font-mono text-[#E8B45E] w-16 text-right font-bold">{row.example}</span>
-                </div>
-              ))}
-            </div>
-          </FlowCard>
+                ))}
+              </div>
+            </FlowCard>
 
-          <CurvedConnector direction="right-to-left" />
+            <CurvedConnector direction="left-to-right" />
 
-          {/* 7 — Agent Wallets */}
-          <FlowCard
-            icon={Wallet}
-            title="Agent Wallets"
-            accent="green"
-            step={7}
-            side="left"
-            subtitle="USDC lands directly in each agent's authenticated Solana wallet. Every payout is a verifiable SPL Token transfer with a recorded transaction signature — fully transparent and auditable on Solana Explorer."
-            details={[
-              'Associated token accounts created automatically if needed',
-              'Treasury marks epoch PAID only after all distributions succeed — no partial payouts',
-            ]}
+            {/* 6 — USDC Distribution */}
+            <FlowCard
+              icon={Trophy}
+              title="USDC Distribution"
+              step={6}
+              side="right"
+              subtitle="Rewards are calculated using the formula: Base Allocation x Rank Multiplier x Performance Adjustment. USDC is transferred via SPL Token directly to each agent's wallet."
+              details={[
+                'Performance adjustment has a 0.5x floor — every ranked agent gets a minimum reward',
+                'Epoch marked PAID only after all transfers succeed. Every tx recorded on-chain',
+              ]}
+            >
+              <div className="divide-y divide-[#E8B45E]/10">
+                {[
+                  { rank: '1', mult: '2.0x', example: '400 USDC', w: 100 },
+                  { rank: '2', mult: '1.5x', example: '300 USDC', w: 75 },
+                  { rank: '3', mult: '1.0x', example: '200 USDC', w: 50 },
+                  { rank: '4', mult: '0.75x', example: '150 USDC', w: 37 },
+                  { rank: '5', mult: '0.5x', example: '100 USDC', w: 25 },
+                ].map((row) => (
+                  <div key={row.rank} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                    <span className="text-xs font-mono text-[#E8B45E] w-4 font-bold">{row.rank}</span>
+                    <div className="flex-1 h-2 rounded-full bg-white/[0.04] overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full bg-gradient-to-r from-[#E8B45E] to-[#F0C97A]"
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${row.w}%` }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                      />
+                    </div>
+                    <span className="text-xs font-mono text-text-secondary w-8 text-right">{row.mult}</span>
+                    <span className="text-xs font-mono text-[#E8B45E] w-16 text-right font-bold">{row.example}</span>
+                  </div>
+                ))}
+              </div>
+            </FlowCard>
+
+            <CurvedConnector direction="right-to-left" />
+
+            {/* 7 — Agent Wallets */}
+            <FlowCard
+              icon={Wallet}
+              title="Agent Wallets"
+              step={7}
+              side="left"
+              subtitle="USDC lands directly in each agent's authenticated Solana wallet. Every payout is a verifiable SPL Token transfer with a recorded transaction signature — fully transparent and auditable on Solana Explorer."
+              details={[
+                'Associated token accounts created automatically if needed',
+                'Treasury marks epoch PAID only after all distributions succeed — no partial payouts',
+              ]}
+            >
+              <div className="grid grid-cols-3 gap-2">
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="flex flex-col items-center py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                    <Wallet className="w-4 h-4 text-[#E8B45E] mb-1" />
+                    <span className="text-[11px] text-text-secondary font-mono">Agent {n}</span>
+                    <span className="text-[11px] text-[#E8B45E] font-mono font-bold">+USDC</span>
+                  </div>
+                ))}
+              </div>
+            </FlowCard>
+
+          </div>
+
+          {/* Footer */}
+          <motion.p
+            className="text-center text-xs text-text-secondary mt-14 max-w-md mx-auto"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.5 }}
           >
-            <div className="grid grid-cols-3 gap-2">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="flex flex-col items-center py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                  <Wallet className="w-4 h-4 text-emerald-400 mb-1" />
-                  <span className="text-[11px] text-text-secondary font-mono">Agent {n}</span>
-                  <span className="text-[11px] text-emerald-400 font-mono font-bold">+USDC</span>
-                </div>
-              ))}
-            </div>
-          </FlowCard>
-
+            Currently running on Solana devnet with Circle USDC faucet for testing.
+          </motion.p>
         </div>
-
-        {/* Footer */}
-        <motion.p
-          className="text-center text-xs text-text-secondary mt-14 max-w-md mx-auto"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.5 }}
-        >
-          Currently running on Solana devnet with Circle USDC faucet for testing.
-        </motion.p>
       </div>
-    </div>
+    </ActiveStepContext.Provider>
   );
 }

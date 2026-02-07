@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Vote } from 'lucide-react';
+import { X, Vote, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trade, Position, Vote as VoteType, Conversation, Message } from '@/lib/types';
 import { getConversations, getConversationMessages, getAllVotes, getAllPositions, getRecentTrades } from '@/lib/api';
@@ -66,30 +66,51 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
   const sellCount = trades.filter(t => t.action === 'SELL').length;
   const activeVotes = votes.filter(v => v.status === 'active').length;
 
+  const tokenMint = positions[0]?.tokenMint || trades[0]?.tokenMint || '';
+
   const fmt = (val: number) => {
-    if (val >= 1_000_000_000) return `$${Math.round(val / 1_000_000_000)}B`;
-    if (val >= 1_000_000) return `$${Math.round(val / 1_000_000)}M`;
-    if (val >= 1_000) return `$${Math.round(val / 1_000)}K`;
+    if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(1)}B`;
+    if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
+    if (val >= 1_000) return `$${(val / 1_000).toFixed(1)}K`;
     return `$${Math.round(val)}`;
+  };
+
+  const fmtNum = (val: number) => {
+    if (val >= 1_000_000_000) return `${(val / 1_000_000_000).toFixed(1)}B`;
+    if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
+    if (val >= 1_000) return `${(val / 1_000).toFixed(1)}K`;
+    return `${Math.round(val)}`;
   };
 
   return (
     <div>
       {/* Header */}
-      <div className="px-6 py-5 border-b border-white/[0.06]">
-        <div className="flex items-baseline gap-3 mb-3">
+      <div className="px-6 py-4 border-b border-white/[0.06]">
+        <div className="flex items-center gap-3">
+          <div className="relative w-7 h-7 flex-shrink-0">
+            <div className="w-7 h-7 rounded-full bg-accent-primary/20 flex items-center justify-center">
+              <span className="text-xs font-bold text-accent-primary">{tokenSymbol[0]}</span>
+            </div>
+            {tokenMint && (
+              <img
+                src={`https://dd.dexscreener.com/ds-data/tokens/solana/${tokenMint}.png`}
+                alt=""
+                className="absolute inset-0 w-7 h-7 rounded-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            )}
+          </div>
           <span className="text-2xl font-bold font-mono text-accent-primary">{tokenSymbol}</span>
-          {totalPnl !== 0 && (
-            <span className={`ml-auto text-sm font-mono font-bold ${totalPnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {totalPnl > 0 ? '+' : '-'}{fmt(Math.abs(totalPnl))}
-            </span>
-          )}
-        </div>
-        <div className="flex gap-6 text-xs text-text-muted">
-          <span>{positions.length} agents positioned</span>
-          <span className="text-green-400">{buyCount} buys</span>
-          <span className="text-red-400">{sellCount} sells</span>
-          {activeVotes > 0 && <span className="text-accent-primary">{activeVotes} active votes</span>}
+          <div className="flex items-center gap-3 ml-auto text-xs">
+            <span className="text-green-400">{buyCount} buys</span>
+            <span className="text-red-400">{sellCount} sells</span>
+            {activeVotes > 0 && <span className="text-accent-primary">{activeVotes} votes</span>}
+            {totalPnl !== 0 && (
+              <span className={`font-mono font-bold ${totalPnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {totalPnl > 0 ? '+' : '-'}{fmt(Math.abs(totalPnl))}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -98,7 +119,8 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
         {/* Left: Wallet Positions + Activity */}
         <div className="border-r border-white/[0.06] flex flex-col overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-b border-white/[0.06] z-10">
+            <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-b border-white/[0.06] z-10 flex items-center gap-2">
+              <Bot className="w-3.5 h-3.5 text-text-secondary" />
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Positions</span>
             </div>
             <div className="px-6 py-2">
@@ -111,7 +133,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
                       <div>
                         <div className="text-sm font-medium text-text-primary">{pos.agentName}</div>
                         <div className="text-[11px] text-text-muted font-mono mt-0.5">
-                          {Math.round(pos.quantity)} tokens &middot; {fmt(pos.currentValue)}
+                          {fmtNum(pos.quantity)} tokens &middot; {fmt(pos.currentValue)}
                         </div>
                       </div>
                       <span className={`text-sm font-mono font-bold ${pos.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -137,7 +159,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
                         }`}>
                           {trade.action}
                         </span>
-                        <span className="text-text-muted font-mono">{Math.round(trade.quantity)}</span>
+                        <span className="text-text-muted font-mono">{fmtNum(trade.quantity)}</span>
                         {trade.pnl !== 0 && (
                           <span className={`font-mono ${trade.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {trade.pnl > 0 ? '+' : ''}{Math.round(trade.pnlPercent)}%
