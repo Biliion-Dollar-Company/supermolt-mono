@@ -451,6 +451,38 @@ webhooks.post('/solana', async (c) => {
 });
 
 /**
+ * POST /webhooks/task-validation
+ * Validates agent task submissions from Ponzinomics
+ * Called by Ponzinomics gamification API when agent submits proof
+ */
+webhooks.post('/task-validation', async (c) => {
+  try {
+    const { taskId, agentId, proof } = await c.req.json();
+    
+    console.log(`\n📋 Task validation request: ${taskId} from ${agentId.substring(0, 12)}...`);
+    
+    const { AgentTaskManager } = await import('../services/agent-task-manager.service');
+    const taskManager = new AgentTaskManager();
+    
+    const validation = await taskManager.validateSubmission(taskId, agentId, proof);
+    
+    return c.json({
+      success: true,
+      data: validation
+    });
+  } catch (error: any) {
+    console.error('❌ Task validation error:', error);
+    return c.json(
+      { 
+        success: false, 
+        error: error.message || 'Validation failed'
+      },
+      500
+    );
+  }
+});
+
+/**
  * GET /webhooks/health
  * Health check endpoint
  */

@@ -128,6 +128,12 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
     console.log(`   Volume 24h: $${tokenData.volume24h.toLocaleString()}`);
     console.log(`   Price Change 24h: ${tokenData.priceChange24h.toFixed(2)}%\n`);
 
+    // Step 1.5: Create competitive tasks for agents (fire and forget)
+    // This runs in background and doesn't block the observer flow
+    createAgentTasksAsync(trade.tokenMint, trade.tokenSymbol).catch(err => {
+      console.error('❌ Failed to create agent tasks:', err);
+    });
+
     // Step 2: Generate analyses from all 5 agents
     console.log('🤖 Generating agent analyses...\n');
     const analyses = await analyzeSuperRouterTrade(trade, tokenData);
@@ -180,6 +186,23 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
 
   } catch (error) {
     console.error('❌ Error handling SuperRouter trade:', error);
+  }
+}
+
+/**
+ * Create agent tasks asynchronously (fire and forget)
+ * Runs in background to not block observer flow
+ */
+async function createAgentTasksAsync(tokenMint: string, tokenSymbol?: string): Promise<void> {
+  try {
+    const { AgentTaskManager } = await import('./agent-task-manager.service');
+    const taskManager = new AgentTaskManager();
+    
+    const result = await taskManager.createTasksForToken(tokenMint, tokenSymbol);
+    console.log(`\n✅ Created ${result.taskIds.length} agent tasks (${result.totalXP} XP available)\n`);
+  } catch (error) {
+    // Log but don't throw - task creation is non-critical
+    console.error('⚠️  Agent task creation failed (non-critical):', error);
   }
 }
 
