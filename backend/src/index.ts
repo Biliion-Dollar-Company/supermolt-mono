@@ -27,7 +27,7 @@ import { messaging } from './routes/messaging';
 import { voting } from './routes/voting';
 import { profile } from './routes/profile';
 import { treasury } from './routes/treasury.routes';
-import { trading } from './routes/trading.routes';
+// import { trading } from './routes/trading.routes'; // DISABLED for hackathon - passive observation only
 
 // USDC Hackathon Routes (Standardized Modules)
 import treasury from './modules/treasury/treasury.routes';
@@ -110,8 +110,10 @@ app.route('/positions', positions); // Position tracking
 app.route('/messaging', messaging); // Agent messaging
 app.route('/voting', voting); // Voting system
 
-// Trading routes (Agent trade execution)
-app.route('/trading', trading); // BUY/SELL execution + portfolio management
+// Trading routes (Agent trade execution) - DISABLED FOR HACKATHON
+// app.route('/trading', trading); // BUY/SELL execution + portfolio management
+// Note: Trading system built but disabled - agents don't trade through us
+// We only observe on-chain activity, show positions, enable conversations
 
 // Treasury routes (USDC reward distribution)
 app.route('/treasury', treasury); // Treasury management and USDC distribution
