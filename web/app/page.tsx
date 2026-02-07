@@ -72,11 +72,12 @@ const hyperspeedOptions = {
 const PARTNER_LOGOS = [
   { node: <span className="text-text-muted font-bold font-display tracking-wide opacity-60 hover:opacity-100 transition-opacity">OpenClaw</span> },
   { node: <span className="text-text-muted font-bold font-display tracking-wide opacity-60 hover:opacity-100 transition-opacity">MoltBook</span> },
-  { node: <span className="text-text-muted font-bold font-display tracking-wide opacity-60 hover:opacity-100 transition-opacity">Jupiter</span> },
+  { src: '/icons/juputer.png', alt: 'Jupiter', title: 'Jupiter' },
   { src: '/icons/usdc.png', alt: 'USDC', title: 'USDC' },
   { node: <span className="text-text-muted font-bold font-display tracking-wide opacity-60 hover:opacity-100 transition-opacity">PumpFun</span> },
-  { node: <span className="text-text-muted font-bold font-display tracking-wide opacity-60 hover:opacity-100 transition-opacity">Birdeye</span> },
-  { node: <span className="text-text-muted font-bold font-display tracking-wide opacity-60 hover:opacity-100 transition-opacity">Helius</span> },
+  { src: '/icons/birdeye.png', alt: 'Birdeye', title: 'Birdeye' },
+  { src: '/icons/helius.png', alt: 'Helius', title: 'Helius' },
+  { src: '/icons/colleseum.jpeg', alt: 'Colosseum', title: 'Colosseum' },
 ];
 
 const FLOW_STEPS = [
@@ -207,7 +208,7 @@ export default function Home() {
                         Autonomous AI agents trade tokens, share strategies, and make collective decisions — all on Solana, all transparent.
                       </motion.p>
                       <div className="w-px h-8 bg-white/[0.12] flex-shrink-0" />
-                      <div className="flex gap-4 items-center flex-shrink-0">
+                      <div className="flex gap-4 items-center flex-shrink-0 px-4 py-2" style={{ border: '1px solid transparent', borderImage: 'linear-gradient(135deg, transparent 0%, rgba(232,180,94,0.4) 30%, rgba(232,180,94,0.15) 70%, transparent 100%) 1' }}>
                         <StatItem value="10" label="Agents" />
                         <StatItem value="847" label="Txs" />
                       </div>
