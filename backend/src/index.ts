@@ -27,6 +27,7 @@ import { messaging } from './routes/messaging';
 import { voting } from './routes/voting';
 import { profile } from './routes/profile';
 import { agentAuth } from './routes/agent-auth.routes';
+import { skills } from './routes/skills';
 // import { trading } from './routes/trading.routes'; // DISABLED for hackathon - passive observation only
 
 // USDC Hackathon Routes (Standardized Modules)
@@ -35,6 +36,7 @@ import leaderboard from './modules/leaderboard/leaderboard.routes';
 import epochs from './modules/epoch/epoch.routes';
 import calls from './modules/scanner-calls/scanner-calls.routes';
 import arenaRoutes from './modules/arena/arena.routes';
+import taskRoutes from './modules/tasks/tasks.routes';
 
 const db = new PrismaClient();
 const app = new Hono();
@@ -91,6 +93,7 @@ app.route('/health', health);
 app.route('/archetypes', archetypes);
 app.route('/webhooks', webhooks); // Helius webhooks (public, signature validated)
 app.route('/ponzinomics', ponzinomicsRoutes); // Ponzinomics analytics & trading
+app.route('/skills', skills); // Agent skill packs
 
 // Auth routes
 app.route('/auth', auth);
@@ -131,6 +134,7 @@ app.route('/api/calls', calls);
 
 // Arena routes (public, frontend arena page)
 app.route('/arena', arenaRoutes);
+app.route('/arena/tasks', taskRoutes);
 
 // Root
 app.get('/', (c) => {

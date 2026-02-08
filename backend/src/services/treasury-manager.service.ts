@@ -60,6 +60,30 @@ interface DistributionResult {
   solscan: string;
 }
 
+// ── TradingAgent reward types ──
+
+export interface AgentAllocationResult {
+  agentId: string;
+  agentName: string;
+  walletAddress: string;
+  rank: number;
+  tradeCount: number;
+  sortinoRatio: number;
+  winRate: number;
+  usdcAmount: number;
+  multiplier: number;
+}
+
+export interface AgentDistributionResult {
+  agentId: string;
+  agentName: string;
+  amount: number;
+  signature: string;
+  status: 'success' | 'failed';
+  error?: string;
+  solscan: string;
+}
+
 export class TreasuryManagerService {
   private connection: Connection;
   private treasuryKeypair: Keypair | null = null;
@@ -407,6 +431,192 @@ export class TreasuryManagerService {
     await this.connection.confirmTransaction(signature, 'confirmed');
 
     return signature;
+  }
+
+  // ── TradingAgent Reward Distribution ─────────────────────
+
+  /**
+   * Calculate USDC allocations for TradingAgents in an epoch.
+   * Ranks by trade_count DESC → sortino DESC → winRate DESC.
+   */
+  async calculateAgentAllocations(epochId: string): Promise<AgentAllocationResult[]> {
+    const epoch = await prisma.scannerEpoch.findUnique({ where: { id: epochId } });
+    if (!epoch) throw new Error(`Epoch ${epochId} not found`);
+
+    // Get all active TradingAgents
+    const agents = await prisma.tradingAgent.findMany({
+      where: { status: 'ACTIVE' },
+    });
+
+    if (agents.length === 0) throw new Error('No active TradingAgents found');
+
+    const agentIds = agents.map((a) => a.id);
+
+    // Get AgentStats for sortino ratios + trade counts
+    const [stats, agentTradeCounts] = await Promise.all([
+      prisma.agentStats.findMany({ where: { agentId: { in: agentIds } } }),
+      prisma.agentTrade.groupBy({
+        by: ['agentId'],
+        where: { agentId: { in: agentIds } },
+        _count: { agentId: true },
+      }),
+    ]);
+
+    const statsMap = new Map(stats.map((s) => [s.agentId, s]));
+    const tradeCountMap = new Map(agentTradeCounts.map((tc) => [tc.agentId, tc._count.agentId]));
+
+    // Build sortable agent list
+    const rankedAgents = agents.map((agent) => {
+      const agentStats = statsMap.get(agent.id);
+      const tradeCount = tradeCountMap.get(agent.id) || agent.totalTrades;
+      const sortinoRatio = agentStats ? Number(agentStats.sortinoRatio) : 0;
+      const winRate = Number(agent.winRate);
+      return { agent, tradeCount, sortinoRatio, winRate };
+    });
+
+    // Sort: trade_count DESC → sortino DESC → winRate DESC
+    rankedAgents.sort((a, b) => {
+      if (b.tradeCount !== a.tradeCount) return b.tradeCount - a.tradeCount;
+      if (b.sortinoRatio !== a.sortinoRatio) return b.sortinoRatio - a.sortinoRatio;
+      return b.winRate - a.winRate;
+    });
+
+    const baseAllocation = Number(epoch.baseAllocation) || 200;
+    const usdcPool = Number(epoch.usdcPool);
+    const allocations: AgentAllocationResult[] = [];
+
+    let totalRaw = 0;
+
+    // First pass: calculate raw amounts
+    const rawAmounts: number[] = [];
+    for (let i = 0; i < rankedAgents.length; i++) {
+      const rank = i + 1;
+      const multiplier = RANK_MULTIPLIERS[rank] || 0.5;
+      // Performance adjustment based on trade activity (0.5–1.0)
+      const { tradeCount } = rankedAgents[i];
+      const performanceAdjustment = Math.max(0.5, Math.min(1.0, tradeCount > 0 ? 0.7 + (tradeCount / 50) * 0.3 : 0.5));
+      const raw = baseAllocation * multiplier * performanceAdjustment;
+      rawAmounts.push(raw);
+      totalRaw += raw;
+    }
+
+    // Scale to fit within usdcPool
+    const scaleFactor = totalRaw > usdcPool ? usdcPool / totalRaw : 1;
+
+    for (let i = 0; i < rankedAgents.length; i++) {
+      const { agent, tradeCount, sortinoRatio, winRate } = rankedAgents[i];
+      const rank = i + 1;
+      const multiplier = RANK_MULTIPLIERS[rank] || 0.5;
+      const usdcAmount = Math.round(rawAmounts[i] * scaleFactor * 100) / 100;
+
+      allocations.push({
+        agentId: agent.id,
+        agentName: agent.displayName || agent.name,
+        walletAddress: agent.userId,
+        rank,
+        tradeCount,
+        sortinoRatio,
+        winRate,
+        usdcAmount,
+        multiplier,
+      });
+    }
+
+    return allocations;
+  }
+
+  /**
+   * Execute USDC distribution to TradingAgents for an epoch.
+   * Sends real on-chain USDC transfers and records TreasuryAllocation rows.
+   */
+  async distributeAgentRewards(epochId: string): Promise<{
+    allocations: AgentDistributionResult[];
+    summary: { totalAmount: number; successful: number; failed: number; timestamp: string };
+  }> {
+    if (!this.treasuryKeypair) throw new Error('Treasury wallet not loaded');
+
+    const epoch = await prisma.scannerEpoch.findUnique({ where: { id: epochId } });
+    if (!epoch) throw new Error(`Epoch ${epochId} not found`);
+    if (epoch.status === 'PAID') throw new Error(`Epoch ${epochId} already distributed`);
+
+    const allocations = await this.calculateAgentAllocations(epochId);
+
+    const totalAmount = allocations.reduce((sum, a) => sum + a.usdcAmount, 0);
+    const balance = await this.getBalance();
+    if (balance < totalAmount) {
+      throw new Error(`Insufficient treasury balance: ${balance} USDC < ${totalAmount} USDC needed`);
+    }
+
+    const results: AgentDistributionResult[] = [];
+    let successful = 0;
+    let failed = 0;
+
+    for (const alloc of allocations) {
+      try {
+        const signature = await this.sendUSDC(alloc.walletAddress, alloc.usdcAmount);
+
+        await prisma.treasuryAllocation.create({
+          data: {
+            epochId,
+            tradingAgentId: alloc.agentId,
+            amount: alloc.usdcAmount,
+            performanceScore: alloc.sortinoRatio,
+            rank: alloc.rank,
+            txSignature: signature,
+            status: 'completed',
+            completedAt: new Date(),
+          },
+        });
+
+        results.push({
+          agentId: alloc.agentId,
+          agentName: alloc.agentName,
+          amount: alloc.usdcAmount,
+          signature,
+          status: 'success',
+          solscan: `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
+        });
+
+        successful++;
+        console.log(`✅ Distributed ${alloc.usdcAmount} USDC to ${alloc.agentName} (${signature})`);
+      } catch (error: any) {
+        console.error(`❌ Failed to distribute to ${alloc.agentName}:`, error);
+
+        await prisma.treasuryAllocation.create({
+          data: {
+            epochId,
+            tradingAgentId: alloc.agentId,
+            amount: alloc.usdcAmount,
+            performanceScore: alloc.sortinoRatio,
+            rank: alloc.rank,
+            status: 'failed',
+          },
+        });
+
+        results.push({
+          agentId: alloc.agentId,
+          agentName: alloc.agentName,
+          amount: alloc.usdcAmount,
+          signature: '',
+          status: 'failed',
+          error: error.message,
+          solscan: '',
+        });
+
+        failed++;
+      }
+    }
+
+    // Update epoch status
+    await prisma.scannerEpoch.update({
+      where: { id: epochId },
+      data: { status: failed === 0 ? 'PAID' : 'ACTIVE' },
+    });
+
+    return {
+      allocations: results,
+      summary: { totalAmount, successful, failed, timestamp: new Date().toISOString() },
+    };
   }
 
   /**

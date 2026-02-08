@@ -24,6 +24,7 @@ import {
   getAllVotes,
   getActiveVotes,
   getVoteDetail,
+  getEpochRewards,
 } from './arena.service';
 
 const app = new Hono();
@@ -88,6 +89,23 @@ app.get('/conversations/:id/messages', async (c) => {
   } catch (error: any) {
     console.error('Arena messages error:', error);
     return c.json({ messages: [] });
+  }
+});
+
+// ── Epoch Rewards ─────────────────────────────────────────
+
+app.get('/epoch/rewards', async (c) => {
+  try {
+    const data = await getEpochRewards();
+    return c.json(data);
+  } catch (error: any) {
+    console.error('Arena epoch rewards error:', error);
+    return c.json({
+      epoch: null,
+      allocations: [],
+      treasury: { balance: 0, distributed: 0, available: 0 },
+      distributions: [],
+    });
   }
 });
 

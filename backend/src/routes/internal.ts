@@ -4,6 +4,7 @@ import { internalAuthMiddleware } from '../middleware/internal';
 import * as tradeService from '../services/trade.service';
 import { PrismaClient } from '@prisma/client';
 import { createSortinoService } from '../services/sortino.service';
+import { treasuryManager } from '../services/treasury-manager.service';
 
 const internal = new Hono();
 const db = new PrismaClient();
@@ -337,6 +338,37 @@ internal.post('/agents/create-two-more', async (c) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to create agents';
     console.error('Create agents error:', error);
+    return c.json(
+      { success: false, error: { code: 'INTERNAL_ERROR', message } },
+      500
+    );
+  }
+});
+
+// POST /internal/epoch/distribute — Execute USDC distribution to TradingAgents
+internal.post('/epoch/distribute', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { epochId } = z.object({ epochId: z.string().min(1) }).parse(body);
+
+    console.log(`💰 Starting USDC distribution for epoch ${epochId}...`);
+    const startTime = Date.now();
+
+    const result = await treasuryManager.distributeAgentRewards(epochId);
+
+    const duration = Date.now() - startTime;
+    console.log(`✅ Distribution complete in ${duration}ms — ${result.summary.successful} succeeded, ${result.summary.failed} failed`);
+
+    return c.json({ success: true, data: result });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid request body', details: error.errors } },
+        400
+      );
+    }
+    const message = error instanceof Error ? error.message : 'Failed to distribute rewards';
+    console.error('Distribution error:', error);
     return c.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message } },
       500

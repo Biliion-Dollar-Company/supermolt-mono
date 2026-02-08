@@ -256,6 +256,15 @@
     @apply bg-accent-soft;
   }
 
+  /* Hide scrollbar but keep scroll */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* ✨ Selection Styling */
   ::selection {
     @apply bg-accent-primary/30 text-white;

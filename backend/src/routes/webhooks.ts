@@ -593,7 +593,7 @@ webhooks.post('/task-validation', async (c) => {
     const { AgentTaskManager } = await import('../services/agent-task-manager.service');
     const taskManager = new AgentTaskManager();
     
-    const validation = await taskManager.validateSubmission(taskId, agentId, proof);
+    const validation = await taskManager.submitProof(taskId, agentId, proof);
     
     return c.json({
       success: true,

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Swords, Wifi, WifiOff, Copy, Check } from 'lucide-react';
 import { getRecentTrades, getAllPositions } from '@/lib/api';
 import { Trade, Position } from '@/lib/types';
-import { ArenaLeaderboard, TokenDetailContent, EpochRewardPanel } from '@/components/arena';
+import { ArenaLeaderboard, TokenDetailContent, EpochRewardPanel, TasksPanel } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
 
 function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
@@ -182,6 +182,11 @@ export default function ArenaPage() {
               {isLive ? 'Live' : 'Offline'}
             </div>
           </div>
+        </div>
+
+        {/* Agent Tasks — full width compact strip */}
+        <div className="mb-6">
+          <TasksPanel />
         </div>
 
         {/* Main layout: leaderboard left, separator, token feed right */}

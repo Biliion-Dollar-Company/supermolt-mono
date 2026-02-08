@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { PrismaClient, Prisma } from '@prisma/client';
 import * as jwt from 'jose';
 import * as siwsService from '../services/siws.service';
+import { getSkillPack } from '../services/skill-loader';
 import { z } from 'zod';
 import { rateLimiter } from 'hono-rate-limiter';
 const db = new PrismaClient();
@@ -151,6 +152,9 @@ siwsAuthRoutes.post('/agent/verify', authLimiter, async (c) => {
 
     // Agent last activity is tracked via updatedAt field (auto-updated by Prisma)
 
+    // Load skill pack so agent knows what it can do immediately
+    const skillPack = getSkillPack();
+
     return c.json({
       success: true,
       token,
@@ -161,6 +165,14 @@ siwsAuthRoutes.post('/agent/verify', authLimiter, async (c) => {
         name: agent.name,
         status: agent.status,
         archetypeId: agent.archetypeId
+      },
+      skills: skillPack,
+      endpoints: {
+        skills: '/skills/pack',
+        tasks: '/arena/tasks',
+        conversations: '/arena/conversations',
+        positions: '/arena/positions',
+        votes: '/arena/votes',
       },
       expiresIn: 900 // 15 minutes in seconds
     });

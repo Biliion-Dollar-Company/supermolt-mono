@@ -8,6 +8,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { getTokenPrice } from '../../lib/birdeye';
+import { treasuryManager } from '../../services/treasury-manager.service';
 
 const db = new PrismaClient();
 
@@ -531,3 +532,137 @@ export async function getVoteDetail(voteId: string) {
     },
   };
 }
+
+// ── Epoch Rewards ─────────────────────────────────────────
+
+export async function getEpochRewards() {
+  // Get active epoch (or most recent ended/paid epoch)
+  const epoch = await db.scannerEpoch.findFirst({
+    where: { status: { in: ['ACTIVE', 'ENDED', 'PAID'] } },
+    orderBy: { startAt: 'desc' },
+  });
+
+  if (!epoch) {
+    return {
+      epoch: null,
+      allocations: [],
+      treasury: { balance: 0, distributed: 0, available: 0 },
+      distributions: [],
+    };
+  }
+
+  // Calculate projected allocations from TradingAgents
+  let allocations: Array<{
+    agentId: string;
+    agentName: string;
+    walletAddress: string;
+    rank: number;
+    usdcAmount: number;
+    multiplier: number;
+    txSignature?: string;
+    status: 'preview' | 'completed' | 'failed';
+  }> = [];
+
+  try {
+    const calculated = await treasuryManager.calculateAgentAllocations(epoch.id);
+    allocations = calculated.map((a) => ({
+      agentId: a.agentId,
+      agentName: a.agentName,
+      walletAddress: a.walletAddress,
+      rank: a.rank,
+      usdcAmount: a.usdcAmount,
+      multiplier: a.multiplier,
+      status: 'preview' as const,
+    }));
+  } catch {
+    // No agents or other calculation error — return empty allocations
+  }
+
+  // Fetch completed TreasuryAllocation records for this epoch (TradingAgent rewards)
+  const completedAllocations = await db.treasuryAllocation.findMany({
+    where: {
+      epochId: epoch.id,
+      tradingAgentId: { not: null },
+    },
+    orderBy: { rank: 'asc' },
+  });
+
+  // If there are completed distributions, use those instead of previews
+  if (completedAllocations.length > 0) {
+    // Look up agent names
+    const agentIds = completedAllocations.map((a) => a.tradingAgentId!);
+    const agents = await db.tradingAgent.findMany({
+      where: { id: { in: agentIds } },
+      select: { id: true, name: true, displayName: true, userId: true },
+    });
+    const agentMap = new Map(agents.map((a) => [a.id, a]));
+
+    allocations = completedAllocations.map((a) => {
+      const agent = agentMap.get(a.tradingAgentId!);
+      return {
+        agentId: a.tradingAgentId!,
+        agentName: agent?.displayName || agent?.name || 'Unknown',
+        walletAddress: agent?.userId || '',
+        rank: a.rank,
+        usdcAmount: Number(a.amount),
+        multiplier: RANK_MULTIPLIERS[a.rank] || 0.5,
+        txSignature: a.txSignature || undefined,
+        status: (a.status === 'completed' ? 'completed' : 'failed') as 'completed' | 'failed',
+      };
+    });
+  }
+
+  // Get treasury balance
+  let treasuryBalance = 0;
+  try {
+    treasuryBalance = await treasuryManager.getBalance();
+  } catch {
+    // Treasury wallet not loaded — show 0
+  }
+
+  // Calculate totals
+  const totalDistributed = completedAllocations
+    .filter((a) => a.status === 'completed')
+    .reduce((sum, a) => sum + Number(a.amount), 0);
+
+  // Build distributions list (completed ones with tx signatures)
+  const distributions = completedAllocations
+    .filter((a) => a.status === 'completed' && a.txSignature)
+    .map((a) => {
+      const agent = allocations.find((al) => al.agentId === a.tradingAgentId);
+      return {
+        agentName: agent?.agentName || 'Unknown',
+        amount: Number(a.amount),
+        txSignature: a.txSignature!,
+        completedAt: a.completedAt?.toISOString() || a.createdAt.toISOString(),
+      };
+    });
+
+  return {
+    epoch: {
+      id: epoch.id,
+      name: epoch.name,
+      number: epoch.epochNumber,
+      startAt: epoch.startAt.toISOString(),
+      endAt: epoch.endAt.toISOString(),
+      status: epoch.status,
+      usdcPool: Number(epoch.usdcPool),
+    },
+    allocations,
+    treasury: {
+      balance: Math.round(treasuryBalance * 100) / 100,
+      distributed: Math.round(totalDistributed * 100) / 100,
+      available: Math.round((treasuryBalance - totalDistributed) * 100) / 100,
+    },
+    distributions,
+  };
+}
+
+// Re-export RANK_MULTIPLIERS for use in getEpochRewards
+const RANK_MULTIPLIERS: { [key: number]: number } = {
+  1: 2.0,
+  2: 1.5,
+  3: 1.0,
+  4: 0.75,
+  5: 0.5,
+};
