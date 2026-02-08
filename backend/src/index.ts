@@ -7,6 +7,7 @@ import { env } from './lib/env';
 import { db } from './lib/db';
 import { HeliusWebSocketMonitor } from './services/helius-websocket.js';
 import { websocketEvents } from './services/websocket-events.js';
+import { DevPrintFeedService } from './services/devprint-feed.service.js';
 
 import { createSortinoCron } from './services/sortino-cron.js';
 
@@ -46,6 +47,9 @@ const app = new Hono();
 
 // Global Helius monitor instance (for dynamic wallet management)
 let heliusMonitor: HeliusWebSocketMonitor | null = null;
+
+// DevPrint feed service (market intelligence relay)
+let devprintFeed: DevPrintFeedService | null = null;
 
 // Export function to get monitor instance
 export function getHeliusMonitor(): HeliusWebSocketMonitor | null {
@@ -343,6 +347,17 @@ server.listen(port, '0.0.0.0', () => {
   console.log(`   Ready for connections`);
 });
 
+// Start DevPrint feed service (market intelligence relay)
+if (env.DEVPRINT_WS_URL) {
+  devprintFeed = new DevPrintFeedService(env.DEVPRINT_WS_URL);
+  devprintFeed.start().catch((err) => {
+    console.error('❌ DevPrint feed failed to start:', err);
+  });
+  console.log('✅ DevPrint feed service started');
+} else {
+  console.warn('⚠️  DEVPRINT_WS_URL not set, DevPrint feed disabled');
+}
+
 // Start WebSocket monitor in background
 startHeliusMonitor();
 
@@ -351,18 +366,20 @@ const sortinoCron = createSortinoCron(db);
 sortinoCron.start();
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down...');
   sortinoCron.stop();
+  if (devprintFeed) await devprintFeed.stop();
   server.close(() => {
     console.log('✅ Server closed');
     process.exit(0);
   });
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down...');
   sortinoCron.stop();
+  if (devprintFeed) await devprintFeed.stop();
   server.close(() => {
     console.log('✅ Server closed');
     process.exit(0);

@@ -6,6 +6,12 @@
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 
+type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets';
+
+const VALID_FEED_CHANNELS = new Set<FeedChannel>([
+  'godwallet', 'signals', 'market', 'watchlist', 'tokens', 'tweets',
+]);
+
 interface BroadcastEvents {
   'agent:activity': {
     agentId: string;
@@ -30,6 +36,12 @@ interface BroadcastEvents {
     signal: string;
     confidence: number;
   };
+  'feed:godwallet': any;
+  'feed:signals': any;
+  'feed:market': any;
+  'feed:watchlist': any;
+  'feed:tokens': any;
+  'feed:tweets': any;
 }
 
 class WebSocketEventsService {
@@ -99,6 +111,16 @@ class WebSocketEventsService {
         console.log(`[WebSocket] ${socket.id} subscribed to price:${mint}`);
       });
 
+      // Subscribe to feed channels (DevPrint market intelligence)
+      socket.on('subscribe:feed', (channel: string) => {
+        if (!VALID_FEED_CHANNELS.has(channel as FeedChannel)) {
+          console.log(`[WebSocket] ${socket.id} tried invalid feed: ${channel}`);
+          return;
+        }
+        socket.join(`feed:${channel}`);
+        console.log(`[WebSocket] ${socket.id} subscribed to feed:${channel}`);
+      });
+
       // Unsubscribe
       socket.on('unsubscribe', (room: string) => {
         socket.leave(room);
@@ -160,6 +182,21 @@ class WebSocketEventsService {
     });
 
     console.log(`[WebSocket] Broadcast signal:alert for ${alert.symbol}`);
+  }
+
+  broadcastFeedEvent(channel: FeedChannel, data: any): void {
+    if (!this.io) return;
+    this.io.to(`feed:${channel}`).emit(`feed:${channel}`, data);
+  }
+
+  getFeedSubscriberCounts(): Record<string, number> {
+    if (!this.io) return {};
+    const counts: Record<string, number> = {};
+    for (const ch of VALID_FEED_CHANNELS) {
+      const room = this.io.sockets.adapter.rooms.get(`feed:${ch}`);
+      counts[ch] = room ? room.size : 0;
+    }
+    return counts;
   }
 
   getConnectedClientsCount(): number {

@@ -11,7 +11,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string(), // Railway PostgreSQL
   REDIS_URL: z.string().optional(),
   DEVPRINT_URL: z.string().url().optional(),
-  DEVPRINT_WS_URL: z.string().optional(),
+  DEVPRINT_WS_URL: z.string().default('wss://devprint-v2-production.up.railway.app'),
   INTERNAL_API_KEY: z.string().min(16).optional(), // DevPrint → SR-Mobile internal calls
   PONZINOMICS_API_KEY: z.string().optional(), // Ponzinomics token analytics
   HELIUS_API_KEY: z.string().optional(), // Helius WebSocket API key for real-time monitoring
