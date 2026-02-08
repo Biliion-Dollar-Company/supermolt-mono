@@ -66,9 +66,10 @@ export function loadSkills(): SkillDefinition[] {
   const tasks = loadFromDirectory(join(SKILLS_DIR, 'tasks'));
   const trading = loadFromDirectory(join(SKILLS_DIR, 'trading'));
   const onboarding = loadFromDirectory(join(SKILLS_DIR, 'onboarding'));
+  const reference = loadFromDirectory(join(SKILLS_DIR, 'reference'));
 
-  skillCache = [...tasks, ...trading, ...onboarding];
-  console.log(`Loaded ${skillCache.length} skills (${tasks.length} tasks, ${trading.length} trading, ${onboarding.length} onboarding)`);
+  skillCache = [...tasks, ...trading, ...onboarding, ...reference];
+  console.log(`Loaded ${skillCache.length} skills (${tasks.length} tasks, ${trading.length} trading, ${onboarding.length} onboarding, ${reference.length} reference)`);
   return skillCache;
 }
 
@@ -80,12 +81,13 @@ export function getSkillsByCategory(category: string): SkillDefinition[] {
   return loadSkills().filter(s => s.category === category);
 }
 
-export function getSkillPack(): { version: string; tasks: SkillDefinition[]; trading: SkillDefinition[]; onboarding: SkillDefinition[] } {
+export function getSkillPack(): { version: string; tasks: SkillDefinition[]; trading: SkillDefinition[]; onboarding: SkillDefinition[]; reference: SkillDefinition[] } {
   const all = loadSkills();
   return {
     version: '1.0',
     tasks: all.filter(s => s.category === 'tasks'),
     trading: all.filter(s => s.category === 'trading'),
     onboarding: all.filter(s => s.category === 'onboarding'),
+    reference: all.filter(s => s.category === 'reference'),
   };
 }
