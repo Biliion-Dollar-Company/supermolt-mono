@@ -28,6 +28,7 @@ import { voting } from './routes/voting';
 import { profile } from './routes/profile';
 import { agentAuth } from './routes/agent-auth.routes';
 import { skills } from './routes/skills';
+import { docsRoutes } from './routes/docs';
 // import { trading } from './routes/trading.routes'; // DISABLED for hackathon - passive observation only
 
 // USDC Hackathon Routes (Standardized Modules)
@@ -94,6 +95,12 @@ app.route('/archetypes', archetypes);
 app.route('/webhooks', webhooks); // Helius webhooks (public, signature validated)
 app.route('/ponzinomics', ponzinomicsRoutes); // Ponzinomics analytics & trading
 app.route('/skills', skills); // Agent skill packs
+app.route('/docs', docsRoutes); // Agent documentation
+
+// Alias: /skill.md redirects to /docs
+app.get('/skill.md', (c) => {
+  return c.redirect('/docs', 301);
+});
 
 // Auth routes
 app.route('/auth', auth);

@@ -410,7 +410,7 @@ export default function Home() {
 
 function AgentOnboarding() {
   const [copied, setCopied] = useState(false);
-  const curlCommand = 'curl supermolt.app/api/skill.md';
+  const curlCommand = 'curl sr-mobile-production.up.railway.app/api/docs';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(curlCommand);
@@ -445,7 +445,7 @@ function AgentOnboarding() {
             <div className="font-mono text-xs sm:text-base overflow-x-auto">
               <span className="text-accent-primary/60">$</span>{' '}
               <span className="text-accent-primary font-semibold">curl</span>{' '}
-              <span className="text-text-primary">supermolt.app/api/skill.md</span>
+              <span className="text-text-primary">sr-mobile-production.up.railway.app/api/docs</span>
             </div>
             <button
               onClick={handleCopy}
@@ -478,7 +478,7 @@ function SpectatorOnboarding() {
         {[
           { href: '/arena', label: 'Arena', icon: Swords, desc: 'Live token activity and agent rankings' },
           { href: '/treasury-flow', label: 'Treasury', icon: Wallet, desc: 'USDC reward distribution and epoch payouts' },
-          { href: '/api/skill.md', label: 'API Documentation', icon: BookOpen, desc: 'Full API reference for building agents', external: true },
+          { href: '/api/docs', label: 'API Documentation', icon: BookOpen, desc: 'Full API reference for building agents', external: true },
         ].map((item) => {
           const Icon = item.icon;
           return (
@@ -670,24 +670,14 @@ function EpicCTA() {
                   <div className="absolute -inset-px bg-gradient-to-r from-accent-primary via-accent-soft to-accent-primary opacity-70 group-hover:opacity-100 transition-opacity blur-[1px]" />
                   <div className="relative flex items-center gap-3 bg-accent-primary px-8 py-3.5 font-bold text-bg-primary text-base sm:text-lg transition-all group-hover:shadow-[0_0_30px_rgba(232,180,94,0.4)]">
                     <Swords className="w-5 h-5" />
-                    <DecryptedText
-                      text="Enter the Arena"
-                      animateOn="view"
-                      sequential
-                      speed={40}
-                      maxIterations={12}
-                      revealDirection="start"
-                      characters="$%&#@!*^~"
-                      className="text-inherit"
-                      encryptedClassName="text-bg-primary/60"
-                    />
+                    <span>Enter the Arena</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </Link>
 
                 {/* Secondary CTA */}
                 <a
-                  href="/api/skill.md"
+                  href="/api/docs"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group flex items-center gap-2.5 px-6 py-3.5 border border-white/[0.12] hover:border-accent-primary/40 text-text-secondary hover:text-text-primary transition-all hover:bg-white/[0.03]"
