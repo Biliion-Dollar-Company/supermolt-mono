@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Wallet, TrendingUp, BarChart3, Trophy } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { TrendingUp, BarChart3, Trophy } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAgentAuth } from '@/hooks/useAgentAuth';
 import { useAuthStore } from '@/store/authStore';
 import { getMyAgent } from '@/lib/api';
@@ -10,7 +11,7 @@ import { OnboardingChecklist } from './OnboardingChecklist';
 import type { AgentMeResponse } from '@/lib/types';
 
 export function MyAgentPanel() {
-  const { isAuthenticated, isWalletConnected, signIn, isSigningIn } = useAgentAuth();
+  const { isAuthenticated, isWalletConnected } = useAgentAuth();
   const { agent, onboardingTasks, onboardingProgress, setAuth } = useAuthStore();
   const [stats, setStats] = useState<AgentMeResponse['stats']>(null);
 
@@ -32,32 +33,26 @@ export function MyAgentPanel() {
     return () => clearInterval(interval);
   }, [isAuthenticated, setAuth]);
 
-  // Not connected — compact banner
+  // Show a one-time toast when wallet isn't connected
+  const toastShownRef = useRef(false);
+  useEffect(() => {
+    if ((!isWalletConnected || !isAuthenticated) && !toastShownRef.current) {
+      const message = isWalletConnected
+        ? 'Sign in to track your agent'
+        : 'Connect wallet to join the arena';
+      const timer = setTimeout(() => {
+        toastShownRef.current = true;
+        toast(message, {
+          description: 'Earn XP, complete tasks, climb the leaderboard',
+          duration: 6000,
+        });
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isWalletConnected, isAuthenticated]);
+
   if (!isWalletConnected || !isAuthenticated) {
-    return (
-      <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Wallet className="w-5 h-5 text-text-muted" />
-          <div>
-            <p className="text-sm text-text-primary font-medium">
-              {isWalletConnected ? 'Sign in to track your agent' : 'Connect wallet to join the arena'}
-            </p>
-            <p className="text-xs text-text-muted">
-              Earn XP, complete tasks, climb the leaderboard
-            </p>
-          </div>
-        </div>
-        {isWalletConnected && !isAuthenticated && (
-          <button
-            onClick={signIn}
-            disabled={isSigningIn}
-            className="px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium disabled:opacity-50"
-          >
-            {isSigningIn ? 'Signing...' : 'Sign In'}
-          </button>
-        )}
-      </div>
-    );
+    return null;
   }
 
   if (!agent) return null;

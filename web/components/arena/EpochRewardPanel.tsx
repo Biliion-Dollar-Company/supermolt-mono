@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Trophy, ExternalLink, Clock, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
 import { getEpochRewards } from '@/lib/api';
 import { EpochReward, AgentAllocation } from '@/lib/types';
@@ -104,9 +104,16 @@ function CountdownTimer({ endAt }: { endAt: string }) {
   return <span>{timeLeft}</span>;
 }
 
+const BATCH_SIZE = 25;
+const VISIBLE_ROWS = 5;
+const ROW_HEIGHT = 60;
+
 export function EpochRewardPanel() {
   const [data, setData] = useState<EpochReward | null>(null);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -124,6 +131,24 @@ export function EpochRewardPanel() {
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Infinite scroll: load next batch when sentinel becomes visible
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => prev + BATCH_SIZE);
+        }
+      },
+      { root: scrollContainerRef.current, threshold: 0.1 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [data]);
 
   if (loading) {
     return (
@@ -197,11 +222,26 @@ export function EpochRewardPanel() {
             </span>
           </div>
 
-          <div className="divide-y divide-white/[0.04]">
-            {allocations.map((alloc) => (
+          <div
+            ref={scrollContainerRef}
+            className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+            style={{ maxHeight: `${VISIBLE_ROWS * ROW_HEIGHT}px` }}
+          >
+            {allocations.slice(0, visibleCount).map((alloc) => (
               <AllocationRow key={alloc.agentId} alloc={alloc} rank={alloc.rank} />
             ))}
+            {visibleCount < allocations.length && (
+              <div ref={sentinelRef} className="h-1" />
+            )}
           </div>
+
+          {allocations.length > VISIBLE_ROWS && (
+            <div className="text-center pt-2">
+              <span className="text-[10px] text-text-muted/50">
+                {Math.min(visibleCount, allocations.length)} of {allocations.length} agents
+              </span>
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-6 text-text-muted text-sm">

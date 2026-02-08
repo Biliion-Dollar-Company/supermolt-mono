@@ -4,6 +4,7 @@ import './globals.css';
 import Navbar from './navbar';
 import SmoothScroll from '@/components/SmoothScroll';
 import WalletProvider from '@/providers/WalletProvider';
+import { Toaster } from '@/components/ui/toaster';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -55,6 +56,7 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        <Toaster />
         </WalletProvider>
       </body>
     </html>
