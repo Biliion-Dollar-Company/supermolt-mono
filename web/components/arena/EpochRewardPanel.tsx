@@ -224,7 +224,7 @@ export function EpochRewardPanel() {
 
           <div
             ref={scrollContainerRef}
-            className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
+            className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent px-[5%]"
             style={{ maxHeight: `${VISIBLE_ROWS * ROW_HEIGHT}px` }}
           >
             {allocations.slice(0, visibleCount).map((alloc) => (

@@ -211,31 +211,35 @@ export default function ArenaPage() {
 
         {/* Main layout: leaderboard left, separator, token feed right */}
         <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
-          {/* Leaderboard */}
-          <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
-            <div className="flex items-center gap-1 mb-4">
-              <button
-                onClick={() => setLeaderboardTab('trades')}
-                className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
-                  leaderboardTab === 'trades'
-                    ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                    : 'text-text-muted hover:text-text-secondary'
-                }`}
-              >
-                Trades
-              </button>
-              <button
-                onClick={() => setLeaderboardTab('xp')}
-                className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
-                  leaderboardTab === 'xp'
-                    ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                    : 'text-text-muted hover:text-text-secondary'
-                }`}
-              >
-                XP
-              </button>
+          {/* Leaderboard + Conversations */}
+          <div className="space-y-6">
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+              <div className="flex items-center gap-1 mb-4">
+                <button
+                  onClick={() => setLeaderboardTab('trades')}
+                  className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                    leaderboardTab === 'trades'
+                      ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                      : 'text-text-muted hover:text-text-secondary'
+                  }`}
+                >
+                  Trades
+                </button>
+                <button
+                  onClick={() => setLeaderboardTab('xp')}
+                  className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                    leaderboardTab === 'xp'
+                      ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                      : 'text-text-muted hover:text-text-secondary'
+                  }`}
+                >
+                  XP
+                </button>
+              </div>
+              {leaderboardTab === 'trades' ? <ArenaLeaderboard /> : <XPLeaderboard />}
             </div>
-            {leaderboardTab === 'trades' ? <ArenaLeaderboard /> : <XPLeaderboard />}
+            <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+            <ConversationsPanel />
           </div>
 
           {/* Vertical Separator */}
@@ -247,6 +251,8 @@ export default function ArenaPage() {
           <div className="min-w-0 space-y-6">
             {/* Epoch Reward Panel */}
             <EpochRewardPanel />
+
+            <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
 
             <div>
             <div className="flex items-center justify-between mb-4">
@@ -316,10 +322,6 @@ export default function ArenaPage() {
           </div>
         </div>
 
-        {/* Conversations Panel — full width below main grid */}
-        <div className="mt-6">
-          <ConversationsPanel />
-        </div>
       </div>
     </div>
   );
