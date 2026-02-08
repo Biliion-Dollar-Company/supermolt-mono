@@ -57,10 +57,23 @@ export function ConversationsPanel() {
 
   if (loading) {
     return (
-      <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="h-4 w-32 bg-white/[0.04] animate-pulse rounded" />
-          <div className="flex-1 h-12 bg-white/[0.02] animate-pulse rounded" />
+      <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-4 h-4 bg-white/[0.03] animate-pulse rounded" />
+          <div className="h-3 w-24 bg-white/[0.03] animate-pulse rounded" />
+          <div className="h-4 w-5 bg-white/[0.02] animate-pulse rounded-full" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white/[0.02] border border-white/[0.04] p-3 rounded">
+              <div className="h-3.5 w-3/4 bg-white/[0.03] animate-pulse rounded mb-2" />
+              <div className="flex items-center gap-3">
+                <div className="h-2.5 w-8 bg-white/[0.02] animate-pulse rounded" />
+                <div className="h-2.5 w-8 bg-white/[0.02] animate-pulse rounded" />
+                <div className="h-2.5 w-6 bg-white/[0.02] animate-pulse rounded" />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );

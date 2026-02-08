@@ -26,7 +26,7 @@ function AllocationRow({ alloc, rank }: { alloc: AgentAllocation; rank: number }
   const isFailed = alloc.status === 'failed';
 
   return (
-    <div className={`flex items-center gap-3 py-2 px-2 ${
+    <div className={`flex items-center gap-4 py-2.5 px-3 ${
       isCompleted ? 'bg-green-500/[0.03]' : isFailed ? 'bg-red-500/[0.03]' : ''
     }`}>
       {/* Rank */}
@@ -152,10 +152,22 @@ export function EpochRewardPanel() {
   if (loading) {
     return (
       <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
-        <div className="h-6 w-48 bg-white/[0.02] animate-pulse rounded mb-4" />
-        <div className="space-y-3">
+        <div className="h-5 w-36 bg-white/[0.03] animate-pulse rounded mb-2" />
+        <div className="h-3 w-28 bg-white/[0.02] animate-pulse rounded mb-4" />
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
+          <div className="w-8 h-8 bg-white/[0.03] animate-pulse rounded-full" />
+          <div className="h-7 w-16 bg-white/[0.03] animate-pulse rounded" />
+          <div className="h-3 w-8 bg-white/[0.02] animate-pulse rounded" />
+        </div>
+        <div className="h-3 w-32 bg-white/[0.02] animate-pulse rounded mb-3" />
+        <div className="space-y-1">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-10 bg-white/[0.02] animate-pulse rounded" />
+            <div key={i} className="flex items-center gap-4 py-2.5 px-3">
+              <div className="w-5 h-5 bg-white/[0.03] animate-pulse rounded-full" />
+              <div className="h-4 flex-1 bg-white/[0.03] animate-pulse rounded" />
+              <div className="h-4 w-14 bg-white/[0.03] animate-pulse rounded" />
+              <div className="h-4 w-8 bg-white/[0.02] animate-pulse rounded-full" />
+            </div>
           ))}
         </div>
       </div>
@@ -213,7 +225,7 @@ export function EpochRewardPanel() {
 
           <div
             ref={scrollContainerRef}
-            className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent px-[5%]"
+            className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
             style={{ maxHeight: `${VISIBLE_ROWS * ROW_HEIGHT}px` }}
           >
             {allocations.slice(0, visibleCount).map((alloc) => (

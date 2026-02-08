@@ -362,6 +362,23 @@
     animation-play-state: paused;
   }
 
+  /* 🎬 Arena staggered reveal animation */
+  @keyframes arena-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-arena-reveal {
+    opacity: 0;
+    animation: arena-reveal 0.4s ease-out forwards;
+  }
+
   /* 🔲 Fading border — glows along edges, fades at corners */
   .border-fade {
     position: relative;

@@ -96,10 +96,43 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
 
   if (loading) {
     return (
-      <div className="space-y-3 p-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-12 bg-white/[0.02] animate-pulse rounded" />
-        ))}
+      <div>
+        <div className="px-6 py-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 bg-white/[0.03] animate-pulse rounded-full" />
+            <div className="h-6 w-20 bg-white/[0.03] animate-pulse rounded" />
+            <div className="flex items-center gap-3 ml-auto">
+              <div className="h-3 w-14 bg-white/[0.02] animate-pulse rounded" />
+              <div className="h-3 w-14 bg-white/[0.02] animate-pulse rounded" />
+            </div>
+          </div>
+        </div>
+        <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'h-[500px]' : 'h-[60vh]'}`}>
+          <div className="border-r border-white/[0.06] p-6 space-y-4">
+            <div className="h-3 w-20 bg-white/[0.02] animate-pulse rounded" />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="space-y-1.5">
+                  <div className="h-3.5 w-24 bg-white/[0.03] animate-pulse rounded" />
+                  <div className="h-2.5 w-32 bg-white/[0.02] animate-pulse rounded" />
+                </div>
+                <div className="h-3.5 w-10 bg-white/[0.03] animate-pulse rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="h-3 w-12 bg-white/[0.02] animate-pulse rounded" />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-16 bg-white/[0.03] animate-pulse rounded" />
+                  <div className="h-2.5 w-10 bg-white/[0.02] animate-pulse rounded" />
+                </div>
+                <div className="h-2.5 w-full bg-white/[0.02] animate-pulse rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -158,7 +191,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
       </div>
 
       {/* Main Content: Two Columns */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'h-[300px]' : 'h-[60vh]'}`}>
+      <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'h-[500px]' : 'h-[60vh]'}`}>
         {/* Left: Wallet Positions + Activity */}
         <div className="border-r border-white/[0.06] flex flex-col overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0">

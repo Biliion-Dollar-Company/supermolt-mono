@@ -1,11 +1,122 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Swords, Wifi, WifiOff, Copy, Check } from 'lucide-react';
 import { getRecentTrades, getAllPositions } from '@/lib/api';
 import { Trade, Position } from '@/lib/types';
 import { ArenaLeaderboard, TokenDetailContent, EpochRewardPanel, TasksPanel, MyAgentPanel, XPLeaderboard, ConversationsPanel } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
+
+function SkeletonBlock({ className = '' }: { className?: string }) {
+  return <div className={`bg-white/[0.03] animate-pulse rounded ${className}`} />;
+}
+
+function ArenaPageSkeleton() {
+  return (
+    <>
+      {/* Tasks strip skeleton */}
+      <div className="mb-6">
+        <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <SkeletonBlock className="h-4 w-4 rounded-full" />
+              <SkeletonBlock className="h-3 w-12" />
+            </div>
+            <div className="w-px h-5 bg-white/[0.08] flex-shrink-0" />
+            <div className="flex-1 flex gap-2 overflow-hidden">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonBlock key={i} className="h-8 w-36 flex-shrink-0" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main grid skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
+        {/* Left column: Leaderboard + Conversations */}
+        <div className="space-y-6">
+          <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <SkeletonBlock className="h-7 w-16" />
+              <SkeletonBlock className="h-7 w-10" />
+            </div>
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <SkeletonBlock className="w-6 h-6 rounded-full" />
+                  <SkeletonBlock className="h-4 flex-1" />
+                  <SkeletonBlock className="h-4 w-12" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+          <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <SkeletonBlock className="h-4 w-4 rounded-full" />
+              <SkeletonBlock className="h-3 w-24" />
+            </div>
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonBlock key={i} className="h-14" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Vertical separator */}
+        <div className="hidden lg:flex justify-center">
+          <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
+        </div>
+
+        {/* Right column: Epoch + Tokens */}
+        <div className="min-w-0 space-y-6">
+          {/* Epoch skeleton */}
+          <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+            <SkeletonBlock className="h-5 w-40 mb-2" />
+            <SkeletonBlock className="h-3 w-32 mb-4" />
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
+              <SkeletonBlock className="w-8 h-8 rounded-full" />
+              <SkeletonBlock className="h-8 w-20" />
+            </div>
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <SkeletonBlock className="w-5 h-5 rounded-full" />
+                  <SkeletonBlock className="h-4 flex-1" />
+                  <SkeletonBlock className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+
+          {/* Live Tokens skeleton */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <SkeletonBlock className="h-4 w-24" />
+              <SkeletonBlock className="h-3 w-16" />
+            </div>
+            <div className="flex gap-2 overflow-hidden mb-6">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonBlock key={i} className="h-10 w-28 flex-shrink-0" />
+              ))}
+            </div>
+            <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4">
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <SkeletonBlock key={i} className="h-10" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 
 function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
   const tokenMap = new Map<string, {
@@ -128,10 +239,12 @@ export default function ArenaPage() {
   const [tokens, setTokens] = useState<ArenaToken[]>([]);
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [isLive, setIsLive] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [leaderboardTab, setLeaderboardTab] = useState<'trades' | 'xp'>('trades');
+  const initialLoadDone = useRef(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -147,6 +260,11 @@ export default function ArenaPage() {
       setIsLive(false);
     } finally {
       setLoading(false);
+      if (!initialLoadDone.current) {
+        initialLoadDone.current = true;
+        // Brief delay so skeleton doesn't flash away instantly
+        setTimeout(() => setReady(true), 150);
+      }
     }
   }, []);
 
@@ -199,128 +317,126 @@ export default function ArenaPage() {
           </div>
         </div>
 
-        {/* Agent Tasks — full width compact strip */}
-        <div className="mb-6">
-          <TasksPanel />
-        </div>
-
-        {/* My Agent Panel — XP, stats, onboarding */}
-        <div className="mb-6">
-          <MyAgentPanel />
-        </div>
-
-        {/* Main layout: leaderboard left, separator, token feed right */}
-        <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
-          {/* Leaderboard + Conversations */}
-          <div className="space-y-6">
-            <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
-              <div className="flex items-center gap-1 mb-4">
-                <button
-                  onClick={() => setLeaderboardTab('trades')}
-                  className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
-                    leaderboardTab === 'trades'
-                      ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                      : 'text-text-muted hover:text-text-secondary'
-                  }`}
-                >
-                  Trades
-                </button>
-                <button
-                  onClick={() => setLeaderboardTab('xp')}
-                  className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
-                    leaderboardTab === 'xp'
-                      ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                      : 'text-text-muted hover:text-text-secondary'
-                  }`}
-                >
-                  XP
-                </button>
-              </div>
-              {leaderboardTab === 'trades' ? <ArenaLeaderboard /> : <XPLeaderboard />}
-            </div>
-            <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
-            <ConversationsPanel />
-          </div>
-
-          {/* Vertical Separator */}
-          <div className="hidden lg:flex justify-center">
-            <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
-          </div>
-
-          {/* Epoch Rewards + Token Marquee + Featured Detail */}
-          <div className="min-w-0 space-y-6">
-            {/* Epoch Reward Panel */}
-            <EpochRewardPanel />
-
-            <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
-
-            <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                Live Tokens
-              </h2>
-              <span className="text-xs text-text-muted">{tokens.length} tokens</span>
+        {!ready ? (
+          <ArenaPageSkeleton />
+        ) : (
+          <>
+            {/* Agent Tasks — full width compact strip */}
+            <div className="mb-6 animate-arena-reveal" style={{ animationDelay: '0ms' }}>
+              <TasksPanel />
             </div>
 
-            {loading ? (
-              <div className="flex gap-2 overflow-hidden">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-10 w-32 bg-white/[0.02] animate-pulse rounded flex-shrink-0" />
-                ))}
-              </div>
-            ) : tokens.length === 0 ? (
-              <div className="flex items-center justify-center h-64 text-text-muted">
-                <p>No recent trading activity</p>
-              </div>
-            ) : (
-              <>
-                {/* Token Marquee */}
-                <div
-                  className="relative overflow-hidden mb-6"
-                  onMouseEnter={() => setIsPaused(true)}
-                  onMouseLeave={() => setIsPaused(false)}
-                >
-                  {/* Left fade */}
-                  <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
-                  {/* Right fade */}
-                  <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none" />
+            {/* My Agent Panel — XP, stats, onboarding */}
+            <div className="mb-6 animate-arena-reveal" style={{ animationDelay: '60ms' }}>
+              <MyAgentPanel />
+            </div>
 
-                  <div className={`flex gap-2 animate-marquee ${isPaused ? '[animation-play-state:paused]' : ''}`}>
-                    {tokens.map((token) => (
-                      <TokenChip
-                        key={token.tokenSymbol}
-                        token={token}
-                        isSelected={selectedToken === token.tokenSymbol}
-                        onSelect={() => setSelectedToken(token.tokenSymbol)}
-                      />
-                    ))}
-                    {/* Duplicate for seamless loop */}
-                    {tokens.map((token) => (
-                      <TokenChip
-                        key={`dup-${token.tokenSymbol}`}
-                        token={token}
-                        isSelected={selectedToken === token.tokenSymbol}
-                        onSelect={() => setSelectedToken(token.tokenSymbol)}
-                      />
-                    ))}
+            {/* Main layout: leaderboard left, separator, token feed right */}
+            <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
+              {/* Leaderboard + Conversations */}
+              <div className="space-y-6 animate-arena-reveal" style={{ animationDelay: '120ms' }}>
+                <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+                  <div className="flex items-center gap-1 mb-4">
+                    <button
+                      onClick={() => setLeaderboardTab('trades')}
+                      className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                        leaderboardTab === 'trades'
+                          ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                          : 'text-text-muted hover:text-text-secondary'
+                      }`}
+                    >
+                      Trades
+                    </button>
+                    <button
+                      onClick={() => setLeaderboardTab('xp')}
+                      className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                        leaderboardTab === 'xp'
+                          ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                          : 'text-text-muted hover:text-text-secondary'
+                      }`}
+                    >
+                      XP
+                    </button>
                   </div>
+                  {leaderboardTab === 'trades' ? <ArenaLeaderboard /> : <XPLeaderboard />}
+                </div>
+                <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+                <ConversationsPanel />
+              </div>
+
+              {/* Vertical Separator */}
+              <div className="hidden lg:flex justify-center">
+                <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
+              </div>
+
+              {/* Epoch Rewards + Token Marquee + Featured Detail */}
+              <div className="min-w-0 space-y-6">
+                <div className="animate-arena-reveal" style={{ animationDelay: '180ms' }}>
+                  <EpochRewardPanel />
                 </div>
 
-                {/* Featured Token Detail (inline) */}
-                {selectedToken ? (
-                  <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden">
-                    <TokenDetailContent tokenSymbol={selectedToken} compact />
+                <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+
+                <div className="animate-arena-reveal" style={{ animationDelay: '240ms' }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                      Live Tokens
+                    </h2>
+                    <span className="text-xs text-text-muted">{tokens.length} tokens</span>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center h-64 text-text-muted">
-                    <p>Select a token to view live data</p>
-                  </div>
-                )}
-              </>
-            )}
+
+                  {tokens.length === 0 ? (
+                    <div className="flex items-center justify-center h-64 text-text-muted">
+                      <p>No recent trading activity</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Token Marquee */}
+                      <div
+                        className="relative overflow-hidden mb-6"
+                        onMouseEnter={() => setIsPaused(true)}
+                        onMouseLeave={() => setIsPaused(false)}
+                      >
+                        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
+                        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none" />
+
+                        <div className={`flex gap-2 animate-marquee ${isPaused ? '[animation-play-state:paused]' : ''}`}>
+                          {tokens.map((token) => (
+                            <TokenChip
+                              key={token.tokenSymbol}
+                              token={token}
+                              isSelected={selectedToken === token.tokenSymbol}
+                              onSelect={() => setSelectedToken(token.tokenSymbol)}
+                            />
+                          ))}
+                          {tokens.map((token) => (
+                            <TokenChip
+                              key={`dup-${token.tokenSymbol}`}
+                              token={token}
+                              isSelected={selectedToken === token.tokenSymbol}
+                              onSelect={() => setSelectedToken(token.tokenSymbol)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Featured Token Detail (inline) */}
+                      {selectedToken ? (
+                        <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden">
+                          <TokenDetailContent tokenSymbol={selectedToken} compact />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-64 text-text-muted">
+                          <p>Select a token to view live data</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
 
       </div>
     </div>

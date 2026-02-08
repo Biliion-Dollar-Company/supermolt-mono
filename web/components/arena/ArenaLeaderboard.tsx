@@ -55,9 +55,19 @@ export function ArenaLeaderboard() {
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="h-12 bg-white/[0.02] animate-pulse rounded" />
+      <div className="space-y-1">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 py-2.5 px-3">
+            <div className="w-6 h-5 bg-white/[0.03] animate-pulse rounded" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-3.5 w-24 bg-white/[0.03] animate-pulse rounded" />
+              <div className="h-2.5 w-16 bg-white/[0.02] animate-pulse rounded" />
+            </div>
+            <div className="space-y-1 text-right">
+              <div className="h-3.5 w-8 bg-white/[0.03] animate-pulse rounded ml-auto" />
+              <div className="h-2.5 w-10 bg-white/[0.02] animate-pulse rounded ml-auto" />
+            </div>
+          </div>
         ))}
       </div>
     );

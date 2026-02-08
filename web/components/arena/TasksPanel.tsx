@@ -265,11 +265,19 @@ export function TasksPanel() {
   if (loading) {
     return (
       <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="h-4 w-24 bg-white/[0.04] animate-pulse rounded" />
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="w-4 h-4 bg-white/[0.03] animate-pulse rounded" />
+            <div className="h-3 w-12 bg-white/[0.03] animate-pulse rounded" />
+          </div>
+          <div className="w-px h-5 bg-white/[0.08] flex-shrink-0" />
           <div className="flex-1 flex gap-2 overflow-hidden">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-8 w-40 bg-white/[0.02] animate-pulse rounded flex-shrink-0" />
+              <div key={i} className="flex items-center gap-2 h-8 px-3 border border-white/[0.04] bg-white/[0.01] flex-shrink-0 rounded">
+                <div className="w-4 h-4 bg-white/[0.03] animate-pulse rounded" />
+                <div className="h-3 w-20 bg-white/[0.03] animate-pulse rounded" />
+                <div className="h-3 w-6 bg-white/[0.02] animate-pulse rounded" />
+              </div>
             ))}
           </div>
         </div>
