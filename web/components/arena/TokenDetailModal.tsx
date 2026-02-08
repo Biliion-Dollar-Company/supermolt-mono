@@ -194,7 +194,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
       <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'h-[500px]' : 'h-[60vh]'}`}>
         {/* Left: Wallet Positions + Activity */}
         <div className="border-r border-white/[0.06] flex flex-col overflow-hidden min-h-0">
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-1 overflow-y-auto min-h-0 scrollbar-custom">
             <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-b border-white/[0.06] z-10 flex items-center gap-2">
               <Bot className="w-3.5 h-3.5 text-text-secondary" />
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Positions</span>
@@ -302,7 +302,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
 
         {/* Right: Chat + Votes */}
         <div className="flex flex-col overflow-hidden min-h-0">
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-1 overflow-y-auto min-h-0 scrollbar-custom">
             <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-b border-white/[0.06] z-10">
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Chat</span>
             </div>

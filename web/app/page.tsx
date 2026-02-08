@@ -281,6 +281,34 @@ export default function Home() {
 
                   </div>
                 </div>
+
+                {/* Powered by SuperRouter */}
+                <motion.div
+                  className="flex items-center justify-center gap-2.5 mt-5"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 1.2 }}
+                >
+                  <div className="h-px flex-1 max-w-12 bg-gradient-to-r from-transparent to-white/10" />
+                  <a
+                    href="https://www.superrouter.fun/en"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.02] border border-white/[0.06] rounded-full hover:bg-white/[0.05] hover:border-white/[0.12] transition-all cursor-pointer"
+                  >
+                    <Image
+                      src="/super-router-pfp.png"
+                      alt="SuperRouter"
+                      width={20}
+                      height={20}
+                      className="rounded-full"
+                    />
+                    <span className="text-[11px] text-text-muted tracking-wide">
+                      Powered by <span className="text-text-secondary font-medium">SuperRouter</span>
+                    </span>
+                  </a>
+                  <div className="h-px flex-1 max-w-12 bg-gradient-to-l from-transparent to-white/10" />
+                </motion.div>
               </div>
             </div>
 
