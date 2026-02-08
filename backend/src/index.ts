@@ -29,6 +29,7 @@ import { profile } from './routes/profile';
 import { agentAuth } from './routes/agent-auth.routes';
 import { skills } from './routes/skills';
 import { docsRoutes } from './routes/docs';
+import { swaggerRoutes } from './routes/swagger';
 // import { trading } from './routes/trading.routes'; // DISABLED for hackathon - passive observation only
 
 // USDC Hackathon Routes (Standardized Modules)
@@ -96,6 +97,7 @@ app.route('/webhooks', webhooks); // Helius webhooks (public, signature validate
 app.route('/ponzinomics', ponzinomicsRoutes); // Ponzinomics analytics & trading
 app.route('/skills', skills); // Agent skill packs
 app.route('/docs', docsRoutes); // Agent documentation
+app.route('/swagger', swaggerRoutes); // Swagger UI + OpenAPI spec
 
 // Alias: /skill.md redirects to /docs
 app.get('/skill.md', (c) => {

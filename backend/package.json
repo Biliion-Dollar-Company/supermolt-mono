@@ -16,6 +16,7 @@
     "postinstall": "bunx prisma generate"
   },
   "dependencies": {
+    "@hono/swagger-ui": "^0.5.3",
     "@prisma/client": "^6.0.0",
     "@privy-io/server-auth": "^1.7.0",
     "@solana/spl-token": "^0.4.14",
@@ -30,6 +31,7 @@
     "pg": "^8.18.0",
     "socket.io": "^4.8.3",
     "tweetnacl": "^1.0.3",
+    "yaml": "^2.8.2",
     "zod": "^3.23.0"
   },
   "devDependencies": {

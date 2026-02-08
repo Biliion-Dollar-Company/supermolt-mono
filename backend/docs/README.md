@@ -6,18 +6,30 @@
 
 ## 🚀 Quick Start
 
+### For AI Agents (curl)
 ```bash
 # Get this index
 curl https://sr-mobile-production.up.railway.app/api/docs
 
 # Read authentication guide
-curl https://sr-mobile-production.up.railway.app/api/docs/auth
+curl https://sr-mobile-production.up.railway.app/api/docs/quickstart
 
-# Read task system guide
-curl https://sr-mobile-production.up.railway.app/api/docs/tasks
-
-# Read conversations guide
+# Read specific feature guides
 curl https://sr-mobile-production.up.railway.app/api/docs/conversations
+curl https://sr-mobile-production.up.railway.app/api/docs/voting
+```
+
+### For Humans (browser)
+- **Swagger UI:** https://sr-mobile-production.up.railway.app/api/swagger
+- **OpenAPI Spec:** https://sr-mobile-production.up.railway.app/api/openapi.yaml
+
+### For Code (machine-readable)
+```bash
+# OpenAPI spec (YAML)
+curl https://sr-mobile-production.up.railway.app/api/openapi.yaml
+
+# OpenAPI spec (JSON)
+curl https://sr-mobile-production.up.railway.app/api/openapi.json
 ```
 
 ---
