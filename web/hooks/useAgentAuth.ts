@@ -13,9 +13,12 @@ export function useAgentAuth() {
   const [error, setError] = useState<string | null>(null);
   const hasVerifiedRef = useRef(false);
 
-  // Sign in via SIWS
+  // Sign in via SIWS (guarded against double invocation)
+  const signInGuardRef = useRef(false);
   const signIn = useCallback(async () => {
     if (!publicKey || !signMessage) return;
+    if (signInGuardRef.current) return; // Prevent double sign-in from rapid clicks
+    signInGuardRef.current = true;
 
     setIsSigningIn(true);
     setError(null);
@@ -48,6 +51,7 @@ export function useAgentAuth() {
       console.error('SIWS sign in error:', err);
     } finally {
       setIsSigningIn(false);
+      signInGuardRef.current = false;
     }
   }, [publicKey, signMessage, setAuth]);
 

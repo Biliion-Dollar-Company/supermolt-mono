@@ -22,7 +22,7 @@ function CurvedConnector({ direction }: { direction: 'left-to-right' | 'right-to
   return (
     <>
       {/* Desktop: curved SVG */}
-      <div className="hidden lg:block w-full h-24 relative">
+      <div className="hidden lg:block w-full h-36 relative">
         <svg
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
@@ -52,11 +52,11 @@ function CurvedConnector({ direction }: { direction: 'left-to-right' | 'right-to
       </div>
 
       {/* Mobile: vertical connector */}
-      <div className="lg:hidden flex flex-col items-center py-1.5">
-        <div className="relative w-0.5 h-10 bg-gradient-to-b from-[#E8B45E]/50 to-[#E8B45E]/15">
+      <div className="lg:hidden flex flex-col items-center py-3">
+        <div className="relative w-0.5 h-14 bg-gradient-to-b from-[#E8B45E]/50 to-[#E8B45E]/15">
           <motion.div
             className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-4 rounded-full bg-[#E8B45E]/60 blur-[2px]"
-            animate={{ y: [0, 28, 0] }}
+            animate={{ y: [0, 40, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
@@ -208,6 +208,30 @@ export default function TreasuryFlowPage() {
             }}
           />
         </div>
+        {/* LaserFlow — absolute, starts from very top of page container */}
+        <div
+          className="absolute top-0 left-4 sm:left-6 lg:left-1/2 lg:-translate-x-[72%] w-[55%] max-w-[550px] h-[1200px] pointer-events-none"
+          style={{ zIndex: 1 }}
+        >
+          <LaserFlow
+            color="#E8B45E"
+            horizontalBeamOffset={0.0}
+            verticalBeamOffset={0.1}
+            horizontalSizing={0.98}
+            verticalSizing={2}
+            wispDensity={1}
+            wispSpeed={15}
+            wispIntensity={5}
+            flowSpeed={0.35}
+            flowStrength={0.25}
+            fogIntensity={0.45}
+            fogScale={0.3}
+            fogFallSpeed={0.6}
+            decay={1.1}
+            falloffStart={1.2}
+          />
+        </div>
+
         <div className="max-w-5xl mx-auto relative" style={{ zIndex: 2 }}>
           {/* Header */}
           <motion.div
@@ -223,30 +247,6 @@ export default function TreasuryFlowPage() {
               How USDC rewards flow from the prize pool to top-performing agents every epoch.
             </p>
           </motion.div>
-
-          {/* LaserFlow — absolute, flows from navbar down into first card */}
-          <div
-            className="absolute top-[-160px] left-0 lg:w-[55%] h-[800px] pointer-events-none"
-            style={{ zIndex: 1 }}
-          >
-            <LaserFlow
-              color="#E8B45E"
-              horizontalBeamOffset={0.0}
-              verticalBeamOffset={0.1}
-              horizontalSizing={0.98}
-              verticalSizing={2}
-              wispDensity={1}
-              wispSpeed={15}
-              wispIntensity={5}
-              flowSpeed={0.35}
-              flowStrength={0.25}
-              fogIntensity={0.45}
-              fogScale={0.3}
-              fogFallSpeed={0.6}
-              decay={1.1}
-              falloffStart={1.2}
-            />
-          </div>
 
           {/* Map flow */}
           <div ref={containerRef} className="flex flex-col items-center lg:items-stretch relative" style={{ zIndex: 2 }}>
@@ -427,8 +427,8 @@ export default function TreasuryFlowPage() {
                         transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
                       />
                     </div>
-                    <span className="text-xs font-mono text-text-secondary w-8 text-right">{row.mult}</span>
-                    <span className="text-xs font-mono text-[#E8B45E] w-16 text-right font-bold">{row.example}</span>
+                    <span className="text-sm font-mono text-text-secondary w-10 text-right">{row.mult}</span>
+                    <span className="text-sm font-mono text-[#E8B45E] w-20 text-right font-bold">{row.example}</span>
                   </div>
                 ))}
               </div>
@@ -450,10 +450,10 @@ export default function TreasuryFlowPage() {
             >
               <div className="grid grid-cols-3 gap-2">
                 {[1, 2, 3].map((n) => (
-                  <div key={n} className="flex flex-col items-center py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                    <Wallet className="w-4 h-4 text-[#E8B45E] mb-1" />
-                    <span className="text-[11px] text-text-secondary font-mono">Agent {n}</span>
-                    <span className="text-[11px] text-[#E8B45E] font-mono font-bold">+USDC</span>
+                  <div key={n} className="flex flex-col items-center py-3 rounded-xl bg-white/[0.03] border-2 border-white/[0.08]">
+                    <Wallet className="w-5 h-5 text-[#E8B45E] mb-1" />
+                    <span className="text-xs text-text-secondary font-mono">Agent {n}</span>
+                    <span className="text-xs text-[#E8B45E] font-mono font-bold">+USDC</span>
                   </div>
                 ))}
               </div>
@@ -463,7 +463,7 @@ export default function TreasuryFlowPage() {
 
           {/* Footer */}
           <motion.p
-            className="text-center text-xs text-text-secondary mt-14 max-w-md mx-auto"
+            className="text-center text-sm text-text-secondary mt-14 max-w-md mx-auto"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}

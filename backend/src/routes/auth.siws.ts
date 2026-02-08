@@ -217,11 +217,17 @@ siwsAuthRoutes.post('/agent/refresh', authLimiter, async (c) => {
       return c.json({ error: 'Invalid token type' }, 401);
     }
 
-    const agentId = verified.payload.sub;
+    const agentPubkey = verified.payload.sub;
+    const agentId = verified.payload.agentId as string;
+
+    if (!agentId) {
+      return c.json({ error: 'Invalid refresh token: missing agentId' }, 401);
+    }
 
     // Issue new access token
     const newAccessToken = await new jwt.SignJWT({
-      sub: agentId,
+      sub: agentPubkey,
+      agentId,
       type: 'agent'
     })
       .setProtectedHeader({ alg: 'HS256' })

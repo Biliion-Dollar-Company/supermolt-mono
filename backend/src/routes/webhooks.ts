@@ -575,10 +575,9 @@ webhooks.post('/solana', async (c) => {
   } catch (error) {
     console.error('❌ [WEBHOOK] Processing error:', error);
     console.error('❌ [WEBHOOK] Stack trace:', error instanceof Error ? error.stack : 'no stack');
-    return c.json({ 
+    return c.json({
       success: false,
       error: 'Processing failed',
-      message: error instanceof Error ? error.message : String(error)
     }, 500);
   }
 });
@@ -590,8 +589,13 @@ webhooks.post('/solana', async (c) => {
  */
 webhooks.post('/task-validation', async (c) => {
   try {
-    const { taskId, agentId, proof } = await c.req.json();
-    
+    const body = await c.req.json();
+    const { taskId, agentId, proof } = body;
+
+    if (!taskId || !agentId || typeof taskId !== 'string' || typeof agentId !== 'string') {
+      return c.json({ success: false, error: 'Missing required fields: taskId, agentId' }, 400);
+    }
+
     console.log(`\n📋 Task validation request: ${taskId} from ${agentId.substring(0, 12)}...`);
     
     const { AgentTaskManager } = await import('../services/agent-task-manager.service');
@@ -606,9 +610,9 @@ webhooks.post('/task-validation', async (c) => {
   } catch (error: any) {
     console.error('❌ Task validation error:', error);
     return c.json(
-      { 
-        success: false, 
-        error: error.message || 'Validation failed'
+      {
+        success: false,
+        error: 'Validation failed',
       },
       500
     );

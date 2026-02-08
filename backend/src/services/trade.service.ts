@@ -146,17 +146,22 @@ export async function closePaperTrade(input: CloseTradeInput) {
       },
     });
 
-    // Recalculate agent stats
+    // Recalculate agent stats (exclude ACTIVITY markers which are junk records)
+    const closedTradeFilter = {
+      agentId: trade.agentId,
+      status: 'CLOSED' as const,
+      NOT: { tokenSymbol: 'ACTIVITY' },
+    };
+
     const stats = await tx.paperTrade.aggregate({
-      where: { agentId: trade.agentId, status: 'CLOSED' },
+      where: closedTradeFilter,
       _count: true,
       _sum: { pnl: true },
     });
 
     const winCount = await tx.paperTrade.count({
       where: {
-        agentId: trade.agentId,
-        status: 'CLOSED',
+        ...closedTradeFilter,
         pnl: { gt: 0 },
       },
     });

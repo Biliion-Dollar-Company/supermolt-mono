@@ -15,6 +15,8 @@
  */
 
 import { Hono } from 'hono';
+import { PrismaClient } from '@prisma/client';
+import { getLevelName } from '../../services/onboarding.service';
 import {
   getLeaderboard,
   getRecentTrades,
@@ -27,6 +29,8 @@ import {
   getEpochRewards,
 } from './arena.service';
 
+const db = new PrismaClient();
+
 const app = new Hono();
 
 // ── Leaderboard ───────────────────────────────────────────
@@ -37,7 +41,40 @@ app.get('/leaderboard', async (c) => {
     return c.json(data);
   } catch (error: any) {
     console.error('Arena leaderboard error:', error);
-    return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message: error.message } }, 500);
+    return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to load leaderboard' } }, 500);
+  }
+});
+
+// ── XP Leaderboard ───────────────────────────────────────
+
+app.get('/leaderboard/xp', async (c) => {
+  try {
+    const agents = await db.tradingAgent.findMany({
+      orderBy: { xp: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        name: true,
+        displayName: true,
+        xp: true,
+        level: true,
+        totalTrades: true,
+      },
+    });
+
+    const rankings = agents.map((agent) => ({
+      agentId: agent.id,
+      name: agent.displayName || agent.name,
+      xp: agent.xp,
+      level: agent.level,
+      levelName: getLevelName(agent.level),
+      totalTrades: agent.totalTrades,
+    }));
+
+    return c.json({ rankings });
+  } catch (error: any) {
+    console.error('Arena XP leaderboard error:', error);
+    return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to load XP leaderboard' } }, 500);
   }
 });
 
@@ -143,7 +180,7 @@ app.get('/votes/:id', async (c) => {
     return c.json(data);
   } catch (error: any) {
     console.error('Arena vote detail error:', error);
-    return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message: error.message } }, 500);
+    return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to load vote detail' } }, 500);
   }
 });
 

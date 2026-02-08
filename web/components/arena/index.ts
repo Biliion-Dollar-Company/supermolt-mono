@@ -7,3 +7,4 @@ export { TasksPanel } from './TasksPanel';
 export { MyAgentPanel } from './MyAgentPanel';
 export { XPProgressBar } from './XPProgressBar';
 export { OnboardingChecklist } from './OnboardingChecklist';
+export { XPLeaderboard } from './XPLeaderboard';

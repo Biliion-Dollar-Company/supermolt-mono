@@ -9,6 +9,7 @@
 import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { autoCompleteOnboardingTask } from '../services/onboarding.service';
 
 const messaging = new Hono();
 const db = new PrismaClient();
@@ -275,6 +276,17 @@ messaging.post('/messages', async (c) => {
         message,
       },
     });
+
+    // Auto-complete JOIN_CONVERSATION onboarding task on first message (fire-and-forget)
+    // Check if this is the agent's first message (count = 1, the one we just created)
+    db.agentMessage.count({ where: { agentId } }).then((count) => {
+      if (count === 1) {
+        autoCompleteOnboardingTask(agentId, 'JOIN_CONVERSATION', {
+          conversationId,
+          messageId: newMessage.id,
+        }).catch(() => {});
+      }
+    }).catch(() => {});
 
     return c.json({
       success: true,

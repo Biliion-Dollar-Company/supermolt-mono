@@ -23,6 +23,8 @@ import {
   TaskLeaderboardEntry,
   TaskStats,
   AgentMeResponse,
+  AgentProfile,
+  XPLeaderboardEntry,
 } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -226,4 +228,16 @@ export async function verifyAgentSIWS(pubkey: string, signature: string, nonce: 
 export async function getMyAgent(): Promise<AgentMeResponse> {
   const response = await api.get<AgentMeResponse>('/arena/me');
   return response.data;
+}
+
+// Get agent profile by ID (public)
+export async function getAgentProfileById(agentId: string): Promise<AgentProfile> {
+  const response = await api.get<{ success: boolean; agent: AgentProfile }>(`/agent-auth/profile/${agentId}`);
+  return response.data.agent;
+}
+
+// Get XP leaderboard
+export async function getXPLeaderboard(): Promise<XPLeaderboardEntry[]> {
+  const response = await api.get<{ rankings: XPLeaderboardEntry[] }>('/arena/leaderboard/xp');
+  return response.data.rankings || [];
 }

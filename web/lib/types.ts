@@ -282,6 +282,16 @@ export interface TaskStats {
   totalXPAwarded: number;
 }
 
+// XP Leaderboard entry
+export interface XPLeaderboardEntry {
+  agentId: string;
+  name: string;
+  xp: number;
+  level: number;
+  levelName: string;
+  totalTrades: number;
+}
+
 // ── Epoch Rewards ──
 
 export interface EpochInfo {

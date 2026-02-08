@@ -13,7 +13,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { loadSkills, getSkillsByCategory, type SkillDefinition } from './skill-loader';
-import { calculateLevel } from './onboarding.service';
+import { calculateLevel, autoCompleteOnboardingTask } from './onboarding.service';
 
 const db = new PrismaClient();
 
@@ -180,6 +180,15 @@ export class AgentTaskManager {
       if (agent) {
         const newLevel = calculateLevel(agent.xp);
         await db.tradingAgent.update({ where: { id: agentId }, data: { level: newLevel } });
+      }
+
+      // Auto-complete COMPLETE_RESEARCH onboarding task when a real (non-onboarding) task is validated
+      if (task.tokenMint !== null) {
+        autoCompleteOnboardingTask(agentId, 'COMPLETE_RESEARCH', {
+          taskId,
+          taskType: task.taskType,
+          tokenMint: task.tokenMint,
+        }).catch(() => {});
       }
 
       return { valid: true, xpAwarded: task.xpReward };

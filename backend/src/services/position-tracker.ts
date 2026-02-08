@@ -45,13 +45,22 @@ export class PositionTracker {
         },
       });
 
+      // Guard against invalid input
+      if (quantity <= 0) {
+        console.warn('⚠️ [POSITION] Ignoring buy with non-positive quantity:', { agentId: agentId.slice(0, 8) + '...', quantity });
+        return;
+      }
+
       if (existingPosition) {
         // Position exists - increase quantity (average entry price)
         const currentQty = parseFloat(existingPosition.quantity.toString());
         const currentEntry = parseFloat(existingPosition.entryPrice.toString());
-        
+
         const newQty = currentQty + quantity;
-        const newEntryPrice = (currentEntry * currentQty + pricePerToken * quantity) / newQty;
+        // Guard against divide-by-zero (should never happen with positive qty check, but defensive)
+        const newEntryPrice = newQty > 0
+          ? (currentEntry * currentQty + pricePerToken * quantity) / newQty
+          : pricePerToken;
 
         await this.db.agentPosition.update({
           where: {
@@ -110,6 +119,12 @@ export class PositionTracker {
     pricePerToken: number
   ): Promise<void> {
     try {
+      // Guard against invalid input
+      if (quantity <= 0) {
+        console.warn('⚠️ [POSITION] Ignoring sell with non-positive quantity:', { agentId: agentId.slice(0, 8) + '...', quantity });
+        return;
+      }
+
       const existingPosition = await this.db.agentPosition.findUnique({
         where: {
           agentId_tokenMint: {
