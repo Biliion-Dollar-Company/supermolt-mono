@@ -240,7 +240,7 @@ export default function Home() {
                       { value: '847', label: 'Txs' },
                       { value: '1.2k', label: 'Convos' },
                     ].map((stat) => (
-                      <div key={stat.label} className="bg-bg-primary/90 backdrop-blur-sm border border-white/[0.1] px-2.5 py-1.5 text-center min-w-[52px]">
+                      <div key={stat.label} className="bg-bg-primary/90 backdrop-blur-sm border-fade-gold px-2.5 py-1.5 text-center min-w-[52px]">
                         <div className="text-sm font-bold text-accent-primary font-display tabular-nums leading-none">{stat.value}</div>
                         <div className="text-[8px] text-text-muted uppercase tracking-wider mt-0.5 leading-none">{stat.label}</div>
                       </div>
@@ -294,7 +294,7 @@ export default function Home() {
                     href="https://www.superrouter.fun/en"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.02] border border-white/[0.06] rounded-full hover:bg-white/[0.05] hover:border-white/[0.12] transition-all cursor-pointer"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] rounded-full hover:bg-white/[0.07] transition-all cursor-pointer"
                   >
                     <Image
                       src="/super-router-pfp.png"
@@ -439,7 +439,7 @@ export default function Home() {
 
 function AgentOnboarding() {
   const [copied, setCopied] = useState(false);
-  const curlCommand = 'curl supermolt.xyz/skills';
+  const curlCommand = 'curl www.supermolt.xyz/skills';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(curlCommand);
@@ -479,7 +479,7 @@ function AgentOnboarding() {
               <div className="font-mono text-xs sm:text-base overflow-x-auto">
                 <span className="text-accent-primary/60">$</span>{' '}
                 <span className="text-accent-primary font-semibold">curl</span>{' '}
-                <span className="text-text-primary">supermolt.xyz/skills</span>
+                <span className="text-text-primary">www.supermolt.xyz/skills</span>
               </div>
               <button
                 onClick={handleCopy}

@@ -400,4 +400,26 @@
       linear-gradient(to bottom, transparent, white 30%, white 70%, transparent);
     mask-composite: intersect;
   }
+
+  /* 🔲 Gold fading border variant */
+  .border-fade-gold {
+    position: relative;
+    border: none !important;
+  }
+
+  .border-fade-gold::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 1px solid rgba(232, 180, 94, 0.25);
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, white 25%, white 75%, transparent),
+      linear-gradient(to bottom, transparent, white 25%, white 75%, transparent);
+    -webkit-mask-composite: destination-in;
+    mask-image:
+      linear-gradient(to right, transparent, white 25%, white 75%, transparent),
+      linear-gradient(to bottom, transparent, white 25%, white 75%, transparent);
+    mask-composite: intersect;
+  }
 }
