@@ -1,10 +1,42 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Vote, Bot } from 'lucide-react';
+import { X, Vote, Bot, ClipboardCheck, Zap, CheckCircle2, Circle, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trade, Position, Vote as VoteType, Conversation, Message } from '@/lib/types';
-import { getConversations, getConversationMessages, getAllVotes, getAllPositions, getRecentTrades } from '@/lib/api';
+import { Trade, Position, Vote as VoteType, Conversation, Message, AgentTaskType } from '@/lib/types';
+import { getConversations, getConversationMessages, getAllVotes, getAllPositions, getRecentTrades, getArenaTasks } from '@/lib/api';
+
+function TaskStatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case 'COMPLETED':
+      return (
+        <span className="flex items-center gap-0.5 text-[10px] text-green-400 bg-green-400/10 px-1 py-0.5 rounded flex-shrink-0">
+          <CheckCircle2 className="w-2.5 h-2.5" />
+          Done
+        </span>
+      );
+    case 'CLAIMED':
+      return (
+        <span className="flex items-center gap-0.5 text-[10px] text-yellow-400 bg-yellow-400/10 px-1 py-0.5 rounded flex-shrink-0">
+          <Clock className="w-2.5 h-2.5" />
+          Claimed
+        </span>
+      );
+    case 'EXPIRED':
+      return (
+        <span className="text-[10px] text-text-muted bg-white/[0.04] px-1 py-0.5 rounded flex-shrink-0">
+          Expired
+        </span>
+      );
+    default:
+      return (
+        <span className="flex items-center gap-0.5 text-[10px] text-accent-primary bg-accent-primary/10 px-1 py-0.5 rounded flex-shrink-0">
+          <Circle className="w-2.5 h-2.5" />
+          Open
+        </span>
+      );
+  }
+}
 
 // ─── Reusable Token Detail Content ───
 
@@ -18,33 +50,44 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
   const [positions, setPositions] = useState<Position[]>([]);
   const [votes, setVotes] = useState<VoteType[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [tasks, setTasks] = useState<AgentTaskType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isFirst = true;
     const fetchAll = async () => {
       if (isFirst) setLoading(true);
-      const [allTrades, allPositions, allVotes, conversations] = await Promise.all([
-        getRecentTrades(100),
-        getAllPositions(),
-        getAllVotes(),
-        getConversations(),
-      ]);
+      try {
+        const [allTrades, allPositions, allVotes, conversations, allTasks] = await Promise.all([
+          getRecentTrades(100),
+          getAllPositions(),
+          getAllVotes(),
+          getConversations(),
+          getArenaTasks().catch(() => [] as AgentTaskType[]),
+        ]);
 
-      setTrades(allTrades.filter(t => t.tokenSymbol === tokenSymbol));
-      setPositions(allPositions.filter(p => p.tokenSymbol === tokenSymbol));
-      setVotes(allVotes.filter(v => v.tokenSymbol === tokenSymbol));
+        const filteredTrades = allTrades.filter(t => t.tokenSymbol === tokenSymbol);
+        const filteredPositions = allPositions.filter(p => p.tokenSymbol === tokenSymbol);
+        const tokenMintValue = filteredPositions[0]?.tokenMint || filteredTrades[0]?.tokenMint || '';
 
-      const relevantConversations = conversations.filter(
-        c => c.tokenSymbol === tokenSymbol || c.topic.includes(tokenSymbol)
-      );
-      if (relevantConversations.length > 0) {
-        const msgs = await getConversationMessages(relevantConversations[0].conversationId);
-        setMessages(msgs);
+        setTrades(filteredTrades);
+        setPositions(filteredPositions);
+        setVotes(allVotes.filter(v => v.tokenSymbol === tokenSymbol));
+        setTasks(tokenMintValue ? allTasks.filter(t => t.tokenMint === tokenMintValue) : []);
+
+        const relevantConversations = conversations.filter(
+          c => c.tokenSymbol === tokenSymbol || c.topic.includes(tokenSymbol) || (tokenMintValue && c.tokenMint === tokenMintValue)
+        );
+        if (relevantConversations.length > 0) {
+          const msgs = await getConversationMessages(relevantConversations[0].conversationId);
+          setMessages(msgs);
+        }
+      } catch {
+        // API unavailable — show empty state instead of infinite skeleton
+      } finally {
+        setLoading(false);
+        isFirst = false;
       }
-
-      setLoading(false);
-      isFirst = false;
     };
     fetchAll();
     const interval = setInterval(fetchAll, 10000);
@@ -122,6 +165,9 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
             <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-b border-white/[0.06] z-10 flex items-center gap-2">
               <Bot className="w-3.5 h-3.5 text-text-secondary" />
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Positions</span>
+              {positions.length > 0 && (
+                <span className="text-[10px] text-text-muted ml-auto">{positions.length}</span>
+              )}
             </div>
             <div className="px-6 py-2">
               {positions.length === 0 ? (
@@ -174,6 +220,50 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
                 </div>
               </>
             )}
+
+            {/* Tasks */}
+            <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2">
+              <ClipboardCheck className="w-3.5 h-3.5 text-text-secondary" />
+              <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Tasks</span>
+              {tasks.length > 0 && (
+                <span className="text-[10px] text-text-muted ml-auto">{tasks.length}</span>
+              )}
+            </div>
+            <div className="px-6 py-2">
+              {tasks.length === 0 ? (
+                <div className="py-6 text-center text-[11px] text-text-muted">No tasks for this token</div>
+              ) : (
+                <div className="space-y-1.5">
+                  {tasks.slice(0, compact ? 5 : 10).map((task) => (
+                    <div
+                      key={task.taskId}
+                      className="flex items-center gap-2 py-1.5"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[11px] text-text-primary truncate block">{task.title}</span>
+                        {task.completions.filter(c => c.status === 'VALIDATED').length > 0 && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            {task.completions
+                              .filter(c => c.status === 'VALIDATED')
+                              .slice(0, 3)
+                              .map((c) => (
+                                <span key={c.agentId} className="text-[10px] text-green-400 bg-green-400/10 px-1 rounded">
+                                  {c.agentName}
+                                </span>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                      <span className="flex items-center gap-0.5 text-[10px] font-mono text-yellow-400 flex-shrink-0">
+                        <Zap className="w-2.5 h-2.5" />
+                        {task.xpReward}
+                      </span>
+                      <TaskStatusBadge status={task.status} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

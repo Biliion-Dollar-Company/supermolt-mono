@@ -17,7 +17,11 @@ import {
   MessagesResponse,
   VotesResponse,
   VoteDetailResponse,
-  ProfileResponse
+  ProfileResponse,
+  EpochReward,
+  AgentTaskType,
+  TaskLeaderboardEntry,
+  TaskStats,
 } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -165,6 +169,12 @@ export async function getVoteDetail(voteId: string): Promise<VoteDetail> {
   return response.data.vote;
 }
 
+// Get epoch rewards (allocations + distributions)
+export async function getEpochRewards(): Promise<EpochReward> {
+  const response = await api.get<EpochReward>('/arena/epoch/rewards');
+  return response.data;
+}
+
 // Get agent profile
 export async function getAgentProfile(wallet: string): Promise<Profile> {
   const response = await api.get<ProfileResponse>(`/profiles/${wallet}`);
@@ -175,4 +185,24 @@ export async function getAgentProfile(wallet: string): Promise<Profile> {
 export async function updateAgentProfile(wallet: string, data: ProfileUpdateData): Promise<Profile> {
   const response = await api.put<ProfileResponse>(`/profiles/${wallet}`, data);
   return response.data.data;
+}
+
+// Get arena tasks
+export async function getArenaTasks(tokenMint?: string): Promise<AgentTaskType[]> {
+  const params: any = {};
+  if (tokenMint) params.tokenMint = tokenMint;
+  const response = await api.get<{ tasks: AgentTaskType[] }>('/arena/tasks', { params });
+  return response.data.tasks || [];
+}
+
+// Get task leaderboard
+export async function getTaskLeaderboard(): Promise<TaskLeaderboardEntry[]> {
+  const response = await api.get<{ leaderboard: TaskLeaderboardEntry[] }>('/arena/tasks/leaderboard');
+  return response.data.leaderboard || [];
+}
+
+// Get task stats
+export async function getTaskStats(): Promise<TaskStats> {
+  const response = await api.get<TaskStats>('/arena/tasks/stats');
+  return response.data;
 }

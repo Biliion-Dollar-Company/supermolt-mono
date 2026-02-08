@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Swords, Wifi, WifiOff, Copy, Check } from 'lucide-react';
 import { getRecentTrades, getAllPositions } from '@/lib/api';
 import { Trade, Position } from '@/lib/types';
-import { ArenaLeaderboard, TokenDetailContent } from '@/components/arena';
+import { ArenaLeaderboard, TokenDetailContent, EpochRewardPanel } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
 
 function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
@@ -106,17 +106,19 @@ function TokenChip({
         {token.netPnl >= 0 ? '+' : ''}{Math.round(token.netPnl)}%
       </span>
       {token.tokenMint && (
-        <button
+        <span
+          role="button"
+          tabIndex={0}
           onClick={(e) => {
             e.stopPropagation();
             navigator.clipboard.writeText(token.tokenMint);
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           }}
-          className="text-text-muted hover:text-text-secondary transition-colors ml-0.5"
+          className="text-text-muted hover:text-text-secondary transition-colors ml-0.5 cursor-pointer"
         >
           {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-        </button>
+        </span>
       )}
     </button>
   );
@@ -197,8 +199,12 @@ export default function ArenaPage() {
             <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
           </div>
 
-          {/* Token Marquee + Featured Detail */}
-          <div className="min-w-0">
+          {/* Epoch Rewards + Token Marquee + Featured Detail */}
+          <div className="min-w-0 space-y-6">
+            {/* Epoch Reward Panel */}
+            <EpochRewardPanel />
+
+            <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
                 Live Tokens
@@ -262,6 +268,7 @@ export default function ArenaPage() {
                 )}
               </>
             )}
+            </div>
           </div>
         </div>
       </div>

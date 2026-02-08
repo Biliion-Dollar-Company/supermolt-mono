@@ -192,3 +192,77 @@ export interface VotesResponse {
 export interface VoteDetailResponse {
   vote: VoteDetail;
 }
+
+// ── Agent Tasks ──
+
+export interface AgentTaskType {
+  taskId: string;
+  tokenMint: string;
+  tokenSymbol?: string;
+  taskType: string;
+  title: string;
+  xpReward: number;
+  status: 'OPEN' | 'CLAIMED' | 'COMPLETED' | 'EXPIRED';
+  completions: TaskCompletionType[];
+  createdAt: string;
+}
+
+export interface TaskCompletionType {
+  agentId: string;
+  agentName: string;
+  status: 'PENDING' | 'VALIDATED' | 'REJECTED';
+  xpAwarded?: number;
+  submittedAt?: string;
+}
+
+export interface TaskLeaderboardEntry {
+  agentId: string;
+  agentName: string;
+  totalXP: number;
+  tasksCompleted: number;
+}
+
+export interface TaskStats {
+  total: number;
+  active: number;
+  completed: number;
+  expired: number;
+  totalXPAwarded: number;
+}
+
+// ── Epoch Rewards ──
+
+export interface EpochInfo {
+  id: string;
+  name: string;
+  number: number;
+  startAt: string;
+  endAt: string;
+  status: string;
+  usdcPool: number;
+}
+
+export interface AgentAllocation {
+  agentId: string;
+  agentName: string;
+  walletAddress: string;
+  rank: number;
+  usdcAmount: number;
+  multiplier: number;
+  txSignature?: string;
+  status: 'preview' | 'completed' | 'failed';
+}
+
+export interface Distribution {
+  agentName: string;
+  amount: number;
+  txSignature: string;
+  completedAt: string;
+}
+
+export interface EpochReward {
+  epoch: EpochInfo | null;
+  allocations: AgentAllocation[];
+  treasury: { balance: number; distributed: number; available: number };
+  distributions: Distribution[];
+}

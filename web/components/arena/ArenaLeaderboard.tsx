@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Trophy, ArrowRight, Copy, Check } from 'lucide-react';
-import { getLeaderboard } from '@/lib/api';
-import { Agent } from '@/lib/types';
+import { getLeaderboard, getEpochRewards } from '@/lib/api';
+import { Agent, AgentAllocation } from '@/lib/types';
 
 function shortenAddress(addr: string): string {
   if (addr.length <= 11) return addr;
@@ -13,6 +13,7 @@ function shortenAddress(addr: string): string {
 
 export function ArenaLeaderboard() {
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [allocations, setAllocations] = useState<Map<string, AgentAllocation>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -20,13 +21,26 @@ export function ArenaLeaderboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const data = await getLeaderboard();
+        const [data, rewards] = await Promise.all([
+          getLeaderboard(),
+          getEpochRewards().catch(() => null),
+        ]);
         // Sort by trade_count descending — the only meaningful metric right now
         const sorted = (data || [])
           .filter((a) => a.trade_count > 0)
           .sort((a, b) => b.trade_count - a.trade_count)
           .slice(0, 15);
         setAgents(sorted);
+
+        // Build allocation lookup map
+        if (rewards?.allocations) {
+          const map = new Map<string, AgentAllocation>();
+          for (const a of rewards.allocations) {
+            map.set(a.agentId, a);
+          }
+          setAllocations(map);
+        }
+
         setError(false);
       } catch {
         setError(true);
@@ -97,6 +111,16 @@ export function ArenaLeaderboard() {
                   <div className="text-sm font-mono text-accent-primary">{agent.trade_count}</div>
                   <div className="text-xs text-text-muted">trades</div>
                 </div>
+                {allocations.has(agent.agentId) && (
+                  <div className="text-right flex-shrink-0 pl-1">
+                    <div className={`text-xs font-mono ${
+                      allocations.get(agent.agentId)!.status === 'completed' ? 'text-green-400' : 'text-yellow-400/70'
+                    }`}>
+                      {allocations.get(agent.agentId)!.usdcAmount.toFixed(2)}
+                    </div>
+                    <div className="text-[10px] text-text-muted">USDC</div>
+                  </div>
+                )}
               </Link>
               {idx < agents.length - 1 && (
                 <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-3" />
