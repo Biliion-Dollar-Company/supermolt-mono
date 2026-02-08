@@ -28,6 +28,7 @@ import { voting } from './routes/voting';
 import { profile } from './routes/profile';
 import { agentAuth } from './routes/agent-auth.routes';
 import { skills } from './routes/skills';
+import { skillsGuide } from './routes/skills-guide';
 import { docsRoutes } from './routes/docs';
 import { swaggerRoutes } from './routes/swagger';
 // import { trading } from './routes/trading.routes'; // DISABLED for hackathon - passive observation only
@@ -95,13 +96,17 @@ app.route('/health', health);
 app.route('/archetypes', archetypes);
 app.route('/webhooks', webhooks); // Helius webhooks (public, signature validated)
 app.route('/ponzinomics', ponzinomicsRoutes); // Ponzinomics analytics & trading
-app.route('/skills', skills); // Agent skill packs
-app.route('/docs', docsRoutes); // Agent documentation
-app.route('/swagger', swaggerRoutes); // Swagger UI + OpenAPI spec
+// Agent onboarding (THE ONE COMMAND)
+app.route('/skills', skillsGuide); // Quickstart guide at /skills
 
-// Alias: /skill.md redirects to /docs
+// Agent resources
+app.route('/skills/pack', skills); // JSON skill pack at /skills/pack
+app.route('/docs', docsRoutes); // Full documentation at /docs/*
+app.route('/swagger', swaggerRoutes); // Swagger UI at /swagger
+
+// Legacy alias
 app.get('/skill.md', (c) => {
-  return c.redirect('/docs', 301);
+  return c.redirect('/skills', 301);
 });
 
 // Auth routes
