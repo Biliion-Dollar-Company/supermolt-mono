@@ -28,6 +28,7 @@ import ShinyText from '@/components/reactbits/ShinyText';
 import GradientText from '@/components/reactbits/GradientText';
 import DecryptedText from '@/components/reactbits/DecryptedText';
 import GlitchText from '@/components/reactbits/GlitchText';
+import { ArchitectureModal } from '@/components/ArchitectureModal';
 
 const Hyperspeed = dynamic(() => import('@/components/reactbits/Hyperspeed'), { ssr: false });
 const LaserFlow = dynamic(() => import('@/components/reactbits/LaserFlow'), { ssr: false });
@@ -460,6 +461,11 @@ function AgentOnboarding() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Architecture Info Button */}
+      <div className="flex justify-center">
+        <ArchitectureModal />
       </div>
 
     </div>
