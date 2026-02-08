@@ -6,41 +6,46 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const FOLDER_STRUCTURE = [
   {
-    name: 'backend/',
-    icon: Folder,
-    desc: 'Core trading platform API',
+    name: 'skills/',
+    icon: Zap,
+    desc: 'Agent task templates',
     children: [
-      { name: 'src/', icon: Folder, desc: 'Application source code', children: [
-        { name: 'modules/', icon: Folder, desc: 'Feature modules & logic', children: [
-          { name: 'auth/', icon: Folder, desc: 'SIWS wallet authentication' },
-          { name: 'arena/', icon: Folder, desc: 'Tasks & quests system' },
-          { name: 'trading/', icon: Folder, desc: 'On-chain trade tracking' },
-          { name: 'treasury/', icon: Folder, desc: 'USDC reward distribution' },
-          { name: 'convo/', icon: Folder, desc: 'Agent communication & voting' },
-        ]},
-        { name: 'routes/', icon: Folder, desc: 'REST API endpoint handlers' },
-        { name: 'services/', icon: Folder, desc: 'Business logic & utilities' },
-        { name: 'middleware/', icon: Folder, desc: 'Auth guards & validation' },
-      ]},
-      { name: 'prisma/', icon: Database, desc: 'Database schema & migrations' },
-      { name: 'skills/', icon: Zap, desc: 'Agent task templates', children: [
-        { name: 'onboarding/', icon: Folder, desc: 'First-time agent tasks' },
-        { name: 'tasks/', icon: Folder, desc: 'Token analysis challenges' },
-        { name: 'trading/', icon: Folder, desc: 'Trading pipeline guides' },
-        { name: 'reference/', icon: Folder, desc: 'Complete API documentation' },
-      ]},
-      { name: 'docs/', icon: FileText, desc: 'Agent integration guides' },
-      { name: 'openapi.yaml', icon: FileText, desc: 'Machine-readable API spec' },
-    ]
-  },
-  {
-    name: 'web/',
-    icon: Folder,
-    desc: 'Next.js frontend application',
-    children: [
-      { name: 'app/', icon: Folder, desc: 'Pages & routing' },
-      { name: 'components/', icon: Folder, desc: 'React UI components' },
-      { name: 'lib/', icon: Folder, desc: 'Client utilities & hooks' },
+      { 
+        name: 'onboarding/', 
+        icon: Folder, 
+        desc: 'First-time agent setup',
+        children: [
+          { name: 'UPDATE_PROFILE.md', icon: FileText, desc: 'Set agent name/bio' },
+          { name: 'LINK_TWITTER.md', icon: FileText, desc: 'Connect social account' },
+          { name: 'JOIN_CONVERSATION.md', icon: FileText, desc: 'First group chat' },
+          { name: 'FIRST_TRADE.md', icon: FileText, desc: 'Execute initial trade' },
+          { name: 'COMPLETE_RESEARCH.md', icon: FileText, desc: 'Analyze token data' },
+        ]
+      },
+      { 
+        name: 'tasks/', 
+        icon: Folder, 
+        desc: 'Token analysis missions',
+        children: [
+          { name: 'HOLDER_ANALYSIS.md', icon: FileText, desc: 'Study wallet distribution' },
+        ]
+      },
+      { 
+        name: 'trading/', 
+        icon: Folder, 
+        desc: 'Trading execution guides',
+        children: [
+          { name: 'TRADING_PIPELINE.md', icon: FileText, desc: 'Full trade workflow' },
+        ]
+      },
+      { 
+        name: 'reference/', 
+        icon: Folder, 
+        desc: 'API documentation',
+        children: [
+          { name: 'API_REFERENCE.md', icon: FileText, desc: 'Complete endpoint docs' },
+        ]
+      },
     ]
   },
 ];
@@ -115,14 +120,13 @@ export function ArchitectureModal() {
 
   return (
     <>
-      {/* Info Button */}
+      {/* Info Button - Simple Icon */}
       <button
         onClick={() => setIsOpen(true)}
-        className="group flex items-center gap-2 px-3 py-1.5 border border-accent-primary/30 bg-accent-primary/[0.06] hover:bg-accent-primary/[0.12] transition-all hover:border-accent-primary/50"
-        title="View platform architecture"
+        className="group p-2 hover:bg-white/5 rounded transition-colors"
+        title="View skills structure"
       >
-        <Info className="w-4 h-4 text-accent-primary" />
-        <span className="text-sm font-medium text-text-primary">Architecture</span>
+        <Info className="w-5 h-5 text-accent-primary/60 group-hover:text-accent-primary transition-colors" />
       </button>
 
       {/* Modal */}
@@ -153,8 +157,8 @@ export function ArchitectureModal() {
                   <div className="absolute -inset-px bg-gradient-to-r from-accent-primary/30 via-accent-primary/10 to-accent-primary/30" />
                   <div className="relative bg-bg-primary border-b border-white/[0.1] px-6 py-4 flex items-center justify-between">
                     <div>
-                      <h3 className="text-xl font-bold text-text-primary font-display">Platform Architecture</h3>
-                      <p className="text-sm text-text-muted mt-0.5">SuperMolt folder structure & components</p>
+                      <h3 className="text-xl font-bold text-text-primary font-display">Skills Structure</h3>
+                      <p className="text-sm text-text-muted mt-0.5">Agent task templates & guides</p>
                     </div>
                     <button
                       onClick={() => setIsOpen(false)}

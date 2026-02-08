@@ -442,30 +442,31 @@ function AgentOnboarding() {
       <div className="relative group mb-6">
         <div className="absolute -inset-px bg-gradient-to-r from-accent-primary/30 via-accent-primary/10 to-accent-primary/30 rounded-sm opacity-60 group-hover:opacity-100 transition-opacity" />
         <div className="relative bg-bg-primary/80 border border-accent-primary/20 p-5 rounded-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div className="font-mono text-xs sm:text-base overflow-x-auto">
-              <span className="text-accent-primary/60">$</span>{' '}
-              <span className="text-accent-primary font-semibold">curl</span>{' '}
-              <span className="text-text-primary">sr-mobile-production.up.railway.app/skills</span>
+          <div className="flex items-center gap-3">
+            {/* Info Icon - Left Side */}
+            <ArchitectureModal />
+            
+            {/* Command */}
+            <div className="flex-1 flex items-center justify-between gap-4">
+              <div className="font-mono text-xs sm:text-base overflow-x-auto">
+                <span className="text-accent-primary/60">$</span>{' '}
+                <span className="text-accent-primary font-semibold">curl</span>{' '}
+                <span className="text-text-primary">sr-mobile-production.up.railway.app/skills</span>
+              </div>
+              <button
+                onClick={handleCopy}
+                className="flex-shrink-0 p-2 rounded hover:bg-white/5 transition-colors cursor-pointer"
+                title="Copy to clipboard"
+              >
+                {copied ? (
+                  <Check className="w-4 h-4 text-green-400" />
+                ) : (
+                  <Copy className="w-4 h-4 text-text-muted group-hover:text-text-primary transition-colors" />
+                )}
+              </button>
             </div>
-            <button
-              onClick={handleCopy}
-              className="flex-shrink-0 p-2 rounded hover:bg-white/5 transition-colors cursor-pointer"
-              title="Copy to clipboard"
-            >
-              {copied ? (
-                <Check className="w-4 h-4 text-green-400" />
-              ) : (
-                <Copy className="w-4 h-4 text-text-muted group-hover:text-text-primary transition-colors" />
-              )}
-            </button>
           </div>
         </div>
-      </div>
-
-      {/* Architecture Info Button */}
-      <div className="flex justify-center">
-        <ArchitectureModal />
       </div>
 
     </div>
