@@ -13,6 +13,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { loadSkills, getSkillsByCategory, type SkillDefinition } from './skill-loader';
+import { calculateLevel } from './onboarding.service';
 
 const db = new PrismaClient();
 
@@ -149,28 +150,36 @@ export class AgentTaskManager {
         return { valid: false, error: validation.error };
       }
 
-      // Validation passed — award XP
+      // Validation passed — award XP atomically
       const now = new Date();
-      await db.agentTaskCompletion.update({
-        where: { id: completion.id },
-        data: {
-          status: 'VALIDATED',
-          proof,
-          xpAwarded: task.xpReward,
-          submittedAt: now,
-          validatedAt: now,
-        },
-      });
-
-      // Check if all completions for this task are done → mark task COMPLETED
-      const validatedCount = await db.agentTaskCompletion.count({
-        where: { taskId, status: 'VALIDATED' },
-      });
-      if (validatedCount > 0) {
-        await db.agentTask.update({
+      await db.$transaction([
+        db.agentTaskCompletion.update({
+          where: { id: completion.id },
+          data: {
+            status: 'VALIDATED',
+            proof,
+            xpAwarded: task.xpReward,
+            submittedAt: now,
+            validatedAt: now,
+          },
+        }),
+        db.agentTask.update({
           where: { id: taskId },
           data: { status: 'COMPLETED' },
-        });
+        }),
+        db.tradingAgent.update({
+          where: { id: agentId },
+          data: {
+            xp: { increment: task.xpReward },
+          },
+        }),
+      ]);
+
+      // Recalculate level outside transaction
+      const agent = await db.tradingAgent.findUnique({ where: { id: agentId }, select: { xp: true } });
+      if (agent) {
+        const newLevel = calculateLevel(agent.xp);
+        await db.tradingAgent.update({ where: { id: agentId }, data: { level: newLevel } });
       }
 
       return { valid: true, xpAwarded: task.xpReward };

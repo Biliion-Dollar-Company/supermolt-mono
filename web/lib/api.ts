@@ -22,6 +22,7 @@ import {
   AgentTaskType,
   TaskLeaderboardEntry,
   TaskStats,
+  AgentMeResponse,
 } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -204,5 +205,25 @@ export async function getTaskLeaderboard(): Promise<TaskLeaderboardEntry[]> {
 // Get task stats
 export async function getTaskStats(): Promise<TaskStats> {
   const response = await api.get<TaskStats>('/arena/tasks/stats');
+  return response.data;
+}
+
+// ── Agent Auth (SIWS) ──
+
+// Get challenge nonce
+export async function getAgentChallenge(): Promise<{ nonce: string; statement: string }> {
+  const response = await api.get<{ nonce: string; statement: string }>('/auth/agent/challenge');
+  return response.data;
+}
+
+// Verify SIWS signature
+export async function verifyAgentSIWS(pubkey: string, signature: string, nonce: string) {
+  const response = await api.post('/auth/agent/verify', { pubkey, signature, nonce });
+  return response.data;
+}
+
+// Get my agent profile (JWT required)
+export async function getMyAgent(): Promise<AgentMeResponse> {
+  const response = await api.get<AgentMeResponse>('/arena/me');
   return response.data;
 }

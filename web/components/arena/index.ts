@@ -4,3 +4,6 @@ export type { ArenaToken } from './TokenFeed';
 export { TokenDetailModal, TokenDetailContent } from './TokenDetailModal';
 export { EpochRewardPanel } from './EpochRewardPanel';
 export { TasksPanel } from './TasksPanel';
+export { MyAgentPanel } from './MyAgentPanel';
+export { XPProgressBar } from './XPProgressBar';
+export { OnboardingChecklist } from './OnboardingChecklist';

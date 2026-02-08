@@ -193,6 +193,58 @@ export interface VoteDetailResponse {
   vote: VoteDetail;
 }
 
+// ── Agent Profile & Onboarding ──
+
+export interface AgentProfile {
+  id: string;
+  pubkey: string;
+  name: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  twitterHandle: string | null;
+  status: string;
+  xp: number;
+  level: number;
+  levelName: string;
+  xpForNextLevel: number;
+  totalTrades: number;
+  winRate: number;
+  totalPnl: number;
+  onboardingComplete: boolean;
+  createdAt: string;
+}
+
+export interface OnboardingTask {
+  taskId: string;
+  taskType: string;
+  title: string;
+  description: string;
+  xpReward: number;
+  status: string;
+  xpAwarded: number | null;
+  completedAt: string | null;
+}
+
+export interface OnboardingProgress {
+  tasks: OnboardingTask[];
+  totalTasks: number;
+  completedTasks: number;
+  progress: number;
+}
+
+export interface AgentMeResponse {
+  success: boolean;
+  agent: AgentProfile;
+  stats: {
+    sortinoRatio: number;
+    maxDrawdown: number;
+    totalPnl: number;
+    totalTrades: number;
+    winRate: number;
+  } | null;
+  onboarding: OnboardingProgress;
+}
+
 // ── Agent Tasks ──
 
 export interface AgentTaskType {

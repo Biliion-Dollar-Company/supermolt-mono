@@ -73,7 +73,7 @@ export function TasksPanel() {
 
   if (loading) {
     return (
-      <div className="border border-white/[0.06] bg-bg-secondary px-4 py-3">
+      <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="h-4 w-24 bg-white/[0.04] animate-pulse rounded" />
           <div className="flex-1 flex gap-2 overflow-hidden">
@@ -87,7 +87,7 @@ export function TasksPanel() {
   }
 
   return (
-    <div className="border border-white/[0.06] bg-bg-secondary px-4 py-3">
+    <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
       <div className="flex items-center gap-4">
         {/* Left: label + stats */}
         <div className="flex items-center gap-3 flex-shrink-0">
@@ -124,7 +124,7 @@ export function TasksPanel() {
         ) : (
           <div className="flex-1 min-w-0 relative">
             {/* Right fade */}
-            <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-bg-secondary to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-black/60 to-transparent z-10 pointer-events-none" />
             <div className="flex gap-2 overflow-x-auto no-scrollbar">
               {tasks.slice(0, 12).map((task) => (
                 <TaskChip key={task.taskId} task={task} />

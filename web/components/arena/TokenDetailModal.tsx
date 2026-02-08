@@ -162,7 +162,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
         {/* Left: Wallet Positions + Activity */}
         <div className="border-r border-white/[0.06] flex flex-col overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-b border-white/[0.06] z-10 flex items-center gap-2">
+            <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-b border-white/[0.06] z-10 flex items-center gap-2">
               <Bot className="w-3.5 h-3.5 text-text-secondary" />
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Positions</span>
               {positions.length > 0 && (
@@ -193,7 +193,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
 
             {trades.length > 0 && (
               <>
-                <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-y border-white/[0.06] z-10">
+                <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10">
                   <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Activity</span>
                 </div>
                 <div className="px-6 py-2">
@@ -222,7 +222,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
             )}
 
             {/* Tasks */}
-            <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2">
+            <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2">
               <ClipboardCheck className="w-3.5 h-3.5 text-text-secondary" />
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Tasks</span>
               {tasks.length > 0 && (
@@ -270,7 +270,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
         {/* Right: Chat + Votes */}
         <div className="flex flex-col overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-b border-white/[0.06] z-10">
+            <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-b border-white/[0.06] z-10">
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Chat</span>
             </div>
             <div className="px-6 py-3">
@@ -293,7 +293,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
 
             {votes.length > 0 && (
               <>
-                <div className="sticky top-0 bg-bg-secondary/95 backdrop-blur-sm px-6 py-2.5 border-y border-white/[0.06] z-10">
+                <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10">
                   <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Votes</span>
                 </div>
                 <div className="px-6 py-3 space-y-3">

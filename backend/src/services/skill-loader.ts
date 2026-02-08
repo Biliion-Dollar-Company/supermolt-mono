@@ -65,9 +65,10 @@ export function loadSkills(): SkillDefinition[] {
 
   const tasks = loadFromDirectory(join(SKILLS_DIR, 'tasks'));
   const trading = loadFromDirectory(join(SKILLS_DIR, 'trading'));
+  const onboarding = loadFromDirectory(join(SKILLS_DIR, 'onboarding'));
 
-  skillCache = [...tasks, ...trading];
-  console.log(`Loaded ${skillCache.length} skills (${tasks.length} tasks, ${trading.length} trading)`);
+  skillCache = [...tasks, ...trading, ...onboarding];
+  console.log(`Loaded ${skillCache.length} skills (${tasks.length} tasks, ${trading.length} trading, ${onboarding.length} onboarding)`);
   return skillCache;
 }
 
@@ -79,11 +80,12 @@ export function getSkillsByCategory(category: string): SkillDefinition[] {
   return loadSkills().filter(s => s.category === category);
 }
 
-export function getSkillPack(): { version: string; tasks: SkillDefinition[]; trading: SkillDefinition[] } {
+export function getSkillPack(): { version: string; tasks: SkillDefinition[]; trading: SkillDefinition[]; onboarding: SkillDefinition[] } {
   const all = loadSkills();
   return {
     version: '1.0',
     tasks: all.filter(s => s.category === 'tasks'),
     trading: all.filter(s => s.category === 'trading'),
+    onboarding: all.filter(s => s.category === 'onboarding'),
   };
 }

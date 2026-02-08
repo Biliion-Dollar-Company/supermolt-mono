@@ -6,6 +6,7 @@ import { getTokenPrice } from '../lib/birdeye';
 import { PositionTracker } from '../services/position-tracker';
 import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-observer';
 import { closePaperTrade } from '../services/trade.service';
+import { autoCompleteOnboardingTask } from '../services/onboarding.service';
 
 const db = new PrismaClient();
 const positionTracker = new PositionTracker(db);
@@ -264,6 +265,9 @@ async function createTradeRecord(
       );
 
       console.log(`[TRADE] BUY recorded: ${swapData.inputAmount} SOL → ${swapData.outputAmount} ${tokenSymbol}`);
+
+      // Auto-complete FIRST_TRADE onboarding task (fire-and-forget)
+      autoCompleteOnboardingTask(agent.id, 'FIRST_TRADE', { tradeId: swapData.signature, tokenSymbol }).catch(() => {});
 
     } else if (isSell) {
       // ── SELL: Token → SOL/USDC ─────────────────────────

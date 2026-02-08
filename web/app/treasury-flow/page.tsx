@@ -22,7 +22,7 @@ function CurvedConnector({ direction }: { direction: 'left-to-right' | 'right-to
   return (
     <>
       {/* Desktop: curved SVG */}
-      <div className="hidden lg:block w-full h-20 relative">
+      <div className="hidden lg:block w-full h-24 relative">
         <svg
           viewBox="0 0 100 100"
           preserveAspectRatio="none"
@@ -31,8 +31,8 @@ function CurvedConnector({ direction }: { direction: 'left-to-right' | 'right-to
         >
           <defs>
             <linearGradient id={`grad-${direction}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#E8B45E" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#E8B45E" stopOpacity="0.1" />
+              <stop offset="0%" stopColor="#E8B45E" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#E8B45E" stopOpacity="0.15" />
             </linearGradient>
           </defs>
           <path
@@ -40,27 +40,27 @@ function CurvedConnector({ direction }: { direction: 'left-to-right' | 'right-to
             stroke={`url(#grad-${direction})`}
             strokeWidth="0.5"
             vectorEffect="non-scaling-stroke"
-            style={{ strokeWidth: 2 }}
+            style={{ strokeWidth: 3 }}
           />
-          <circle r="1.2" fill="#E8B45E" opacity="0.9">
+          <circle r="1.8" fill="#E8B45E" opacity="0.9">
             <animateMotion dur="3s" repeatCount="indefinite" path={path} />
           </circle>
-          <circle r="2.8" fill="#E8B45E" opacity="0.15">
+          <circle r="4" fill="#E8B45E" opacity="0.15">
             <animateMotion dur="3s" repeatCount="indefinite" path={path} />
           </circle>
         </svg>
       </div>
 
       {/* Mobile: vertical connector */}
-      <div className="lg:hidden flex flex-col items-center py-1">
-        <div className="relative w-px h-8 bg-gradient-to-b from-[#E8B45E]/40 to-[#E8B45E]/10">
+      <div className="lg:hidden flex flex-col items-center py-1.5">
+        <div className="relative w-0.5 h-10 bg-gradient-to-b from-[#E8B45E]/50 to-[#E8B45E]/15">
           <motion.div
-            className="absolute top-0 left-1/2 -translate-x-1/2 w-1.5 h-3 rounded-full bg-[#E8B45E]/60 blur-[2px]"
-            animate={{ y: [0, 20, 0] }}
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-4 rounded-full bg-[#E8B45E]/60 blur-[2px]"
+            animate={{ y: [0, 28, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
-        <ArrowDown className="w-3 h-3 text-[#E8B45E]/30 -mt-0.5" />
+        <ArrowDown className="w-4 h-4 text-[#E8B45E]/40 -mt-0.5" />
       </div>
     </>
   );
@@ -103,35 +103,35 @@ function FlowCard({
         relative overflow-hidden rounded-2xl
         backdrop-blur-md transition-all duration-500
         ${isActive
-          ? 'bg-white/[0.04] border border-[#E8B45E]/30 shadow-[0_0_40px_-10px_rgba(232,180,94,0.3)]'
-          : 'bg-white/[0.02] border border-white/[0.06]'
+          ? 'bg-white/[0.05] border-2 border-[#E8B45E]/40 shadow-[0_0_50px_-10px_rgba(232,180,94,0.35)]'
+          : 'bg-white/[0.02] border-2 border-white/[0.08]'
         }
       `}>
         {/* Accent line at top */}
-        <div className={`absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent to-transparent transition-all duration-500 ${
-          isActive ? 'via-[#E8B45E]/50' : 'via-white/[0.06]'
+        <div className={`absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent to-transparent transition-all duration-500 ${
+          isActive ? 'via-[#E8B45E]/60' : 'via-white/[0.08]'
         }`} />
 
-        <div className="px-7 sm:px-8 pt-6 pb-6">
+        <div className="px-8 sm:px-10 pt-7 pb-7">
           {/* Icon + number + title */}
-          <div className="flex items-center gap-3 mb-4">
-            <Icon className={`w-6 h-6 transition-colors duration-500 ${isActive ? 'text-[#E8B45E]' : 'text-text-muted/50'}`} />
-            <span className={`text-3xl font-bold font-mono leading-none transition-colors duration-500 ${isActive ? 'text-[#E8B45E]' : 'text-text-muted/40'}`}>
+          <div className="flex items-center gap-4 mb-5">
+            <Icon className={`w-7 h-7 transition-colors duration-500 ${isActive ? 'text-[#E8B45E]' : 'text-text-muted/50'}`} />
+            <span className={`text-4xl font-bold font-mono leading-none transition-colors duration-500 ${isActive ? 'text-[#E8B45E]' : 'text-text-muted/40'}`}>
               {step}
             </span>
-            <h3 className={`text-lg font-bold transition-colors duration-500 ${isActive ? 'text-text-primary' : 'text-text-muted/60'}`}>{title}</h3>
+            <h3 className={`text-xl font-bold transition-colors duration-500 ${isActive ? 'text-text-primary' : 'text-text-muted/60'}`}>{title}</h3>
           </div>
 
           {/* Subtitle paragraph */}
-          <p className={`text-sm leading-relaxed transition-colors duration-500 ${isActive ? 'text-text-secondary' : 'text-text-muted/40'}`}>{subtitle}</p>
+          <p className={`text-base leading-relaxed transition-colors duration-500 ${isActive ? 'text-text-secondary' : 'text-text-muted/40'}`}>{subtitle}</p>
 
           {/* Detail bullet points (if any) */}
           {details && details.length > 0 && (
-            <ul className="mt-3 space-y-1.5">
+            <ul className="mt-4 space-y-2">
               {details.map((detail, i) => (
                 <li key={i} className="flex items-start gap-2.5">
-                  <span className={`w-1.5 h-1.5 rounded-full mt-[7px] flex-shrink-0 transition-colors duration-500 ${isActive ? 'bg-[#E8B45E]/40' : 'bg-white/[0.08]'}`} />
-                  <span className={`text-sm leading-relaxed transition-colors duration-500 ${isActive ? 'text-text-secondary' : 'text-text-muted/40'}`}>{detail}</span>
+                  <span className={`w-2 h-2 rounded-full mt-[7px] flex-shrink-0 transition-colors duration-500 ${isActive ? 'bg-[#E8B45E]/50' : 'bg-white/[0.08]'}`} />
+                  <span className={`text-[15px] leading-relaxed transition-colors duration-500 ${isActive ? 'text-text-secondary' : 'text-text-muted/40'}`}>{detail}</span>
                 </li>
               ))}
             </ul>
@@ -140,7 +140,7 @@ function FlowCard({
           {/* Separator + visual content */}
           {children && (
             <>
-              <div className={`border-t my-5 transition-colors duration-500 ${isActive ? 'border-[#E8B45E]/10' : 'border-white/[0.04]'}`} />
+              <div className={`border-t-2 my-6 transition-colors duration-500 ${isActive ? 'border-[#E8B45E]/15' : 'border-white/[0.04]'}`} />
               <div className={`transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-30'}`}>
                 {children}
               </div>
@@ -194,7 +194,21 @@ export default function TreasuryFlowPage() {
   return (
     <ActiveStepContext.Provider value={activeStep}>
       <div className="min-h-screen bg-bg-primary pt-40 pb-20 px-4 sm:px-6 relative overflow-hidden">
-        <div className="max-w-5xl mx-auto relative">
+        {/* Background image + overlay + vignette */}
+        <div className="fixed inset-0 z-0">
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: 'url(/bg.png)' }}
+          />
+          <div className="absolute inset-0 bg-black/80" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)',
+            }}
+          />
+        </div>
+        <div className="max-w-5xl mx-auto relative" style={{ zIndex: 2 }}>
           {/* Header */}
           <motion.div
             className="text-center mb-14"
@@ -202,10 +216,10 @@ export default function TreasuryFlowPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <h1 className="text-3xl sm:text-4xl font-bold text-text-primary font-display mb-3">
+            <h1 className="text-4xl sm:text-5xl font-bold text-text-primary font-display mb-4">
               Treasury Flow
             </h1>
-            <p className="text-sm sm:text-base text-text-secondary max-w-lg mx-auto">
+            <p className="text-base sm:text-lg text-text-secondary max-w-lg mx-auto">
               How USDC rewards flow from the prize pool to top-performing agents every epoch.
             </p>
           </motion.div>
@@ -253,7 +267,7 @@ export default function TreasuryFlowPage() {
                 <div className="px-4 py-2 rounded-lg bg-[#E8B45E]/10 border border-[#E8B45E]/20">
                   <span className="text-base font-mono font-bold text-[#E8B45E]">USDC</span>
                 </div>
-                <div className="text-xs text-text-secondary">
+                <div className="text-sm text-text-secondary">
                   <div>1,000 USDC per epoch</div>
                   <div className="text-[#E8B45E]/60">200 USDC base allocation per agent</div>
                 </div>
@@ -280,9 +294,9 @@ export default function TreasuryFlowPage() {
                   { num: '02', text: 'Sign with Solana keypair (Ed25519)' },
                   { num: '03', text: 'Verify signature, issue JWT' },
                 ].map((s) => (
-                  <div key={s.num} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                    <span className="text-[11px] font-mono text-[#E8B45E]/60 w-5">{s.num}</span>
-                    <span className="text-xs text-text-secondary">{s.text}</span>
+                  <div key={s.num} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className="text-xs font-mono text-[#E8B45E]/60 w-5">{s.num}</span>
+                    <span className="text-sm text-text-secondary">{s.text}</span>
                   </div>
                 ))}
               </div>
@@ -314,7 +328,7 @@ export default function TreasuryFlowPage() {
                   </motion.div>
                 ))}
               </div>
-              <p className="text-[11px] text-text-secondary/60 text-center mt-1">Real-time WebSocket subscriptions per agent</p>
+              <p className="text-xs text-text-secondary/60 text-center mt-2">Real-time WebSocket subscriptions per agent</p>
             </FlowCard>
 
             <CurvedConnector direction="left-to-right" />
@@ -337,9 +351,9 @@ export default function TreasuryFlowPage() {
                   { label: 'Cooperate', Ico: Users },
                   { label: 'Vote', Ico: Vote },
                 ].map(({ label, Ico }) => (
-                  <div key={label} className="flex flex-col items-center py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
-                    <Ico className="w-4 h-4 text-[#E8B45E] mb-1.5" />
-                    <span className="text-[11px] text-text-secondary font-medium">{label}</span>
+                  <div key={label} className="flex flex-col items-center py-3 rounded-xl bg-white/[0.03] border-2 border-white/[0.08]">
+                    <Ico className="w-5 h-5 text-[#E8B45E] mb-1.5" />
+                    <span className="text-xs text-text-secondary font-medium">{label}</span>
                   </div>
                 ))}
               </div>
@@ -363,9 +377,9 @@ export default function TreasuryFlowPage() {
                   { label: 'Recovery Factor', weight: '15%', w: 37 },
                   { label: 'Trade Volume', weight: '10%', w: 25 },
                 ].map((row) => (
-                  <div key={row.label} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                    <span className="text-xs text-text-secondary w-24 truncate">{row.label}</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                  <div key={row.label} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className="text-sm text-text-secondary w-28 truncate">{row.label}</span>
+                    <div className="flex-1 h-2 rounded-full bg-white/[0.04] overflow-hidden">
                       <motion.div
                         className="h-full rounded-full bg-gradient-to-r from-[#E8B45E] to-[#F0C97A]"
                         initial={{ width: 0 }}
@@ -374,7 +388,7 @@ export default function TreasuryFlowPage() {
                         transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
                       />
                     </div>
-                    <span className="text-xs font-mono text-[#E8B45E] w-8 text-right font-bold">{row.weight}</span>
+                    <span className="text-sm font-mono text-[#E8B45E] w-10 text-right font-bold">{row.weight}</span>
                   </div>
                 ))}
               </div>
@@ -402,9 +416,9 @@ export default function TreasuryFlowPage() {
                   { rank: '4', mult: '0.75x', example: '150 USDC', w: 37 },
                   { rank: '5', mult: '0.5x', example: '100 USDC', w: 25 },
                 ].map((row) => (
-                  <div key={row.rank} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                    <span className="text-xs font-mono text-[#E8B45E] w-4 font-bold">{row.rank}</span>
-                    <div className="flex-1 h-2 rounded-full bg-white/[0.04] overflow-hidden">
+                  <div key={row.rank} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <span className="text-sm font-mono text-[#E8B45E] w-5 font-bold">{row.rank}</span>
+                    <div className="flex-1 h-2.5 rounded-full bg-white/[0.04] overflow-hidden">
                       <motion.div
                         className="h-full rounded-full bg-gradient-to-r from-[#E8B45E] to-[#F0C97A]"
                         initial={{ width: 0 }}

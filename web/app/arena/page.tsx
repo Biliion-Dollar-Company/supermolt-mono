@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Swords, Wifi, WifiOff, Copy, Check } from 'lucide-react';
 import { getRecentTrades, getAllPositions } from '@/lib/api';
 import { Trade, Position } from '@/lib/types';
-import { ArenaLeaderboard, TokenDetailContent, EpochRewardPanel, TasksPanel } from '@/components/arena';
+import { ArenaLeaderboard, TokenDetailContent, EpochRewardPanel, TasksPanel, MyAgentPanel } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
 
 function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
@@ -163,8 +163,22 @@ export default function ArenaPage() {
   }, [tokens, selectedToken]);
 
   return (
-    <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%]">
-      <div>
+    <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative">
+      {/* Background image + overlay + vignette */}
+      <div className="fixed inset-0 z-0">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: 'url(/bg.png)' }}
+        />
+        <div className="absolute inset-0 bg-black/80" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)',
+          }}
+        />
+      </div>
+      <div className="relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8 gap-2">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -189,10 +203,15 @@ export default function ArenaPage() {
           <TasksPanel />
         </div>
 
+        {/* My Agent Panel — XP, stats, onboarding */}
+        <div className="mb-6">
+          <MyAgentPanel />
+        </div>
+
         {/* Main layout: leaderboard left, separator, token feed right */}
         <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
           {/* Leaderboard */}
-          <div className="border border-white/[0.06] bg-bg-secondary p-4 sm:p-5">
+          <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
             <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">
               Leaderboard
             </h2>
@@ -263,7 +282,7 @@ export default function ArenaPage() {
 
                 {/* Featured Token Detail (inline) */}
                 {selectedToken ? (
-                  <div className="border border-white/[0.06] bg-bg-secondary overflow-hidden">
+                  <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden">
                     <TokenDetailContent tokenSymbol={selectedToken} compact />
                   </div>
                 ) : (

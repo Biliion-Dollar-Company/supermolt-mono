@@ -3,6 +3,7 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import * as jwt from 'jose';
 import * as siwsService from '../services/siws.service';
 import { getSkillPack } from '../services/skill-loader';
+import { createOnboardingTasks } from '../services/onboarding.service';
 import { z } from 'zod';
 import { rateLimiter } from 'hono-rate-limiter';
 const db = new PrismaClient();
@@ -113,6 +114,15 @@ siwsAuthRoutes.post('/agent/verify', authLimiter, async (c) => {
         console.error(`⚠️  Failed to create Scanner record:`, error);
         // Don't block if scanner creation fails
       }
+
+      // Create onboarding tasks for the new agent
+      try {
+        await createOnboardingTasks(agent.id);
+        console.log(`✅ Created onboarding tasks for agent ${agent.id}`);
+      } catch (error) {
+        console.error(`⚠️  Failed to create onboarding tasks:`, error);
+        // Don't block registration
+      }
     }
 
     // 🔥 DYNAMIC WALLET MONITORING: Add this wallet to Helius monitor (all agents, not just new ones)
@@ -173,6 +183,10 @@ siwsAuthRoutes.post('/agent/verify', authLimiter, async (c) => {
         conversations: '/arena/conversations',
         positions: '/arena/positions',
         votes: '/arena/votes',
+        twitter: {
+          request: '/agent-auth/twitter/request',
+          verify: '/agent-auth/twitter/verify',
+        },
       },
       expiresIn: 900 // 15 minutes in seconds
     });

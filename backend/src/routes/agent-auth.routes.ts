@@ -1,25 +1,68 @@
 /**
  * Agent Authentication & Social Linking Routes
- * 
+ *
  * Allows agents to:
  * - Link their Twitter account (tweet-based verification)
  * - Verify task completion (post proof links)
  * - Update their profile with social handles
- * 
+ *
+ * All write endpoints require agent JWT (from SIWS auth).
+ * agentId is extracted from the token — agents can only modify their own data.
+ *
  * Flow:
- * 1. Agent generates verification tweet with unique code
- * 2. Agent posts tweet
- * 3. Agent submits tweet URL
- * 4. We verify tweet exists + contains code
- * 5. Link Twitter handle to agent
+ * 1. Agent authenticates via SIWS → gets JWT with agentId
+ * 2. POST /agent-auth/twitter/request → gets verification code + tweet template
+ * 3. Agent posts the tweet via Twitter API
+ * 4. POST /agent-auth/twitter/verify → submits tweet URL
+ * 5. Backend verifies tweet exists + contains code → links Twitter handle
  */
 
 import { Hono } from 'hono';
+import { Context, Next } from 'hono';
 import { PrismaClient } from '@prisma/client';
+import * as jose from 'jose';
 import crypto from 'crypto';
+import { autoCompleteOnboardingTask } from '../services/onboarding.service';
 
 const agentAuth = new Hono();
 const prisma = new PrismaClient();
+
+// Agent JWT middleware — extracts agentId from SIWS token
+async function agentJwtMiddleware(c: Context, next: Next) {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return c.json({ success: false, error: 'Authorization required. Use Bearer token from /auth/agent/verify' }, 401);
+  }
+
+  const token = authHeader.slice(7);
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    return c.json({ success: false, error: 'Server configuration error' }, 500);
+  }
+
+  try {
+    const secret = new TextEncoder().encode(jwtSecret);
+    const { payload } = await jose.jwtVerify(token, secret);
+
+    if (payload.type !== 'agent') {
+      return c.json({ success: false, error: 'Invalid token type. Use agent token from SIWS auth.' }, 401);
+    }
+
+    c.set('agentId', payload.agentId as string);
+    c.set('agentPubkey', payload.sub as string);
+    await next();
+  } catch (error) {
+    return c.json({ success: false, error: 'Invalid or expired token' }, 401);
+  }
+}
+
+// Extend Hono context for agent JWT fields
+declare module 'hono' {
+  interface ContextVariableMap {
+    agentId: string;
+    agentPubkey: string;
+  }
+}
 
 // Store pending verifications (in-memory, could use Redis)
 const pendingVerifications = new Map<string, {
@@ -29,23 +72,19 @@ const pendingVerifications = new Map<string, {
 }>();
 
 // ============================================================================
-// Twitter Authentication
+// Twitter Authentication (JWT required)
 // ============================================================================
 
 /**
  * POST /agent-auth/twitter/request
  * Generate verification code for Twitter linking
- * 
- * Body: { agentId: "obs_alpha" }
- * Returns: { code: "TRENCH_VERIFY_ABC123", expiresAt: timestamp }
+ *
+ * Headers: Authorization: Bearer <agent-jwt>
+ * Returns: { code: "TRENCH_VERIFY_ABC123", tweetTemplate: "...", expiresAt: timestamp }
  */
-agentAuth.post('/twitter/request', async (c) => {
+agentAuth.post('/twitter/request', agentJwtMiddleware, async (c) => {
   try {
-    const { agentId } = await c.req.json();
-
-    if (!agentId) {
-      return c.json({ success: false, error: 'Missing agentId' }, 400);
-    }
+    const agentId = c.get('agentId');
 
     // Check agent exists
     const agent = await prisma.tradingAgent.findUnique({
@@ -56,6 +95,15 @@ agentAuth.post('/twitter/request', async (c) => {
       return c.json({ success: false, error: 'Agent not found' }, 404);
     }
 
+    // Check if already verified
+    const config = agent.config as Record<string, unknown> | null;
+    if (config?.twitterVerified && agent.twitterHandle) {
+      return c.json({
+        success: false,
+        error: `Twitter already linked as ${agent.twitterHandle}. Unlink first to re-verify.`
+      }, 400);
+    }
+
     // Generate verification code
     const code = `TRENCH_VERIFY_${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
     const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
@@ -63,7 +111,7 @@ agentAuth.post('/twitter/request', async (c) => {
     // Store pending verification
     pendingVerifications.set(agentId, { agentId, code, expiresAt });
 
-    const verificationTweet = `I'm verifying my agent identity on @TrenchProtocol 🤖\n\nVerification code: ${code}\n\nAgent ID: ${agentId}\n#TrenchAgent`;
+    const verificationTweet = `I'm verifying my agent identity on @TrenchProtocol\n\nVerification code: ${code}\n\nAgent ID: ${agentId}\n#TrenchAgent`;
 
     return c.json({
       success: true,
@@ -72,10 +120,9 @@ agentAuth.post('/twitter/request', async (c) => {
         expiresAt,
         tweetTemplate: verificationTweet,
         instructions: [
-          '1. Copy the tweet template',
-          '2. Post it on Twitter',
-          '3. Copy the tweet URL',
-          '4. Submit the URL via /agent-auth/twitter/verify'
+          '1. Post the tweetTemplate text on Twitter/X (via API or manually)',
+          '2. Get the tweet URL (format: https://x.com/yourhandle/status/123456)',
+          '3. POST /agent-auth/twitter/verify with { tweetUrl: "..." }'
         ]
       }
     });
@@ -89,16 +136,18 @@ agentAuth.post('/twitter/request', async (c) => {
 /**
  * POST /agent-auth/twitter/verify
  * Verify Twitter account via tweet URL
- * 
- * Body: { agentId: "obs_alpha", tweetUrl: "https://twitter.com/user/status/123" }
+ *
+ * Headers: Authorization: Bearer <agent-jwt>
+ * Body: { tweetUrl: "https://x.com/user/status/123" }
  * Returns: { success: true, twitterHandle: "@username" }
  */
-agentAuth.post('/twitter/verify', async (c) => {
+agentAuth.post('/twitter/verify', agentJwtMiddleware, async (c) => {
   try {
-    const { agentId, tweetUrl } = await c.req.json();
+    const agentId = c.get('agentId');
+    const { tweetUrl } = await c.req.json();
 
-    if (!agentId || !tweetUrl) {
-      return c.json({ success: false, error: 'Missing agentId or tweetUrl' }, 400);
+    if (!tweetUrl) {
+      return c.json({ success: false, error: 'Missing tweetUrl' }, 400);
     }
 
     // Get pending verification
@@ -126,7 +175,7 @@ agentAuth.post('/twitter/verify', async (c) => {
     if (!tweetMatch) {
       return c.json({
         success: false,
-        error: 'Invalid Twitter URL format. Expected: https://twitter.com/username/status/123'
+        error: 'Invalid Twitter URL format. Expected: https://x.com/username/status/123'
       }, 400);
     }
 
@@ -163,7 +212,10 @@ agentAuth.post('/twitter/verify', async (c) => {
     // Clean up pending verification
     pendingVerifications.delete(agentId);
 
-    console.log(`✅ Twitter verified: ${agentId} → @${twitterHandle}`);
+    console.log(`Twitter verified: ${agentId} -> @${twitterHandle}`);
+
+    // Auto-complete LINK_TWITTER onboarding task (fire-and-forget)
+    autoCompleteOnboardingTask(agentId, 'LINK_TWITTER', { twitterHandle: `@${twitterHandle}` }).catch(() => {});
 
     return c.json({
       success: true,
@@ -250,20 +302,21 @@ async function verifyTweet(
 /**
  * POST /agent-auth/task/verify
  * Submit proof of task completion
- * 
+ *
+ * Headers: Authorization: Bearer <agent-jwt>
  * Body: {
- *   agentId: "obs_alpha",
  *   taskId: "task_123",
  *   proofType: "tweet" | "discord" | "url",
- *   proofUrl: "https://twitter.com/user/status/123"
+ *   proofUrl: "https://x.com/user/status/123"
  * }
  */
-agentAuth.post('/task/verify', async (c) => {
+agentAuth.post('/task/verify', agentJwtMiddleware, async (c) => {
   try {
-    const { agentId, taskId, proofType, proofUrl, proofData } = await c.req.json();
+    const agentId = c.get('agentId');
+    const { taskId, proofType, proofUrl, proofData } = await c.req.json();
 
-    if (!agentId || !taskId || !proofType) {
-      return c.json({ success: false, error: 'Missing required fields' }, 400);
+    if (!taskId || !proofType) {
+      return c.json({ success: false, error: 'Missing required fields (taskId, proofType)' }, 400);
     }
 
     // Verify agent exists and has Twitter linked (if needed)
@@ -357,21 +410,18 @@ agentAuth.post('/task/verify', async (c) => {
 /**
  * POST /agent-auth/profile/update
  * Update agent social profiles
- * 
+ *
+ * Headers: Authorization: Bearer <agent-jwt>
  * Body: {
- *   agentId: "obs_alpha",
  *   discord: "username#1234",
  *   telegram: "@username",
  *   website: "https://..."
  * }
  */
-agentAuth.post('/profile/update', async (c) => {
+agentAuth.post('/profile/update', agentJwtMiddleware, async (c) => {
   try {
-    const { agentId, discord, telegram, website, bio } = await c.req.json();
-
-    if (!agentId) {
-      return c.json({ success: false, error: 'Missing agentId' }, 400);
-    }
+    const agentId = c.get('agentId');
+    const { discord, telegram, website, bio } = await c.req.json();
 
     // Update agent profile
     const agent = await prisma.tradingAgent.update({
@@ -383,6 +433,11 @@ agentAuth.post('/profile/update', async (c) => {
         bio: bio || undefined
       }
     });
+
+    // Auto-complete UPDATE_PROFILE onboarding task if bio was provided (fire-and-forget)
+    if (bio) {
+      autoCompleteOnboardingTask(agent.id, 'UPDATE_PROFILE', { bio }).catch(() => {});
+    }
 
     return c.json({
       success: true,

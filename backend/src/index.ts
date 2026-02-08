@@ -36,6 +36,7 @@ import leaderboard from './modules/leaderboard/leaderboard.routes';
 import epochs from './modules/epoch/epoch.routes';
 import calls from './modules/scanner-calls/scanner-calls.routes';
 import arenaRoutes from './modules/arena/arena.routes';
+import arenaMeRoutes from './routes/arena-me.routes';
 import taskRoutes from './modules/tasks/tasks.routes';
 
 const db = new PrismaClient();
@@ -133,6 +134,7 @@ app.route('/api/epochs', epochs);
 app.route('/api/calls', calls);
 
 // Arena routes (public, frontend arena page)
+app.route('/arena', arenaMeRoutes); // /arena/me — must be before generic arena routes
 app.route('/arena', arenaRoutes);
 app.route('/arena/tasks', taskRoutes);
 

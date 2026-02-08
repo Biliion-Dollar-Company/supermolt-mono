@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Home, Swords, BookOpen, Menu, X, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '@/components/reactbits/GradientText';
+import WalletButton from '@/components/wallet/WalletButton';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -91,6 +92,9 @@ export default function Navbar() {
                 <span className="text-base">Docs</span>
               </a>
             </li>
+            <li className="relative h-full flex items-center ml-2">
+              <WalletButton />
+            </li>
           </ul>
 
           {/* Mobile menu button */}
@@ -164,6 +168,15 @@ export default function Navbar() {
                     <BookOpen className="w-5 h-5" />
                     <span>Docs</span>
                   </a>
+                </motion.li>
+                <motion.li
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.2, delay: (navLinks.length + 1) * 0.05 }}
+                  className="px-4 pt-2"
+                >
+                  <WalletButton />
                 </motion.li>
               </ul>
             </motion.div>

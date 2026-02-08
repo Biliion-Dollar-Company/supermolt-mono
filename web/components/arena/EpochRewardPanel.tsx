@@ -127,7 +127,7 @@ export function EpochRewardPanel() {
 
   if (loading) {
     return (
-      <div className="border border-white/[0.06] bg-bg-secondary p-4 sm:p-5">
+      <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
         <div className="h-6 w-48 bg-white/[0.02] animate-pulse rounded mb-4" />
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -147,7 +147,7 @@ export function EpochRewardPanel() {
   const totalProjected = allocations.reduce((sum, a) => sum + a.usdcAmount, 0);
 
   return (
-    <div className="border border-white/[0.06] bg-bg-secondary p-4 sm:p-5">
+    <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
       {/* Epoch Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
