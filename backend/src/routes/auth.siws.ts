@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import * as jwt from 'jose';
 import * as siwsService from '../services/siws.service';
 import { getSkillPack } from '../services/skill-loader';
 import { createOnboardingTasks } from '../services/onboarding.service';
 import { z } from 'zod';
 import { rateLimiter } from 'hono-rate-limiter';
-const db = new PrismaClient();
+import { db } from '../lib/db';
 
 // Dynamic import to avoid circular dependency issues
 let heliusMonitor: any = null;

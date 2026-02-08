@@ -7,11 +7,10 @@
 
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
+import { db } from '../lib/db';
 
 const copyTrade = new Hono();
-const db = new PrismaClient();
 
 const copyTradeSchema = z.object({
   sourceAgentPubkey: z.string(),

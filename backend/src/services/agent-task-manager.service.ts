@@ -11,11 +11,9 @@
  * 4. Agent submits proof -> submitProof() validates + awards XP
  */
 
-import { PrismaClient } from '@prisma/client';
 import { loadSkills, getSkillsByCategory, type SkillDefinition } from './skill-loader';
 import { calculateLevel, autoCompleteOnboardingTask } from './onboarding.service';
-
-const db = new PrismaClient();
+import { db } from '../lib/db';
 
 export class AgentTaskManager {
   /**

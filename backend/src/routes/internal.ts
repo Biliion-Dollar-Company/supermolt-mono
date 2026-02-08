@@ -2,12 +2,11 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { internalAuthMiddleware } from '../middleware/internal';
 import * as tradeService from '../services/trade.service';
-import { PrismaClient } from '@prisma/client';
 import { createSortinoService } from '../services/sortino.service';
 import { treasuryManager } from '../services/treasury-manager.service';
+import { db } from '../lib/db';
 
 const internal = new Hono();
-const db = new PrismaClient();
 const sortinoService = createSortinoService(db);
 
 // All internal routes require API key

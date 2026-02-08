@@ -4,8 +4,8 @@
  * Business logic for leaderboard rankings and statistics
  */
 
-import { PrismaClient } from '@prisma/client';
 import { EpochRepository, ScannerRepository } from '../../repositories';
+import { db } from '../../lib/db';
 import type {
   LeaderboardDto,
   LeaderboardEntryDto,
@@ -17,10 +17,10 @@ import type {
 export class LeaderboardService {
   private epochRepo: EpochRepository;
   private scannerRepo: ScannerRepository;
-  private prisma: PrismaClient;
+  private prisma: typeof db;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = db;
     this.epochRepo = new EpochRepository(this.prisma);
     this.scannerRepo = new ScannerRepository(this.prisma);
   }

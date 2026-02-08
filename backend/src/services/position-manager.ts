@@ -10,10 +10,8 @@
  * Reference: DevPrint trading/position.rs
  */
 
-import { PrismaClient } from '@prisma/client';
 import type { BuyResult, SellResult } from './trading-executor';
-
-const prisma = new PrismaClient();
+import { db as prisma } from '../lib/db';
 
 // ============================================================================
 // Types

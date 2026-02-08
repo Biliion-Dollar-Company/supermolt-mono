@@ -4,7 +4,7 @@ import { logger } from 'hono/logger';
 import { serve } from 'bun';
 import { Server as HTTPServer } from 'http';
 import { env } from './lib/env';
-import { PrismaClient } from '@prisma/client';
+import { db } from './lib/db';
 import { HeliusWebSocketMonitor } from './services/helius-websocket.js';
 import { websocketEvents } from './services/websocket-events.js';
 import { createLeaderboardAdvanced } from './routes/leaderboard-advanced.js';
@@ -39,7 +39,6 @@ import arenaRoutes from './modules/arena/arena.routes';
 import arenaMeRoutes from './routes/arena-me.routes';
 import taskRoutes from './modules/tasks/tasks.routes';
 
-const db = new PrismaClient();
 const app = new Hono();
 
 // Global Helius monitor instance (for dynamic wallet management)

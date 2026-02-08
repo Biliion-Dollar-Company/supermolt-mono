@@ -4,9 +4,7 @@
  * Thin service layer for arena task queries (same pattern as arena.service.ts).
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const db = new PrismaClient();
+import { db } from '../../lib/db';
 
 export async function listTasks(options?: {
   tokenMint?: string;

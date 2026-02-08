@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const db = new PrismaClient();
+import { db } from '../lib/db';
 
 export interface ProfileUpdateData {
   displayName?: string;

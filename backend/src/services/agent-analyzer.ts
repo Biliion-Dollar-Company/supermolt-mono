@@ -3,9 +3,7 @@
  * Analyzes SuperRouter trades and generates agent commentary
  */
 
-import { PrismaClient } from '@prisma/client';
-
-const db = new PrismaClient();
+import { db } from '../lib/db';
 
 interface TradeEvent {
   signature: string;

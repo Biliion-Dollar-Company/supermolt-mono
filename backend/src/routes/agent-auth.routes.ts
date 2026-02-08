@@ -19,13 +19,12 @@
 
 import { Hono } from 'hono';
 import { Context, Next } from 'hono';
-import { PrismaClient } from '@prisma/client';
 import * as jose from 'jose';
 import crypto from 'crypto';
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
+import { db as prisma } from '../lib/db';
 
 const agentAuth = new Hono();
-const prisma = new PrismaClient();
 
 // Agent JWT middleware — extracts agentId from SIWS token
 async function agentJwtMiddleware(c: Context, next: Next) {

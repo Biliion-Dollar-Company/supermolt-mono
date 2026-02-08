@@ -46,8 +46,7 @@ health.get('/ready', async (c) => {
 
 // Temporary setup endpoint (no auth required) - REMOVE AFTER SETUP
 health.post('/setup-observers', async (c) => {
-  const { PrismaClient } = await import('@prisma/client');
-  const db = new PrismaClient();
+  const { db } = await import('../lib/db');
 
   try {
     console.log('🚀 Creating 5 Observer Agents for SuperRouter Analysis...');
@@ -161,8 +160,6 @@ health.post('/setup-observers', async (c) => {
 
     console.log(`✅ Observer agents setup complete! Created: ${createdAgents.length}, Skipped: ${skippedAgents.length}`);
 
-    await db.$disconnect();
-
     return c.json({
       success: true,
       data: {
@@ -173,7 +170,6 @@ health.post('/setup-observers', async (c) => {
       }
     });
   } catch (error) {
-    await db.$disconnect();
     const message = error instanceof Error ? error.message : 'Failed to create observer agents';
     console.error('Create observer agents error:', error);
     return c.json(

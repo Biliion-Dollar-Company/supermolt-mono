@@ -4,8 +4,9 @@
  * Business logic for scanner token predictions and trades
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { ScannerRepository, EpochRepository } from '../../repositories';
+import { db } from '../../lib/db';
 import type {
   SubmitCallDto,
   ScannerCallDto,
@@ -17,10 +18,10 @@ import type {
 export class ScannerCallsService {
   private scannerRepo: ScannerRepository;
   private epochRepo: EpochRepository;
-  private prisma: PrismaClient;
+  private prisma: typeof db;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = db;
     this.scannerRepo = new ScannerRepository(this.prisma);
     this.epochRepo = new EpochRepository(this.prisma);
   }

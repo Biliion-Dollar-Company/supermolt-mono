@@ -15,7 +15,6 @@
  */
 
 import { Hono } from 'hono';
-import { PrismaClient } from '@prisma/client';
 import { getLevelName } from '../../services/onboarding.service';
 import {
   getLeaderboard,
@@ -28,8 +27,7 @@ import {
   getVoteDetail,
   getEpochRewards,
 } from './arena.service';
-
-const db = new PrismaClient();
+import { db } from '../../lib/db';
 
 const app = new Hono();
 

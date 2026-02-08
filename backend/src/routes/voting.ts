@@ -7,11 +7,10 @@
  */
 
 import { Hono } from 'hono';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { db } from '../lib/db';
 
 const voting = new Hono();
-const db = new PrismaClient();
 
 // Request schemas
 const proposeVoteSchema = z.object({

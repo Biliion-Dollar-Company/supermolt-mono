@@ -18,10 +18,9 @@ import bs58 from 'bs58';
 import { createTradingExecutor } from '../services/trading-executor';
 import { createPositionManager } from '../services/position-manager';
 import { getPriceFetcher } from '../services/price-fetcher';
-import { PrismaClient } from '@prisma/client';
+import { db as prisma } from '../lib/db';
 
 const trading = new Hono();
-const prisma = new PrismaClient();
 
 // Initialize services
 const executor = createTradingExecutor(process.env.HELIUS_RPC_URL!);

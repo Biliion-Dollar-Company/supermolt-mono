@@ -210,8 +210,8 @@ export default function TreasuryFlowPage() {
         </div>
         {/* LaserFlow — absolute, starts from very top of page container */}
         <div
-          className="absolute top-0 left-4 sm:left-6 lg:left-1/2 lg:-translate-x-[72%] w-[55%] max-w-[550px] h-[1200px] pointer-events-none"
-          style={{ zIndex: 1 }}
+          className="absolute top-0 left-4 sm:left-6 lg:left-1/2 lg:-translate-x-[92%] w-[55%] max-w-[550px] h-[1200px] pointer-events-none"
+          style={{ zIndex: 1, marginTop: '-90px' }}
         >
           <LaserFlow
             color="#E8B45E"

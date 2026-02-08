@@ -1,14 +1,12 @@
 import { Hono } from 'hono';
 import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
 import { extractSwapsFromTransaction } from '../lib/swap-parser';
 import { getTokenPrice } from '../lib/birdeye';
 import { PositionTracker } from '../services/position-tracker';
 import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-observer';
 import { closePaperTrade } from '../services/trade.service';
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
-
-const db = new PrismaClient();
+import { db } from '../lib/db';
 const positionTracker = new PositionTracker(db);
 
 export const webhooks = new Hono();
@@ -410,12 +408,18 @@ webhooks.post('/solana', async (c) => {
 
     // Validate webhook signature IF secret is configured
     // If secret is not configured (placeholder), skip validation
-    if (secret && secret !== 'your-helius-webhook-secret-here') {
+    const isProduction = process.env.NODE_ENV === 'production';
+    const secretMissing = !secret || secret === 'your-helius-webhook-secret-here';
+
+    if (!secretMissing) {
       if (!signature || !validateHeliusSignature(rawBody, signature, secret)) {
         console.warn('❌ [WEBHOOK] Invalid Helius webhook signature - rejecting');
         return c.json({ error: 'Invalid signature' }, 401);
       }
       console.log('✅ [WEBHOOK] Signature validated successfully');
+    } else if (isProduction) {
+      console.error('[WEBHOOK] REJECTED: Signature validation required in production');
+      return c.json({ error: 'Webhook secret not configured' }, 401);
     } else {
       if (!secret) {
         console.warn('⚠️ [WEBHOOK] No secret configured - validation skipped. Set HELIUS_WEBHOOK_SECRET in .env');

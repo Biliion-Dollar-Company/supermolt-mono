@@ -8,6 +8,7 @@ import { Hono } from 'hono';
 import { TreasuryManagerService } from '../../services/treasury-manager.service';
 import { createSuccessResponse, createErrorResponse, ErrorCodes } from '../../types/api';
 import { adminAuth } from '../../middleware/admin-auth';
+import { db } from '../../lib/db';
 import type {
   TreasuryStatusDto,
   AllocationCalculationDto,
@@ -164,9 +165,7 @@ app.get('/scanner/:scannerId/allocations', async (c) => {
     const result = await getTreasuryService().getScannerAllocations(scannerId);
 
     // Query scanner directly from database
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-    const scanner = await prisma.scanner.findUnique({ where: { id: scannerId } });
+    const scanner = await db.scanner.findUnique({ where: { id: scannerId } });
 
     if (!scanner) {
       return c.json(
@@ -212,9 +211,7 @@ app.get('/epoch/:epochId/allocations', async (c) => {
     const { epochId } = c.req.param();
     
     // Query allocations directly from database
-    const { PrismaClient } = await import('@prisma/client');
-    const prisma = new PrismaClient();
-    const allocations = await prisma.treasuryAllocation.findMany({
+    const allocations = await db.treasuryAllocation.findMany({
       where: { epochId },
       orderBy: { rank: 'asc' }
     });

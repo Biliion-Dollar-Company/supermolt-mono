@@ -13,10 +13,8 @@
  *   2000 → Legend (6)
  */
 
-import { PrismaClient } from '@prisma/client';
 import { getSkillsByCategory, type SkillDefinition } from './skill-loader';
-
-const db = new PrismaClient();
+import { db } from '../lib/db';
 
 const LEVEL_THRESHOLDS = [
   { level: 1, name: 'Recruit', minXP: 0 },

@@ -3,11 +3,9 @@
  * Monitors SuperRouter trades and triggers agent analysis
  */
 
-import { PrismaClient } from '@prisma/client';
 import { analyzeSuperRouterTrade, postAgentAnalysis } from './agent-analyzer';
 import { websocketEvents } from './websocket-events';
-
-const db = new PrismaClient();
+import { db } from '../lib/db';
 
 const SUPERROUTER_WALLET = '9U5PtsCxkma37wwMRmPLeLVqwGHvHMs7fyLaL47ovmTn';
 

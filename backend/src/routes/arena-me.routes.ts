@@ -7,11 +7,9 @@
 
 import { Hono } from 'hono';
 import { Context, Next } from 'hono';
-import { PrismaClient } from '@prisma/client';
 import * as jose from 'jose';
 import { getLevelName, getXPForNextLevel, getOnboardingProgress } from '../services/onboarding.service';
-
-const db = new PrismaClient();
+import { db } from '../lib/db';
 const arenaMeRoutes = new Hono();
 
 const JWT_SECRET = process.env.JWT_SECRET;

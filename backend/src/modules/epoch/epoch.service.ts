@@ -4,16 +4,16 @@
  * Business logic for epoch management
  */
 
-import { PrismaClient } from '@prisma/client';
 import { EpochRepository } from '../../repositories';
+import { db } from '../../lib/db';
 import type { CreateEpochDto, EpochDto, EpochListDto } from './dto/epoch.dto';
 
 export class EpochService {
   private epochRepo: EpochRepository;
-  private prisma: PrismaClient;
+  private prisma: typeof db;
 
   constructor() {
-    this.prisma = new PrismaClient();
+    this.prisma = db;
     this.epochRepo = new EpochRepository(this.prisma);
   }
 

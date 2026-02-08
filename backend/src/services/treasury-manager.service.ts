@@ -21,9 +21,7 @@ import {
   createAssociatedTokenAccountInstruction,
 } from '@solana/spl-token';
 import bs58 from 'bs58';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { db as prisma } from '../lib/db';
 
 // USDC Token Mint (Devnet for hackathon)
 const USDC_MINT = new PublicKey(process.env.USDC_MINT || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');

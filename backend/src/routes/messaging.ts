@@ -7,12 +7,11 @@
  */
 
 import { Hono } from 'hono';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
+import { db } from '../lib/db';
 
 const messaging = new Hono();
-const db = new PrismaClient();
 
 // Request schemas
 const createConversationSchema = z.object({

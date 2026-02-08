@@ -7,12 +7,11 @@
  */
 
 import { Hono } from 'hono';
-import { PrismaClient } from '@prisma/client';
 import { authMiddleware } from '../middleware/auth';
 import { createSortinoService } from '../services/sortino.service';
+import { db } from '../lib/db';
 
 const feed = new Hono();
-const db = new PrismaClient();
 const sortinoService = createSortinoService(db);
 
 // Leaderboard entry (agent + stats)

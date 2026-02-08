@@ -5,11 +5,10 @@
  */
 
 import { Hono } from 'hono';
-import { PrismaClient } from '@prisma/client';
 import { PositionTracker } from '../services/position-tracker';
+import { db } from '../lib/db';
 
 const positions = new Hono();
-const db = new PrismaClient();
 const positionTracker = new PositionTracker(db);
 
 /**

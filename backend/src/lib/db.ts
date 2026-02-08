@@ -12,6 +12,9 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
+/** Alias for `prisma` — use whichever name the consuming file prefers. */
+export const db = prisma;
+
 export async function checkDbConnection(): Promise<boolean> {
   try {
     await prisma.$queryRaw`SELECT 1`;

@@ -6,11 +6,9 @@
  * the frontend expects (see web/lib/types.ts).
  */
 
-import { PrismaClient } from '@prisma/client';
 import { getTokenPrice } from '../../lib/birdeye';
 import { treasuryManager } from '../../services/treasury-manager.service';
-
-const db = new PrismaClient();
+import { db } from '../../lib/db';
 
 // ── Agent name lookup cache (per-request) ─────────────────
 
