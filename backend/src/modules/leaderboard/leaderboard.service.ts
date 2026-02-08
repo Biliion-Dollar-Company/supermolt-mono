@@ -4,7 +4,6 @@
  * Business logic for leaderboard rankings and statistics
  */
 
-import { EpochRepository, ScannerRepository } from '../../repositories';
 import { db } from '../../lib/db';
 import type {
   LeaderboardDto,
@@ -15,21 +14,42 @@ import type {
 } from './dto/leaderboard.dto';
 
 export class LeaderboardService {
-  private epochRepo: EpochRepository;
-  private scannerRepo: ScannerRepository;
   private prisma: typeof db;
 
   constructor() {
     this.prisma = db;
-    this.epochRepo = new EpochRepository(this.prisma);
-    this.scannerRepo = new ScannerRepository(this.prisma);
+  }
+
+  // Inlined repository helpers
+  private async findActive() {
+    return this.prisma.scannerEpoch.findFirst({ where: { status: 'ACTIVE' } });
+  }
+
+  private async findEpochById(id: string) {
+    return this.prisma.scannerEpoch.findUnique({ where: { id } });
+  }
+
+  private async findAllEpochs() {
+    return this.prisma.scannerEpoch.findMany({ orderBy: { epochNumber: 'desc' } });
+  }
+
+  private async getRankings(epochId: string) {
+    return this.prisma.scannerRanking.findMany({
+      where: { epochId },
+      include: { scanner: true },
+      orderBy: { performanceScore: 'desc' },
+    });
+  }
+
+  private async findScannerById(id: string) {
+    return this.prisma.scanner.findUnique({ where: { id } });
   }
 
   /**
    * Get current leaderboard (active epoch)
    */
   async getCurrentLeaderboard(): Promise<LeaderboardDto | null> {
-    const activeEpoch = await this.epochRepo.findActive();
+    const activeEpoch = await this.findActive();
 
     if (!activeEpoch) {
       return null;
@@ -42,12 +62,12 @@ export class LeaderboardService {
    * Get leaderboard for specific epoch
    */
   async getLeaderboardForEpoch(epochId: string): Promise<LeaderboardDto> {
-    const epoch = await this.epochRepo.findById(epochId);
+    const epoch = await this.findEpochById(epochId);
     if (!epoch) {
       throw new Error(`Epoch ${epochId} not found`);
     }
 
-    const rankings = await this.epochRepo.getRankings(epochId);
+    const rankings = await this.getRankings(epochId);
 
     const baseAllocation = parseFloat(epoch.baseAllocation.toString());
     const multipliers: Record<number, number> = {
@@ -135,7 +155,7 @@ export class LeaderboardService {
    * Get scanner performance history
    */
   async getScannerStats(scannerId: string): Promise<ScannerStatsDto> {
-    const scanner = await this.scannerRepo.findById(scannerId);
+    const scanner = await this.findScannerById(scannerId);
     if (!scanner) {
       throw new Error(`Scanner ${scannerId} not found`);
     }
@@ -194,7 +214,7 @@ export class LeaderboardService {
    * Get global statistics
    */
   async getGlobalStats(): Promise<GlobalStatsDto> {
-    const epochs = await this.epochRepo.findAll();
+    const epochs = await this.findAllEpochs();
     
     const allRankings = await this.prisma.scannerRanking.findMany({
       include: { scanner: true }
@@ -224,10 +244,10 @@ export class LeaderboardService {
       acc[scannerId].totalCalls += ranking.totalCalls;
       acc[scannerId].totalWins += ranking.winningCalls;
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, { scannerId: string; scannerName: string; totalEarned: number; totalCalls: number; totalWins: number }>);
 
     const topScanner = Object.values(scannerTotals)
-      .sort((a: any, b: any) => b.totalEarned - a.totalEarned)[0] || null;
+      .sort((a, b) => b.totalEarned - a.totalEarned)[0] || null;
 
     return {
       totalEpochs: epochs.length,

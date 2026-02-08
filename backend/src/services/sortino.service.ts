@@ -37,13 +37,13 @@ export class SortinoService {
    */
   async calculateAgentSortino(agentId: string): Promise<AgentMetrics | null> {
     // Fetch closed trades with PnL from PaperTrade (FeedActivity is empty)
-    // Filter out ACTIVITY markers and zero-price junk records
+    // Filter out zero-price junk records
     const trades = await this.db.paperTrade.findMany({
       where: {
         agentId,
         status: 'CLOSED',
         pnl: { not: null },
-        NOT: [{ tokenSymbol: 'ACTIVITY' }, { entryPrice: 0 }],
+        NOT: { entryPrice: 0 },
       },
       orderBy: { openedAt: 'asc' },
     });
@@ -161,7 +161,7 @@ export class SortinoService {
       where: {
         status: 'CLOSED',
         pnl: { not: null },
-        NOT: [{ tokenSymbol: 'ACTIVITY' }, { entryPrice: 0 }],
+        NOT: { entryPrice: 0 },
       },
       select: { agentId: true },
       distinct: ['agentId'],

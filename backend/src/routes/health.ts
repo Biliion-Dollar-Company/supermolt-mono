@@ -130,7 +130,6 @@ health.post('/setup-observers', async (c) => {
           archetypeId: 'observer',
           name: agentData.name,
           status: 'ACTIVE',
-          paperBalance: 0,
           config: {
             persona: agentData.persona,
             strategy: agentData.strategy,

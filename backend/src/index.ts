@@ -7,7 +7,7 @@ import { env } from './lib/env';
 import { db } from './lib/db';
 import { HeliusWebSocketMonitor } from './services/helius-websocket.js';
 import { websocketEvents } from './services/websocket-events.js';
-import { createLeaderboardAdvanced } from './routes/leaderboard-advanced.js';
+
 import { createSortinoCron } from './services/sortino-cron.js';
 
 // Routes
@@ -106,7 +106,7 @@ app.route('/trades', trades);
 // Profile routes (GET is public, PUT requires auth)
 app.route('/profiles', profile);
 app.route('/feed', feed);
-app.route('/feed/leaderboard-advanced', createLeaderboardAdvanced(db)); // Advanced ranking
+
 app.route('/trades', copyTrade); // /trades/copy/* endpoints
 
 // Agent Coordination routes

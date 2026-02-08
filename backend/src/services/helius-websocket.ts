@@ -373,26 +373,6 @@ export class HeliusWebSocketMonitor {
         console.log(`✅ Updated agent: ${agent.id} (trades: ${agent.totalTrades})`);
       }
 
-      // Create activity record
-      await this.db.paperTrade.create({
-        data: {
-          agentId: agent.id,
-          tokenMint: pubkey,
-          tokenSymbol: 'ACTIVITY',
-          tokenName: 'Transaction',
-          action: 'BUY',
-          entryPrice: 0,
-          amount: 0,
-          tokenAmount: 0,
-          metadata: {
-            source: 'helius-ws-watch',
-            pubkey
-          },
-          signalSource: 'helius-ws',
-          confidence: 100
-        }
-      });
-
       console.log(`🎯 Agent on leaderboard: ${agent.id}`);
     } catch (error) {
       console.error(`❌ Failed to create/update agent:`, error);

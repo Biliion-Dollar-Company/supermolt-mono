@@ -352,7 +352,7 @@ export default function Home() {
         </div>
 
         {/* ═══════════ AGENT COORDINATION DEMO ═══════════ */}
-        <section className="container-colosseum py-8 sm:py-14">
+        <section className="container-colosseum pt-14 sm:pt-20 pb-8 sm:pb-14">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl">
             {/* Left: Section info */}
             <AnimatedSection className="flex flex-col justify-center">
@@ -509,7 +509,7 @@ function EpicCTA() {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden pb-4 sm:pb-6"
+      className="relative overflow-hidden pb-24 sm:pb-32"
     >
       {/* LaserFlow separator — extends upward into the previous section */}
       <div className="relative w-full h-[280px] sm:h-[360px] pointer-events-none overflow-hidden" style={{ transform: 'rotate(180deg)' }}>

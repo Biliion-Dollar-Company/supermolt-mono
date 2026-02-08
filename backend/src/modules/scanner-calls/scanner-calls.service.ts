@@ -5,7 +5,6 @@
  */
 
 import { Prisma } from '@prisma/client';
-import { ScannerRepository, EpochRepository } from '../../repositories';
 import { db } from '../../lib/db';
 import type {
   SubmitCallDto,
@@ -16,14 +15,31 @@ import type {
 } from './dto/scanner-call.dto';
 
 export class ScannerCallsService {
-  private scannerRepo: ScannerRepository;
-  private epochRepo: EpochRepository;
   private prisma: typeof db;
 
   constructor() {
     this.prisma = db;
-    this.scannerRepo = new ScannerRepository(this.prisma);
-    this.epochRepo = new EpochRepository(this.prisma);
+  }
+
+  // Inlined repository helpers
+  private async findScannerByAgentId(agentId: string) {
+    return this.prisma.scanner.findFirst({ where: { agentId } });
+  }
+
+  private async findActive() {
+    return this.prisma.scannerEpoch.findFirst({ where: { status: 'ACTIVE' } });
+  }
+
+  private async getOrCreateRanking(scannerId: string, epochId: string) {
+    const existing = await this.prisma.scannerRanking.findFirst({ where: { scannerId, epochId } });
+    if (existing) return existing;
+    return this.prisma.scannerRanking.create({
+      data: { scannerId, epochId, rank: 0 },
+    });
+  }
+
+  private async updateRankingById(id: string, data: Record<string, unknown>) {
+    return this.prisma.scannerRanking.update({ where: { id }, data });
   }
 
   /**
@@ -31,13 +47,13 @@ export class ScannerCallsService {
    */
   async submit(dto: SubmitCallDto): Promise<ScannerCallDto> {
     // Verify scanner exists
-    const scanner = await this.scannerRepo.findByAgentId(dto.scannerId);
+    const scanner = await this.findScannerByAgentId(dto.scannerId);
     if (!scanner) {
       throw new Error(`Scanner ${dto.scannerId} not found`);
     }
 
     // Get active epoch
-    const activeEpoch = await this.epochRepo.findActive();
+    const activeEpoch = await this.findActive();
     if (!activeEpoch) {
       throw new Error('No active epoch');
     }
@@ -59,7 +75,7 @@ export class ScannerCallsService {
     });
 
     // Get or create ranking for scanner in this epoch
-    await this.epochRepo.getOrCreateRanking(scanner.id, activeEpoch.id);
+    await this.getOrCreateRanking(scanner.id, activeEpoch.id);
 
     return this.mapCallToDto(call, scanner.name);
   }
@@ -107,7 +123,7 @@ export class ScannerCallsService {
    * Get scanner calls
    */
   async getScannerCalls(scannerId: string, limit = 50): Promise<ScannerCallsListDto> {
-    const scanner = await this.scannerRepo.findByAgentId(scannerId);
+    const scanner = await this.findScannerByAgentId(scannerId);
     if (!scanner) {
       throw new Error(`Scanner ${scannerId} not found`);
     }
@@ -185,7 +201,7 @@ export class ScannerCallsService {
     epochId: string,
     isWin: boolean
   ): Promise<void> {
-    const ranking = await this.epochRepo.getOrCreateRanking(scannerId, epochId);
+    const ranking = await this.getOrCreateRanking(scannerId, epochId);
 
     const newTotalCalls = ranking.totalCalls + 1;
     const newWins = ranking.winningCalls + (isWin ? 1 : 0);
@@ -195,7 +211,7 @@ export class ScannerCallsService {
     // Simple performance score (can be enhanced later)
     const performanceScore = newWinRate;
 
-    await this.epochRepo.updateRanking(ranking.id, {
+    await this.updateRankingById(ranking.id, {
       totalCalls: newTotalCalls,
       winningCalls: newWins,
       losingCalls: newLosses,

@@ -180,15 +180,15 @@ export async function getUSDCPool(): Promise<number> {
   return response.data.data?.usdcPool || 0;
 }
 
-// Get single agent
+// Get single agent (public arena endpoint)
 export async function getAgent(agentId: string): Promise<Agent> {
-  const response = await api.get<AgentDetailResponse>(`/agents/${agentId}`);
-  return response.data.agent;
+  const response = await api.get<{ success: boolean; data: Agent }>(`/arena/agents/${agentId}`);
+  return response.data.data;
 }
 
-// Get agent trades
+// Get agent trades (public arena endpoint)
 export async function getAgentTrades(agentId: string, limit = 50): Promise<Trade[]> {
-  const response = await api.get<TradesResponse>(`/trades/${agentId}`, {
+  const response = await api.get<TradesResponse>(`/arena/agents/${agentId}/trades`, {
     params: { limit },
   });
   return response.data.trades || [];
@@ -208,9 +208,9 @@ export async function getAllPositions(): Promise<Position[]> {
   return response.data.positions || [];
 }
 
-// Get agent positions
-export async function getAgentPositions(walletId: string): Promise<Position[]> {
-  const response = await api.get<PositionsResponse>(`/feed/agents/${walletId}/positions`);
+// Get agent positions (public arena endpoint)
+export async function getAgentPositions(agentId: string): Promise<Position[]> {
+  const response = await api.get<PositionsResponse>(`/arena/agents/${agentId}/positions`);
   return response.data.positions || [];
 }
 
@@ -307,8 +307,8 @@ export async function getMyAgent(): Promise<AgentMeResponse> {
 
 // Get agent profile by ID (public)
 export async function getAgentProfileById(agentId: string): Promise<AgentProfile> {
-  const response = await api.get<{ success: boolean; agent: AgentProfile }>(`/agent-auth/profile/${agentId}`);
-  return response.data.agent;
+  const response = await api.get<{ success: boolean; data: AgentProfile }>(`/agent-auth/profile/${agentId}`);
+  return response.data.data;
 }
 
 // Get XP leaderboard

@@ -28,6 +28,9 @@ import {
   getActiveVotes,
   getVoteDetail,
   getEpochRewards,
+  getAgentById,
+  getAgentTradesById,
+  getAgentPositionsById,
 } from './arena.service';
 import { db } from '../../lib/db';
 
@@ -154,6 +157,45 @@ app.get('/epoch/rewards', async (c) => {
       treasury: { balance: 0, distributed: 0, available: 0 },
       distributions: [],
     });
+  }
+});
+
+// ── Agent Detail (public) ────────────────────────────────
+
+app.get('/agents/:id', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const data = await getAgentById(id);
+    if (!data) {
+      return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Agent not found' } }, 404);
+    }
+    return c.json({ success: true, data });
+  } catch (error: any) {
+    console.error('Arena agent detail error:', error);
+    return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to load agent' } }, 500);
+  }
+});
+
+app.get('/agents/:id/trades', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const limit = parseInt(c.req.query('limit') || '50', 10);
+    const data = await getAgentTradesById(id, Math.min(limit, 500));
+    return c.json(data);
+  } catch (error: any) {
+    console.error('Arena agent trades error:', error);
+    return c.json({ trades: [] });
+  }
+});
+
+app.get('/agents/:id/positions', async (c) => {
+  try {
+    const id = c.req.param('id');
+    const data = await getAgentPositionsById(id);
+    return c.json(data);
+  } catch (error: any) {
+    console.error('Arena agent positions error:', error);
+    return c.json({ positions: [] });
   }
 });
 

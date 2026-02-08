@@ -146,40 +146,59 @@ export async function closePaperTrade(input: CloseTradeInput) {
       },
     });
 
-    // Recalculate agent stats (exclude ACTIVITY markers which are junk records)
-    const closedTradeFilter = {
-      agentId: trade.agentId,
-      status: 'CLOSED' as const,
-      NOT: { tokenSymbol: 'ACTIVITY' },
-    };
-
-    const stats = await tx.paperTrade.aggregate({
-      where: closedTradeFilter,
-      _count: true,
-      _sum: { pnl: true },
-    });
-
-    const winCount = await tx.paperTrade.count({
-      where: {
-        ...closedTradeFilter,
-        pnl: { gt: 0 },
-      },
-    });
-
-    const totalTrades = stats._count;
-    const winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
-    const totalPnl = stats._sum.pnl ?? new Decimal(0);
-
-    await tx.tradingAgent.update({
-      where: { id: trade.agentId },
-      data: {
-        totalTrades,
-        winRate,
-        totalPnl,
-        paperBalance: { increment: input.pnl },
-      },
-    });
+    await recalculateAgentStatsInTx(trade.agentId, tx, input.pnl);
 
     return closedTrade;
+  });
+}
+
+/**
+ * Recalculate agent stats (totalTrades, winRate, totalPnl) from CLOSED PaperTrades.
+ * Works inside an existing Prisma transaction context.
+ */
+async function recalculateAgentStatsInTx(
+  agentId: string,
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  pnlIncrement?: number
+) {
+  const closedTradeFilter = {
+    agentId,
+    status: 'CLOSED' as const,
+  };
+
+  const stats = await tx.paperTrade.aggregate({
+    where: closedTradeFilter,
+    _count: true,
+    _sum: { pnl: true },
+  });
+
+  const winCount = await tx.paperTrade.count({
+    where: {
+      ...closedTradeFilter,
+      pnl: { gt: 0 },
+    },
+  });
+
+  const totalTrades = stats._count;
+  const winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0;
+  const totalPnl = stats._sum.pnl ?? new Decimal(0);
+
+  await tx.tradingAgent.update({
+    where: { id: agentId },
+    data: {
+      totalTrades,
+      winRate,
+      totalPnl,
+    },
+  });
+}
+
+/**
+ * Recalculate agent stats standalone (outside an existing transaction).
+ * Used by webhooks.ts for partial trade splits.
+ */
+export async function recalculateAgentStats(agentId: string): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await recalculateAgentStatsInTx(agentId, tx);
   });
 }

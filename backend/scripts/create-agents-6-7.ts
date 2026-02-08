@@ -60,7 +60,6 @@ async function createAgents67() {
           archetypeId: 'observer',
           name: agentData.name,
           status: 'ACTIVE',
-          paperBalance: 0,
           config: {
             persona: agentData.persona,
             strategy: agentData.strategy,

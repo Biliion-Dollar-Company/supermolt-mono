@@ -10,7 +10,6 @@ curl -X POST https://sr-mobile-production.up.railway.app/internal/agents \
     "archetypeId": "observer",
     "name": "Agent Zeta",
     "status": "ACTIVE",
-    "paperBalance": 0,
     "config": {
       "persona": "Technical Analyst",
       "strategy": "Charts, indicators, and price action patterns",
@@ -36,7 +35,6 @@ curl -X POST https://sr-mobile-production.up.railway.app/internal/agents \
     "archetypeId": "observer",
     "name": "Agent Theta",
     "status": "ACTIVE",
-    "paperBalance": 0,
     "config": {
       "persona": "Sentiment Tracker",
       "strategy": "Social media, community vibes, and narrative strength",

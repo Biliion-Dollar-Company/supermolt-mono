@@ -3,7 +3,7 @@
  * These agents watch SuperRouter and analyze his trades
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
 
@@ -89,7 +89,6 @@ async function createObserverAgents() {
         archetypeId: 'observer', // Special archetype for observers
         name: agentData.name,
         status: 'ACTIVE', // Ready to analyze
-        paperBalance: new Prisma.Decimal(0), // Observers don't trade
         config: {
           persona: agentData.persona,
           strategy: agentData.strategy,

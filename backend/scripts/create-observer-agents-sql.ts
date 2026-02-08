@@ -73,14 +73,13 @@ for (const agentData of OBSERVER_AGENTS) {
 
   console.log(`-- ${agentData.emoji} ${agentData.name}`);
   console.log(`INSERT INTO "TradingAgent" (`);
-  console.log(`  "id", "userId", "archetypeId", "name", "status", "paperBalance", "config", "createdAt", "updatedAt"`);
+  console.log(`  "id", "userId", "archetypeId", "name", "status", "config", "createdAt", "updatedAt"`);
   console.log(`) VALUES (`);
   console.log(`  '${id}',`);
   console.log(`  '${publicKey}',`);
   console.log(`  'observer',`);
   console.log(`  '${agentData.name}',`);
   console.log(`  'ACTIVE',`);
-  console.log(`  0,`);
   console.log(`  '${config}'::jsonb,`);
   console.log(`  NOW(),`);
   console.log(`  NOW()`);

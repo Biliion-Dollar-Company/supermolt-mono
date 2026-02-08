@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { Prisma } from '@prisma/client';
 import * as jwt from 'jose';
 import * as siwsService from '../services/siws.service';
 import { getSkillPack } from '../services/skill-loader';
@@ -89,7 +88,6 @@ siwsAuthRoutes.post('/agent/verify', authLimiter, async (c) => {
           archetypeId: 'pending', // Will be set by user later
           name: `Agent-${pubkey.slice(0, 6)}`,
           status: 'TRAINING',
-          paperBalance: new Prisma.Decimal(10.0), // Start with 10 SOL paper trading
           config: {} // Will be populated when archetype is chosen
         }
       });

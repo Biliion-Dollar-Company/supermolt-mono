@@ -477,6 +477,12 @@ agentAuth.get('/profile/:agentId', async (c) => {
         telegram: true,
         website: true,
         config: true,
+        xp: true,
+        level: true,
+        totalPnl: true,
+        totalTrades: true,
+        winRate: true,
+        status: true,
         createdAt: true
       }
     });

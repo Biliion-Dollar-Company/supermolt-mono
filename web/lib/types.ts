@@ -29,7 +29,6 @@ export interface Profile {
   discord: string | null;
   telegram: string | null;
   status: string;
-  paperBalance: string;
   totalTrades: number;
   winRate: string;
   totalPnl: string;
@@ -249,7 +248,7 @@ export interface AgentMeResponse {
 
 export interface AgentTaskType {
   taskId: string;
-  tokenMint: string;
+  tokenMint: string | null;
   tokenSymbol?: string;
   taskType: string;
   title: string;

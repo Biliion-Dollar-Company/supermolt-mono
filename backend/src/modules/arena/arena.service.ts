@@ -82,7 +82,6 @@ export async function getLeaderboard() {
       by: ['agentId'],
       where: {
         agentId: { in: agentIds },
-        NOT: { tokenSymbol: 'ACTIVITY' },
       },
       _count: { agentId: true },
       _sum: { amount: true },
@@ -168,9 +167,9 @@ export async function getLeaderboard() {
 /** In-memory cache: mint → resolved symbol. Survives across requests, resets on redeploy. */
 const symbolCache = new Map<string, string>();
 
-/** Check if a symbol looks unresolved (UNKNOWN, ACTIVITY, or short mint stub) */
+/** Check if a symbol looks unresolved (UNKNOWN or short mint stub) */
 function isUnresolved(symbol: string | null | undefined): boolean {
-  if (!symbol || symbol === 'UNKNOWN' || symbol === 'ACTIVITY') return true;
+  if (!symbol || symbol === 'UNKNOWN') return true;
   // If it looks like a truncated mint (6 hex-ish chars), treat as unresolved
   if (symbol.length <= 6 && /^[1-9A-HJ-NP-Za-km-z]+$/.test(symbol)) return true;
   return false;
@@ -178,7 +177,7 @@ function isUnresolved(symbol: string | null | undefined): boolean {
 
 /** Resolve a single symbol synchronously from cache, or return short mint fallback */
 function resolveSymbol(symbol: string | null | undefined, mint: string): string {
-  if (symbol && symbol !== 'UNKNOWN' && symbol !== 'ACTIVITY') return symbol;
+  if (symbol && symbol !== 'UNKNOWN') return symbol;
   return symbolCache.get(mint) || mint.slice(0, 6);
 }
 
@@ -220,9 +219,6 @@ export async function getRecentTrades(limit: number) {
       take: limit,
     }),
     db.paperTrade.findMany({
-      where: {
-        NOT: { tokenSymbol: 'ACTIVITY' },
-      },
       orderBy: { openedAt: 'desc' },
       take: limit,
     }),
@@ -287,11 +283,8 @@ export async function getRecentTrades(limit: number) {
 // ── Positions ─────────────────────────────────────────────
 
 export async function getAllPositions() {
-  // Only filter ACTIVITY markers and zero-quantity positions.
-  // Allow UNKNOWN symbols (use short mint as display name) and zero entryPrice.
   const positions = await db.agentPosition.findMany({
     where: {
-      NOT: { tokenSymbol: 'ACTIVITY' },
       quantity: { gt: 0 },
     },
     orderBy: { openedAt: 'desc' },
@@ -715,6 +708,164 @@ export async function getEpochRewards() {
       available: Math.round((treasuryBalance - totalDistributed) * 100) / 100,
     },
     distributions,
+  };
+}
+
+// ── Agent By ID ───────────────────────────────────────────
+
+export async function getAgentById(agentId: string) {
+  const agent = await db.tradingAgent.findUnique({
+    where: { id: agentId },
+  });
+
+  if (!agent) return null;
+
+  // Get AgentStats for sortino ratio (agentId is @unique, no orderBy needed)
+  const stats = await db.agentStats.findUnique({
+    where: { agentId },
+  });
+
+  const { getLevelName } = await import('../../services/onboarding.service');
+
+  return {
+    agentId: agent.id,
+    agentName: agent.displayName || agent.name,
+    walletAddress: agent.userId,
+    xp: agent.xp,
+    level: agent.level,
+    levelName: getLevelName(agent.level),
+    sortino_ratio: stats ? parseFloat(stats.sortinoRatio.toString()) : 0,
+    win_rate: parseFloat(agent.winRate.toString()),
+    total_pnl: parseFloat(agent.totalPnl.toString()),
+    trade_count: agent.totalTrades,
+    total_volume: 0,
+    average_win: 0,
+    average_loss: 0,
+    max_win: 0,
+    max_loss: 0,
+    bio: agent.bio,
+    avatarUrl: agent.avatarUrl,
+    twitterHandle: agent.twitterHandle,
+    status: agent.status,
+    createdAt: agent.createdAt.toISOString(),
+    updatedAt: agent.updatedAt.toISOString(),
+  };
+}
+
+// ── Agent Trades By ID ────────────────────────────────────
+
+export async function getAgentTradesById(agentId: string, limit: number) {
+  const [agentTrades, paperTrades] = await Promise.all([
+    db.agentTrade.findMany({
+      where: { agentId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    }),
+    db.paperTrade.findMany({
+      where: { agentId },
+      orderBy: { openedAt: 'desc' },
+      take: limit,
+    }),
+  ]);
+
+  // Batch-resolve unknown symbols
+  await batchResolveSymbols([
+    ...agentTrades.map((t) => ({ symbol: t.tokenSymbol, mint: t.tokenMint })),
+    ...paperTrades.map((t) => ({ symbol: t.tokenSymbol, mint: t.tokenMint })),
+  ]);
+
+  const mapped = agentTrades.map((t) => ({
+    tradeId: t.id,
+    agentId: t.agentId,
+    tokenMint: t.tokenMint,
+    tokenSymbol: resolveSymbol(t.tokenSymbol, t.tokenMint),
+    action: t.action as 'BUY' | 'SELL',
+    quantity: parseFloat(t.tokenAmount.toString()),
+    entryPrice: parseFloat(t.solAmount.toString()),
+    exitPrice: undefined as number | undefined,
+    pnl: 0,
+    pnlPercent: 0,
+    txHash: t.signature,
+    timestamp: t.createdAt.toISOString(),
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.createdAt.toISOString(),
+  }));
+
+  const seenSigs = new Set(agentTrades.map((t) => t.signature));
+
+  for (const t of paperTrades) {
+    const sig = (t.metadata as any)?.signature;
+    if (sig && seenSigs.has(sig)) continue;
+
+    mapped.push({
+      tradeId: t.id,
+      agentId: t.agentId,
+      tokenMint: t.tokenMint,
+      tokenSymbol: resolveSymbol(t.tokenSymbol, t.tokenMint),
+      action: t.action as 'BUY' | 'SELL',
+      quantity: t.tokenAmount ? parseFloat(t.tokenAmount.toString()) : parseFloat(t.amount.toString()),
+      entryPrice: parseFloat(t.entryPrice.toString()),
+      exitPrice: t.exitPrice ? parseFloat(t.exitPrice.toString()) : undefined,
+      pnl: t.pnl ? parseFloat(t.pnl.toString()) : 0,
+      pnlPercent: t.pnlPercent ? parseFloat(t.pnlPercent.toString()) : 0,
+      txHash: sig || `tx_${t.id}`,
+      timestamp: t.openedAt.toISOString(),
+      createdAt: t.openedAt.toISOString(),
+      updatedAt: (t.closedAt ?? t.openedAt).toISOString(),
+    });
+  }
+
+  mapped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return { trades: mapped.slice(0, limit) };
+}
+
+// ── Agent Positions By ID ─────────────────────────────────
+
+export async function getAgentPositionsById(agentId: string) {
+  const agent = await db.tradingAgent.findUnique({
+    where: { id: agentId },
+    select: { userId: true, name: true, displayName: true },
+  });
+
+  if (!agent) return { positions: [] };
+
+  const positions = await db.agentPosition.findMany({
+    where: {
+      agentId,
+      quantity: { gt: 0 },
+    },
+    orderBy: { openedAt: 'desc' },
+  });
+
+  await batchResolveSymbols(
+    positions.map((p) => ({ symbol: p.tokenSymbol, mint: p.tokenMint }))
+  );
+
+  const agentName = agent.displayName || agent.name;
+
+  return {
+    positions: positions.map((pos) => {
+      const quantity = parseFloat(pos.quantity.toString());
+      const entryPrice = parseFloat(pos.entryPrice.toString());
+      const currentValue = pos.currentValue ? parseFloat(pos.currentValue.toString()) : quantity * entryPrice;
+      const currentPrice = quantity > 0 ? currentValue / quantity : entryPrice;
+
+      return {
+        positionId: pos.id,
+        agentId: pos.agentId,
+        agentName,
+        tokenMint: pos.tokenMint,
+        tokenSymbol: resolveSymbol(pos.tokenSymbol, pos.tokenMint),
+        quantity,
+        entryPrice,
+        currentPrice,
+        currentValue,
+        pnl: pos.pnl ? parseFloat(pos.pnl.toString()) : 0,
+        pnlPercent: pos.pnlPercent ? parseFloat(pos.pnlPercent.toString()) : 0,
+        openedAt: pos.openedAt.toISOString(),
+      };
+    }),
   };
 }
 

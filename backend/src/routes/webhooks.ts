@@ -4,7 +4,7 @@ import { extractSwapsFromTransaction } from '../lib/swap-parser';
 import { getTokenPrice } from '../lib/birdeye';
 import { PositionTracker } from '../services/position-tracker';
 import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-observer';
-import { closePaperTrade } from '../services/trade.service';
+import { closePaperTrade, recalculateAgentStats } from '../services/trade.service';
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
 import { db } from '../lib/db';
 const positionTracker = new PositionTracker(db);
@@ -112,16 +112,18 @@ async function safeCreateAgentTrade(agentId: string, data: {
 }
 
 /**
- * Close all OPEN PaperTrades for an agent+token when the position is fully exited.
- * Distributes sale proceeds proportionally across trades by cost basis.
- * Uses closePaperTrade() for atomic agent stats recalculation.
+ * FIFO partial close: close PaperTrades proportionally for any sell (partial or full).
+ * Walks OPEN PaperTrades in FIFO order (oldest first), consuming tokens sold.
+ * - Fully consumed trades: closed via closePaperTrade() with PnL
+ * - Partially consumed trades: split — original reduced, new CLOSED trade created
  */
-async function closeMatchingPaperTrades(
+async function closePaperTradesForSell(
   agentId: string,
   tokenMint: string,
+  tokensSold: number,
   solReceived: number,
   currentSolPrice: number
-) {
+): Promise<void> {
   const openTrades = await db.paperTrade.findMany({
     where: { agentId, tokenMint, status: 'OPEN' },
     orderBy: { openedAt: 'asc' },
@@ -132,37 +134,93 @@ async function closeMatchingPaperTrades(
     return;
   }
 
-  console.log(`[PNL] Closing ${openTrades.length} PaperTrades for ${tokenMint.slice(0, 8)}...`);
+  if (tokensSold <= 0) {
+    console.log(`[PNL] tokensSold is 0 — skipping`);
+    return;
+  }
 
-  // Calculate total cost basis across all open trades for proportional split
-  const totalCostBasis = openTrades.reduce((sum, t) => {
-    const solSpent = parseFloat(t.amount.toString());
-    const solPriceAtBuy = parseFloat(t.entryPrice.toString());
-    return sum + solSpent * solPriceAtBuy;
-  }, 0);
+  console.log(`[PNL] FIFO closing ${tokensSold} tokens across ${openTrades.length} PaperTrades for ${tokenMint.slice(0, 8)}...`);
+
+  let remaining = tokensSold;
 
   for (const trade of openTrades) {
+    if (remaining <= 0) break;
+
+    const tradeTokens = parseFloat((trade.tokenAmount ?? 0).toString());
+    if (tradeTokens <= 0) continue; // skip junk trades with no token amount
+
+    const tokensToClose = Math.min(remaining, tradeTokens);
+    const fraction = tokensToClose / tradeTokens;
+
+    // PnL calculation
     const solSpent = parseFloat(trade.amount.toString());
     const solPriceAtBuy = parseFloat(trade.entryPrice.toString());
-    const costBasisUSD = solSpent * solPriceAtBuy;
-
-    let pnl = 0;
-    let pnlPercent = 0;
-    const exitPrice = currentSolPrice;
-
-    if (costBasisUSD > 0 && solReceived > 0 && currentSolPrice > 0 && totalCostBasis > 0) {
-      const share = costBasisUSD / totalCostBasis;
-      const proceedsUSD = solReceived * currentSolPrice * share;
-      pnl = proceedsUSD - costBasisUSD;
-      pnlPercent = (pnl / costBasisUSD) * 100;
-    }
+    const costBasisUSD = solSpent * fraction * solPriceAtBuy;
+    const fractionOfSell = tokensSold > 0 ? tokensToClose / tokensSold : 0;
+    const proceedsUSD = solReceived * fractionOfSell * currentSolPrice;
+    const pnl = costBasisUSD > 0 ? proceedsUSD - costBasisUSD : 0;
+    const pnlPercent = costBasisUSD > 0 ? (pnl / costBasisUSD) * 100 : 0;
 
     try {
-      await closePaperTrade({ tradeId: trade.id, exitPrice, pnl, pnlPercent });
-      console.log(`  [PNL] Closed ${trade.id.slice(0, 8)}: PnL $${pnl.toFixed(2)} (${pnlPercent.toFixed(1)}%)`);
+      if (fraction >= 0.999) {
+        // ── Full close: consume entire PaperTrade ──
+        await closePaperTrade({
+          tradeId: trade.id,
+          exitPrice: currentSolPrice,
+          pnl,
+          pnlPercent,
+        });
+        console.log(`  [PNL] Fully closed ${trade.id.slice(0, 8)}: PnL $${pnl.toFixed(2)} (${pnlPercent.toFixed(1)}%)`);
+      } else {
+        // ── Partial close: split the PaperTrade ──
+        // 1. Reduce original trade to remainder
+        const remainderFraction = 1 - fraction;
+        await db.paperTrade.update({
+          where: { id: trade.id },
+          data: {
+            tokenAmount: tradeTokens * remainderFraction,
+            amount: solSpent * remainderFraction,
+          },
+        });
+
+        // 2. Create new CLOSED PaperTrade for the sold portion
+        await db.paperTrade.create({
+          data: {
+            agentId: trade.agentId,
+            tokenMint: trade.tokenMint,
+            tokenSymbol: trade.tokenSymbol,
+            tokenName: trade.tokenName,
+            action: trade.action,
+            entryPrice: parseFloat(trade.entryPrice.toString()),
+            amount: solSpent * fraction,
+            tokenAmount: tokensToClose,
+            exitPrice: currentSolPrice,
+            pnl,
+            pnlPercent,
+            status: 'CLOSED',
+            closedAt: new Date(),
+            openedAt: trade.openedAt,
+            signalSource: trade.signalSource,
+            confidence: trade.confidence,
+            marketCap: trade.marketCap ? parseFloat(trade.marketCap.toString()) : null,
+            liquidity: trade.liquidity ? parseFloat(trade.liquidity.toString()) : null,
+            metadata: (trade.metadata ?? {}) as Record<string, string | number | boolean | null>,
+          },
+        });
+
+        // 3. Recalculate agent stats
+        await recalculateAgentStats(agentId);
+        console.log(`  [PNL] Split ${trade.id.slice(0, 8)}: closed ${tokensToClose.toFixed(2)} tokens, PnL $${pnl.toFixed(2)} (${pnlPercent.toFixed(1)}%), ${(tradeTokens * remainderFraction).toFixed(2)} remaining`);
+      }
     } catch (e) {
-      console.error(`  [PNL] Failed to close trade ${trade.id}:`, e);
+      console.error(`  [PNL] Failed to close/split trade ${trade.id}:`, e);
     }
+
+    remaining -= tokensToClose;
+  }
+
+  if (remaining > 0) {
+    console.warn(`[PNL] ${remaining.toFixed(2)} tokens sold but no matching OPEN PaperTrades — possible data gap`);
   }
 }
 
@@ -288,22 +346,17 @@ async function createTradeRecord(
         signature: swapData.signature,
       });
 
-      // Update position FIRST (may delete if fully closed)
+      // Update position (may delete if fully closed)
       await positionTracker.onSell(
         agent.id, tokenMint, swapData.inputAmount, inputPrice?.priceUsd || 0
       );
 
-      // Check if position is now fully closed
-      const positionStillExists = await db.agentPosition.findUnique({
-        where: { agentId_tokenMint: { agentId: agent.id, tokenMint } }
-      });
-
-      if (!positionStillExists) {
-        // Position fully closed — close all OPEN PaperTrades for this token with PnL
-        await closeMatchingPaperTrades(agent.id, tokenMint, solReceived, currentSolPrice);
-      } else {
-        console.log(`[TRADE] Partial sell — position still open for ${tokenMint.slice(0, 8)}...`);
-      }
+      // FIFO close PaperTrades proportionally (works for both partial and full sells)
+      await closePaperTradesForSell(
+        agent.id, tokenMint,
+        swapData.inputAmount,   // tokens sold
+        solReceived, currentSolPrice
+      );
 
       console.log(`[TRADE] SELL recorded: ${swapData.inputAmount} ${tokenSymbol} → ${solReceived} SOL`);
 
@@ -333,14 +386,12 @@ async function createTradeRecord(
         agent.id, inputMint, swapData.inputAmount, inputPrice?.priceUsd || 0
       );
 
-      // Check if input token position is fully closed
-      const inputPosExists = await db.agentPosition.findUnique({
-        where: { agentId_tokenMint: { agentId: agent.id, tokenMint: inputMint } }
-      });
-      if (!inputPosExists) {
-        // Close PaperTrades for the sold token (no SOL proceeds — token-to-token)
-        await closeMatchingPaperTrades(agent.id, inputMint, 0, 0);
-      }
+      // FIFO close PaperTrades for the sold token (no SOL proceeds — token-to-token)
+      await closePaperTradesForSell(
+        agent.id, inputMint,
+        swapData.inputAmount,  // tokens sold
+        0, 0                   // no SOL proceeds for token-to-token
+      );
 
       // Buy side: create PaperTrade for output token + update position
       await db.paperTrade.create({

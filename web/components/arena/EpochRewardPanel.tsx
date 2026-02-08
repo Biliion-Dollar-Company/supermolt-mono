@@ -51,7 +51,7 @@ function AllocationRow({ alloc, rank }: { alloc: AgentAllocation; rank: number }
       <div className="w-6 flex-shrink-0 flex justify-center">
         {isCompleted && alloc.txSignature ? (
           <a
-            href={`https://explorer.solana.com/tx/${alloc.txSignature}?cluster=devnet`}
+            href={`https://explorer.solana.com/tx/${alloc.txSignature}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-green-400 hover:text-green-300 transition-colors"
@@ -220,7 +220,7 @@ export function EpochRewardPanel() {
             {distributions.slice(0, 3).map((d) => (
               <a
                 key={d.txSignature}
-                href={`https://explorer.solana.com/tx/${d.txSignature}?cluster=devnet`}
+                href={`https://explorer.solana.com/tx/${d.txSignature}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-xs text-text-muted hover:text-accent-primary transition-colors group"

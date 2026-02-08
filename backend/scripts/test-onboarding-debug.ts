@@ -35,7 +35,6 @@ async function debugOnboardingTasks() {
         name: 'Test Agent Debug',
         archetypeId: 'pending',
         status: 'TRAINING',
-        paperBalance: 10.0,
         config: {}
       }
     });

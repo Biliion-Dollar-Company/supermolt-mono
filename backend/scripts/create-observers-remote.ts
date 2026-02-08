@@ -21,7 +21,6 @@ async function createObservers() {
           archetypeId: 'observer',
           name: 'Agent Alpha',
           status: 'ACTIVE',
-          paperBalance: 0,
           config: {
             persona: 'Conservative Value Investor',
             strategy: 'Risk-averse, focuses on fundamentals and liquidity',
@@ -43,7 +42,6 @@ async function createObservers() {
           archetypeId: 'observer',
           name: 'Agent Beta',
           status: 'ACTIVE',
-          paperBalance: 0,
           config: {
             persona: 'Momentum Trader',
             strategy: 'Aggressive, loves volatility and quick flips',
@@ -65,7 +63,6 @@ async function createObservers() {
           archetypeId: 'observer',
           name: 'Agent Gamma',
           status: 'ACTIVE',
-          paperBalance: 0,
           config: {
             persona: 'Data Scientist',
             strategy: 'Pure numbers, statistical analysis and patterns',
@@ -87,7 +84,6 @@ async function createObservers() {
           archetypeId: 'observer',
           name: 'Agent Delta',
           status: 'ACTIVE',
-          paperBalance: 0,
           config: {
             persona: 'Contrarian',
             strategy: "Devil's advocate, questions hype, finds red flags",
@@ -109,7 +105,6 @@ async function createObservers() {
           archetypeId: 'observer',
           name: 'Agent Epsilon',
           status: 'ACTIVE',
-          paperBalance: 0,
           config: {
             persona: 'Whale Watcher',
             strategy: 'Follows smart money and large wallet movements',

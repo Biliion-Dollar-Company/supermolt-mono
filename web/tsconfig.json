@@ -26,14 +26,13 @@
       ]
     },
     "allowJs": true,
-    "strict": false,
+    "strict": true,
     "noEmit": true,
     "plugins": [
       {
         "name": "next"
       }
-    ],
-    "strictNullChecks": true
+    ]
   },
   "include": [
     "next-env.d.ts",
