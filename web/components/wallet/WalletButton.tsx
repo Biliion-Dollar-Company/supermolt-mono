@@ -32,7 +32,7 @@ export default function WalletButton() {
         className="flex items-center gap-2 px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium"
       >
         <Wallet className="w-4 h-4" />
-        Connect Wallet
+        Connect
       </button>
     );
   }

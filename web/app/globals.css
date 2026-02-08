@@ -361,4 +361,26 @@
   .animate-vertical-marquee.paused {
     animation-play-state: paused;
   }
+
+  /* 🔲 Fading border — glows along edges, fades at corners */
+  .border-fade {
+    position: relative;
+    border: none !important;
+  }
+
+  .border-fade::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, white 30%, white 70%, transparent),
+      linear-gradient(to bottom, transparent, white 30%, white 70%, transparent);
+    -webkit-mask-composite: destination-in;
+    mask-image:
+      linear-gradient(to right, transparent, white 30%, white 70%, transparent),
+      linear-gradient(to bottom, transparent, white 30%, white 70%, transparent);
+    mask-composite: intersect;
+  }
 }

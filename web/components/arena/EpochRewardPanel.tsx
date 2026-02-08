@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { Trophy, ExternalLink, Clock, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
+import { Trophy, ExternalLink, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { getEpochRewards } from '@/lib/api';
 import { EpochReward, AgentAllocation } from '@/lib/types';
 
@@ -29,22 +30,22 @@ function AllocationRow({ alloc, rank }: { alloc: AgentAllocation; rank: number }
       isCompleted ? 'bg-green-500/[0.03]' : isFailed ? 'bg-red-500/[0.03]' : ''
     }`}>
       {/* Rank */}
-      <span className={`text-xs font-mono w-5 text-center flex-shrink-0 ${
+      <span className={`text-sm font-mono w-6 text-center flex-shrink-0 ${
         rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-text-muted'
       }`}>
-        {rank <= 3 ? <Trophy className="w-3 h-3 inline" /> : `#${rank}`}
+        {rank <= 3 ? <Trophy className="w-4 h-4 inline" /> : `#${rank}`}
       </span>
 
       {/* Agent Name */}
       <div className="flex-1 min-w-0">
-        <span className="text-sm text-text-primary truncate block">{alloc.agentName}</span>
-        <span className="text-xs text-text-muted font-mono">{alloc.multiplier}x</span>
+        <span className="text-base text-text-primary truncate block">{alloc.agentName}</span>
       </div>
 
-      {/* USDC Amount */}
-      <div className="text-right flex-shrink-0">
-        <span className="text-sm font-mono text-accent-primary">{alloc.usdcAmount.toFixed(2)}</span>
-        <span className="text-xs text-text-muted ml-1">USDC</span>
+      {/* USDC Amount + Multiplier Badge */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span className="text-base font-mono text-accent-primary">{alloc.usdcAmount.toFixed(2)}</span>
+        <Image src="/icons/usdc.png" alt="USDC" width={18} height={18} className="inline-block" />
+        <span className="text-[10px] font-mono text-text-muted bg-white/[0.06] px-1.5 py-0.5 rounded-full">{alloc.multiplier}x</span>
       </div>
 
       {/* Status Icon / TX Link */}
@@ -61,9 +62,7 @@ function AllocationRow({ alloc, rank }: { alloc: AgentAllocation; rank: number }
           </a>
         ) : isFailed ? (
           <AlertCircle className="w-4 h-4 text-red-400" />
-        ) : (
-          <span className="text-xs text-text-muted italic">est.</span>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -152,7 +151,7 @@ export function EpochRewardPanel() {
 
   if (loading) {
     return (
-      <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+      <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
         <div className="h-6 w-48 bg-white/[0.02] animate-pulse rounded mb-4" />
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -172,18 +171,7 @@ export function EpochRewardPanel() {
   const totalProjected = allocations.reduce((sum, a) => sum + a.usdcAmount, 0);
 
   return (
-    <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
-      {/* Epoch Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-accent-primary" />
-          <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-            Epoch Rewards
-          </h2>
-        </div>
-        <StatusBadge status={epoch.status} />
-      </div>
-
+    <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
       {/* Epoch Info */}
       <div className="mb-4">
         <div className="text-lg font-bold text-text-primary">{epoch.name}</div>
@@ -198,14 +186,15 @@ export function EpochRewardPanel() {
       </div>
 
       {/* USDC Pool Display */}
-      <div className="flex items-baseline gap-2 mb-4 pb-4 border-b border-white/[0.06]">
-        <span className="text-2xl font-bold font-mono text-accent-primary">
-          {epoch.usdcPool.toFixed(2)}
+      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
+        <Image src="/icons/usdc.png" alt="USDC" width={32} height={32} />
+        <span className="text-3xl font-bold font-mono text-accent-primary">
+          {Math.round(epoch.usdcPool)}
         </span>
-        <span className="text-sm text-text-muted">USDC Pool</span>
+        <span className="text-sm text-text-muted">Pool</span>
         {treasury.balance > 0 && (
           <span className="text-xs text-text-muted ml-auto">
-            Treasury: {treasury.balance.toFixed(2)} USDC
+            Treasury: {treasury.balance.toFixed(2)}
           </span>
         )}
       </div>
@@ -217,8 +206,8 @@ export function EpochRewardPanel() {
             <span className="text-xs text-text-muted uppercase tracking-wider">
               {hasDistributions ? 'Distributions' : 'Projected Allocations'}
             </span>
-            <span className="text-xs font-mono text-text-muted">
-              {totalProjected.toFixed(2)} USDC total
+            <span className="flex items-center gap-1 text-xs font-mono text-text-muted">
+              {totalProjected.toFixed(2)} <Image src="/icons/usdc.png" alt="USDC" width={12} height={12} className="inline-block" /> total
             </span>
           </div>
 

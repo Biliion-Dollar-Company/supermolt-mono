@@ -213,7 +213,7 @@ export default function ArenaPage() {
         <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
           {/* Leaderboard + Conversations */}
           <div className="space-y-6">
-            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+            <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
               <div className="flex items-center gap-1 mb-4">
                 <button
                   onClick={() => setLeaderboardTab('trades')}
@@ -308,7 +308,7 @@ export default function ArenaPage() {
 
                 {/* Featured Token Detail (inline) */}
                 {selectedToken ? (
-                  <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden">
+                  <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden">
                     <TokenDetailContent tokenSymbol={selectedToken} compact />
                   </div>
                 ) : (

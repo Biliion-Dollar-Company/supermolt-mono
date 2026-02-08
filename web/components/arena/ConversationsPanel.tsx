@@ -57,7 +57,7 @@ export function ConversationsPanel() {
 
   if (loading) {
     return (
-      <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
+      <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="h-4 w-32 bg-white/[0.04] animate-pulse rounded" />
           <div className="flex-1 h-12 bg-white/[0.02] animate-pulse rounded" />
@@ -67,7 +67,7 @@ export function ConversationsPanel() {
   }
 
   return (
-    <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+    <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
