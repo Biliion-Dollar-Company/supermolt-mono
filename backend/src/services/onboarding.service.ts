@@ -50,9 +50,26 @@ export function getXPForNextLevel(level: number): number {
  * with an auto-claimed AgentTaskCompletion(status=PENDING).
  */
 export async function createOnboardingTasks(agentId: string): Promise<string[]> {
+  console.log(`🔧 createOnboardingTasks() called for agent: ${agentId}`);
+  
   const onboardingSkills = getSkillsByCategory('onboarding');
+  console.log(`📚 Found ${onboardingSkills.length} onboarding skills`);
+  
   if (onboardingSkills.length === 0) {
-    console.warn('No onboarding skills loaded — skipping task creation');
+    console.warn('⚠️  No onboarding skills loaded — skipping task creation');
+    return [];
+  }
+
+  // Verify agent exists first
+  try {
+    const agent = await db.tradingAgent.findUnique({ where: { id: agentId } });
+    if (!agent) {
+      console.error(`❌ Agent ${agentId} not found in database - cannot create tasks`);
+      return [];
+    }
+    console.log(`✅ Agent ${agentId} verified (name: ${agent.name})`);
+  } catch (error: any) {
+    console.error(`❌ Failed to verify agent ${agentId}:`, error.message);
     return [];
   }
 
@@ -60,6 +77,8 @@ export async function createOnboardingTasks(agentId: string): Promise<string[]> 
 
   for (const skill of onboardingSkills) {
     try {
+      console.log(`  📝 Creating task: ${skill.name} (${skill.title})...`);
+      
       const task = await db.agentTask.create({
         data: {
           tokenMint: null,
@@ -73,8 +92,10 @@ export async function createOnboardingTasks(agentId: string): Promise<string[]> 
           expiresAt: null, // Onboarding tasks don't expire
         },
       });
+      console.log(`  ✅ Task created: ${task.id}`);
 
       // Auto-claim for this agent
+      console.log(`  🔗 Auto-claiming for agent ${agentId}...`);
       await db.agentTaskCompletion.create({
         data: {
           taskId: task.id,
@@ -83,14 +104,21 @@ export async function createOnboardingTasks(agentId: string): Promise<string[]> 
           proof: {},
         },
       });
+      console.log(`  ✅ Completion created`);
 
       taskIds.push(task.id);
-    } catch (error) {
-      console.error(`Failed to create onboarding task ${skill.name}:`, error);
+    } catch (error: any) {
+      console.error(`❌ Failed to create onboarding task ${skill.name}:`);
+      console.error(`   Error message: ${error.message}`);
+      console.error(`   Error code: ${error.code}`);
+      if (error.meta) {
+        console.error(`   Error meta:`, JSON.stringify(error.meta, null, 2));
+      }
+      console.error(`   Full error:`, error);
     }
   }
 
-  console.log(`Created ${taskIds.length} onboarding tasks for agent ${agentId}`);
+  console.log(`✅ Created ${taskIds.length}/${onboardingSkills.length} onboarding tasks for agent ${agentId}`);
   return taskIds;
 }
 
