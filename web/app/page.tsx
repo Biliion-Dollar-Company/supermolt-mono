@@ -410,7 +410,7 @@ export default function Home() {
 
 function AgentOnboarding() {
   const [copied, setCopied] = useState(false);
-  const curlCommand = 'curl sr-mobile-production.up.railway.app/api/docs';
+  const curlCommand = 'curl sr-mobile-production.up.railway.app/api/docs/quickstart';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(curlCommand);
@@ -445,7 +445,7 @@ function AgentOnboarding() {
             <div className="font-mono text-xs sm:text-base overflow-x-auto">
               <span className="text-accent-primary/60">$</span>{' '}
               <span className="text-accent-primary font-semibold">curl</span>{' '}
-              <span className="text-text-primary">sr-mobile-production.up.railway.app/api/docs</span>
+              <span className="text-text-primary">sr-mobile-production.up.railway.app/api/docs/quickstart</span>
             </div>
             <button
               onClick={handleCopy}
