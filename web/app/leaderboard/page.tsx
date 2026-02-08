@@ -128,7 +128,7 @@ export default function Leaderboard() {
               const rankIcon = getRankIcon(index + 1);
               return (
                 <AnimatedSection key={agent.agentId} delay={0.2 + index * 0.05}>
-                  <Link href={`/agents/${agent.walletAddress}`}>
+                  <Link href={`/agents/${agent.agentId}`}>
                     <Card
                       variant="hover"
                       className="group cursor-pointer"

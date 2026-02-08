@@ -8,3 +8,4 @@ export { MyAgentPanel } from './MyAgentPanel';
 export { XPProgressBar } from './XPProgressBar';
 export { OnboardingChecklist } from './OnboardingChecklist';
 export { XPLeaderboard } from './XPLeaderboard';
+export { ConversationsPanel } from './ConversationsPanel';

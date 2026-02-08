@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import {
@@ -96,20 +96,22 @@ function FlowCard({
       whileInView={{ opacity: 1, x: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
-      className={`relative w-full lg:max-w-[52%] ${alignment} transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-40'}`}
+      className={`relative w-full lg:max-w-[52%] ${alignment}`}
     >
+      {/* Active/inactive opacity wrapper (separate from framer-motion entrance) */}
+      <div className={`transition-opacity duration-500 ease-out ${isActive ? 'opacity-100' : 'opacity-40'}`}>
       {/* Card */}
       <div className={`
         relative overflow-hidden rounded-2xl
-        backdrop-blur-md transition-all duration-500
+        backdrop-blur-md transition-[border-color,background-color,box-shadow] duration-500
         ${isActive
           ? 'bg-white/[0.05] border-2 border-[#E8B45E]/40 shadow-[0_0_50px_-10px_rgba(232,180,94,0.35)]'
-          : 'bg-white/[0.02] border-2 border-white/[0.08]'
+          : 'bg-white/[0.02] border-2 border-white/[0.08] shadow-none'
         }
       `}>
         {/* Accent line at top */}
-        <div className={`absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent to-transparent transition-all duration-500 ${
-          isActive ? 'via-[#E8B45E]/60' : 'via-white/[0.08]'
+        <div className={`absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent to-transparent transition-opacity duration-500 ${
+          isActive ? 'via-[#E8B45E]/60 opacity-100' : 'via-white/[0.08] opacity-40'
         }`} />
 
         <div className="px-8 sm:px-10 pt-7 pb-7">
@@ -148,6 +150,7 @@ function FlowCard({
           )}
         </div>
       </div>
+      </div>
     </motion.div>
   );
 }
@@ -156,6 +159,8 @@ function FlowCard({
 export default function TreasuryFlowPage() {
   const [activeStep, setActiveStep] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const activeStepRef = useRef(activeStep);
+  activeStepRef.current = activeStep;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -166,7 +171,7 @@ export default function TreasuryFlowPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        let bestStep = activeStep;
+        let bestStep = activeStepRef.current;
         let bestRatio = 0;
 
         for (const entry of entries) {
@@ -176,7 +181,7 @@ export default function TreasuryFlowPage() {
           }
         }
 
-        if (bestRatio > 0) {
+        if (bestRatio > 0 && bestStep !== activeStepRef.current) {
           setActiveStep(bestStep);
         }
       },
@@ -189,7 +194,7 @@ export default function TreasuryFlowPage() {
 
     cards.forEach((card) => observer.observe(card));
     return () => observer.disconnect();
-  }, [activeStep]);
+  }, []);
 
   return (
     <ActiveStepContext.Provider value={activeStep}>

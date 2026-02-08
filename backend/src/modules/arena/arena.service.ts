@@ -411,6 +411,68 @@ export async function getConversationMessages(conversationId: string) {
   };
 }
 
+// ── Agent Conversations ───────────────────────────────────
+
+export async function getAgentConversations(agentId: string) {
+  // Find all conversations this agent has participated in
+  const messages = await db.agentMessage.findMany({
+    where: { agentId },
+    select: { conversationId: true },
+    distinct: ['conversationId'],
+  });
+
+  const convIds = messages.map((m) => m.conversationId);
+  if (convIds.length === 0) return { conversations: [] };
+
+  const conversations = await db.agentConversation.findMany({
+    where: { id: { in: convIds } },
+    include: {
+      messages: {
+        take: 1,
+        orderBy: { timestamp: 'desc' },
+      },
+      _count: {
+        select: { messages: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // Parallel: participant counts + per-agent message counts
+  const [allMsgs, agentMsgCounts] = await Promise.all([
+    db.agentMessage.findMany({
+      where: { conversationId: { in: convIds } },
+      select: { conversationId: true, agentId: true },
+      distinct: ['conversationId', 'agentId'],
+    }),
+    db.agentMessage.groupBy({
+      by: ['conversationId'],
+      where: { agentId, conversationId: { in: convIds } },
+      _count: { id: true },
+    }),
+  ]);
+
+  const participantCounts = new Map<string, number>();
+  for (const m of allMsgs) {
+    participantCounts.set(m.conversationId, (participantCounts.get(m.conversationId) ?? 0) + 1);
+  }
+  const agentMsgMap = new Map(agentMsgCounts.map((c) => [c.conversationId, c._count.id]));
+
+  return {
+    conversations: conversations.map((conv) => ({
+      conversationId: conv.id,
+      topic: conv.topic,
+      tokenMint: conv.tokenMint ?? undefined,
+      participantCount: participantCounts.get(conv.id) ?? 0,
+      messageCount: conv._count.messages,
+      lastMessage: conv.messages[0]?.message ?? undefined,
+      lastMessageAt: conv.messages[0]?.timestamp.toISOString() ?? conv.createdAt.toISOString(),
+      agentMessageCount: agentMsgMap.get(conv.id) ?? 0,
+      createdAt: conv.createdAt.toISOString(),
+    })),
+  };
+}
+
 // ── Votes (all) ───────────────────────────────────────────
 
 export async function getAllVotes() {

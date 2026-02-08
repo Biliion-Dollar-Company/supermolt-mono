@@ -45,3 +45,4 @@ prisma/.env
 
 # Bun
 .bun
+.env.colosseum

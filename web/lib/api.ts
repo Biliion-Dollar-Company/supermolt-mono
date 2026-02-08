@@ -25,6 +25,8 @@ import {
   AgentMeResponse,
   AgentProfile,
   XPLeaderboardEntry,
+  AgentConversationSummary,
+  AgentTaskCompletionDetail,
 } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -32,6 +34,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 // JWT Token management
 class TokenManager {
   private token: string | null = null;
+  private refreshToken: string | null = null;
 
   setToken(token: string) {
     this.token = token;
@@ -48,10 +51,27 @@ class TokenManager {
     return this.token;
   }
 
+  setRefreshToken(token: string) {
+    this.refreshToken = token;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('trench_jwt_refresh', token);
+    }
+  }
+
+  getRefreshToken(): string | null {
+    if (this.refreshToken) return this.refreshToken;
+    if (typeof window !== 'undefined') {
+      this.refreshToken = localStorage.getItem('trench_jwt_refresh');
+    }
+    return this.refreshToken;
+  }
+
   clearToken() {
     this.token = null;
+    this.refreshToken = null;
     if (typeof window !== 'undefined') {
       localStorage.removeItem('trench_jwt');
+      localStorage.removeItem('trench_jwt_refresh');
     }
   }
 
@@ -76,15 +96,67 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor: Handle errors & token expiration
+// Response interceptor: Handle errors & auto-refresh on 401
+let isRefreshing = false;
+let refreshQueue: Array<{ resolve: (token: string) => void; reject: (err: any) => void }> = [];
+
+function processRefreshQueue(error: any, token: string | null) {
+  refreshQueue.forEach(({ resolve, reject }) => {
+    if (token) resolve(token);
+    else reject(error);
+  });
+  refreshQueue = [];
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      tokenManager.clearToken();
-      console.warn('Authentication required');
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Only attempt refresh on 401, and never retry a refresh call itself
+    if (error.response?.status === 401 && !originalRequest._isRefreshAttempt) {
+      const refreshToken = tokenManager.getRefreshToken();
+
+      if (!refreshToken) {
+        tokenManager.clearToken();
+        return Promise.reject(error);
+      }
+
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise<string>((resolve, reject) => {
+          refreshQueue.push({ resolve, reject });
+        }).then((newToken) => {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        });
+      }
+
+      isRefreshing = true;
+
+      try {
+        const response = await axios.post(`${API_URL}/auth/agent/refresh`, { refreshToken }, {
+          headers: { 'Content-Type': 'application/json' },
+          // @ts-expect-error custom flag to prevent infinite loop
+          _isRefreshAttempt: true,
+        });
+
+        const newToken = response.data.token;
+        tokenManager.setToken(newToken);
+        processRefreshQueue(null, newToken);
+
+        // Retry the original request
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processRefreshQueue(refreshError, null);
+        tokenManager.clearToken();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
-    console.error('API Error:', error.message);
+
     throw error;
   }
 );
@@ -218,9 +290,12 @@ export async function getAgentChallenge(): Promise<{ nonce: string; statement: s
   return response.data;
 }
 
-// Verify SIWS signature
+// Verify SIWS signature (also stores refresh token for auto-refresh)
 export async function verifyAgentSIWS(pubkey: string, signature: string, nonce: string) {
   const response = await api.post('/auth/agent/verify', { pubkey, signature, nonce });
+  if (response.data.refreshToken) {
+    tokenManager.setRefreshToken(response.data.refreshToken);
+  }
   return response.data;
 }
 
@@ -240,4 +315,16 @@ export async function getAgentProfileById(agentId: string): Promise<AgentProfile
 export async function getXPLeaderboard(): Promise<XPLeaderboardEntry[]> {
   const response = await api.get<{ rankings: XPLeaderboardEntry[] }>('/arena/leaderboard/xp');
   return response.data.rankings || [];
+}
+
+// Get agent task completions
+export async function getAgentTaskCompletions(agentId: string): Promise<AgentTaskCompletionDetail[]> {
+  const response = await api.get<{ completions: AgentTaskCompletionDetail[] }>(`/arena/tasks/agent/${agentId}`);
+  return response.data.completions || [];
+}
+
+// Get agent conversations
+export async function getAgentConversations(agentId: string): Promise<AgentConversationSummary[]> {
+  const response = await api.get<{ conversations: AgentConversationSummary[] }>(`/arena/conversations/agent/${agentId}`);
+  return response.data.conversations || [];
 }

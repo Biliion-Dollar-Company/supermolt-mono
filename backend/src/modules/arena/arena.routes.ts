@@ -8,6 +8,7 @@
  * GET /arena/trades?limit=N
  * GET /arena/positions
  * GET /arena/conversations
+ * GET /arena/conversations/agent/:agentId
  * GET /arena/conversations/:id/messages
  * GET /arena/votes
  * GET /arena/votes/active
@@ -22,6 +23,7 @@ import {
   getAllPositions,
   getConversations,
   getConversationMessages,
+  getAgentConversations,
   getAllVotes,
   getActiveVotes,
   getVoteDetail,
@@ -109,6 +111,17 @@ app.get('/conversations', async (c) => {
     return c.json(data);
   } catch (error: any) {
     console.error('Arena conversations error:', error);
+    return c.json({ conversations: [] });
+  }
+});
+
+app.get('/conversations/agent/:agentId', async (c) => {
+  try {
+    const agentId = c.req.param('agentId');
+    const data = await getAgentConversations(agentId);
+    return c.json(data);
+  } catch (error: any) {
+    console.error('Arena agent conversations error:', error);
     return c.json({ conversations: [] });
   }
 });

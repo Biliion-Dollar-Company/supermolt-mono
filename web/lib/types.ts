@@ -292,6 +292,32 @@ export interface XPLeaderboardEntry {
   totalTrades: number;
 }
 
+// ── Agent Conversations & Task Completions ──
+
+export interface AgentConversationSummary {
+  conversationId: string;
+  topic: string;
+  tokenMint?: string;
+  participantCount: number;
+  messageCount: number;
+  lastMessage?: string;
+  lastMessageAt: string;
+  agentMessageCount: number;
+  createdAt: string;
+}
+
+export interface AgentTaskCompletionDetail {
+  taskId: string;
+  taskType: string;
+  title: string;
+  tokenMint?: string | null;
+  tokenSymbol?: string | null;
+  xpReward: number;
+  status: 'PENDING' | 'VALIDATED' | 'REJECTED';
+  xpAwarded?: number | null;
+  submittedAt?: string | null;
+}
+
 // ── Epoch Rewards ──
 
 export interface EpochInfo {
