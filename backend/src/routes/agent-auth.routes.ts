@@ -194,16 +194,35 @@ agentAuth.post('/twitter/verify', agentJwtMiddleware, async (c) => {
     // Fetch agent to merge config
     const agentRecord = await prisma.tradingAgent.findUnique({ where: { id: agentId } });
 
-    // Update agent with Twitter handle
+    // Build config with Twitter profile data (if available from TwitterAPI.io)
+    const twitterConfig: any = {
+      twitterVerified: true,
+      twitterVerifiedAt: new Date().toISOString(),
+      twitterUsername: twitterHandle,
+    };
+
+    // Add rich profile data if available (from TwitterAPI.io)
+    if (tweetVerified.userProfile) {
+      const profile = tweetVerified.userProfile;
+      twitterConfig.twitterDisplayName = profile.displayName;
+      twitterConfig.twitterFollowers = profile.followers;
+      twitterConfig.twitterBlueVerified = profile.isBlueVerified;
+      twitterConfig.twitterProfilePicture = profile.profilePicture;
+      twitterConfig.twitterBio = profile.bio;
+      twitterConfig.twitterLocation = profile.location;
+      twitterConfig.twitterProfileFetchedAt = new Date().toISOString();
+    }
+
+    // Update agent with Twitter handle and profile data
     await prisma.tradingAgent.update({
       where: { id: agentId },
       data: {
         twitterHandle: `@${twitterHandle}`,
+        // Update avatar if Twitter profile pic available
+        ...(tweetVerified.userProfile?.profilePicture ? { avatarUrl: tweetVerified.userProfile.profilePicture } : {}),
         config: {
           ...(typeof agentRecord?.config === 'object' ? agentRecord.config as Record<string, unknown> : {}),
-          twitterVerified: true,
-          twitterVerifiedAt: new Date().toISOString(),
-          twitterUsername: twitterHandle
+          ...twitterConfig,
         }
       }
     });
@@ -234,14 +253,58 @@ agentAuth.post('/twitter/verify', agentJwtMiddleware, async (c) => {
 
 /**
  * Verify tweet exists and contains verification code
+ * Uses TwitterAPI.io (same as DevPrint) to fetch tweet content + user profile
  */
 async function verifyTweet(
   tweetId: string,
   expectedCode: string,
   username: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; userProfile?: any }> {
   try {
-    // Option 1: Use Twitter API (requires bearer token)
+    // Try TwitterAPI.io first (preferred - used in DevPrint)
+    const apiKey = process.env.TWITTER_API_KEY;
+    
+    if (apiKey) {
+      const { getTwitterAPI } = await import('../services/twitter-api.service');
+      
+      try {
+        const twitterAPI = getTwitterAPI();
+        
+        // Fetch tweet content
+        const tweet = await twitterAPI.fetchTweet(tweetId);
+        
+        // Verify tweet contains code
+        if (!tweet.text.includes(expectedCode)) {
+          return { success: false, error: 'Tweet does not contain verification code' };
+        }
+        
+        // Verify author matches
+        const authorUsername = tweet.author.userName.toLowerCase();
+        if (authorUsername !== username.toLowerCase()) {
+          return { success: false, error: `Tweet author (@${tweet.author.userName}) does not match provided username (@${username})` };
+        }
+        
+        // Success - return profile data to save
+        return {
+          success: true,
+          userProfile: {
+            userName: tweet.author.userName,
+            displayName: tweet.author.name,
+            followers: tweet.author.followers,
+            isBlueVerified: tweet.author.isBlueVerified,
+            profilePicture: tweet.author.profilePicture,
+            bio: tweet.author.description,
+            location: tweet.author.location,
+          }
+        };
+        
+      } catch (apiError: any) {
+        console.error('TwitterAPI.io verification error:', apiError.message);
+        // Fall through to fallback
+      }
+    }
+
+    // Fallback: Try Twitter API v2 (if bearer token set)
     const bearerToken = process.env.TWITTER_BEARER_TOKEN;
     
     if (bearerToken) {
@@ -276,10 +339,9 @@ async function verifyTweet(
       return { success: true };
     }
 
-    // Option 2: Fallback - Trust the URL (less secure but works without API)
-    // In production, you should validate via Twitter API
-    console.warn('⚠️ TWITTER_BEARER_TOKEN not set - skipping tweet content verification');
-    console.log(`ℹ️ Trusting tweet URL (less secure): https://twitter.com/${username}/status/${tweetId}`);
+    // Final fallback - Trust the URL (less secure but works without API)
+    console.warn('⚠️ No Twitter API keys set - using fallback verification (less secure)');
+    console.log(`ℹ️ Trusting tweet URL: https://twitter.com/${username}/status/${tweetId}`);
     
     // Still do basic validation
     if (!tweetId || !username) {
