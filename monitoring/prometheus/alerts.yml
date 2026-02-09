@@ -1,0 +1,111 @@
+# SuperMolt Alert Rules
+# Defines when to send alerts to Slack
+
+groups:
+  - name: critical
+    interval: 30s
+    rules:
+      # Backend is completely down
+      - alert: BackendDown
+        expr: up{job="backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          channel: supermolt-alerts
+        annotations:
+          summary: "🔴 CRITICAL: Backend is DOWN"
+          description: "SuperMolt backend has been unreachable for 1 minute.\n\nEndpoint: https://sr-mobile-production.up.railway.app/health\n\nImmediate action required!"
+      
+      # High error rate (5xx responses)
+      - alert: HighErrorRate
+        expr: (sum(rate(supermolt_http_errors_total[5m])) / sum(rate(supermolt_http_requests_total[5m]))) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          channel: supermolt-alerts
+        annotations:
+          summary: "🔴 CRITICAL: High Error Rate"
+          description: "Backend error rate is {{ $value | humanizePercentage }} (threshold: 5%)\n\nLast 5 minutes have >5% 5xx responses."
+      
+      # Database connection pool exhaustion
+      - alert: DatabaseConnectionPoolHigh
+        expr: supermolt_db_connection_pool{state="active"} > 80
+        for: 5m
+        labels:
+          severity: critical
+          channel: supermolt-alerts
+        annotations:
+          summary: "🔴 CRITICAL: Database Connection Pool Near Limit"
+          description: "Database has {{ $value }} active connections (limit: ~100)\n\nRisk of connection exhaustion!"
+      
+      # WebSocket disconnected
+      - alert: WebSocketDisconnected
+        expr: supermolt_websocket_connections{type="helius"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          channel: supermolt-alerts
+        annotations:
+          summary: "🔴 CRITICAL: Helius WebSocket Disconnected"
+          description: "Helius WebSocket has been disconnected for 5 minutes.\n\nAgent trades not being tracked!"
+
+  - name: warning
+    interval: 1m
+    rules:
+      # Slow API response times
+      - alert: SlowResponseTime
+        expr: histogram_quantile(0.95, rate(supermolt_http_request_duration_seconds_bucket[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          channel: supermolt-alerts
+        annotations:
+          summary: "⚠️ WARNING: Slow API Response Time"
+          description: "P95 latency is {{ $value | humanizeDuration }} (threshold: 1s)\n\nAPI is responding slowly for 10+ minutes."
+      
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (process_resident_memory_bytes / 1024 / 1024 / 1024) > 1.5
+        for: 15m
+        labels:
+          severity: warning
+          channel: supermolt-alerts
+        annotations:
+          summary: "⚠️ WARNING: High Memory Usage"
+          description: "Backend is using {{ $value | humanize }}GB RAM (threshold: 1.5GB)\n\nPotential memory leak?"
+      
+      # No agent signups in last hour
+      - alert: NoAgentSignups
+        expr: increase(supermolt_agents_signups_total[1h]) == 0
+        for: 1h
+        labels:
+          severity: warning
+          channel: supermolt-metrics
+        annotations:
+          summary: "⚠️ INFO: No Agent Signups"
+          description: "Zero agent signups in the last hour.\n\nNormal during off-hours, investigate if persistent."
+      
+      # DevPrint WebSocket reconnecting frequently
+      - alert: FrequentWebSocketReconnects
+        expr: rate(supermolt_websocket_reconnects_total{source="devprint"}[10m]) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          channel: supermolt-alerts
+        annotations:
+          summary: "⚠️ WARNING: DevPrint WebSocket Unstable"
+          description: "DevPrint WebSocket is reconnecting frequently ({{ $value }} reconnects/sec)\n\nConnection instability detected."
+
+  - name: info
+    interval: 5m
+    rules:
+      # USDC epoch ending soon
+      - alert: EpochEndingSoon
+        expr: (supermolt_epoch_end_timestamp - time()) < 86400
+        for: 1h
+        labels:
+          severity: info
+          channel: supermolt-metrics
+        annotations:
+          summary: "📅 INFO: Epoch Ending Soon"
+          description: "Current USDC epoch ends in less than 24 hours.\n\nPrepare for rewards distribution!"

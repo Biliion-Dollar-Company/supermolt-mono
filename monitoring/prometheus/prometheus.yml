@@ -1,0 +1,40 @@
+# Prometheus Configuration for SuperMolt
+# Scrapes metrics from the backend API
+
+global:
+  scrape_interval: 15s      # Scrape every 15 seconds
+  evaluation_interval: 15s  # Evaluate rules every 15 seconds
+  external_labels:
+    environment: 'production'
+    project: 'supermolt'
+
+# Alertmanager configuration (for Slack notifications)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - localhost:9093  # Alertmanager runs in same container
+
+# Load alert rules
+rule_files:
+  - '/etc/prometheus/alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # SuperMolt Backend API
+  - job_name: 'backend'
+    metrics_path: '/metrics'
+    scheme: 'https'
+    static_configs:
+      - targets:
+          - 'sr-mobile-production.up.railway.app'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'backend'
+  
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+          - 'localhost:9090'
