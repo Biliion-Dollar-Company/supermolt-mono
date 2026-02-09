@@ -1,0 +1,38 @@
+// Grafana Alloy Configuration
+// Scrapes SuperMolt backend and pushes to Grafana Cloud
+
+// Prometheus metrics scraper
+prometheus.scrape "supermolt_backend" {
+  targets = [{
+    __address__ = "sr-mobile-production.up.railway.app:443",
+    __scheme__  = "https",
+    __metrics_path__ = "/metrics",
+  }]
+  
+  forward_to = [prometheus.remote_write.grafana_cloud.receiver]
+  
+  scrape_interval = "15s"
+  scrape_timeout  = "10s"
+}
+
+// Push to Grafana Cloud
+prometheus.remote_write "grafana_cloud" {
+  endpoint {
+    url = env("GRAFANA_CLOUD_URL")
+    
+    basic_auth {
+      username = env("GRAFANA_CLOUD_USERNAME")
+      password = env("GRAFANA_CLOUD_PASSWORD")
+    }
+    
+    queue_config {
+      capacity             = 10000
+      max_shards           = 10
+      min_shards           = 1
+      max_samples_per_send = 5000
+      batch_send_deadline  = "5s"
+      min_backoff          = "30ms"
+      max_backoff          = "5s"
+    }
+  }
+}
