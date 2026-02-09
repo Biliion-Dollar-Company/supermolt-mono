@@ -10,6 +10,7 @@ import { websocketEvents } from './services/websocket-events.js';
 import { DevPrintFeedService } from './services/devprint-feed.service.js';
 
 import { createSortinoCron } from './services/sortino-cron.js';
+import { createMetricsMiddleware, getMetrics, getMetricsContentType, updateAgentMetrics, updateEpochMetrics } from './services/metrics.service.js';
 
 // Routes
 import { health } from './routes/health';
@@ -66,6 +67,7 @@ const allowedOrigins = [
 
 // Middleware
 app.use('*', logger());
+app.use('*', createMetricsMiddleware()); // Prometheus metrics tracking
 app.use(
   '*',
   cors({
@@ -97,6 +99,15 @@ app.use(
 
 // Public routes
 app.route('/health', health);
+
+// Prometheus metrics endpoint
+app.get('/metrics', async (c) => {
+  const metrics = await getMetrics();
+  return c.text(metrics, 200, {
+    'Content-Type': getMetricsContentType(),
+  });
+});
+
 app.route('/archetypes', archetypes);
 app.route('/webhooks', webhooks); // Helius webhooks (public, signature validated)
 app.route('/ponzinomics', ponzinomicsRoutes); // Ponzinomics analytics & trading
@@ -364,6 +375,12 @@ startHeliusMonitor();
 // Start Sortino cron job (hourly recalculation)
 const sortinoCron = createSortinoCron(db);
 sortinoCron.start();
+
+// Update Prometheus metrics every 30 seconds
+setInterval(async () => {
+  await updateAgentMetrics(db);
+  await updateEpochMetrics(db);
+}, 30000);
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
