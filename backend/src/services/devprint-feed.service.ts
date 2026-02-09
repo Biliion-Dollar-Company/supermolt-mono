@@ -4,9 +4,9 @@
  * via SuperMolt's Socket.IO. Agents subscribe to channels they care about.
  *
  * Streams:
- *   /api/trading/ws  → god wallet, signals, market data, watchlist
- *   /api/tokens/ws   → new token detections
- *   /ws/tweets        → celebrity/influencer tweets
+ *   /ws/tokens   → new token detections
+ *   /ws/tweets   → celebrity/influencer tweets
+ *   /ws/training → training progress updates
  *
  * Filtered out (SuperRouter private):
  *   position_opened, position_closed, price_update,
@@ -16,7 +16,7 @@
 
 import { websocketEvents } from './websocket-events.js';
 
-type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets';
+type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets' | 'training';
 
 interface StreamConfig {
   name: string;
@@ -53,6 +53,10 @@ const EVENT_ROUTING: Record<string, FeedChannel> = {
   watchlist_removed: 'watchlist',
   new_token: 'tokens',
   new_tweet: 'tweets',
+  training_progress: 'training',
+  training_log: 'training',
+  training_complete: 'training',
+  training_started: 'training',
 };
 
 const BASE_RECONNECT_MS = 5_000;
@@ -69,9 +73,9 @@ export class DevPrintFeedService {
 
     // Initialize stream configs
     const paths: Array<[string, string]> = [
-      ['trading', '/api/trading/ws'],
-      ['tokens', '/api/tokens/ws'],
+      ['tokens', '/ws/tokens'],
       ['tweets', '/ws/tweets'],
+      ['training', '/ws/training'],
     ];
 
     for (const [name, path] of paths) {
@@ -88,7 +92,7 @@ export class DevPrintFeedService {
 
   async start(): Promise<void> {
     this.running = true;
-    console.log(`[DevPrintFeed] Connecting to ${this.baseUrl} (3 streams)`);
+    console.log(`[DevPrintFeed] Connecting to ${this.baseUrl} (${this.streams.size} streams)`);
 
     for (const stream of this.streams.values()) {
       this.connectStream(stream);
