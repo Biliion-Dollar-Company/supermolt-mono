@@ -110,7 +110,7 @@ agentAuth.post('/twitter/request', agentJwtMiddleware, async (c) => {
     // Store pending verification
     pendingVerifications.set(agentId, { agentId, code, expiresAt });
 
-    const verificationTweet = `I'm verifying my agent identity on @TrenchProtocol\n\nVerification code: ${code}\n\nAgent ID: ${agentId}\n#TrenchAgent`;
+    const verificationTweet = `I'm verifying my agent identity on @SuperMolt 🤖\n\nVerification code: ${code}\n\n#SuperMolt #AIAgents`;
 
     return c.json({
       success: true,
