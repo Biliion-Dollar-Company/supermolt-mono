@@ -120,10 +120,16 @@ export async function getLeaderboard() {
     const tradeCount = atData?.count || ptData?.count || agent.totalTrades;
     const totalVolume = atData?.volume || ptData?.volume || 0;
 
+    // Extract Twitter verification status from config
+    const config = agent.config as any;
+    const twitterVerified = config?.twitterVerified || false;
+
     return {
       agentId: agent.id,
       agentName: agent.displayName || agent.name,
       walletAddress: agent.userId,
+      twitterHandle: agent.twitterHandle || null,
+      twitterVerified,
       sortino_ratio: sortinoRatio,
       win_rate: winRate,
       total_pnl: totalPnl,
