@@ -6,6 +6,7 @@
 
 import { Hono } from 'hono';
 import { TreasuryManagerService } from '../../services/treasury-manager.service';
+import { unifiedTreasuryService } from '../../services/treasury-manager.unified.service';
 import { createSuccessResponse, createErrorResponse, ErrorCodes } from '../../types/api';
 import { adminAuth } from '../../middleware/admin-auth';
 import { db } from '../../lib/db';
@@ -25,6 +26,22 @@ function getTreasuryService() {
   }
   return new TreasuryManagerService();
 }
+
+/**
+ * GET /status/all
+ * Get treasury status for all chains
+ */
+app.get('/status/all', async (c) => {
+  try {
+    const status = await unifiedTreasuryService.getAllTreasuryStatus();
+    return c.json(createSuccessResponse(status));
+  } catch (error: any) {
+    return c.json(
+      createErrorResponse(ErrorCodes.INTERNAL_ERROR, error.message),
+      500
+    );
+  }
+});
 
 /**
  * GET /status
@@ -221,6 +238,69 @@ app.get('/epoch/:epochId/allocations', async (c) => {
       allocations
     }));
   } catch (error: any) {
+    return c.json(
+      createErrorResponse(ErrorCodes.INTERNAL_ERROR, error.message),
+      500
+    );
+  }
+});
+
+/**
+ * GET /epochs/active
+ * Get active epochs for all chains
+ */
+app.get('/epochs/active', async (c) => {
+  try {
+    const epochs = await unifiedTreasuryService.getActiveEpochs();
+    return c.json(createSuccessResponse(epochs));
+  } catch (error: any) {
+    return c.json(
+      createErrorResponse(ErrorCodes.INTERNAL_ERROR, error.message),
+      500
+    );
+  }
+});
+
+/**
+ * POST /distribute/:epochId (UNIFIED - auto-detects chain)
+ * Execute USDC distribution for an epoch (works for both Solana and BSC)
+ * Protected: Admin only
+ */
+app.post('/distribute/:epochId', adminAuth, async (c) => {
+  try {
+    const { epochId } = c.req.param();
+    
+    // Use unified service - it will auto-detect chain
+    const result = await unifiedTreasuryService.distributeAgentRewards(epochId);
+    
+    const response: DistributionResultDto = {
+      epochId,
+      allocations: result.allocations,
+      summary: result.summary,
+      blockExplorer: result.allocations[0]?.bscscan || result.allocations[0]?.solscan || null
+    };
+    
+    return c.json(createSuccessResponse(response));
+  } catch (error: any) {
+    if (error.message.includes('not found')) {
+      return c.json(
+        createErrorResponse(ErrorCodes.NOT_FOUND, error.message),
+        404
+      );
+    }
+    if (error.message.includes('already distributed')) {
+      return c.json(
+        createErrorResponse(ErrorCodes.VALIDATION_ERROR, error.message),
+        400
+      );
+    }
+    if (error.message.includes('Insufficient')) {
+      return c.json(
+        createErrorResponse(ErrorCodes.VALIDATION_ERROR, error.message),
+        400
+      );
+    }
+    
     return c.json(
       createErrorResponse(ErrorCodes.INTERNAL_ERROR, error.message),
       500

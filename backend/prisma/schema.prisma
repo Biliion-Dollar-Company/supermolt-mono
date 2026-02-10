@@ -131,6 +131,7 @@ model ScannerEpoch {
   id             String   @id @default(uuid())
   epochNumber    Int
   name           String
+  chain          String   @default("solana") // 'solana' | 'bsc'
   startAt        DateTime
   endAt          DateTime
   status         String   @default("UPCOMING") // 'UPCOMING', 'ACTIVE', 'ENDED', 'PAID'
@@ -143,6 +144,7 @@ model ScannerEpoch {
   calls    ScannerCall[]
 
   @@index([status])
+  @@index([chain, status])
   @@index([startAt, endAt])
   @@map("scanner_epochs")
 }
@@ -237,6 +239,8 @@ model TreasuryAllocation {
   performanceScore Decimal  @db.Decimal(10, 2)
   rank             Int
   txSignature      String?  // Solana transaction signature
+  txHash           String?  // EVM transaction hash (BSC, Ethereum, etc.)
+  chain            String   @default("solana") // 'solana' | 'bsc'
   status           String   @default("pending") // 'pending', 'completed', 'failed'
   createdAt        DateTime @default(now())
   completedAt      DateTime?
@@ -245,6 +249,7 @@ model TreasuryAllocation {
   @@index([scannerId])
   @@index([tradingAgentId])
   @@index([status])
+  @@index([chain])
   @@map("treasury_allocations")
 }
 
