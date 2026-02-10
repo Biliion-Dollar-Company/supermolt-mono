@@ -16,7 +16,7 @@ function ArenaPageSkeleton() {
     <>
       {/* Tasks strip skeleton */}
       <div className="mb-6">
-        <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
+        <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] px-4 py-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 flex-shrink-0">
               <SkeletonBlock className="h-4 w-4 rounded-full" />
@@ -36,7 +36,7 @@ function ArenaPageSkeleton() {
       <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
         {/* Left column: Leaderboard + Conversations */}
         <div className="space-y-6">
-          <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+          <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-4">
               <SkeletonBlock className="h-7 w-16" />
               <SkeletonBlock className="h-7 w-10" />
@@ -52,7 +52,7 @@ function ArenaPageSkeleton() {
             </div>
           </div>
           <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
-          <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+          <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
             <div className="flex items-center gap-2 mb-4">
               <SkeletonBlock className="h-4 w-4 rounded-full" />
               <SkeletonBlock className="h-3 w-24" />
@@ -73,7 +73,7 @@ function ArenaPageSkeleton() {
         {/* Right column: Epoch + Tokens */}
         <div className="min-w-0 space-y-6">
           {/* Epoch skeleton */}
-          <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+          <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
             <SkeletonBlock className="h-5 w-40 mb-2" />
             <SkeletonBlock className="h-3 w-32 mb-4" />
             <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
@@ -104,7 +104,7 @@ function ArenaPageSkeleton() {
                 <SkeletonBlock key={i} className="h-10 w-28 flex-shrink-0" />
               ))}
             </div>
-            <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4">
+            <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4">
               <div className="space-y-3">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <SkeletonBlock key={i} className="h-10" />
@@ -289,13 +289,19 @@ export default function ArenaPage() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: 'url(/bg.png)' }}
         />
-        <div className="absolute inset-0 bg-black/80" />
+        <div className="absolute inset-0 bg-black/50" />
         <div
           className="absolute inset-0"
           style={{
             background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)',
           }}
         />
+      </div>
+      {/* Gradient orbs — ABOVE vignette so backdrop-blur can frost them */}
+      <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">
+        <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] bg-accent-primary/[0.15] rounded-full blur-[200px]" />
+        <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] bg-purple-500/[0.10] rounded-full blur-[180px]" />
+        <div className="absolute bottom-[5%] left-[35%] w-[500px] h-[500px] bg-blue-500/[0.08] rounded-full blur-[160px]" />
       </div>
       <div className="relative z-10">
         {/* Header */}
@@ -335,7 +341,7 @@ export default function ArenaPage() {
             <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
               {/* Leaderboard + Conversations */}
               <div className="space-y-6 animate-arena-reveal" style={{ animationDelay: '120ms' }}>
-                <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-5">
+                <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
                   <div className="flex items-center gap-1 mb-4">
                     <button
                       onClick={() => setLeaderboardTab('trades')}
@@ -422,7 +428,7 @@ export default function ArenaPage() {
 
                       {/* Featured Token Detail (inline) */}
                       {selectedToken ? (
-                        <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden">
+                        <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
                           <TokenDetailContent tokenSymbol={selectedToken} compact />
                         </div>
                       ) : (

@@ -119,7 +119,7 @@ function TaskDetailModal({
           </div>
 
           {/* Body */}
-          <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] border-t-white/[0.06]">
+          <div className="bg-white/[0.08] backdrop-blur-xl border border-white/[0.1] border-t-white/[0.06]">
             <div className="p-5 space-y-4">
               <p className="text-sm text-text-primary leading-relaxed">{task.title}</p>
 
@@ -264,7 +264,7 @@ export function TasksPanel() {
 
   if (loading) {
     return (
-      <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
+      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] px-4 py-3">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="w-4 h-4 bg-white/[0.03] animate-pulse rounded" />
@@ -290,7 +290,7 @@ export function TasksPanel() {
 
   return (
     <>
-      <div className="bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] px-4 py-3">
+      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] px-4 py-3">
         <div className="flex items-center gap-4">
           {/* Left: label + stats */}
           <div className="flex items-center gap-3 flex-shrink-0">
