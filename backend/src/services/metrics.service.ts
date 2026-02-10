@@ -174,7 +174,41 @@ export function createMetricsMiddleware() {
   return async (c: any, next: any) => {
     const start = Date.now();
     const method = c.req.method;
-    const route = c.req.routePath || c.req.path;
+    const path = c.req.path;
+    
+    // Normalize route to get meaningful patterns
+    let route = path;
+    
+    // Map common routes to patterns for better grouping
+    if (path.startsWith('/api/leaderboard')) {
+      route = '/api/leaderboard';
+    } else if (path.startsWith('/api/epochs')) {
+      route = '/api/epochs/*';
+    } else if (path.startsWith('/api/treasury')) {
+      route = '/api/treasury/*';
+    } else if (path.startsWith('/api/calls')) {
+      route = '/api/calls/*';
+    } else if (path.startsWith('/agents/')) {
+      route = '/agents/:id';
+    } else if (path.startsWith('/trades/')) {
+      route = '/trades/*';
+    } else if (path.startsWith('/auth/')) {
+      route = '/auth/*';
+    } else if (path.startsWith('/webhooks/')) {
+      route = '/webhooks/*';
+    } else if (path.startsWith('/feed/')) {
+      route = '/feed/*';
+    } else if (path.startsWith('/positions/')) {
+      route = '/positions/*';
+    } else if (path.startsWith('/messaging/')) {
+      route = '/messaging/*';
+    } else if (path.startsWith('/voting/')) {
+      route = '/voting/*';
+    } else if (path === '/health' || path === '/metrics' || path === '/') {
+      route = path; // Keep as-is
+    } else if (path.startsWith('/docs') || path.startsWith('/swagger') || path.startsWith('/skills')) {
+      route = path.split('/').slice(0, 2).join('/'); // Keep first level
+    }
 
     await next();
 
