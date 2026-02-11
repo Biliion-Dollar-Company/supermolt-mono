@@ -12,6 +12,10 @@ function shortenAddress(addr: string): string {
   return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 }
 
+function formatTwitterHandle(handle: string): string {
+  return handle.startsWith('@') ? handle : `@${handle}`;
+}
+
 export function ArenaLeaderboard() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [allocations, setAllocations] = useState<Map<string, AgentAllocation>>(new Map());
@@ -28,9 +32,8 @@ export function ArenaLeaderboard() {
         ]);
         // Sort by trade_count descending — the only meaningful metric right now
         const sorted = (data || [])
-          .filter((a) => a.trade_count > 0)
           .sort((a, b) => b.trade_count - a.trade_count)
-          .slice(0, 15);
+          .slice(0, 50);
         setAgents(sorted);
 
         // Build allocation lookup map
@@ -87,51 +90,51 @@ export function ArenaLeaderboard() {
       <div className="max-h-[420px] overflow-y-auto scrollbar-custom">
         {agents.map((agent, idx) => {
           const rank = idx + 1;
+          const primaryLabel = agent.twitterHandle
+            ? formatTwitterHandle(agent.twitterHandle)
+            : agent.agentName;
           return (
             <div key={agent.agentId}>
               <Link
                 href={`/agents/${agent.agentId}`}
-                className="flex items-center gap-3 py-2.5 px-3 hover:bg-white/[0.03] transition-colors rounded group"
+                className="relative flex items-center gap-3 py-2.5 px-3 hover:bg-white/[0.03] transition-colors group overflow-hidden"
               >
-                <span className={`text-sm font-mono w-6 text-center ${rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-text-muted'
-                  }`}>
-                  {rank <= 3 ? <Trophy className="w-3.5 h-3.5 inline" /> : rank}
-                </span>
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-15 group-hover:opacity-25 transition-opacity">
+                  {rank <= 3 ? (
+                    <Trophy className={`w-8 h-8 ${rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : 'text-amber-600'}`} />
+                  ) : (
+                    <span className="text-2xl font-mono font-bold text-white/50">#{rank}</span>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0 flex items-center gap-3">
                   {agent.avatarUrl ? (
                     <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
-                      <Image src={agent.avatarUrl} alt={agent.agentName} fill className="object-cover" />
+                      <Image src={agent.avatarUrl} alt={primaryLabel} fill className="object-cover" />
                     </div>
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-                      <span className="text-xs font-bold text-text-muted">{agent.agentName[0]?.toUpperCase()}</span>
+                      <span className="text-xs font-bold text-text-muted">{primaryLabel[0]?.toUpperCase() || '?'}</span>
                     </div>
                   )}
                   <div className="min-w-0">
                     <span className="text-sm font-semibold text-text-primary truncate block group-hover:text-accent-primary transition-colors">
-                      {agent.agentName}
+                      {primaryLabel}
                     </span>
-                    {agent.twitterHandle ? (
-                      <span className="text-xs text-blue-400 hover:text-blue-300 transition-colors block truncate">
-                        @{agent.twitterHandle}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-xs text-text-muted font-mono">
-                        {shortenAddress(agent.walletAddress)}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            navigator.clipboard.writeText(agent.walletAddress);
-                            setCopiedId(agent.agentId);
-                            setTimeout(() => setCopiedId(null), 1500);
-                          }}
-                          className="hover:text-text-secondary transition-colors"
-                        >
-                          {copiedId === agent.agentId ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                        </button>
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1 text-xs text-text-muted font-mono">
+                      {shortenAddress(agent.walletAddress)}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(agent.walletAddress);
+                          setCopiedId(agent.agentId);
+                          setTimeout(() => setCopiedId(null), 1500);
+                        }}
+                        className="hover:text-text-secondary transition-colors"
+                      >
+                        {copiedId === agent.agentId ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </span>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
