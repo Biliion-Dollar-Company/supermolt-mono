@@ -4,6 +4,7 @@
  */
 
 import { db } from '../lib/db';
+import { llmService } from './llm.service';
 
 interface TradeEvent {
   signature: string;
@@ -302,16 +303,68 @@ export async function analyzeSuperRouterTrade(
 
   const analyses: AgentAnalysis[] = [];
 
-  // Generate analysis from each agent's perspective
+  // If LLM is configured, generate smart narrative analysis (Top Notch AI)
+  if (llmService.isConfigured) {
+    try {
+      console.log('🤖 Generating AI Narrative Analysis...');
+      const llmAnalyses = await analyzeWithLLM(trade, devPrintData);
+      if (llmAnalyses.length === 5) {
+        return llmAnalyses;
+      }
+    } catch (error) {
+      console.error('LLM Analysis failed, falling back to templates:', error);
+    }
+  }
+
+  // Fallback to templates (legacy)
   analyses.push(analyzeAsAlpha(trade, devPrintData));
   analyses.push(analyzeAsBeta(trade, devPrintData));
   analyses.push(analyzeAsGamma(trade, devPrintData));
   analyses.push(analyzeAsDelta(trade, devPrintData));
   analyses.push(analyzeAsEpsilon(trade, devPrintData));
 
-  console.log(`✅ Generated ${analyses.length} agent analyses`);
+  console.log(`✅ Generated ${analyses.length} agent analyses (Template Fallback)`);
 
   return analyses;
+}
+
+/**
+ * Generate analysis using LLM service (Narrative-Aware)
+ */
+async function analyzeWithLLM(trade: TradeEvent, data: DevPrintData): Promise<AgentAnalysis[]> {
+  const systemPrompt = `You are a decentralized trading collective of 5 AI agents observing the SuperRouter making a trade on Solana.
+  
+  CONTEXT:
+  - Token: ${trade.tokenSymbol || 'Unknown'} (Mint: ${trade.tokenMint})
+  - Action: ${trade.action} ${trade.amount} SOL
+  - Approx Liquidity: $${(data.liquidity || 0).toLocaleString()}
+  - Volume 24h: $${(data.volume24h || 0).toLocaleString()}
+  - Price Change: ${(data.priceChange24h || 0).toFixed(1)}%
+  - Holders: ${data.holders || 'Unknown'}
+  - Smart Money: ${data.smartMoneyFlow || 'NEUTRAL'}
+
+  YOUR GOAL: Provide a short, punchy, crypto-native commentary from EACH of the 5 agents.
+  Focus on: Narrative Quality, Timing Supremacy, Mindshare Density, and Context Graph Awareness (e.g. references to trends).
+  
+  AGENTS:
+  1. Alpha (Global Macro/Conservative 🛡️): Focus on risk, fundamentals, liquidity depth.
+  2. Beta (Momentum/Degen 🚀): Focus on hype, volume spikes, FOMO, trend hijacking.
+  3. Gamma (Quant/Data 📊): Focus on statistical anomalies, correlation, win rates.
+  4. Delta (Contrarian/Skeptic 🔍): Question the narrative. Suspect rugs. Check dev wallet assumptions.
+  5. Epsilon (Whale Watcher 🐋): Focus on insider movement, smart money flow, wallet tracking.
+
+  OUTPUT FORMAT: Return a valid JSON array of 5 objects (NO MARKDOWN), each with: { "agentId": "obs_alpha" (etc), "agentName", "emoji", "message", "sentiment": "BULLISH"|"BEARISH"|"NEUTRAL", "confidence": 0-100 }`;
+
+  const userPrompt = `Generate the analysis JSON for this ${trade.action} event. Ensure diverse perspectives.`;
+
+  const response = await llmService.generate(systemPrompt, userPrompt);
+  if (!response) throw new Error('No LLM response');
+
+  // Parse JSON
+  const jsonStr = response.replace(/```json/g, '').replace(/```/g, '').trim();
+  const parsed = JSON.parse(jsonStr);
+
+  return parsed as AgentAnalysis[];
 }
 
 /**
