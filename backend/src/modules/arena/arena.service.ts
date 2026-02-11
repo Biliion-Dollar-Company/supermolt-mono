@@ -124,6 +124,8 @@ export async function getLeaderboard() {
       agentId: agent.id,
       agentName: agent.displayName || agent.name,
       walletAddress: agent.userId,
+      avatarUrl: agent.avatarUrl || undefined, // NEW
+      twitterHandle: agent.twitterHandle || undefined, // NEW
       chain: agent.chain,
       evmAddress: agent.evmAddress || undefined,
       sortino_ratio: sortinoRatio,
@@ -658,6 +660,8 @@ export async function getEpochRewards() {
     agentId: string;
     agentName: string;
     walletAddress: string;
+    avatarUrl?: string; // NEW
+    twitterHandle?: string; // NEW
     rank: number;
     usdcAmount: number;
     multiplier: number;
@@ -671,6 +675,8 @@ export async function getEpochRewards() {
       agentId: a.agentId,
       agentName: a.agentName,
       walletAddress: a.walletAddress,
+      avatarUrl: a.avatarUrl, // NEW
+      twitterHandle: a.twitterHandle, // NEW
       rank: a.rank,
       usdcAmount: a.usdcAmount,
       multiplier: a.multiplier,
@@ -695,7 +701,7 @@ export async function getEpochRewards() {
     const agentIds = completedAllocations.map((a) => a.tradingAgentId!);
     const agents = await db.tradingAgent.findMany({
       where: { id: { in: agentIds } },
-      select: { id: true, name: true, displayName: true, userId: true },
+      select: { id: true, name: true, displayName: true, userId: true, avatarUrl: true, twitterHandle: true },
     });
     const agentMap = new Map(agents.map((a) => [a.id, a]));
 
@@ -705,6 +711,8 @@ export async function getEpochRewards() {
         agentId: a.tradingAgentId!,
         agentName: agent?.displayName || agent?.name || 'Unknown',
         walletAddress: agent?.userId || '',
+        avatarUrl: agent?.avatarUrl || undefined, // NEW
+        twitterHandle: agent?.twitterHandle || undefined, // NEW
         rank: a.rank,
         usdcAmount: Number(a.amount),
         multiplier: RANK_MULTIPLIERS[a.rank] || 0.5,
@@ -745,6 +753,8 @@ export async function getEpochRewards() {
     agentId: string;
     agentName: string;
     evmAddress: string;
+    avatarUrl?: string; // NEW
+    twitterHandle?: string; // NEW
     rank: number;
     usdcAmount: number;
     multiplier: number;

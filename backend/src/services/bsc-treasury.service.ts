@@ -57,6 +57,8 @@ export interface BSCDistributionResult {
   status: 'success' | 'failed';
   error?: string;
   explorerUrl: string;
+  avatarUrl?: string;
+  twitterHandle?: string;
 }
 
 /**
@@ -157,6 +159,8 @@ export async function calculateBSCAllocations(epochId: string): Promise<Array<{
   agentId: string;
   agentName: string;
   evmAddress: string;
+  avatarUrl?: string; // NEW
+  twitterHandle?: string; // NEW
   rank: number;
   usdcAmount: number;
   multiplier: number;
@@ -200,6 +204,8 @@ export async function calculateBSCAllocations(epochId: string): Promise<Array<{
       agentId: item.agent.id,
       agentName: item.agent.displayName || item.agent.name,
       evmAddress: item.agent.evmAddress!,
+      avatarUrl: item.agent.avatarUrl ?? undefined,
+      twitterHandle: item.agent.twitterHandle ?? undefined,
       rank,
       usdcAmount,
       multiplier,

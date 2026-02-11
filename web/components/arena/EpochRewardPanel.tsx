@@ -34,9 +34,32 @@ function AllocationRow({ alloc, rank }: { alloc: AgentAllocation; rank: number }
         {rank <= 3 ? <Trophy className="w-4 h-4 inline" /> : `#${rank}`}
       </span>
 
-      {/* Agent Name */}
-      <div className="flex-1 min-w-0">
-        <span className="text-base text-text-primary truncate block">{alloc.agentName}</span>
+      {/* Agent Name + Avatar */}
+      <div className="flex-1 min-w-0 flex items-center gap-3">
+        {alloc.avatarUrl ? (
+          <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
+            <Image src={alloc.avatarUrl} alt={alloc.agentName} fill className="object-cover" />
+          </div>
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-bold text-text-muted">{alloc.agentName[0]?.toUpperCase()}</span>
+          </div>
+        )}
+        <div className="min-w-0">
+          <span className="text-base text-text-primary truncate block font-medium leading-tight">
+            {alloc.agentName}
+          </span>
+          {alloc.twitterHandle && (
+            <a
+              href={`https://twitter.com/${alloc.twitterHandle}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-text-muted hover:text-accent-primary transition-colors truncate block"
+            >
+              @{alloc.twitterHandle}
+            </a>
+          )}
+        </div>
       </div>
 
       {/* USDC Amount + Multiplier Badge */}
@@ -190,9 +213,10 @@ export function EpochRewardPanel() {
   const { epoch, allocations, treasury, distributions } = data;
   const hasDistributions = distributions.length > 0;
   const totalProjected = allocations.reduce((sum, a) => sum + a.usdcAmount, 0);
+  const hasBSCAllocations = (data.bscAllocations?.length ?? 0) > 0;
 
   return (
-    <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+    <div className="relative bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
       {/* Epoch Info */}
       <div className="mb-4">
         <div className="text-lg font-bold text-text-primary">{epoch.name}</div>
@@ -207,31 +231,31 @@ export function EpochRewardPanel() {
       </div>
 
       {/* Chain Tabs */}
-      {data.bscAllocations && data.bscAllocations.length > 0 && (
-        <div className="flex items-center gap-2 mb-6">
+      <div className="absolute top-4 right-4 z-20">
+        <div className="relative flex items-center gap-2 p-1 border border-white/10 bg-black/35 shadow-[0_8px_20px_rgba(0,0,0,0.45)]">
+          <div
+            className={`pointer-events-none absolute top-1 bottom-1 w-9 border border-white/25 bg-white/10 transition-transform duration-300 ease-out ${activeTab === 'SOLANA' ? 'translate-x-0' : 'translate-x-[44px]'}`}
+          />
+
           <button
             onClick={() => setActiveTab('SOLANA')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeTab === 'SOLANA'
-              ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20 shadow-[0_0_10px_-4px_rgba(34,211,238,0.5)]'
-              : 'text-text-muted hover:text-text-primary hover:bg-white/5 border border-transparent'
-              }`}
+            className={`relative z-10 w-9 h-9 flex items-center justify-center transition-all duration-300 ${activeTab === 'SOLANA' ? 'scale-105' : 'opacity-80 hover:opacity-100'}`}
+            title="Solana Rewards"
+            aria-label="Solana Rewards Tab"
           >
-            <div className="w-4 h-4 rounded-full bg-gradient-to-tr from-[#9945FF] to-[#14F195] flex items-center justify-center text-[8px] text-white font-bold">S</div>
-            SOLANA
+            <Image src="/icons/solana.png" alt="Solana" width={18} height={18} />
           </button>
 
           <button
             onClick={() => setActiveTab('BSC')}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeTab === 'BSC'
-              ? 'bg-[#F0B90B]/10 text-[#F0B90B] border border-[#F0B90B]/20 shadow-[0_0_10px_-4px_rgba(240,185,11,0.5)]'
-              : 'text-text-muted hover:text-text-primary hover:bg-white/5 border border-transparent'
-              }`}
+            className={`relative z-10 w-9 h-9 flex items-center justify-center transition-all duration-300 ${activeTab === 'BSC' ? 'scale-105' : 'opacity-80 hover:opacity-100'} ${!hasBSCAllocations ? 'opacity-45' : ''}`}
+            title={hasBSCAllocations ? 'BSC Rewards' : 'BSC Rewards (No Data Yet)'}
+            aria-label="BSC Rewards Tab"
           >
-            <div className="w-4 h-4 rounded-full bg-[#F0B90B] flex items-center justify-center text-[8px] text-black font-bold">B</div>
-            BSC
+            <Image src="/icons/bnb.png" alt="BSC" width={18} height={18} />
           </button>
         </div>
-      )}
+      </div>
 
       {/* Content */}
       <div className="relative min-h-[400px]">
@@ -361,8 +385,32 @@ export function EpochRewardPanel() {
                         {alloc.rank <= 3 ? <Trophy className="w-4 h-4 inline" /> : `#${alloc.rank}`}
                       </span>
 
-                      <div className="flex-1 min-w-0">
-                        <span className="text-base text-text-primary truncate block">{alloc.agentName}</span>
+                      {/* Agent Name + Avatar */}
+                      <div className="flex-1 min-w-0 flex items-center gap-3">
+                        {alloc.avatarUrl ? (
+                          <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
+                            <Image src={alloc.avatarUrl} alt={alloc.agentName} fill className="object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-bold text-text-muted">{alloc.agentName[0]?.toUpperCase()}</span>
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <span className="text-base text-text-primary truncate block font-medium leading-tight">
+                            {alloc.agentName}
+                          </span>
+                          {alloc.twitterHandle && (
+                            <a
+                              href={`https://twitter.com/${alloc.twitterHandle}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-text-muted hover:text-accent-primary transition-colors truncate block"
+                            >
+                              @{alloc.twitterHandle}
+                            </a>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 flex-shrink-0">

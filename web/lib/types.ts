@@ -14,6 +14,8 @@ export interface Agent {
   max_loss: number;
   createdAt: string;
   updatedAt: string;
+  avatarUrl?: string;
+  twitterHandle?: string;
 }
 
 // Profile type
@@ -338,6 +340,8 @@ export interface AgentAllocation {
   multiplier: number;
   txSignature?: string;
   status: 'preview' | 'completed' | 'failed';
+  avatarUrl?: string;
+  twitterHandle?: string;
 }
 
 export interface Distribution {
@@ -356,6 +360,8 @@ export interface BSCAllocation {
   multiplier: number;
   txHash?: string;
   status: 'preview' | 'completed' | 'failed';
+  avatarUrl?: string;
+  twitterHandle?: string;
 }
 
 export interface EpochReward {

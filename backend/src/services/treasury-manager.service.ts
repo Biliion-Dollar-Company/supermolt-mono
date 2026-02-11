@@ -64,6 +64,8 @@ export interface AgentAllocationResult {
   agentId: string;
   agentName: string;
   walletAddress: string;
+  avatarUrl?: string;
+  twitterHandle?: string;
   rank: number;
   tradeCount: number;
   sortinoRatio: number;
@@ -106,7 +108,7 @@ export class TreasuryManagerService {
 
     try {
       let privateKeyBytes: Uint8Array;
-      
+
       // Try base58 first (most common Solana format)
       try {
         privateKeyBytes = bs58.decode(privateKeyStr);
@@ -114,7 +116,7 @@ export class TreasuryManagerService {
         // If base58 fails, try base64 (generated keys format)
         privateKeyBytes = Uint8Array.from(Buffer.from(privateKeyStr, 'base64'));
       }
-      
+
       this.treasuryKeypair = Keypair.fromSecretKey(privateKeyBytes);
       console.log('✅ Treasury wallet loaded:', this.treasuryKeypair.publicKey.toBase58());
     } catch (error) {
@@ -511,6 +513,8 @@ export class TreasuryManagerService {
         agentId: agent.id,
         agentName: agent.displayName || agent.name,
         walletAddress: agent.userId,
+        avatarUrl: agent.avatarUrl ?? undefined,
+        twitterHandle: agent.twitterHandle ?? undefined,
         rank,
         tradeCount,
         sortinoRatio,
