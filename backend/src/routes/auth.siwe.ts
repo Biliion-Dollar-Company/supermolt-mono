@@ -14,6 +14,7 @@ import { z } from 'zod';
 import { rateLimiter } from 'hono-rate-limiter';
 import { db } from '../lib/db';
 import { getBSCMonitor } from '../services/bsc-monitor';
+import { generateUniqueName } from '../lib/name-generator';
 
 export const siweAuthRoutes = new Hono();
 
@@ -72,12 +73,18 @@ siweAuthRoutes.post('/evm/verify', authLimiter, async (c) => {
     const isNewAgent = !agent;
 
     if (!agent) {
+      // Generate a funny unique name for the new agent
+      const newName = await generateUniqueName(async (n) => {
+        const exists = await db.tradingAgent.findFirst({ where: { name: n } });
+        return !!exists;
+      });
+
       agent = await db.tradingAgent.create({
         data: {
           userId: evmAddress,
           evmAddress,
           archetypeId: 'pending',
-          name: `Agent-${evmAddress.slice(0, 8)}`,
+          name: newName,
           status: 'TRAINING',
           chain: 'BSC',
           config: {},

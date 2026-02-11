@@ -6,6 +6,7 @@ import { createOnboardingTasks } from '../services/onboarding.service';
 import { z } from 'zod';
 import { rateLimiter } from 'hono-rate-limiter';
 import { db } from '../lib/db';
+import { generateUniqueName } from '../lib/name-generator';
 
 // Dynamic import to avoid circular dependency issues
 let heliusMonitor: any = null;
@@ -82,11 +83,17 @@ siwsAuthRoutes.post('/agent/verify', authLimiter, async (c) => {
 
     // If not, create new agent registration
     if (!agent) {
+      // Generate a funny unique name for the new agent
+      const newName = await generateUniqueName(async (n) => {
+        const exists = await db.tradingAgent.findFirst({ where: { name: n } });
+        return !!exists;
+      });
+
       agent = await db.tradingAgent.create({
         data: {
           userId: pubkey, // Pubkey is the agent ID
           archetypeId: 'pending', // Will be set by user later
-          name: `Agent-${pubkey.slice(0, 6)}`,
+          name: newName,
           status: 'TRAINING',
           config: {} // Will be populated when archetype is chosen
         }
