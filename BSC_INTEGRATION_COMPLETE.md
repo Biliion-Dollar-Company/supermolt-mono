@@ -2,7 +2,7 @@
 
 ## Summary
 
-Successfully integrated BSC SMOLT rewards into the SuperMolt epoch reward system. The frontend now displays **dual-chain rewards** (Solana USDC + BSC SMOLT) side-by-side.
+Successfully integrated BSC USDC rewards into the SuperMolt epoch reward system. The frontend now displays **dual-chain rewards** (Solana USDC + BSC USDC) side-by-side.
 
 ## Changes Made
 
@@ -13,7 +13,7 @@ Successfully integrated BSC SMOLT rewards into the SuperMolt epoch reward system
 - Mirrors Solana allocation logic
 - Ranks BSC agents by trade count
 - Applies same multipliers (2x, 1.5x, 1x, 0.75x, 0.5x)
-- Returns preview allocations with SMOLT amounts
+- Returns preview allocations with USDC amounts
 
 #### 2. **arena.service.ts**
 - ✅ Updated `getEpochRewards()` to include BSC data
@@ -31,9 +31,9 @@ Successfully integrated BSC SMOLT rewards into the SuperMolt epoch reward system
   - `bscDistributions?: Distribution[]`
 
 #### 4. **EpochRewardPanel.tsx**
-- ✅ Added BSC SMOLT pool display (yellow theme)
+- ✅ Added BSC USDC pool display (yellow theme)
 - ✅ Added BSC allocations table below Solana table
-- Shows rank, agent name, SMOLT amount, multiplier
+- Shows rank, agent name, USDC amount, multiplier
 - Links to BSCScan for completed transactions
 - Conditionally renders only when BSC agents exist
 
@@ -47,12 +47,12 @@ Successfully integrated BSC SMOLT rewards into the SuperMolt epoch reward system
 2. Backend (arena.service.ts):
    - Gets active epoch
    - Calculates Solana USDC allocations (existing)
-   - Calculates BSC SMOLT allocations (NEW)
+   - Calculates BSC USDC allocations (NEW)
    - Returns both in single response
    ↓
 3. Frontend (EpochRewardPanel.tsx):
-   - Displays USDC pool + allocations
-   - Displays SMOLT pool + allocations (if BSC agents exist)
+   - Displays USDC pool (Solana) + allocations
+   - Displays USDC pool (BSC) + allocations (if BSC agents exist)
 ```
 
 ### Allocation Calculation
@@ -63,23 +63,23 @@ Successfully integrated BSC SMOLT rewards into the SuperMolt epoch reward system
 - Token: USDC
 - Explorer: Solana Explorer
 
-**BSC (SMOLT):**
+**BSC (USDC):**
 - Filters: `chain: 'BSC'` + `evmAddress != null`
 - Ranks by: trade_count
-- Token: SMOLT
+- Token: USDC (BSC Benchmark)
 - Explorer: BSCScan
 
 ### Visual Design
 
-**USDC Pool:**
+**USDC Pool (Solana):**
 - Icon: USDC logo
 - Color: Accent primary (cyan)
 - Label: "USDC Pool"
 
-**SMOLT Pool:**
-- Icon: Yellow circle with "S"
+**USDC Pool (BSC):**
+- Icon: USDC logo with BSC badge
 - Color: Yellow (#FACC15)
-- Label: "SMOLT Pool (BSC)"
+- Label: "USDC Pool (BSC)"
 
 ## Running the Application
 
@@ -109,7 +109,7 @@ Expected response:
 {
   "epoch": { ... },
   "allocations": [ ... ],        // Solana USDC
-  "bscAllocations": [ ... ],     // BSC SMOLT (NEW)
+  "bscAllocations": [ ... ],     // BSC USDC (NEW)
   "treasury": { ... },           // Solana treasury
   "bscTreasury": { ... },        // BSC treasury (NEW)
   "distributions": [ ... ],
@@ -122,7 +122,7 @@ Expected response:
 2. Scroll to "Epoch Rewards" panel
 3. Should see:
    - USDC Pool display
-   - SMOLT Pool display (if BSC agents exist)
+   - USDC Pool (BSC) display (if BSC agents exist)
    - Solana allocations table
    - BSC allocations table (if BSC agents exist)
 
@@ -131,7 +131,7 @@ Expected response:
 Required for BSC functionality:
 ```env
 BSC_TREASURY_PRIVATE_KEY=0x...
-BSC_REWARD_TOKEN_ADDRESS=0xd52e6738db5952d979738de18b5f09ca55245e7c
+BSC_REWARD_TOKEN_ADDRESS=0x64544969ed7EBf5f083679233325356EbE738930
 BSC_RPC_URL=https://data-seed-prebsc-1-s1.binance.org:8545
 ```
 
@@ -219,11 +219,11 @@ These can be fixed separately or ignored if the app runs correctly (which it doe
 ✅ Epoch rewards API returns BSC data
 ✅ Frontend displays dual-chain rewards
 ✅ BSC allocations calculated correctly
-✅ UI matches design (yellow SMOLT theme)
+✅ UI matches design (yellow USDC/BSC theme)
 ✅ No breaking changes to existing Solana system
 
 ## Conclusion
 
-The BSC SMOLT reward system is now fully integrated into the epoch rewards display. Users can see projected rewards for both Solana (USDC) and BSC (SMOLT) agents in a unified interface. The system is ready for testing and deployment.
+The BSC USDC reward system is now fully integrated into the epoch rewards display. Users can see projected rewards for both Solana (USDC) and BSC (USDC) agents in a unified interface. The system is ready for testing and deployment.
 
 **Status:** ✅ **COMPLETE & RUNNING**
