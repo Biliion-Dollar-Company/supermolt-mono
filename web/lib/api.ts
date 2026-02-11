@@ -27,6 +27,13 @@ import {
   XPLeaderboardEntry,
   AgentConversationSummary,
   AgentTaskCompletionDetail,
+  NewsItem,
+  NewsFeedResponse,
+  SingleNewsResponse,
+  BSCTokenGraduation,
+  BSCMigrationsResponse,
+  BSCMigrationStats,
+  BSCMigrationStatsResponse,
 } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -327,4 +334,42 @@ export async function getAgentTaskCompletions(agentId: string): Promise<AgentTas
 export async function getAgentConversations(agentId: string): Promise<AgentConversationSummary[]> {
   const response = await api.get<{ conversations: AgentConversationSummary[] }>(`/arena/conversations/agent/${agentId}`);
   return response.data.conversations || [];
+}
+
+// ── News & Announcements ──
+
+// Get news feed (all published news items)
+export async function getNewsFeed(limit = 10): Promise<NewsItem[]> {
+  const response = await api.get<NewsFeedResponse>('/news/feed', {
+    params: { limit },
+  });
+  return response.data.items || [];
+}
+
+// Get featured news item (highest priority)
+export async function getFeaturedNews(): Promise<NewsItem | null> {
+  const response = await api.get<SingleNewsResponse>('/news/featured');
+  return response.data.item;
+}
+
+// Get single news item by ID
+export async function getNewsItem(id: string): Promise<NewsItem | null> {
+  const response = await api.get<SingleNewsResponse>(`/news/${id}`);
+  return response.data.item;
+}
+
+// ── BSC Token Graduations ──
+
+// Get recent BSC token graduations (migrated to PancakeSwap)
+export async function getBSCMigrations(limit = 20): Promise<BSCTokenGraduation[]> {
+  const response = await api.get<BSCMigrationsResponse>('/bsc/migrations', {
+    params: { limit },
+  });
+  return response.data.data || [];
+}
+
+// Get BSC migration stats (creations vs graduations)
+export async function getBSCMigrationStats(): Promise<BSCMigrationStats> {
+  const response = await api.get<BSCMigrationStatsResponse>('/bsc/migrations/stats');
+  return response.data.data;
 }

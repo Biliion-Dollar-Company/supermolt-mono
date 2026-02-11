@@ -9,3 +9,5 @@ export { XPProgressBar } from './XPProgressBar';
 export { OnboardingChecklist } from './OnboardingChecklist';
 export { XPLeaderboard } from './XPLeaderboard';
 export { ConversationsPanel } from './ConversationsPanel';
+export { GraduationPanel } from './GraduationPanel';
+export { default as NewsPanel } from './NewsPanel';

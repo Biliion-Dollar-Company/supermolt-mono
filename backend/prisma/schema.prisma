@@ -10,6 +10,11 @@ datasource db {
 
 // ─── Enums ───────────────────────────────────────────────
 
+enum Chain {
+  SOLANA
+  BSC
+}
+
 enum AgentStatus {
   TRAINING
   ACTIVE
@@ -41,11 +46,13 @@ model TradingAgent {
   archetypeId   String
   name          String
   status        AgentStatus @default(TRAINING)
+  chain         Chain       @default(SOLANA)
+  evmAddress    String?
   totalTrades   Int         @default(0)
   winRate       Decimal     @default(0) @db.Decimal(5, 2)
   totalPnl      Decimal     @default(0) @db.Decimal(18, 6)
   config        Json        @default("{}")
-  
+
   // XP & Leveling
   xp            Int         @default(0)
   level         Int         @default(1)
@@ -69,6 +76,7 @@ model TradingAgent {
   @@index([status])
   @@index([archetypeId])
   @@index([xp])
+  @@index([chain])
   @@map("trading_agents")
 }
 
@@ -79,10 +87,12 @@ model PaperTrade {
   tokenSymbol String
   tokenName   String
   action      TradeAction
-  entryPrice  Decimal     @db.Decimal(24, 12)
+  chain       Chain       @default(SOLANA)
+  entryPrice  Decimal     @db.Decimal(24, 12) // SOL/BNB price in USD at buy time (for cost basis)
+  tokenPrice  Decimal?    @db.Decimal(24, 12) // Actual token price in USD at entry
   exitPrice   Decimal?    @db.Decimal(24, 12)
-  amount      Decimal     @db.Decimal(18, 6)
-  tokenAmount Decimal?    @db.Decimal(24, 6)
+  amount      Decimal     @db.Decimal(18, 6)  // SOL/BNB amount spent/received
+  tokenAmount Decimal?    @db.Decimal(24, 6)  // Token quantity
   pnl         Decimal?    @db.Decimal(18, 6)
   pnlPercent  Decimal?    @db.Decimal(8, 2)
   status      TradeStatus @default(OPEN)
@@ -235,12 +245,12 @@ model TreasuryAllocation {
   epochId          String
   scannerId        String?  // For Scanner-based rewards (legacy)
   tradingAgentId   String?  // For TradingAgent-based rewards
+  chain            Chain    @default(SOLANA)
   amount           Decimal  @db.Decimal(10, 2)
   performanceScore Decimal  @db.Decimal(10, 2)
   rank             Int
   txSignature      String?  // Solana transaction signature
   txHash           String?  // EVM transaction hash (BSC, Ethereum, etc.)
-  chain            String   @default("solana") // 'solana' | 'bsc'
   status           String   @default("pending") // 'pending', 'completed', 'failed'
   createdAt        DateTime @default(now())
   completedAt      DateTime?
@@ -417,6 +427,7 @@ model AgentPosition {
   tokenMint    String
   tokenSymbol  String
   tokenName    String
+  chain        Chain     @default(SOLANA)
   quantity     Decimal   @db.Decimal(24, 6)
   entryPrice   Decimal   @db.Decimal(24, 12)
   currentValue Decimal?  @db.Decimal(24, 6)
@@ -438,13 +449,14 @@ model AgentTrade {
   tokenSymbol      String?
   tokenName        String?
   action           String    // "BUY" | "SELL"
+  chain            Chain     @default(SOLANA)
   tokenAmount      Decimal   @db.Decimal(24, 6)
-  solAmount        Decimal   @db.Decimal(24, 8)
-  signature        String    @unique
-  priorityFee      Int?      // lamports
-  networkFee       Int?      // lamports
-  swapFee          Decimal?  @db.Decimal(24, 8) // SOL
-  totalFees        Decimal?  @db.Decimal(24, 8) // SOL
+  solAmount        Decimal   @db.Decimal(24, 8)  // SOL or BNB amount
+  signature        String    @unique             // Solana sig or BSC tx hash (0x...)
+  priorityFee      Int?      // lamports or gwei
+  networkFee       Int?      // lamports or gwei
+  swapFee          Decimal?  @db.Decimal(24, 8)
+  totalFees        Decimal?  @db.Decimal(24, 8)
   executionMs      Int?      // milliseconds
   slippageBps      Int?      // basis points
   priceImpactPct   Decimal?  @db.Decimal(8, 4)
@@ -455,6 +467,7 @@ model AgentTrade {
   @@index([tokenMint])
   @@index([signature])
   @@index([action])
+  @@index([chain])
   @@map("agent_trades")
 }
 
@@ -516,4 +529,85 @@ model Vote {
   @@index([proposalId])
   @@index([agentId])
   @@map("votes")
+}
+
+// ─── BSC Integration: Token Factory Deployments ───────
+
+model TokenDeployment {
+  id             String   @id @default(cuid())
+  agentId        String
+  tokenAddress   String   @unique
+  tokenName      String
+  tokenSymbol    String
+  totalSupply    String   // BigInt as string
+  factoryTxHash  String
+  chain          Chain    @default(BSC)
+  createdAt      DateTime @default(now())
+
+  // Platform metadata
+  platform              String?   // "four.meme", "flap", null=unknown
+  imageUrl              String?
+  description           String?
+  label                 String?
+  presaleBNB            String?
+  socialLinks           Json?     // { twitter, telegram, website }
+  bondingCurveGraduated Boolean   @default(false)
+  graduationTxHash      String?
+  graduationTime        DateTime?
+  pairAddress           String?   // PancakeSwap LP pair address
+  quoteToken            String?   // Quote token in pair (WBNB, USDT, USD1)
+
+  @@index([agentId])
+  @@index([chain])
+  @@index([bondingCurveGraduated])
+  @@index([platform])
+  @@map("token_deployments")
+}
+
+// ─── Monitor State: Persistent block tracking for BSC monitors ───
+
+model MonitorState {
+  id             String   @id // e.g. "fourmeme-monitor", "bsc-trade-monitor"
+  lastBlock      Int
+  updatedAt      DateTime @updatedAt
+
+  @@map("monitor_state")
+}
+
+// ─── News & Announcements: Platform updates, partnerships, milestones ───
+
+enum NewsCategory {
+  FEATURE      // New features, product updates
+  PARTNERSHIP  // Partnerships, integrations
+  MILESTONE    // User growth, transaction milestones
+  CHANGELOG    // Version updates, bug fixes
+  EVENT        // Hackathons, competitions, community events
+  ANNOUNCEMENT // General announcements
+}
+
+enum NewsCtaType {
+  MODAL         // Open modal with full content
+  EXTERNAL_LINK // Open URL in new tab
+  INTERNAL_LINK // Navigate within app
+}
+
+model NewsItem {
+  id          String       @id @default(cuid())
+  title       String       // Short headline (e.g. "🏆 SuperMolt Wins USDC Hackathon")
+  description String       @db.Text // Preview text for card
+  content     String?      @db.Text // Full markdown content for modal (optional)
+  imageUrl    String       // Background image URL
+  ctaText     String       // Button text (e.g. "Read More", "View Details")
+  ctaType     NewsCtaType  @default(MODAL)
+  ctaUrl      String?      // External URL (if ctaType = EXTERNAL_LINK)
+  category    NewsCategory @default(ANNOUNCEMENT)
+  priority    Int          @default(0) // Higher = more important (for sorting)
+  published   Boolean      @default(true)
+  publishedAt DateTime     @default(now())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([published, priority, publishedAt])
+  @@index([category])
+  @@map("news_items")
 }

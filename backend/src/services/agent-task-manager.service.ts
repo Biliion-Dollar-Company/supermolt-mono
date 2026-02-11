@@ -148,10 +148,10 @@ export class AgentTaskManager {
         return { valid: false, error: validation.error };
       }
 
-      // Validation passed — award XP atomically
+      // Validation passed — award XP + recalculate level atomically
       const now = new Date();
-      await db.$transaction([
-        db.agentTaskCompletion.update({
+      await db.$transaction(async (tx) => {
+        await tx.agentTaskCompletion.update({
           where: { id: completion.id },
           data: {
             status: 'VALIDATED',
@@ -160,25 +160,24 @@ export class AgentTaskManager {
             submittedAt: now,
             validatedAt: now,
           },
-        }),
-        db.agentTask.update({
+        });
+        await tx.agentTask.update({
           where: { id: taskId },
           data: { status: 'COMPLETED' },
-        }),
-        db.tradingAgent.update({
+        });
+        const updated = await tx.tradingAgent.update({
           where: { id: agentId },
-          data: {
-            xp: { increment: task.xpReward },
-          },
-        }),
-      ]);
-
-      // Recalculate level outside transaction
-      const agent = await db.tradingAgent.findUnique({ where: { id: agentId }, select: { xp: true } });
-      if (agent) {
-        const newLevel = calculateLevel(agent.xp);
-        await db.tradingAgent.update({ where: { id: agentId }, data: { level: newLevel } });
-      }
+          data: { xp: { increment: task.xpReward } },
+        });
+        // Recalculate level inside same transaction to avoid race
+        const newLevel = calculateLevel(updated.xp);
+        if (updated.level !== newLevel) {
+          await tx.tradingAgent.update({
+            where: { id: agentId },
+            data: { level: newLevel },
+          });
+        }
+      });
 
       // Auto-complete COMPLETE_RESEARCH onboarding task when a real (non-onboarding) task is validated
       if (task.tokenMint !== null) {

@@ -8,6 +8,8 @@ import { db } from './lib/db';
 import { HeliusWebSocketMonitor } from './services/helius-websocket.js';
 import { websocketEvents } from './services/websocket-events.js';
 import { DevPrintFeedService } from './services/devprint-feed.service.js';
+import { createBSCMonitor } from './services/bsc-monitor.js';
+import { createFourMemeMonitor } from './services/fourmeme-monitor.js';
 
 import { createSortinoCron } from './services/sortino-cron.js';
 import { createMetricsMiddleware, getMetrics, getMetricsContentType, updateAgentMetrics, updateEpochMetrics } from './services/metrics.service.js';
@@ -33,6 +35,9 @@ import { skills } from './routes/skills';
 import { skillsGuide } from './routes/skills-guide';
 import { docsRoutes } from './routes/docs';
 import { swaggerRoutes } from './routes/swagger';
+import { siweAuthRoutes } from './routes/auth.siwe';
+import { bscRoutes } from './routes/bsc.routes';
+import { pumpfunRoutes } from './routes/pumpfun.routes';
 // import { trading } from './routes/trading.routes'; // DISABLED for hackathon - passive observation only
 
 // USDC Hackathon Routes (Standardized Modules)
@@ -43,6 +48,7 @@ import calls from './modules/scanner-calls/scanner-calls.routes';
 import arenaRoutes from './modules/arena/arena.routes';
 import arenaMeRoutes from './routes/arena-me.routes';
 import taskRoutes from './modules/tasks/tasks.routes';
+import newsRoutes from './modules/news/news.routes';
 
 const app = new Hono();
 
@@ -63,6 +69,10 @@ const allowedOrigins = [
   'http://localhost:8081',
   'exp://localhost:8081',
   'https://sr-mobile-production.up.railway.app',
+  'https://supermolt.xyz',
+  'https://www.supermolt.xyz',
+  'https://supermolt.app',
+  'https://www.supermolt.app',
 ];
 
 // Middleware
@@ -126,7 +136,8 @@ app.get('/skill.md', (c) => {
 
 // Auth routes
 app.route('/auth', auth);
-app.route('/auth', siwsAuthRoutes); // SIWS agent auth
+app.route('/auth', siwsAuthRoutes); // SIWS agent auth (Solana)
+app.route('/auth', siweAuthRoutes); // SIWE agent auth (BSC/EVM)
 
 // Protected routes (JWT required)
 app.route('/agents', agent);
@@ -161,10 +172,19 @@ app.route('/api/leaderboard', leaderboard);
 app.route('/api/epochs', epochs);
 app.route('/api/calls', calls);
 
+// BSC routes (token factory, treasury, monitoring)
+app.route('/bsc', bscRoutes);
+
+// Solana routes (pump.fun token launcher)
+app.route('/pumpfun', pumpfunRoutes);
+
 // Arena routes (public, frontend arena page)
 app.route('/arena', arenaMeRoutes); // /arena/me — must be before generic arena routes
 app.route('/arena', arenaRoutes);
 app.route('/arena/tasks', taskRoutes);
+
+// News routes (platform announcements, updates, partnerships)
+app.route('/news', newsRoutes);
 
 // Root
 app.get('/', (c) => {
@@ -182,6 +202,12 @@ app.get('/', (c) => {
         leaderboard: '/api/leaderboard/*',
         epochs: '/api/epochs/*',
         calls: '/api/calls/*'
+      },
+      bsc: {
+        auth: '/auth/evm/*',
+        tokens: '/bsc/tokens/*',
+        factory: '/bsc/factory/info',
+        treasury: '/bsc/treasury/*',
       }
     }
   });
@@ -371,6 +397,21 @@ if (env.DEVPRINT_WS_URL) {
 
 // Start WebSocket monitor in background
 startHeliusMonitor();
+
+// Start BSC Trade Monitor (RPC-based, no API key needed)
+const bscMonitor = createBSCMonitor();
+bscMonitor.start().catch((err) => {
+  console.error('❌ BSC monitor failed to start:', err);
+});
+
+// Start Four.Meme Migration Monitor (RPC-based, no API key needed)
+const fourMemeMonitor = createFourMemeMonitor();
+fourMemeMonitor.onMigration((event) => {
+  console.log(`🎉 [4meme] New token: ${event.tokenSymbol} (${event.tokenAddress.slice(0, 10)}...)`);
+});
+fourMemeMonitor.start().catch((err) => {
+  console.error('❌ 4meme monitor failed to start:', err);
+});
 
 // Start Sortino cron job (hourly recalculation)
 const sortinoCron = createSortinoCron(db);

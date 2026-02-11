@@ -120,16 +120,12 @@ export async function getLeaderboard() {
     const tradeCount = atData?.count || ptData?.count || agent.totalTrades;
     const totalVolume = atData?.volume || ptData?.volume || 0;
 
-    // Extract Twitter verification status from config
-    const config = agent.config as any;
-    const twitterVerified = config?.twitterVerified || false;
-
     return {
       agentId: agent.id,
       agentName: agent.displayName || agent.name,
       walletAddress: agent.userId,
-      twitterHandle: agent.twitterHandle || null,
-      twitterVerified,
+      chain: agent.chain,
+      evmAddress: agent.evmAddress || undefined,
       sortino_ratio: sortinoRatio,
       win_rate: winRate,
       total_pnl: totalPnl,
@@ -236,40 +232,37 @@ export async function getRecentTrades(limit: number) {
     ...paperTrades.map((t) => ({ symbol: t.tokenSymbol, mint: t.tokenMint })),
   ]);
 
-  // Map AgentTrades
-  const mapped = agentTrades.map((t) => ({
-    tradeId: t.id,
-    agentId: t.agentId,
-    tokenMint: t.tokenMint,
-    tokenSymbol: resolveSymbol(t.tokenSymbol, t.tokenMint),
-    action: t.action as 'BUY' | 'SELL',
-    quantity: parseFloat(t.tokenAmount.toString()),
-    entryPrice: parseFloat(t.solAmount.toString()),
-    exitPrice: undefined as number | undefined,
-    pnl: 0,
-    pnlPercent: 0,
-    txHash: t.signature,
-    timestamp: t.createdAt.toISOString(),
-    createdAt: t.createdAt.toISOString(),
-    updatedAt: t.createdAt.toISOString(),
-  }));
+  // Collect agent IDs for name resolution
+  const allAgentIds = new Set([
+    ...agentTrades.map((t) => t.agentId),
+    ...paperTrades.map((t) => t.agentId),
+  ]);
+  const nameMap = await buildAgentNameMap([...allAgentIds]);
 
-  // Track AgentTrade signatures to avoid duplicates
-  const seenSigs = new Set(agentTrades.map((t) => t.signature));
+  // Map PaperTrades FIRST — they have PnL data from FIFO close
+  const seenSigs = new Set<string>();
+  const mapped: Array<{
+    tradeId: string; agentId: string; agentName: string;
+    tokenMint: string; tokenSymbol: string; tokenName: string | undefined;
+    action: 'BUY' | 'SELL'; quantity: number; entryPrice: number;
+    exitPrice: number | undefined; pnl: number; pnlPercent: number;
+    txHash: string; timestamp: string; createdAt: string; updatedAt: string;
+  }> = [];
 
-  // Add PaperTrades that don't duplicate AgentTrades
   for (const t of paperTrades) {
     const sig = (t.metadata as any)?.signature;
-    if (sig && seenSigs.has(sig)) continue;
+    if (sig) seenSigs.add(sig);
 
     mapped.push({
       tradeId: t.id,
       agentId: t.agentId,
+      agentName: nameMap.get(t.agentId) ?? 'Unknown',
       tokenMint: t.tokenMint,
       tokenSymbol: resolveSymbol(t.tokenSymbol, t.tokenMint),
+      tokenName: t.tokenName || undefined,
       action: t.action as 'BUY' | 'SELL',
       quantity: t.tokenAmount ? parseFloat(t.tokenAmount.toString()) : parseFloat(t.amount.toString()),
-      entryPrice: parseFloat(t.entryPrice.toString()),
+      entryPrice: t.tokenPrice ? parseFloat(t.tokenPrice.toString()) : parseFloat(t.entryPrice.toString()),
       exitPrice: t.exitPrice ? parseFloat(t.exitPrice.toString()) : undefined,
       pnl: t.pnl ? parseFloat(t.pnl.toString()) : 0,
       pnlPercent: t.pnlPercent ? parseFloat(t.pnlPercent.toString()) : 0,
@@ -277,6 +270,30 @@ export async function getRecentTrades(limit: number) {
       timestamp: t.openedAt.toISOString(),
       createdAt: t.openedAt.toISOString(),
       updatedAt: (t.closedAt ?? t.openedAt).toISOString(),
+    });
+  }
+
+  // Add AgentTrades that don't duplicate PaperTrades
+  for (const t of agentTrades) {
+    if (seenSigs.has(t.signature)) continue;
+
+    mapped.push({
+      tradeId: t.id,
+      agentId: t.agentId,
+      agentName: nameMap.get(t.agentId) ?? 'Unknown',
+      tokenMint: t.tokenMint,
+      tokenSymbol: resolveSymbol(t.tokenSymbol, t.tokenMint),
+      tokenName: t.tokenName || undefined,
+      action: t.action as 'BUY' | 'SELL',
+      quantity: parseFloat(t.tokenAmount.toString()),
+      entryPrice: parseFloat(t.solAmount.toString()),
+      exitPrice: undefined,
+      pnl: 0,
+      pnlPercent: 0,
+      txHash: t.signature,
+      timestamp: t.createdAt.toISOString(),
+      createdAt: t.createdAt.toISOString(),
+      updatedAt: t.createdAt.toISOString(),
     });
   }
 
@@ -301,6 +318,20 @@ export async function getAllPositions() {
     positions.map((p) => ({ symbol: p.tokenSymbol, mint: p.tokenMint }))
   );
 
+  // Fetch live prices for all unique mints (parallel, with 5s timeout)
+  const uniqueMints = [...new Set(positions.map((p) => p.tokenMint))];
+  const priceMap = new Map<string, number>();
+  await Promise.all(
+    uniqueMints.map(async (mint) => {
+      try {
+        const price = await getTokenPrice(mint);
+        if (price?.priceUsd) priceMap.set(mint, price.priceUsd);
+      } catch {
+        // Use cached DB value if live price fails
+      }
+    })
+  );
+
   // Gather agent names
   const agentIds = [...new Set(positions.map((p) => p.agentId))];
   const nameMap = await buildAgentNameMap(agentIds);
@@ -309,8 +340,16 @@ export async function getAllPositions() {
     positions: positions.map((pos) => {
       const quantity = parseFloat(pos.quantity.toString());
       const entryPrice = parseFloat(pos.entryPrice.toString());
-      const currentValue = pos.currentValue ? parseFloat(pos.currentValue.toString()) : quantity * entryPrice;
-      const currentPrice = quantity > 0 ? currentValue / quantity : entryPrice;
+
+      // Use live price if available; for dead tokens without price, assume $0
+      const livePrice = priceMap.get(pos.tokenMint);
+      const currentPrice = livePrice ?? (pos.currentValue
+        ? parseFloat(pos.currentValue.toString()) / quantity
+        : 0); // Dead tokens with no price → $0, not entryPrice
+      const currentValue = quantity * currentPrice;
+      const costBasis = quantity * entryPrice;
+      const pnl = currentValue - costBasis;
+      const pnlPercent = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
 
       return {
         positionId: pos.id,
@@ -318,12 +357,13 @@ export async function getAllPositions() {
         agentName: nameMap.get(pos.agentId) ?? 'Unknown',
         tokenMint: pos.tokenMint,
         tokenSymbol: resolveSymbol(pos.tokenSymbol, pos.tokenMint),
+        tokenName: pos.tokenName,
         quantity,
         entryPrice,
         currentPrice,
         currentValue,
-        pnl: pos.pnl ? parseFloat(pos.pnl.toString()) : 0,
-        pnlPercent: pos.pnlPercent ? parseFloat(pos.pnlPercent.toString()) : 0,
+        pnl,
+        pnlPercent,
         openedAt: pos.openedAt.toISOString(),
       };
     }),
@@ -605,8 +645,11 @@ export async function getEpochRewards() {
     return {
       epoch: null,
       allocations: [],
+      bscAllocations: [],
       treasury: { balance: 0, distributed: 0, available: 0 },
+      bscTreasury: { balance: 0, distributed: 0, available: 0 },
       distributions: [],
+      bscDistributions: [],
     };
   }
 
@@ -737,6 +780,8 @@ export async function getAgentById(agentId: string) {
     agentId: agent.id,
     agentName: agent.displayName || agent.name,
     walletAddress: agent.userId,
+    chain: agent.chain,
+    evmAddress: agent.evmAddress || undefined,
     xp: agent.xp,
     level: agent.level,
     levelName: getLevelName(agent.level),
@@ -848,14 +893,35 @@ export async function getAgentPositionsById(agentId: string) {
     positions.map((p) => ({ symbol: p.tokenSymbol, mint: p.tokenMint }))
   );
 
+  // Fetch live prices for all unique mints
+  const uniqueMints = [...new Set(positions.map((p) => p.tokenMint))];
+  const priceMap = new Map<string, number>();
+  await Promise.all(
+    uniqueMints.map(async (mint) => {
+      try {
+        const price = await getTokenPrice(mint);
+        if (price?.priceUsd) priceMap.set(mint, price.priceUsd);
+      } catch {
+        // Use cached DB value if live price fails
+      }
+    })
+  );
+
   const agentName = agent.displayName || agent.name;
 
   return {
     positions: positions.map((pos) => {
       const quantity = parseFloat(pos.quantity.toString());
       const entryPrice = parseFloat(pos.entryPrice.toString());
-      const currentValue = pos.currentValue ? parseFloat(pos.currentValue.toString()) : quantity * entryPrice;
-      const currentPrice = quantity > 0 ? currentValue / quantity : entryPrice;
+
+      const livePrice = priceMap.get(pos.tokenMint);
+      const currentPrice = livePrice ?? (pos.currentValue
+        ? parseFloat(pos.currentValue.toString()) / quantity
+        : 0); // Dead tokens with no price → $0
+      const currentValue = quantity * currentPrice;
+      const costBasis = quantity * entryPrice;
+      const pnl = currentValue - costBasis;
+      const pnlPercent = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
 
       return {
         positionId: pos.id,
@@ -863,12 +929,13 @@ export async function getAgentPositionsById(agentId: string) {
         agentName,
         tokenMint: pos.tokenMint,
         tokenSymbol: resolveSymbol(pos.tokenSymbol, pos.tokenMint),
+        tokenName: pos.tokenName,
         quantity,
         entryPrice,
         currentPrice,
         currentValue,
-        pnl: pos.pnl ? parseFloat(pos.pnl.toString()) : 0,
-        pnlPercent: pos.pnlPercent ? parseFloat(pos.pnlPercent.toString()) : 0,
+        pnl,
+        pnlPercent,
         openedAt: pos.openedAt.toISOString(),
       };
     }),

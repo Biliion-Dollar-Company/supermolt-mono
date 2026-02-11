@@ -6,10 +6,10 @@
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 
-type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets';
+type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets' | 'training';
 
 const VALID_FEED_CHANNELS = new Set<FeedChannel>([
-  'godwallet', 'signals', 'market', 'watchlist', 'tokens', 'tweets',
+  'godwallet', 'signals', 'market', 'watchlist', 'tokens', 'tweets', 'training',
 ]);
 
 interface BroadcastEvents {

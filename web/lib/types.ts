@@ -353,3 +353,75 @@ export interface EpochReward {
   treasury: { balance: number; distributed: number; available: number };
   distributions: Distribution[];
 }
+
+// ── BSC Token Graduations ──
+
+export interface BSCTokenGraduation {
+  id: string;
+  tokenAddress: string;
+  tokenName: string;
+  tokenSymbol: string;
+  txHash: string;
+  chain: string;
+  platform: string | null; // 'four.meme' | 'flap'
+  bondingCurveGraduated: boolean;
+  graduationTxHash: string | null;
+  graduationTime: string | null;
+  pairAddress: string | null;
+  quoteToken: string | null; // 'WBNB' | 'USDT' | 'USD1'
+  explorerUrl: string;
+  platformUrl: string;
+  pancakeSwapUrl: string | null;
+  createdAt: string;
+}
+
+export interface BSCMigrationsResponse {
+  success: boolean;
+  count: number;
+  data: BSCTokenGraduation[];
+  platforms: string[];
+}
+
+export interface BSCMigrationStats {
+  totalCreated: number;
+  totalGraduated: number;
+  graduationRate: number;
+  byPlatform: {
+    'four.meme': number;
+    'flap': number;
+  };
+}
+
+export interface BSCMigrationStatsResponse {
+  success: boolean;
+  data: BSCMigrationStats;
+}
+
+// ── News & Announcements ──
+
+export type NewsCategory = 'FEATURE' | 'PARTNERSHIP' | 'MILESTONE' | 'CHANGELOG' | 'EVENT' | 'ANNOUNCEMENT';
+export type NewsCtaType = 'MODAL' | 'EXTERNAL_LINK' | 'INTERNAL_LINK';
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  description: string;
+  content: string | null;
+  imageUrl: string;
+  ctaText: string;
+  ctaType: NewsCtaType;
+  ctaUrl: string | null;
+  category: NewsCategory;
+  priority: number;
+  publishedAt: string;
+}
+
+export interface NewsFeedResponse {
+  success: boolean;
+  items: NewsItem[];
+}
+
+export interface SingleNewsResponse {
+  success: boolean;
+  item: NewsItem | null;
+}

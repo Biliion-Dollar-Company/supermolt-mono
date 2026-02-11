@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Swords, Wifi, WifiOff, Copy, Check } from 'lucide-react';
 import { getRecentTrades, getAllPositions } from '@/lib/api';
 import { Trade, Position } from '@/lib/types';
-import { ArenaLeaderboard, TokenDetailContent, EpochRewardPanel, TasksPanel, MyAgentPanel, XPLeaderboard, ConversationsPanel } from '@/components/arena';
+import { ArenaLeaderboard, TokenDetailContent, EpochRewardPanel, GraduationPanel, TasksPanel, MyAgentPanel, XPLeaderboard, ConversationsPanel } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
 
 function SkeletonBlock({ className = '' }: { className?: string }) {
@@ -311,7 +311,7 @@ export default function ArenaPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Arena</h1>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <span className="text-xs text-text-muted hidden sm:inline">
+            <span className="text-xs text-text-muted hidden sm:inline" suppressHydrationWarning>
               Updated {lastRefresh.toLocaleTimeString()}
             </span>
             <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
@@ -381,9 +381,13 @@ export default function ArenaPage() {
                   <EpochRewardPanel />
                 </div>
 
+                <div className="animate-arena-reveal" style={{ animationDelay: '210ms' }}>
+                  <GraduationPanel />
+                </div>
+
                 <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
 
-                <div className="animate-arena-reveal" style={{ animationDelay: '240ms' }}>
+                <div className="animate-arena-reveal" style={{ animationDelay: '270ms' }}>
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
                       Live Tokens

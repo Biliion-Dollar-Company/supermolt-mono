@@ -29,6 +29,7 @@ import GradientText from '@/components/reactbits/GradientText';
 import DecryptedText from '@/components/reactbits/DecryptedText';
 import GlitchText from '@/components/reactbits/GlitchText';
 import { ArchitectureModal } from '@/components/ArchitectureModal';
+import { NewsPanel } from '@/components/arena';
 
 const Hyperspeed = dynamic(() => import('@/components/reactbits/Hyperspeed'), { ssr: false });
 const LaserFlow = dynamic(() => import('@/components/reactbits/LaserFlow'), { ssr: false });
@@ -154,13 +155,35 @@ export default function Home() {
               {/* Hero title bar */}
               <div className="mb-8">
                 <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4 sm:gap-5">
-                  <Image
-                    src="/pfp.png"
-                    alt="SuperMolt"
-                    width={320}
-                    height={300}
-                    className="rounded-lg object-cover flex-shrink-0 w-[80px] sm:w-[170px]"
-                  />
+                  <div className="relative flex-shrink-0">
+                    <Image
+                      src="/pfp.png"
+                      alt="SuperMolt"
+                      width={320}
+                      height={300}
+                      className="rounded-lg object-cover w-[80px] sm:w-[170px]"
+                    />
+                    <motion.a
+                      href="https://www.superrouter.fun/en"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] rounded-full hover:bg-white/[0.07] transition-all cursor-pointer whitespace-nowrap"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 1.2 }}
+                    >
+                      <Image
+                        src="/super-router-pfp.png"
+                        alt="SuperRouter"
+                        width={16}
+                        height={16}
+                        className="rounded-full"
+                      />
+                      <span className="text-[10px] text-text-muted tracking-wide">
+                        Powered by <span className="text-text-secondary font-medium">SuperRouter</span>
+                      </span>
+                    </motion.a>
+                  </div>
                   <div className="flex-1 pt-0 sm:pt-1 text-center sm:text-left">
                     <h1 className="font-bold tracking-tight font-display mb-1.5">
                       <div className="text-3xl sm:text-4xl md:text-6xl text-center sm:text-left">
@@ -282,33 +305,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Powered by SuperRouter */}
-                <motion.div
-                  className="flex items-center justify-center gap-2.5 mt-5"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 1.2 }}
-                >
-                  <div className="h-px flex-1 max-w-12 bg-gradient-to-r from-transparent to-white/10" />
-                  <a
-                    href="https://www.superrouter.fun/en"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] rounded-full hover:bg-white/[0.07] transition-all cursor-pointer"
-                  >
-                    <Image
-                      src="/super-router-pfp.png"
-                      alt="SuperRouter"
-                      width={20}
-                      height={20}
-                      className="rounded-full"
-                    />
-                    <span className="text-[11px] text-text-muted tracking-wide">
-                      Powered by <span className="text-text-secondary font-medium">SuperRouter</span>
-                    </span>
-                  </a>
-                  <div className="h-px flex-1 max-w-12 bg-gradient-to-l from-transparent to-white/10" />
-                </motion.div>
               </div>
             </div>
 
@@ -317,8 +313,18 @@ export default function Home() {
               <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
             </div>
 
-            {/* RIGHT: How It Works Flow */}
+            {/* RIGHT: News + How It Works Flow */}
             <div className="lg:pl-10 flex flex-col justify-center">
+              {/* News Panel */}
+              <motion.div
+                className="mb-6"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
+                <NewsPanel />
+              </motion.div>
+
               <h2 className="text-lg font-bold text-text-primary mb-1 font-display text-center">The Flow</h2>
               <p className="text-sm text-text-muted mb-6 text-center">From deployment to collective decisions</p>
 

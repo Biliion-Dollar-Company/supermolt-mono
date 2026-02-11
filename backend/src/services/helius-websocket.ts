@@ -2,13 +2,15 @@
  * Helius WebSocket Monitor
  * Connects to Helius WebSocket and listens for SWAP/TRANSFER events
  * from your tracked wallets in real-time
- * 
+ *
  * Based on DevPrint's helius.rs approach - WebSocket is more reliable than webhooks
  */
 
 import WebSocket from 'ws';
 import { PrismaClient } from '@prisma/client';
 import { getTokenPrice } from '../lib/birdeye';
+
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
 const NETWORK = process.env.SOLANA_NETWORK || 'devnet';
 const HELIUS_WS_URL = NETWORK === 'mainnet' 
@@ -360,22 +362,132 @@ export class HeliusWebSocketMonitor {
         
         console.log(`✅ Created new agent: ${agent.id}`);
       } else {
-        // Increment trade count
-        agent = await this.db.tradingAgent.update({
-          where: { id: agent.id },
-          data: {
-            totalTrades: {
-              increment: 1
-            }
-          }
-        });
-        
-        console.log(`✅ Updated agent: ${agent.id} (trades: ${agent.totalTrades})`);
+        // Agent exists — totalTrades is managed by closePaperTradesForSell in webhooks.ts
+        // Don't increment here to avoid double-counting
+        console.log(`✅ Agent exists: ${agent.id} (trades: ${agent.totalTrades})`);
       }
 
       console.log(`🎯 Agent on leaderboard: ${agent.id}`);
     } catch (error) {
       console.error(`❌ Failed to create/update agent:`, error);
+    }
+  }
+
+  /**
+   * Fetch parsed transaction from Helius RPC to extract token transfer details.
+   * Returns the token mint, symbol, action (BUY/SELL), and SOL amount.
+   */
+  private async fetchParsedTransaction(signature: string): Promise<{
+    tokenMint: string;
+    tokenSymbol?: string;
+    tokenName?: string;
+    action: 'BUY' | 'SELL';
+    solAmount: number;
+  } | null> {
+    try {
+      const rpcUrl = `${HELIUS_WS_URL.replace('wss://', 'https://')}?api-key=${this.apiKey}`;
+      const resp = await fetch(rpcUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'getTransaction',
+          params: [signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }],
+        }),
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!resp.ok) return null;
+
+      const data = (await resp.json()) as any;
+      const tx = data?.result;
+      if (!tx) return null;
+
+      // Walk pre/postTokenBalances to find the token that changed for the signer
+      const preBalances: any[] = tx.meta?.preTokenBalances || [];
+      const postBalances: any[] = tx.meta?.postTokenBalances || [];
+
+      // Build a map of account-index → owner from both arrays
+      const ownerMap = new Map<number, string>();
+      for (const b of [...preBalances, ...postBalances]) {
+        if (b.owner) ownerMap.set(b.accountIndex, b.owner);
+      }
+
+      // Collect token balance changes per mint for tracked wallets
+      const changes = new Map<string, { pre: number; post: number; mint: string }>();
+
+      for (const post of postBalances) {
+        const owner = post.owner || ownerMap.get(post.accountIndex);
+        if (!owner || !this.trackedWallets.has(owner)) continue;
+        const mint = post.mint;
+        if (mint === SOL_MINT) continue; // Skip SOL transfers
+
+        const postAmt = parseFloat(post.uiTokenAmount?.uiAmountString || '0');
+        const pre = preBalances.find(
+          (p: any) => p.mint === mint && (p.owner || ownerMap.get(p.accountIndex)) === owner
+        );
+        const preAmt = pre ? parseFloat(pre.uiTokenAmount?.uiAmountString || '0') : 0;
+
+        const existing = changes.get(mint);
+        if (existing) {
+          existing.pre += preAmt;
+          existing.post += postAmt;
+        } else {
+          changes.set(mint, { pre: preAmt, post: postAmt, mint });
+        }
+      }
+
+      // Also check preBalances for tokens that went to 0 (fully sold — won't appear in post)
+      for (const pre of preBalances) {
+        const owner = pre.owner || ownerMap.get(pre.accountIndex);
+        if (!owner || !this.trackedWallets.has(owner)) continue;
+        const mint = pre.mint;
+        if (mint === SOL_MINT) continue;
+
+        if (!changes.has(mint)) {
+          const preAmt = parseFloat(pre.uiTokenAmount?.uiAmountString || '0');
+          changes.set(mint, { pre: preAmt, post: 0, mint });
+        }
+      }
+
+      if (changes.size === 0) return null;
+
+      // Pick the token with the largest absolute change
+      let bestMint = '';
+      let bestDelta = 0;
+      for (const [mint, c] of changes) {
+        const delta = c.post - c.pre;
+        if (Math.abs(delta) > Math.abs(bestDelta)) {
+          bestDelta = delta;
+          bestMint = mint;
+        }
+      }
+
+      if (!bestMint) return null;
+
+      const action: 'BUY' | 'SELL' = bestDelta > 0 ? 'BUY' : 'SELL';
+
+      // Estimate SOL amount from native balance changes
+      const preSOL = (tx.meta?.preBalances?.[0] || 0) / 1e9;
+      const postSOL = (tx.meta?.postBalances?.[0] || 0) / 1e9;
+      const solAmount = Math.abs(preSOL - postSOL);
+
+      // Try to look up symbol/name via Birdeye (cached, fast)
+      let tokenSymbol: string | undefined;
+      let tokenName: string | undefined;
+      try {
+        const price = await getTokenPrice(bestMint);
+        tokenSymbol = price?.symbol ?? undefined;
+        tokenName = price?.name ?? undefined;
+      } catch {
+        // Non-critical — symbol stays undefined
+      }
+
+      return { tokenMint: bestMint, tokenSymbol, tokenName, action, solAmount };
+    } catch (error) {
+      console.error('❌ Failed to fetch parsed transaction:', error instanceof Error ? error.message : error);
+      return null;
     }
   }
 
@@ -388,22 +500,31 @@ export class HeliusWebSocketMonitor {
 
       // 🎯 CHECK IF THIS IS SUPERROUTER - Trigger agent analysis!
       const { isSuperRouter, handleSuperRouterTrade } = await import('./superrouter-observer.js');
-      
+
       if (isSuperRouter(signer)) {
-        console.log('🎯 SuperRouter trade detected! Analyzing...');
-        
-        // Extract trade details from result
-        // TODO: Parse token mint, action, amount from transaction data
-        // For now, trigger with basic data
-        await handleSuperRouterTrade({
-          signature: result.signature || 'unknown',
-          tokenMint: 'unknown', // Will be parsed from transaction
-          tokenSymbol: undefined,
-          tokenName: undefined,
-          action: 'BUY', // Default to BUY for now
-          amount: 0.1, // Will be parsed from transaction
-          timestamp: new Date(),
-        });
+        console.log('🎯 SuperRouter trade detected via WebSocket! Fetching transaction details...');
+
+        const signature = result.signature || 'unknown';
+
+        // Fetch and parse the actual transaction to get real token data
+        const parsed = signature !== 'unknown'
+          ? await this.fetchParsedTransaction(signature)
+          : null;
+
+        if (parsed) {
+          console.log(`🎯 Parsed SuperRouter trade: ${parsed.action} ${parsed.tokenSymbol || parsed.tokenMint.slice(0, 8)} (${parsed.solAmount.toFixed(4)} SOL)`);
+          await handleSuperRouterTrade({
+            signature,
+            tokenMint: parsed.tokenMint,
+            tokenSymbol: parsed.tokenSymbol,
+            tokenName: parsed.tokenName,
+            action: parsed.action,
+            amount: parsed.solAmount,
+            timestamp: new Date(),
+          });
+        } else {
+          console.warn('⚠️ Could not parse transaction details — skipping observer trigger');
+        }
       }
     } catch (error) {
       console.error(`❌ Failed to process transaction:`, error);
