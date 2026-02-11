@@ -347,11 +347,25 @@ export interface Distribution {
   completedAt: string;
 }
 
+export interface BSCAllocation {
+  agentId: string;
+  agentName: string;
+  evmAddress: string;
+  rank: number;
+  smoltAmount: number;
+  multiplier: number;
+  txHash?: string;
+  status: 'preview' | 'completed' | 'failed';
+}
+
 export interface EpochReward {
   epoch: EpochInfo | null;
   allocations: AgentAllocation[];
+  bscAllocations?: BSCAllocation[];
   treasury: { balance: number; distributed: number; available: number };
+  bscTreasury?: { balance: number; distributed: number; available: number };
   distributions: Distribution[];
+  bscDistributions?: Distribution[];
 }
 
 // ── BSC Token Graduations ──
