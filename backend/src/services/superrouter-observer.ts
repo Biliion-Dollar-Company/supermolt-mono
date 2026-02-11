@@ -4,6 +4,7 @@
  */
 
 import { analyzeSuperRouterTrade, postAgentAnalysis } from './agent-analyzer';
+import { getTwitterAPI } from './twitter-api.service';
 import { websocketEvents } from './websocket-events';
 import { db } from '../lib/db';
 
@@ -25,31 +26,31 @@ interface SuperRouterTrade {
  */
 async function fetchTokenData(tokenMint: string) {
   console.log(`📊 Fetching REAL token data for ${tokenMint.substring(0, 8)}...`);
-  
+
   try {
     // DexScreener API (free, public, no key needed) with 5s timeout
     const url = `https://api.dexscreener.com/latest/dex/tokens/${tokenMint}`;
     const response = await fetch(url, {
       signal: AbortSignal.timeout(5000) // 5 second timeout
     });
-    
+
     if (!response.ok) {
       console.warn(`⚠️  DexScreener API failed (${response.status}), using fallback`);
       return getFallbackData();
     }
-    
+
     const data = await response.json();
-    
+
     if (!data.pairs || data.pairs.length === 0) {
       console.warn(`⚠️  No trading pairs found for token ${tokenMint.substring(0, 8)}`);
       return getFallbackData();
     }
-    
+
     // Use the most liquid pair (Raydium or Jupiter usually)
-    const pair = data.pairs.sort((a: any, b: any) => 
+    const pair = data.pairs.sort((a: any, b: any) =>
       (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0)
     )[0];
-    
+
     const metrics = {
       holders: undefined, // DexScreener doesn't provide this
       liquidity: pair.liquidity?.usd || 0,
@@ -61,14 +62,14 @@ async function fetchTokenData(tokenMint: string) {
       priceUsd: parseFloat(pair.priceUsd || '0'),
       smartMoneyFlow: determineSmartMoney(pair),
     };
-    
+
     console.log(`✅ REAL DATA fetched:`);
     console.log(`   Liquidity: $${metrics.liquidity.toLocaleString()}`);
     console.log(`   Volume 24h: $${metrics.volume24h.toLocaleString()}`);
     console.log(`   Price Change: ${metrics.priceChange24h.toFixed(2)}%`);
     console.log(`   Txns 24h: ${metrics.txns24h}`);
     console.log(`   Smart Money: ${metrics.smartMoneyFlow}`);
-    
+
     return metrics;
   } catch (error) {
     // Log error with context but don't leak stack traces
@@ -87,13 +88,13 @@ async function fetchTokenData(tokenMint: string) {
 function determineSmartMoney(pair: any): 'IN' | 'OUT' | 'NEUTRAL' {
   const volume = pair.volume?.h24 || 0;
   const priceChange = pair.priceChange?.h24 || 0;
-  
+
   // High volume + strong price gain = Smart money IN
   if (volume > 500000 && priceChange > 15) return 'IN';
-  
+
   // High volume + strong price drop = Smart money OUT
   if (volume > 500000 && priceChange < -15) return 'OUT';
-  
+
   return 'NEUTRAL';
 }
 
@@ -127,18 +128,51 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Step 1: Fetch token data
-    const tokenData = await fetchTokenData(trade.tokenMint);
+    // Step 1: Fetch token data (DexScreener)
+    const tokenMetrics = await fetchTokenData(trade.tokenMint);
+
+    // Step 1.1: Fetch Social Context (Mindshare) via Twitter Search
+    let socialData: { recentTweets?: string[], tweetCount?: number } = {};
+    const symbol = trade.tokenSymbol || '';
+
+    if (symbol.length > 2) {
+      try {
+        // Need to import TwitterAPI properly or assume it works
+        const twitter = getTwitterAPI();
+        // Only if key configured
+        if (false /* twitter.apiKey */) {
+          // Skip if no key (handled inside getTwitterAPI throwing if missing?)
+          // getTwitterAPI() throws if missing. So wrap in try/catch.
+        }
+
+        // Actually execute search
+        console.log(`🐦 Scanning Twitter for $${symbol}...`);
+        const tweets = await twitter.searchRecent(`$${symbol} -is:retweet`, 5);
+        if (tweets.length > 0) {
+          socialData = {
+            recentTweets: tweets.map(t => t.text),
+            tweetCount: tweets.length
+          };
+          console.log(`   Found ${tweets.length} recent tweets.`);
+        }
+      } catch (e) {
+        // Ignore twitter errors
+      }
+    }
+
+    // Merge logic
+    const tokenData = { ...tokenMetrics, ...socialData };
+
     console.log(`✅ Token data fetched`);
     console.log(`   Holders: ${tokenData.holders}`);
     console.log(`   Liquidity: $${tokenData.liquidity.toLocaleString()}`);
     console.log(`   Volume 24h: $${tokenData.volume24h.toLocaleString()}`);
     console.log(`   Price Change 24h: ${tokenData.priceChange24h.toFixed(2)}%\n`);
 
-    // Step 1.5: Create competitive tasks for agents (fire and forget)
-    // This runs in background and doesn't block the observer flow
-    // conversationId passed after conversation is created below
+    // Step 1.5: Create competitive tasks for agents
+    // ...
 
-    // Step 2: Generate analyses from all 5 agents
+    // Step 2: Generate analyses
     console.log('🤖 Generating agent analyses...\n');
     const tradeEvent = { ...trade, walletAddress: trade.walletAddress || SUPERROUTER_WALLET };
     const analyses = await analyzeSuperRouterTrade(tradeEvent, tokenData);
@@ -157,7 +191,7 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
     console.log('💬 Posting agent analyses...\n');
     for (let i = 0; i < analyses.length; i++) {
       const analysis = analyses[i];
-      
+
       // Wait a bit between messages (1-3 seconds) for natural flow
       if (i > 0) {
         await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
@@ -203,7 +237,7 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
       action: trade.action,
       timestamp: new Date().toISOString()
     });
-    
+
     // Critical: Don't re-throw - this would break webhook response
     // Helius needs a 200 OK even if our processing fails
   }

@@ -166,6 +166,36 @@ export class TwitterAPIService {
   }
 
   /**
+   * Search recent tweets (for Mindshare/Narrative analysis)
+   */
+  async searchRecent(query: string, limit: number = 20): Promise<Tweet[]> {
+    const encoded = encodeURIComponent(query);
+    const url = `${this.baseUrl}/twitter/tweets/recent?query=${encoded}&limit=${limit}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-API-Key': this.apiKey,
+        },
+        signal: AbortSignal.timeout(10000),
+      });
+
+      if (!response.ok) {
+        // Fallback: If 404/403, just return empty (don't break observer flow)
+        console.warn(`Twitter Search failed (${response.status}) for query: ${query}`);
+        return [];
+      }
+
+      const data: TwitterAPIResponse = await response.json();
+      return data.tweets || [];
+    } catch (error) {
+      console.warn('Twitter Search Exception:', error);
+      return [];
+    }
+  }
+
+  /**
    * Verify tweet contains expected text
    * Used for Twitter verification flow
    */
@@ -176,9 +206,9 @@ export class TwitterAPIService {
   }> {
     try {
       const tweet = await this.fetchTweet(tweetId);
-      
+
       const verified = tweet.text.includes(expectedText);
-      
+
       return {
         verified,
         tweet,

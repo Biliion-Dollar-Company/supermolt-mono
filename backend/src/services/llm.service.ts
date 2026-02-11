@@ -7,6 +7,7 @@
 
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 interface LLMResponse {
     content: string;
@@ -30,7 +31,7 @@ export class LLMService {
     }
 
     public get isConfigured(): boolean {
-        return !!(ANTHROPIC_API_KEY || OPENAI_API_KEY);
+        return !!(GROQ_API_KEY || ANTHROPIC_API_KEY || OPENAI_API_KEY);
     }
 
     /**
@@ -38,6 +39,10 @@ export class LLMService {
      */
     async generate(systemPrompt: string, userPrompt: string): Promise<string | null> {
         try {
+            // Prioritize Groq (Cheaper/Faster)
+            if (GROQ_API_KEY) {
+                return this.callGroq(systemPrompt, userPrompt);
+            }
             if (ANTHROPIC_API_KEY) {
                 return this.callAnthropic(systemPrompt, userPrompt);
             }
@@ -49,6 +54,33 @@ export class LLMService {
             console.error('LLM Generation Error:', error);
             return null;
         }
+    }
+
+    private async callGroq(system: string, user: string): Promise<string> {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: 'llama3-70b-8192', // Intelligent & Fast
+                messages: [
+                    { role: 'system', content: system },
+                    { role: 'user', content: user },
+                ],
+                temperature: 0.7,
+                max_tokens: 1024,
+            }),
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`Groq API Error: ${response.status} ${err}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
     }
 
     private async callAnthropic(system: string, user: string): Promise<string> {

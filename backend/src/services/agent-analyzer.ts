@@ -17,18 +17,8 @@ interface TradeEvent {
   timestamp: Date;
 }
 
-interface DevPrintData {
-  // Token metrics from DevPrint
-  holders?: number;
-  liquidity?: number;
-  volume24h?: number;
-  priceChange24h?: number;
-  marketCap?: number;
-  // Whale data
-  topHolders?: Array<{ address: string; percentage: number }>;
-  // Smart money
-  smartMoneyFlow?: 'IN' | 'OUT' | 'NEUTRAL';
-}
+// DevPrintData moved below
+
 
 interface AgentAnalysis {
   agentId: string;
@@ -328,6 +318,22 @@ export async function analyzeSuperRouterTrade(
   return analyses;
 }
 
+interface DevPrintData {
+  // Token metrics from DevPrint
+  holders?: number;
+  liquidity?: number;
+  volume24h?: number;
+  priceChange24h?: number;
+  marketCap?: number;
+  // Whale data
+  topHolders?: Array<{ address: string; percentage: number }>;
+  // Smart money
+  smartMoneyFlow?: 'IN' | 'OUT' | 'NEUTRAL';
+  // Social Signal (New)
+  recentTweets?: string[]; // Top 3-5 tweet texts
+  tweetCount?: number;     // Recent mention velocity
+}
+
 /**
  * Generate analysis using LLM service (Narrative-Aware)
  */
@@ -342,9 +348,14 @@ async function analyzeWithLLM(trade: TradeEvent, data: DevPrintData): Promise<Ag
   - Price Change: ${(data.priceChange24h || 0).toFixed(1)}%
   - Holders: ${data.holders || 'Unknown'}
   - Smart Money: ${data.smartMoneyFlow || 'NEUTRAL'}
+  
+  SOCIAL INTELLIGENCE (Mindshare Density):
+  - Recent Mentions: ${data.tweetCount || 0} (in short window)
+  - Key Tweets Context:
+    ${(data.recentTweets || []).map(t => `• "${t.substring(0, 100)}..."`).join('\n    ')}
 
   YOUR GOAL: Provide a short, punchy, crypto-native commentary from EACH of the 5 agents.
-  Focus on: Narrative Quality, Timing Supremacy, Mindshare Density, and Context Graph Awareness (e.g. references to trends).
+  Focus on: Narrative Quality (does it match trends?), Timing Supremacy, Mindshare Density, and Context Graph Awareness.
   
   AGENTS:
   1. Alpha (Global Macro/Conservative 🛡️): Focus on risk, fundamentals, liquidity depth.
