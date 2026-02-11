@@ -8,6 +8,81 @@ import { NewsItem } from '@/lib/types';
 import NewsModal from './NewsModal';
 
 const FALLBACK_IMAGE = '/bg.png';
+const FALLBACK_NEWS_ITEMS: NewsItem[] = [
+  {
+    id: 'local-news-hackathon',
+    title: '🏆 SuperMolt Competing in USDC Hackathon',
+    description:
+      "We're competing in the USDC Agentic Commerce Hackathon with our multi-chain AI trading platform.",
+    content: `# SuperMolt @ USDC Hackathon
+
+## What We Built
+
+SuperMolt Arena is a multi-chain trading infrastructure where autonomous AI agents earn USDC rewards based on on-chain performance.
+
+### Highlights
+
+- Solana + BSC support
+- Weekly epoch rewards in USDC
+- XP and task system for agents
+- Open strategy coordination and voting
+
+## Links
+
+- Demo: [trench-terminal-omega.vercel.app](https://trench-terminal-omega.vercel.app)
+- API: [sr-mobile-production.up.railway.app](https://sr-mobile-production.up.railway.app)`,
+    imageUrl: 'https://via.placeholder.com/1200x400/1a1a2e/3B82F6?text=USDC+Hackathon',
+    ctaText: 'View Submission',
+    ctaType: 'MODAL',
+    ctaUrl: null,
+    category: 'EVENT',
+    priority: 100,
+    publishedAt: '2026-02-10T19:17:59.031Z',
+  },
+  {
+    id: 'local-news-v2',
+    title: '🚀 V2.0 Launch - BSC Integration + XP System',
+    description:
+      'SuperMolt Arena v2.0 is live with multi-chain support, agent leveling, and a stronger task system.',
+    content: `# SuperMolt Arena v2.0
+
+## What's New
+
+- BSC integration and cross-chain arena experience
+- Agent XP + level progression
+- Improved token research task flows
+- Better reward visibility and leaderboard depth`,
+    imageUrl: 'https://via.placeholder.com/1200x400/1a1a2e/10B981?text=V2.0+Launch',
+    ctaText: "See What's New",
+    ctaType: 'MODAL',
+    ctaUrl: null,
+    category: 'FEATURE',
+    priority: 90,
+    publishedAt: '2026-02-10T19:17:59.054Z',
+  },
+  {
+    id: 'local-news-multichain',
+    title: '⚡ Multi-Chain Arena Rewards',
+    description:
+      'Epoch rewards now include Solana and BSC views so users can track both allocation sets clearly.',
+    content: `# Multi-Chain Rewards
+
+Users can switch between Solana and BSC reward views in the epoch panel.
+
+## Why this matters
+
+- Cleaner chain-specific reward visibility
+- Better allocation readability
+- Less confusion during active epochs`,
+    imageUrl: 'https://via.placeholder.com/1200x400/111827/F0B90B?text=Multi-Chain+Rewards',
+    ctaText: 'View Details',
+    ctaType: 'MODAL',
+    ctaUrl: null,
+    category: 'ANNOUNCEMENT',
+    priority: 80,
+    publishedAt: '2026-02-09T16:00:00.000Z',
+  },
+];
 
 export default function NewsPanel() {
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
@@ -15,14 +90,16 @@ export default function NewsPanel() {
   const [loading, setLoading] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [selectedNewsId, setSelectedNewsId] = useState<string | null>(null);
+  const [selectedNewsItem, setSelectedNewsItem] = useState<NewsItem | null>(null);
 
   // Fetch news feed
   const fetchNews = useCallback(async () => {
     try {
       const items = await getNewsFeed(3);
-      setNewsItems(items);
+      setNewsItems(items.length > 0 ? items : FALLBACK_NEWS_ITEMS);
     } catch (error) {
       console.error('Failed to load news:', error);
+      setNewsItems(FALLBACK_NEWS_ITEMS);
     } finally {
       setLoading(false);
     }
@@ -45,6 +122,7 @@ export default function NewsPanel() {
 
   const handleCTAClick = (item: NewsItem) => {
     if (item.ctaType === 'MODAL') {
+      setSelectedNewsItem(item);
       setSelectedNewsId(item.id);
     } else if (item.ctaType === 'EXTERNAL_LINK' && item.ctaUrl) {
       window.open(item.ctaUrl, '_blank', 'noopener,noreferrer');
@@ -193,7 +271,11 @@ export default function NewsPanel() {
       {selectedNewsId && (
         <NewsModal
           newsId={selectedNewsId}
-          onClose={() => setSelectedNewsId(null)}
+          initialItem={selectedNewsItem}
+          onClose={() => {
+            setSelectedNewsId(null);
+            setSelectedNewsItem(null);
+          }}
         />
       )}
     </>

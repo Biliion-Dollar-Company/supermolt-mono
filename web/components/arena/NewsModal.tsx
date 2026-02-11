@@ -5,17 +5,26 @@ import { X, ExternalLink, Sparkles } from 'lucide-react';
 import { getNewsItem } from '@/lib/api';
 import { NewsItem } from '@/lib/types';
 import ReactMarkdown from 'react-markdown';
+import { createPortal } from 'react-dom';
 
 interface NewsModalProps {
   newsId: string;
   onClose: () => void;
+  initialItem?: NewsItem | null;
 }
 
-export default function NewsModal({ newsId, onClose }: NewsModalProps) {
+export default function NewsModal({ newsId, onClose, initialItem = null }: NewsModalProps) {
   const [newsItem, setNewsItem] = useState<NewsItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    if (initialItem && initialItem.id === newsId) {
+      setNewsItem(initialItem);
+      setLoading(false);
+      return;
+    }
+
     const fetchNewsItem = async () => {
       try {
         const item = await getNewsItem(newsId);
@@ -28,7 +37,7 @@ export default function NewsModal({ newsId, onClose }: NewsModalProps) {
     };
 
     fetchNewsItem();
-  }, [newsId]);
+  }, [newsId, initialItem]);
 
   // Close modal on ESC key
   useEffect(() => {
@@ -39,22 +48,37 @@ export default function NewsModal({ newsId, onClose }: NewsModalProps) {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [onClose]);
 
-  // Prevent body scroll when modal is open
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Prevent page scroll when modal is open
+  useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    window.dispatchEvent(new Event('app-scroll-lock'));
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      window.dispatchEvent(new Event('app-scroll-unlock'));
     };
   }, []);
 
+  if (!mounted) {
+    return null;
+  }
+
   if (loading) {
-    return (
+    return createPortal(
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
         <div className="bg-[#12121a] border border-white/[0.08] p-8 rounded-lg w-full max-w-3xl animate-pulse">
           <div className="h-8 bg-white/[0.05] rounded mb-4" />
           <div className="h-64 bg-white/[0.05] rounded" />
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
@@ -62,13 +86,13 @@ export default function NewsModal({ newsId, onClose }: NewsModalProps) {
     return null;
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[120] overflow-y-auto bg-black/85 backdrop-blur-sm p-4 sm:p-6"
       onClick={onClose}
     >
       <div
-        className="bg-[#12121a] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] rounded-lg w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col"
+        className="relative mx-auto my-6 bg-[#12121a] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] rounded-lg w-full max-w-3xl max-h-[calc(100dvh-3rem)] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with Background Image */}
@@ -102,7 +126,7 @@ export default function NewsModal({ newsId, onClose }: NewsModalProps) {
         </div>
 
         {/* Content Area (Scrollable) */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+        <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y p-6 sm:p-8">
           {/* Description */}
           <p className="text-base text-text-secondary mb-6 leading-relaxed">
             {newsItem.description}
@@ -194,6 +218,7 @@ export default function NewsModal({ newsId, onClose }: NewsModalProps) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
