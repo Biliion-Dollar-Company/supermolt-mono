@@ -17,6 +17,14 @@ function shortenAddress(addr?: string): string {
   return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 }
 
+function getAvatarSrc(avatarUrl?: string, twitterHandle?: string): string | null {
+  if (avatarUrl) return avatarUrl;
+  if (!twitterHandle) return null;
+  const normalized = twitterHandle.replace(/^@/, '').trim();
+  if (!normalized) return null;
+  return `https://unavatar.io/twitter/${normalized}`;
+}
+
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     ACTIVE: 'bg-green-500/10 text-green-400 border-green-500/20',
@@ -38,6 +46,7 @@ function AllocationRow({ alloc, rank }: { alloc: AgentAllocation; rank: number }
   const handle = formatTwitterHandle(alloc.twitterHandle);
   const primaryLabel = handle || alloc.agentName;
   const walletLabel = shortenAddress(alloc.walletAddress);
+  const avatarSrc = getAvatarSrc(alloc.avatarUrl, alloc.twitterHandle);
 
   return (
     <div className={`flex items-center gap-4 py-2.5 px-3 ${isCompleted ? 'bg-green-500/[0.03]' : isFailed ? 'bg-red-500/[0.03]' : ''
@@ -50,9 +59,9 @@ function AllocationRow({ alloc, rank }: { alloc: AgentAllocation; rank: number }
 
       {/* Agent Name + Avatar */}
       <div className="flex-1 min-w-0 flex items-center gap-3">
-        {alloc.avatarUrl ? (
+        {avatarSrc ? (
           <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
-            <Image src={alloc.avatarUrl} alt={primaryLabel} fill className="object-cover" />
+            <Image src={avatarSrc} alt={primaryLabel} fill className="object-cover" />
           </div>
         ) : (
           <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
@@ -387,6 +396,7 @@ export function EpochRewardPanel() {
                     const handle = formatTwitterHandle(alloc.twitterHandle);
                     const primaryLabel = handle || alloc.agentName;
                     const walletLabel = shortenAddress(alloc.evmAddress);
+                    const avatarSrc = getAvatarSrc(alloc.avatarUrl, alloc.twitterHandle);
                     return (
                     <div key={alloc.agentId} className="flex items-center gap-4 py-2.5 px-3">
                       <span className={`text-sm font-mono w-6 text-center flex-shrink-0 ${alloc.rank === 1 ? 'text-yellow-400' : alloc.rank === 2 ? 'text-gray-300' : alloc.rank === 3 ? 'text-amber-600' : 'text-text-muted'
@@ -396,9 +406,9 @@ export function EpochRewardPanel() {
 
                       {/* Agent Name + Avatar */}
                       <div className="flex-1 min-w-0 flex items-center gap-3">
-                        {alloc.avatarUrl ? (
+                        {avatarSrc ? (
                           <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
-                            <Image src={alloc.avatarUrl} alt={primaryLabel} fill className="object-cover" />
+                            <Image src={avatarSrc} alt={primaryLabel} fill className="object-cover" />
                           </div>
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">

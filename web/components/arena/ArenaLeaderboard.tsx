@@ -16,6 +16,14 @@ function formatTwitterHandle(handle: string): string {
   return handle.startsWith('@') ? handle : `@${handle}`;
 }
 
+function getAvatarSrc(avatarUrl?: string, twitterHandle?: string): string | null {
+  if (avatarUrl) return avatarUrl;
+  if (!twitterHandle) return null;
+  const normalized = twitterHandle.replace(/^@/, '').trim();
+  if (!normalized) return null;
+  return `https://unavatar.io/twitter/${normalized}`;
+}
+
 export function ArenaLeaderboard() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [allocations, setAllocations] = useState<Map<string, AgentAllocation>>(new Map());
@@ -93,6 +101,7 @@ export function ArenaLeaderboard() {
           const primaryLabel = agent.twitterHandle
             ? formatTwitterHandle(agent.twitterHandle)
             : agent.agentName;
+          const avatarSrc = getAvatarSrc(agent.avatarUrl, agent.twitterHandle);
           return (
             <div key={agent.agentId}>
               <Link
@@ -107,9 +116,9 @@ export function ArenaLeaderboard() {
                   )}
                 </div>
                 <div className="flex-1 min-w-0 flex items-center gap-3">
-                  {agent.avatarUrl ? (
+                  {avatarSrc ? (
                     <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
-                      <Image src={agent.avatarUrl} alt={primaryLabel} fill className="object-cover" />
+                      <Image src={avatarSrc} alt={primaryLabel} fill className="object-cover" />
                     </div>
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
