@@ -13,13 +13,13 @@ import {
   formatUnits,
   type Address,
 } from 'viem';
-import { bscTestnet } from 'viem/chains';
+import { bsc } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { ERC20_ABI } from '../lib/token-factory-abi';
 import { db } from '../lib/db';
 
-const BSC_RPC_URL = process.env.BSC_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545/';
-const REWARD_TOKEN_ADDRESS = process.env.BSC_REWARD_TOKEN_ADDRESS as Address || '0x64544969ed7EBf5f083679233325356EbE738930'; // Default to verified BSC Testnet USDC
+const BSC_RPC_URL = process.env.BSC_RPC_URL || 'https://bsc-dataseed.binance.org/';
+const REWARD_TOKEN_ADDRESS = process.env.BSC_REWARD_TOKEN_ADDRESS as Address || '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d'; // Default to BSC Mainnet USDC
 
 // Rank multipliers (same as Solana treasury)
 const RANK_MULTIPLIERS: { [key: number]: number } = {
@@ -32,7 +32,7 @@ const RANK_MULTIPLIERS: { [key: number]: number } = {
 
 function getPublicClient() {
   return createPublicClient({
-    chain: bscTestnet,
+    chain: bsc,
     transport: http(BSC_RPC_URL),
   });
 }
@@ -44,7 +44,7 @@ function getWalletClient() {
   const account = privateKeyToAccount(privateKey as `0x${string}`);
   return createWalletClient({
     account,
-    chain: bscTestnet,
+    chain: bsc,
     transport: http(BSC_RPC_URL),
   });
 }
@@ -277,7 +277,7 @@ export async function distributeBSCRewards(epochId: string): Promise<{
         amount,
         txHash,
         status: 'success',
-        explorerUrl: `https://testnet.bscscan.com/tx/${txHash}`,
+        explorerUrl: `https://bscscan.com/tx/${txHash}`,
       });
 
       successful++;

@@ -308,7 +308,7 @@ export function EpochRewardPanel() {
                     <div className="w-6 flex-shrink-0 flex justify-center">
                       {alloc.status === 'completed' && alloc.txHash ? (
                         <a
-                          href={`https://testnet.bscscan.com/tx/${alloc.txHash}`}
+                          href={`https://bscscan.com/tx/${alloc.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-green-400 hover:text-green-300 transition-colors"
