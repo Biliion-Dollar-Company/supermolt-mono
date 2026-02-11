@@ -61,6 +61,8 @@ async function fetchTokenData(tokenMint: string) {
       txns24h: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
       priceUsd: parseFloat(pair.priceUsd || '0'),
       smartMoneyFlow: determineSmartMoney(pair),
+      // Add symbol for Twitter scanning
+      symbol: pair.baseToken?.symbol || 'UNKNOWN',
     };
 
     console.log(`✅ REAL DATA fetched:`);
@@ -109,6 +111,7 @@ function getFallbackData() {
     priceChange24h: 0,
     marketCap: 500000,
     smartMoneyFlow: 'NEUTRAL' as const,
+    symbol: 'UNKNOWN',
   };
 }
 
@@ -133,9 +136,10 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
 
     // Step 1.1: Fetch Social Context (Mindshare) via Twitter Search
     let socialData: { recentTweets?: string[], tweetCount?: number } = {};
-    const symbol = trade.tokenSymbol || '';
+    // Use the symbol we just fetched from DexScreener
+    const symbol = tokenMetrics.symbol || trade.tokenSymbol || '';
 
-    if (symbol.length > 2) {
+    if (symbol.length > 2 && symbol !== 'UNKNOWN') {
       try {
         // Need to import TwitterAPI properly or assume it works
         const twitter = getTwitterAPI();
