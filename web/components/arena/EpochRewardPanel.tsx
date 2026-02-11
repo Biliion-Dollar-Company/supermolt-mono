@@ -106,6 +106,7 @@ const VISIBLE_ROWS = 5;
 const ROW_HEIGHT = 60;
 
 export function EpochRewardPanel() {
+  const [activeTab, setActiveTab] = useState<'SOLANA' | 'BSC'>('SOLANA');
   const [data, setData] = useState<EpochReward | null>(null);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
@@ -205,159 +206,198 @@ export function EpochRewardPanel() {
         </div>
       </div>
 
-      {/* USDC Pool Display */}
-      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
-        <Image src="/icons/usdc.png" alt="USDC" width={32} height={32} />
-        <span className="text-3xl font-bold font-mono text-accent-primary">
-          {Math.round(epoch.usdcPool)}
-        </span>
-        <span className="text-sm text-text-muted">USDC Pool</span>
-        {treasury.balance > 0 && (
-          <span className="text-xs text-text-muted ml-auto">
-            Treasury: {treasury.balance.toFixed(2)}
-          </span>
-        )}
-      </div>
-
-      {/* BSC USDC Pool Display */}
+      {/* Chain Tabs */}
       {data.bscAllocations && data.bscAllocations.length > 0 && (
-        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
-          <div className="relative w-8 h-8">
-            <Image src="/icons/usdc.png" alt="USDC (BSC)" width={32} height={32} className="opacity-90" />
-            <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-[8px] text-black font-bold px-1 rounded shadow-sm border border-black/20">BSC</div>
-          </div>
-          <span className="text-3xl font-bold font-mono text-yellow-400">
-            {Math.round(data.bscAllocations.reduce((sum, a) => sum + a.usdcAmount, 0))}
-          </span>
-          <span className="text-sm text-text-muted">USDC Pool (BSC)</span>
-          {data.bscTreasury && data.bscTreasury.balance > 0 && (
-            <span className="text-xs text-text-muted ml-auto">
-              Treasury: {data.bscTreasury.balance.toFixed(2)}
+        <div className="flex items-center gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('SOLANA')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeTab === 'SOLANA'
+              ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20 shadow-[0_0_10px_-4px_rgba(34,211,238,0.5)]'
+              : 'text-text-muted hover:text-text-primary hover:bg-white/5 border border-transparent'
+              }`}
+          >
+            <div className="w-4 h-4 rounded-full bg-gradient-to-tr from-[#9945FF] to-[#14F195] flex items-center justify-center text-[8px] text-white font-bold">S</div>
+            SOLANA
+          </button>
+
+          <button
+            onClick={() => setActiveTab('BSC')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeTab === 'BSC'
+              ? 'bg-[#F0B90B]/10 text-[#F0B90B] border border-[#F0B90B]/20 shadow-[0_0_10px_-4px_rgba(240,185,11,0.5)]'
+              : 'text-text-muted hover:text-text-primary hover:bg-white/5 border border-transparent'
+              }`}
+          >
+            <div className="w-4 h-4 rounded-full bg-[#F0B90B] flex items-center justify-center text-[8px] text-black font-bold">B</div>
+            BSC
+          </button>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="relative min-h-[400px]">
+        {/* Solana View */}
+        <div className={activeTab === 'SOLANA' ? 'block' : 'hidden'}>
+          <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
+            <Image src="/icons/usdc.png" alt="USDC" width={32} height={32} />
+            <span className="text-3xl font-bold font-mono text-accent-primary">
+              {Math.round(epoch.usdcPool)}
             </span>
-          )}
-        </div>
-      )}
-
-      {/* Allocation Table */}
-      {allocations.length > 0 ? (
-        <>
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-text-muted uppercase tracking-wider">
-                {hasDistributions ? 'Distributions' : 'Projected Allocations'}
+            <span className="text-sm text-text-muted">USDC Pool</span>
+            {treasury.balance > 0 && (
+              <span className="text-xs text-text-muted ml-auto">
+                Treasury: {treasury.balance.toFixed(2)}
               </span>
-              <span className="flex items-center gap-1 text-xs font-mono text-text-muted">
-                {totalProjected.toFixed(2)} <Image src="/icons/usdc.png" alt="USDC" width={12} height={12} className="inline-block" /> total
-              </span>
-            </div>
-
-            <div
-              ref={scrollContainerRef}
-              className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-custom"
-              style={{ maxHeight: `${VISIBLE_ROWS * ROW_HEIGHT}px` }}
-            >
-              {allocations.slice(0, visibleCount).map((alloc) => (
-                <AllocationRow key={alloc.agentId} alloc={alloc} rank={alloc.rank} />
-              ))}
-              {visibleCount < allocations.length && (
-                <div ref={sentinelRef} className="h-1" />
-              )}
-            </div>
-
-            {allocations.length > VISIBLE_ROWS && (
-              <div className="text-center pt-2">
-                <span className="text-[10px] text-text-muted/50">
-                  {Math.min(visibleCount, allocations.length)} of {allocations.length} agents
-                </span>
-              </div>
             )}
           </div>
 
-          {data.bscAllocations && data.bscAllocations.length > 0 && (
-            <div className="mt-6 mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-text-muted uppercase tracking-wider">
-                  BSC USDC Rewards
-                </span>
-                <span className="flex items-center gap-1 text-xs font-mono text-text-muted">
-                  {data.bscAllocations.reduce((sum, a) => sum + a.usdcAmount, 0).toFixed(2)} USDC total
-                </span>
-              </div>
+          {allocations.length > 0 ? (
+            <>
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-text-muted uppercase tracking-wider">
+                    {hasDistributions ? 'Distributions' : 'Projected Allocations'}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs font-mono text-text-muted">
+                    {totalProjected.toFixed(2)} <Image src="/icons/usdc.png" alt="USDC" width={12} height={12} className="inline-block" /> total
+                  </span>
+                </div>
 
-              <div
-                className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-custom"
-                style={{ maxHeight: `${VISIBLE_ROWS * ROW_HEIGHT}px` }}
-              >
-                {data.bscAllocations.map((alloc) => (
-                  <div key={alloc.agentId} className="flex items-center gap-4 py-2.5 px-3">
-                    <span className={`text-sm font-mono w-6 text-center flex-shrink-0 ${alloc.rank === 1 ? 'text-yellow-400' : alloc.rank === 2 ? 'text-gray-300' : alloc.rank === 3 ? 'text-amber-600' : 'text-text-muted'
-                      }`}>
-                      {alloc.rank <= 3 ? <Trophy className="w-4 h-4 inline" /> : `#${alloc.rank}`}
+                <div
+                  ref={scrollContainerRef}
+                  className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-custom"
+                  style={{ maxHeight: `${VISIBLE_ROWS * ROW_HEIGHT}px` }}
+                >
+                  {allocations.slice(0, visibleCount).map((alloc) => (
+                    <AllocationRow key={alloc.agentId} alloc={alloc} rank={alloc.rank} />
+                  ))}
+                  {visibleCount < allocations.length && (
+                    <div ref={sentinelRef} className="h-1" />
+                  )}
+                </div>
+
+                {allocations.length > VISIBLE_ROWS && (
+                  <div className="text-center pt-2">
+                    <span className="text-[10px] text-text-muted/50">
+                      {Math.min(visibleCount, allocations.length)} of {allocations.length} agents
                     </span>
-
-                    <div className="flex-1 min-w-0">
-                      <span className="text-base text-text-primary truncate block">{alloc.agentName}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-base font-mono text-yellow-400">{alloc.usdcAmount.toFixed(2)}</span>
-                      <span className="text-xs text-yellow-400">USDC</span>
-                      <span className="text-[10px] font-mono text-text-muted bg-white/[0.06] px-1.5 py-0.5 rounded-full">{alloc.multiplier}x</span>
-                    </div>
-
-                    <div className="w-6 flex-shrink-0 flex justify-center">
-                      {alloc.status === 'completed' && alloc.txHash ? (
-                        <a
-                          href={`https://bscscan.com/tx/${alloc.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-green-400 hover:text-green-300 transition-colors"
-                          title="View on BSCScan"
-                        >
-                          <CheckCircle2 className="w-4 h-4" />
-                        </a>
-                      ) : alloc.status === 'failed' ? (
-                        <AlertCircle className="w-4 h-4 text-red-400" />
-                      ) : null}
-                    </div>
                   </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-6 text-text-muted text-sm">
+              No active agents for reward calculation
+            </div>
+          )}
+
+          {hasDistributions && (
+            <div className="pt-3 border-t border-white/[0.06]">
+              <div className="flex items-center justify-between text-xs text-text-muted">
+                <span>Distributed: {treasury.distributed.toFixed(2)} USDC</span>
+                <span>{distributions.length} transactions</span>
+              </div>
+              <div className="mt-2 space-y-1">
+                {distributions.slice(0, 3).map((d) => (
+                  <a
+                    key={d.txSignature}
+                    href={`https://explorer.solana.com/tx/${d.txSignature}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-text-muted hover:text-accent-primary transition-colors group"
+                  >
+                    <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                    <span className="font-mono truncate">{d.txSignature.slice(0, 16)}...</span>
+                    <span className="text-accent-primary ml-auto">{d.amount.toFixed(2)} USDC</span>
+                  </a>
                 ))}
+                {distributions.length > 3 && (
+                  <span className="text-xs text-text-muted">+{distributions.length - 3} more</span>
+                )}
               </div>
             </div>
           )}
-        </>
-      ) : (
-        <div className="text-center py-6 text-text-muted text-sm">
-          No active agents for reward calculation
         </div>
-      )}
 
-      {hasDistributions && (
-        <div className="pt-3 border-t border-white/[0.06]">
-          <div className="flex items-center justify-between text-xs text-text-muted">
-            <span>Distributed: {treasury.distributed.toFixed(2)} USDC</span>
-            <span>{distributions.length} transactions</span>
-          </div>
-          <div className="mt-2 space-y-1">
-            {distributions.slice(0, 3).map((d) => (
-              <a
-                key={d.txSignature}
-                href={`https://explorer.solana.com/tx/${d.txSignature}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-text-muted hover:text-accent-primary transition-colors group"
-              >
-                <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                <span className="font-mono truncate">{d.txSignature.slice(0, 16)}...</span>
-                <span className="text-accent-primary ml-auto">{d.amount.toFixed(2)} USDC</span>
-              </a>
-            ))}
-            {distributions.length > 3 && (
-              <span className="text-xs text-text-muted">+{distributions.length - 3} more</span>
-            )}
-          </div>
+        {/* BSC View */}
+        <div className={activeTab === 'BSC' ? 'block' : 'hidden'}>
+          {data.bscAllocations && data.bscAllocations.length > 0 ? (
+            <>
+              {/* BSC Pool Display */}
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
+                <div className="relative w-8 h-8">
+                  <Image src="/icons/usdc.png" alt="USDC (BSC)" width={32} height={32} className="opacity-90" />
+                  <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-[8px] text-black font-bold px-1 rounded shadow-sm border border-black/20">BSC</div>
+                </div>
+                <span className="text-3xl font-bold font-mono text-yellow-400">
+                  {Math.round(data.bscAllocations.reduce((sum, a) => sum + a.usdcAmount, 0))}
+                </span>
+                <span className="text-sm text-text-muted">USDC Pool (BSC)</span>
+                {data.bscTreasury && data.bscTreasury.balance > 0 && (
+                  <span className="text-xs text-text-muted ml-auto">
+                    Treasury: {data.bscTreasury.balance.toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              {/* BSC Allocations Table */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-text-muted uppercase tracking-wider">
+                    BSC USDC Rewards
+                  </span>
+                  <span className="flex items-center gap-1 text-xs font-mono text-text-muted">
+                    {data.bscAllocations.reduce((sum, a) => sum + a.usdcAmount, 0).toFixed(2)} USDC total
+                  </span>
+                </div>
+
+                <div
+                  className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-custom"
+                  style={{ maxHeight: `${VISIBLE_ROWS * ROW_HEIGHT}px` }}
+                >
+                  {data.bscAllocations.map((alloc) => (
+                    <div key={alloc.agentId} className="flex items-center gap-4 py-2.5 px-3">
+                      <span className={`text-sm font-mono w-6 text-center flex-shrink-0 ${alloc.rank === 1 ? 'text-yellow-400' : alloc.rank === 2 ? 'text-gray-300' : alloc.rank === 3 ? 'text-amber-600' : 'text-text-muted'
+                        }`}>
+                        {alloc.rank <= 3 ? <Trophy className="w-4 h-4 inline" /> : `#${alloc.rank}`}
+                      </span>
+
+                      <div className="flex-1 min-w-0">
+                        <span className="text-base text-text-primary truncate block">{alloc.agentName}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="text-base font-mono text-yellow-400">{alloc.usdcAmount.toFixed(2)}</span>
+                        <span className="text-xs text-yellow-400">USDC</span>
+                        <span className="text-[10px] font-mono text-text-muted bg-white/[0.06] px-1.5 py-0.5 rounded-full">{alloc.multiplier}x</span>
+                      </div>
+
+                      <div className="w-6 flex-shrink-0 flex justify-center">
+                        {alloc.status === 'completed' && alloc.txHash ? (
+                          <a
+                            href={`https://bscscan.com/tx/${alloc.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-green-400 hover:text-green-300 transition-colors"
+                            title="View on BSCScan"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                          </a>
+                        ) : alloc.status === 'failed' ? (
+                          <AlertCircle className="w-4 h-4 text-red-400" />
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-6 text-text-muted text-sm">
+              No active BSC agents found
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
