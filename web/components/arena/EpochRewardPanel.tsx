@@ -6,6 +6,17 @@ import { Trophy, ExternalLink, Clock, CheckCircle2, AlertCircle } from 'lucide-r
 import { getEpochRewards } from '@/lib/api';
 import { EpochReward, AgentAllocation } from '@/lib/types';
 
+function formatTwitterHandle(handle?: string): string {
+  if (!handle) return '';
+  return handle.startsWith('@') ? handle : `@${handle}`;
+}
+
+function shortenAddress(addr?: string): string {
+  if (!addr) return '';
+  if (addr.length <= 11) return addr;
+  return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+}
+
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     ACTIVE: 'bg-green-500/10 text-green-400 border-green-500/20',
@@ -24,6 +35,9 @@ function StatusBadge({ status }: { status: string }) {
 function AllocationRow({ alloc, rank }: { alloc: AgentAllocation; rank: number }) {
   const isCompleted = alloc.status === 'completed';
   const isFailed = alloc.status === 'failed';
+  const handle = formatTwitterHandle(alloc.twitterHandle);
+  const primaryLabel = handle || alloc.agentName;
+  const walletLabel = shortenAddress(alloc.walletAddress);
 
   return (
     <div className={`flex items-center gap-4 py-2.5 px-3 ${isCompleted ? 'bg-green-500/[0.03]' : isFailed ? 'bg-red-500/[0.03]' : ''
@@ -38,27 +52,18 @@ function AllocationRow({ alloc, rank }: { alloc: AgentAllocation; rank: number }
       <div className="flex-1 min-w-0 flex items-center gap-3">
         {alloc.avatarUrl ? (
           <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
-            <Image src={alloc.avatarUrl} alt={alloc.agentName} fill className="object-cover" />
+            <Image src={alloc.avatarUrl} alt={primaryLabel} fill className="object-cover" />
           </div>
         ) : (
           <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-bold text-text-muted">{alloc.agentName[0]?.toUpperCase()}</span>
+            <span className="text-xs font-bold text-text-muted">{primaryLabel[0]?.toUpperCase() || '?'}</span>
           </div>
         )}
         <div className="min-w-0">
           <span className="text-base text-text-primary truncate block font-medium leading-tight">
-            {alloc.agentName}
+            {primaryLabel}
           </span>
-          {alloc.twitterHandle && (
-            <a
-              href={`https://twitter.com/${alloc.twitterHandle}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-text-muted hover:text-accent-primary transition-colors truncate block"
-            >
-              @{alloc.twitterHandle}
-            </a>
-          )}
+          <span className="text-xs text-text-muted truncate block font-mono">{walletLabel}</span>
         </div>
       </div>
 
@@ -378,7 +383,11 @@ export function EpochRewardPanel() {
                   className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-custom"
                   style={{ maxHeight: `${VISIBLE_ROWS * ROW_HEIGHT}px` }}
                 >
-                  {data.bscAllocations.map((alloc) => (
+                  {data.bscAllocations.map((alloc) => {
+                    const handle = formatTwitterHandle(alloc.twitterHandle);
+                    const primaryLabel = handle || alloc.agentName;
+                    const walletLabel = shortenAddress(alloc.evmAddress);
+                    return (
                     <div key={alloc.agentId} className="flex items-center gap-4 py-2.5 px-3">
                       <span className={`text-sm font-mono w-6 text-center flex-shrink-0 ${alloc.rank === 1 ? 'text-yellow-400' : alloc.rank === 2 ? 'text-gray-300' : alloc.rank === 3 ? 'text-amber-600' : 'text-text-muted'
                         }`}>
@@ -389,27 +398,18 @@ export function EpochRewardPanel() {
                       <div className="flex-1 min-w-0 flex items-center gap-3">
                         {alloc.avatarUrl ? (
                           <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
-                            <Image src={alloc.avatarUrl} alt={alloc.agentName} fill className="object-cover" />
+                            <Image src={alloc.avatarUrl} alt={primaryLabel} fill className="object-cover" />
                           </div>
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-bold text-text-muted">{alloc.agentName[0]?.toUpperCase()}</span>
+                            <span className="text-xs font-bold text-text-muted">{primaryLabel[0]?.toUpperCase() || '?'}</span>
                           </div>
                         )}
                         <div className="min-w-0">
                           <span className="text-base text-text-primary truncate block font-medium leading-tight">
-                            {alloc.agentName}
+                            {primaryLabel}
                           </span>
-                          {alloc.twitterHandle && (
-                            <a
-                              href={`https://twitter.com/${alloc.twitterHandle}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-text-muted hover:text-accent-primary transition-colors truncate block"
-                            >
-                              @{alloc.twitterHandle}
-                            </a>
-                          )}
+                          <span className="text-xs text-text-muted truncate block font-mono">{walletLabel}</span>
                         </div>
                       </div>
 
@@ -435,7 +435,7 @@ export function EpochRewardPanel() {
                         ) : null}
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             </>
