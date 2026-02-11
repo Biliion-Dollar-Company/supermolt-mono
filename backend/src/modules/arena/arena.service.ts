@@ -740,6 +740,33 @@ export async function getEpochRewards() {
       };
     });
 
+  // Calculate BSC SMOLT allocations
+  let bscAllocations: Array<{
+    agentId: string;
+    agentName: string;
+    evmAddress: string;
+    rank: number;
+    smoltAmount: number;
+    multiplier: number;
+    status: 'preview' | 'completed' | 'failed';
+  }> = [];
+  let bscTreasuryStatus = { balance: 0, distributed: 0, available: 0 };
+
+  try {
+    const { calculateBSCAllocations, getBSCTreasuryStatus } = await import('../../services/bsc-treasury.service');
+    const bscCalc = await calculateBSCAllocations(epoch.id);
+    bscAllocations = bscCalc.map((a) => ({ ...a, status: 'preview' as const }));
+
+    const status = await getBSCTreasuryStatus();
+    bscTreasuryStatus = {
+      balance: status.balance,
+      distributed: status.distributed,
+      available: status.available,
+    };
+  } catch (error) {
+    console.error('[Arena] BSC allocations error:', error);
+  }
+
   return {
     epoch: {
       id: epoch.id,
@@ -751,12 +778,15 @@ export async function getEpochRewards() {
       usdcPool: Number(epoch.usdcPool),
     },
     allocations,
+    bscAllocations,
     treasury: {
       balance: Math.round(treasuryBalance * 100) / 100,
       distributed: Math.round(totalDistributed * 100) / 100,
       available: Math.round((treasuryBalance - totalDistributed) * 100) / 100,
     },
+    bscTreasury: bscTreasuryStatus,
     distributions,
+    bscDistributions: [],
   };
 }
 
