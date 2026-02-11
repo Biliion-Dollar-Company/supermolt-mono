@@ -746,7 +746,7 @@ export async function getEpochRewards() {
     agentName: string;
     evmAddress: string;
     rank: number;
-    smoltAmount: number;
+    usdcAmount: number;
     multiplier: number;
     status: 'preview' | 'completed' | 'failed';
   }> = [];

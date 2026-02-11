@@ -19,7 +19,7 @@ import { ERC20_ABI } from '../lib/token-factory-abi';
 import { db } from '../lib/db';
 
 const BSC_RPC_URL = process.env.BSC_RPC_URL || 'https://data-seed-prebsc-1-s1.binance.org:8545/';
-const REWARD_TOKEN_ADDRESS = process.env.BSC_REWARD_TOKEN_ADDRESS as Address | undefined;
+const REWARD_TOKEN_ADDRESS = process.env.BSC_REWARD_TOKEN_ADDRESS as Address || '0x64544969ed7EBf5f083679233325356EbE738930'; // Default to verified BSC Testnet USDC
 
 // Rank multipliers (same as Solana treasury)
 const RANK_MULTIPLIERS: { [key: number]: number } = {
@@ -151,14 +151,14 @@ async function sendRewardToken(recipientAddress: Address, amount: number): Promi
 }
 
 /**
- * Calculate BSC SMOLT allocations for an epoch (preview, no distribution)
+ * Calculate BSC USDC allocations for an epoch (preview, no distribution)
  */
 export async function calculateBSCAllocations(epochId: string): Promise<Array<{
   agentId: string;
   agentName: string;
   evmAddress: string;
   rank: number;
-  smoltAmount: number;
+  usdcAmount: number;
   multiplier: number;
 }>> {
   const epoch = await db.scannerEpoch.findUnique({ where: { id: epochId } });
@@ -194,14 +194,14 @@ export async function calculateBSCAllocations(epochId: string): Promise<Array<{
     const rank = index + 1;
     const multiplier = RANK_MULTIPLIERS[rank] || 0.5;
     const performanceAdj = Math.max(0.5, Math.min(1.0, item.tradeCount > 0 ? 0.7 + (item.tradeCount / 50) * 0.3 : 0.5));
-    const smoltAmount = Math.round(baseAllocation * multiplier * performanceAdj * 100) / 100;
+    const usdcAmount = Math.round(baseAllocation * multiplier * performanceAdj * 100) / 100;
 
     return {
       agentId: item.agent.id,
       agentName: item.agent.displayName || item.agent.name,
       evmAddress: item.agent.evmAddress!,
       rank,
-      smoltAmount,
+      usdcAmount,
       multiplier,
     };
   });

@@ -352,7 +352,7 @@ export interface BSCAllocation {
   agentName: string;
   evmAddress: string;
   rank: number;
-  smoltAmount: number;
+  usdcAmount: number;
   multiplier: number;
   txHash?: string;
   status: 'preview' | 'completed' | 'failed';

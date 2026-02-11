@@ -219,60 +219,21 @@ export function EpochRewardPanel() {
         )}
       </div>
 
-      {/* BSC SMOLT Pool Display */}
+      {/* BSC USDC Pool Display */}
       {data.bscAllocations && data.bscAllocations.length > 0 && (
         <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
-          <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
-            <span className="text-yellow-400 font-bold text-sm">S</span>
+          <div className="relative w-8 h-8">
+            <Image src="/icons/usdc.png" alt="USDC (BSC)" width={32} height={32} className="opacity-90" />
+            <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-[8px] text-black font-bold px-1 rounded shadow-sm border border-black/20">BSC</div>
           </div>
           <span className="text-3xl font-bold font-mono text-yellow-400">
-            {Math.round(data.bscAllocations.reduce((sum, a) => sum + a.smoltAmount, 0))}
+            {Math.round(data.bscAllocations.reduce((sum, a) => sum + a.usdcAmount, 0))}
           </span>
-          <span className="text-sm text-text-muted">SMOLT Pool (BSC)</span>
+          <span className="text-sm text-text-muted">USDC Pool (BSC)</span>
           {data.bscTreasury && data.bscTreasury.balance > 0 && (
             <span className="text-xs text-text-muted ml-auto">
               Treasury: {data.bscTreasury.balance.toFixed(2)}
             </span>
-          )}
-
-          {/* BSC SMOLT Allocations */}
-          {data.bscAllocations && data.bscAllocations.length > 0 && (
-            <div className="mt-6">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-text-muted uppercase tracking-wider">
-                  BSC SMOLT Rewards
-                </span>
-                <span className="flex items-center gap-1 text-xs font-mono text-text-muted">
-                  {data.bscAllocations.reduce((sum: number, a) => sum + a.smoltAmount, 0).toFixed(2)} SMOLT total
-                </span>
-              </div>
-              <div className="divide-y divide-white/[0.04] overflow-y-auto scrollbar-custom" style={{ maxHeight: `${VISIBLE_ROWS * ROW_HEIGHT}px` }}>
-                {data.bscAllocations.map((alloc) => (
-                  <div key={alloc.agentId} className="flex items-center gap-4 py-2.5 px-3">
-                    <span className={`text-sm font-mono w-6 text-center flex-shrink-0 ${alloc.rank === 1 ? 'text-yellow-400' : alloc.rank === 2 ? 'text-gray-300' : alloc.rank === 3 ? 'text-amber-600' : 'text-text-muted'}`}>
-                      {alloc.rank <= 3 ? <Trophy className="w-4 h-4 inline" /> : `#${alloc.rank}`}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-base text-text-primary truncate block">{alloc.agentName}</span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-base font-mono text-yellow-400">{alloc.smoltAmount.toFixed(2)}</span>
-                      <span className="text-xs text-yellow-400">SMOLT</span>
-                      <span className="text-[10px] font-mono text-text-muted bg-white/[0.06] px-1.5 py-0.5 rounded-full">{alloc.multiplier}x</span>
-                    </div>
-                    <div className="w-6 flex-shrink-0 flex justify-center">
-                      {alloc.status === 'completed' && alloc.txHash ? (
-                        <a href={`https://testnet.bscscan.com/tx/${alloc.txHash}`} target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 transition-colors" title="View on BSCScan">
-                          <CheckCircle2 className="w-4 h-4" />
-                        </a>
-                      ) : alloc.status === 'failed' ? (
-                        <AlertCircle className="w-4 h-4 text-red-400" />
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           )}
         </div>
       )}
@@ -316,10 +277,10 @@ export function EpochRewardPanel() {
             <div className="mt-6 mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-text-muted uppercase tracking-wider">
-                  BSC SMOLT Rewards
+                  BSC USDC Rewards
                 </span>
                 <span className="flex items-center gap-1 text-xs font-mono text-text-muted">
-                  {data.bscAllocations.reduce((sum, a) => sum + a.smoltAmount, 0).toFixed(2)} SMOLT total
+                  {data.bscAllocations.reduce((sum, a) => sum + a.usdcAmount, 0).toFixed(2)} USDC total
                 </span>
               </div>
 
@@ -339,8 +300,8 @@ export function EpochRewardPanel() {
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-base font-mono text-yellow-400">{alloc.smoltAmount.toFixed(2)}</span>
-                      <span className="text-xs text-yellow-400">SMOLT</span>
+                      <span className="text-base font-mono text-yellow-400">{alloc.usdcAmount.toFixed(2)}</span>
+                      <span className="text-xs text-yellow-400">USDC</span>
                       <span className="text-[10px] font-mono text-text-muted bg-white/[0.06] px-1.5 py-0.5 rounded-full">{alloc.multiplier}x</span>
                     </div>
 
