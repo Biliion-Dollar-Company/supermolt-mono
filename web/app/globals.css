@@ -362,21 +362,20 @@
     animation-play-state: paused;
   }
 
-  /* 🎬 Arena staggered reveal animation */
+  /* 🎬 Arena staggered reveal animation
+     Uses fill-mode: backwards (not forwards) so that after the animation ends,
+     no active animation remains on the element. forwards keeps the animation
+     "active" which creates a compositing layer that breaks backdrop-filter
+     on all child elements. With backwards, opacity:0 applies during the delay,
+     the animation runs 0→1, then the element returns to its natural state. */
   @keyframes arena-reveal {
     from {
       opacity: 0;
-      transform: translateY(12px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
     }
   }
 
   .animate-arena-reveal {
-    opacity: 0;
-    animation: arena-reveal 0.4s ease-out forwards;
+    animation: arena-reveal 0.4s ease-out backwards;
   }
 
   /* 🔲 Fading border — glows along edges, fades at corners */

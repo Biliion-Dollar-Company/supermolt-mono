@@ -1,341 +1,449 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Sparkles, Trophy, TrendingUp } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Swords, Wifi, WifiOff, Copy, Check } from 'lucide-react';
+import { getRecentTrades, getAllPositions } from '@/lib/api';
+import { Trade, Position } from '@/lib/types';
+import { ArenaLeaderboard, TokenDetailContent, EpochRewardPanel, TasksPanel, MyAgentPanel, XPLeaderboard, ConversationsPanel } from '@/components/arena';
+import type { ArenaToken } from '@/components/arena';
 
-// Chain configuration
-const CHAINS = {
-  solana: {
-    name: 'Solana',
-    icon: '◎',
-    color: 'purple',
-    gradient: 'from-purple-500/20 to-fuchsia-500/20',
-    border: 'border-purple-500/40',
-    ring: 'ring-purple-500/20',
-    bg: 'bg-purple-500/10',
-    text: 'text-purple-400',
-  },
-  bsc: {
-    name: 'BSC',
-    icon: '⬨',
-    color: 'yellow',
-    gradient: 'from-yellow-500/20 to-amber-500/20',
-    border: 'border-yellow-500/40',
-    ring: 'ring-yellow-500/20',
-    bg: 'bg-yellow-500/10',
-    text: 'text-yellow-400',
-  },
-} as const;
-
-type Chain = keyof typeof CHAINS;
-
-interface Epoch {
-  id: string;
-  epochNumber: number;
-  name: string;
-  chain: string;
-  startAt: string;
-  endAt: string;
-  status: string;
-  usdcPool: number;
-  baseAllocation: number;
+function SkeletonBlock({ className = '' }: { className?: string }) {
+  return <div className={`bg-white/[0.03] animate-pulse rounded ${className}`} />;
 }
 
-interface Agent {
-  id: string;
-  name: string;
-  walletAddress: string;
-  totalTrades: number;
-  winRate: number;
-  totalPnl: number;
-  sortinoRatio?: number;
-  rank?: number;
+function ArenaPageSkeleton() {
+  return (
+    <>
+      {/* Tasks strip skeleton */}
+      <div className="mb-6">
+        <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] px-4 py-3">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <SkeletonBlock className="h-4 w-4 rounded-full" />
+              <SkeletonBlock className="h-3 w-12" />
+            </div>
+            <div className="w-px h-5 bg-white/[0.08] flex-shrink-0" />
+            <div className="flex-1 flex gap-2 overflow-hidden">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonBlock key={i} className="h-8 w-36 flex-shrink-0" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main grid skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
+        {/* Left column: Leaderboard + Conversations */}
+        <div className="space-y-6">
+          <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <SkeletonBlock className="h-7 w-16" />
+              <SkeletonBlock className="h-7 w-10" />
+            </div>
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <SkeletonBlock className="w-6 h-6 rounded-full" />
+                  <SkeletonBlock className="h-4 flex-1" />
+                  <SkeletonBlock className="h-4 w-12" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+          <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <SkeletonBlock className="h-4 w-4 rounded-full" />
+              <SkeletonBlock className="h-3 w-24" />
+            </div>
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonBlock key={i} className="h-14" />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Vertical separator */}
+        <div className="hidden lg:flex justify-center">
+          <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
+        </div>
+
+        {/* Right column: Epoch + Tokens */}
+        <div className="min-w-0 space-y-6">
+          {/* Epoch skeleton */}
+          <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+            <SkeletonBlock className="h-5 w-40 mb-2" />
+            <SkeletonBlock className="h-3 w-32 mb-4" />
+            <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
+              <SkeletonBlock className="w-8 h-8 rounded-full" />
+              <SkeletonBlock className="h-8 w-20" />
+            </div>
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <SkeletonBlock className="w-5 h-5 rounded-full" />
+                  <SkeletonBlock className="h-4 flex-1" />
+                  <SkeletonBlock className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+
+          {/* Live Tokens skeleton */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <SkeletonBlock className="h-4 w-24" />
+              <SkeletonBlock className="h-3 w-16" />
+            </div>
+            <div className="flex gap-2 overflow-hidden mb-6">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonBlock key={i} className="h-10 w-28 flex-shrink-0" />
+              ))}
+            </div>
+            <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4">
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <SkeletonBlock key={i} className="h-10" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
+  const tokenMap = new Map<string, {
+    agentIds: Set<string>;
+    tradeCount: number;
+    lastTradeTime: string;
+    totalVolume: number;
+    pnlSum: number;
+    pnlCount: number;
+    tokenMint: string;
+  }>();
+
+  for (const trade of trades) {
+    const sym = trade.tokenSymbol;
+    if (!sym || sym === 'UNKNOWN') continue;
+    const existing = tokenMap.get(sym) || {
+      agentIds: new Set<string>(),
+      tradeCount: 0,
+      lastTradeTime: trade.timestamp,
+      totalVolume: 0,
+      pnlSum: 0,
+      pnlCount: 0,
+      tokenMint: trade.tokenMint || '',
+    };
+
+    existing.agentIds.add(trade.agentId);
+    existing.tradeCount++;
+    existing.totalVolume += trade.quantity * trade.entryPrice;
+    if (trade.pnl !== 0) {
+      existing.pnlSum += trade.pnlPercent;
+      existing.pnlCount++;
+    }
+    if (new Date(trade.timestamp) > new Date(existing.lastTradeTime)) {
+      existing.lastTradeTime = trade.timestamp;
+    }
+    if (!existing.tokenMint && trade.tokenMint) {
+      existing.tokenMint = trade.tokenMint;
+    }
+
+    tokenMap.set(sym, existing);
+  }
+
+  for (const pos of positions) {
+    const sym = pos.tokenSymbol;
+    if (!sym || sym === 'UNKNOWN') continue;
+    const existing = tokenMap.get(sym);
+    if (existing) {
+      existing.agentIds.add(pos.agentId);
+      if (!existing.tokenMint && pos.tokenMint) {
+        existing.tokenMint = pos.tokenMint;
+      }
+    }
+  }
+
+  const tokens: ArenaToken[] = [];
+  for (const [symbol, data] of tokenMap) {
+    tokens.push({
+      tokenSymbol: symbol,
+      tokenMint: data.tokenMint,
+      agentCount: data.agentIds.size,
+      recentTradeCount: data.tradeCount,
+      lastTradeTime: data.lastTradeTime,
+      totalVolume: data.totalVolume,
+      netPnl: data.pnlCount > 0 ? data.pnlSum / data.pnlCount : 0,
+    });
+  }
+
+  tokens.sort((a, b) => new Date(b.lastTradeTime).getTime() - new Date(a.lastTradeTime).getTime());
+
+  return tokens;
+}
+
+
+function TokenChip({
+  token,
+  isSelected,
+  onSelect,
+}: {
+  token: ArenaToken;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      onClick={onSelect}
+      className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 border transition-all cursor-pointer ${
+        isSelected
+          ? 'border-accent-primary/50 bg-accent-primary/5'
+          : 'border-white/[0.06] hover:bg-white/[0.03]'
+      }`}
+    >
+      <span className="text-sm font-bold font-mono text-text-primary whitespace-nowrap">
+        {token.tokenSymbol}
+      </span>
+      <span className={`text-xs font-mono ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+        {token.netPnl >= 0 ? '+' : ''}{Math.round(token.netPnl)}%
+      </span>
+      {token.tokenMint && (
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(token.tokenMint);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1500);
+          }}
+          className="text-text-muted hover:text-text-secondary transition-colors ml-0.5 cursor-pointer"
+        >
+          {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+        </span>
+      )}
+    </button>
+  );
 }
 
 export default function ArenaPage() {
-  const [selectedChain, setSelectedChain] = useState<Chain>('solana');
-  const [epochs, setEpochs] = useState<{ solana: Epoch[]; bsc: Epoch[] }>({
-    solana: [],
-    bsc: [],
-  });
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [tokens, setTokens] = useState<ArenaToken[]>([]);
+  const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [isLive, setIsLive] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const [leaderboardTab, setLeaderboardTab] = useState<'trades' | 'xp'>('trades');
+  const initialLoadDone = useRef(false);
 
-  // Fetch active epochs for both chains
-  useEffect(() => {
-    fetch('/api/treasury/epochs/active')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setEpochs(data.data);
-        }
-      })
-      .catch((err) => console.error('Error fetching epochs:', err));
+  const fetchData = useCallback(async () => {
+    try {
+      const [trades, positions] = await Promise.all([
+        getRecentTrades(100),
+        getAllPositions(),
+      ]);
+      const aggregated = aggregateTokens(trades, positions);
+      setTokens(aggregated);
+      setLastRefresh(new Date());
+      setIsLive(true);
+    } catch {
+      setIsLive(false);
+    } finally {
+      setLoading(false);
+      if (!initialLoadDone.current) {
+        initialLoadDone.current = true;
+        // Brief delay so skeleton doesn't flash away instantly
+        setTimeout(() => setReady(true), 150);
+      }
+    }
   }, []);
 
-  // Fetch agents (leaderboard)
   useEffect(() => {
-    fetch('/api/leaderboard')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setAgents(data.data.slice(0, 10)); // Top 10
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error('Error fetching agents:', err);
-        setLoading(false);
-      });
-  }, []);
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
-  const currentEpoch = epochs[selectedChain]?.[0];
-  const chainConfig = CHAINS[selectedChain];
+  // Auto-select first token when tokens load and nothing is selected
+  useEffect(() => {
+    if (tokens.length > 0 && !selectedToken) {
+      setSelectedToken(tokens[0].tokenSymbol);
+    }
+  }, [tokens, selectedToken]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-purple-500/10 via-transparent to-transparent" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-3 mb-4">
-              <Sparkles className="w-8 h-8 text-purple-400" />
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-white via-purple-200 to-purple-400 bg-clip-text text-transparent">
-                AI Trading Arena
-              </h1>
-              <Sparkles className="w-8 h-8 text-purple-400" />
-            </div>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Watch AI agents compete in real-time. Trade smarter, earn USDC rewards.
-            </p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative">
+      {/* Background image + overlay + vignette */}
+      <div className="fixed inset-0 z-0">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: 'url(/bg.png)' }}
+        />
+        <div className="absolute inset-0 bg-black/50" />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)',
+          }}
+        />
       </div>
-
-      {/* Chain Selector */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <div className="flex gap-4 justify-center">
-          {(Object.keys(CHAINS) as Chain[]).map((chain) => {
-            const config = CHAINS[chain];
-            const isActive = selectedChain === chain;
-            const epoch = epochs[chain]?.[0];
-
-            return (
-              <button
-                key={chain}
-                onClick={() => setSelectedChain(chain)}
-                className={`
-                  relative flex-1 max-w-md p-6 rounded-2xl transition-all duration-300
-                  ${isActive ? `${config.bg} ${config.border} border-2 shadow-lg` : 'bg-gray-800/50 border border-gray-700/50 hover:border-gray-600'}
-                `}
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <div className={`text-5xl ${isActive ? 'scale-110' : ''} transition-transform`}>
-                    {config.icon}
-                  </div>
-                  <div className="text-left">
-                    <h3 className={`text-2xl font-bold ${isActive ? config.text : 'text-white'}`}>
-                      {config.name} Arena
-                    </h3>
-                    <p className="text-sm text-gray-400">{epoch?.name || 'No active epoch'}</p>
-                  </div>
-                </div>
-
-                {epoch && (
-                  <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-700/50">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-white">{epoch.usdcPool}</div>
-                      <div className="text-xs text-gray-400">USDC Pool</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-400">{epoch.status}</div>
-                      <div className="text-xs text-gray-400">Status</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-400">
-                        {new Date(epoch.endAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </div>
-                      <div className="text-xs text-gray-400">Ends</div>
-                    </div>
-                  </div>
-                )}
-
-                {!epoch && (
-                  <div className="text-center py-8">
-                    <div className="text-gray-500 text-sm">Coming Soon</div>
-                  </div>
-                )}
-
-                {isActive && (
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r ${config.gradient} opacity-20 pointer-events-none" />
-                )}
-              </button>
-            );
-          })}
-        </div>
+      {/* Gradient orbs — ABOVE vignette so backdrop-blur can frost them */}
+      <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">
+        <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] bg-accent-primary/[0.15] rounded-full blur-[200px]" />
+        <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] bg-purple-500/[0.10] rounded-full blur-[180px]" />
+        <div className="absolute bottom-[5%] left-[35%] w-[500px] h-[500px] bg-blue-500/[0.08] rounded-full blur-[160px]" />
       </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Leaderboard */}
-          <div className="bg-gray-800/50 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Trophy className={`w-6 h-6 ${chainConfig.text}`} />
-              <h2 className="text-2xl font-bold text-white">
-                {chainConfig.name} Leaderboard
-              </h2>
-            </div>
-
-            {loading ? (
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-gray-700/30 animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : agents.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-gray-500">No agents trading yet</div>
-                <p className="text-sm text-gray-600 mt-2">Be the first to compete!</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {agents.map((agent, index) => (
-                  <div
-                    key={agent.id}
-                    className="flex items-center gap-4 p-4 bg-gray-900/50 rounded-lg hover:bg-gray-900/70 transition-colors cursor-pointer group"
-                  >
-                    {/* Rank */}
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center font-bold
-                      ${index === 0 ? 'bg-yellow-500 text-black' : ''}
-                      ${index === 1 ? 'bg-gray-300 text-black' : ''}
-                      ${index === 2 ? 'bg-amber-700 text-white' : ''}
-                      ${index > 2 ? 'bg-gray-700 text-gray-300' : ''}
-                    `}>
-                      {index + 1}
-                    </div>
-
-                    {/* Agent Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-white truncate group-hover:text-purple-400 transition-colors">
-                        {agent.name}
-                      </div>
-                      <div className="text-sm text-gray-500 truncate">
-                        {agent.walletAddress.slice(0, 6)}...{agent.walletAddress.slice(-4)}
-                      </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="text-right">
-                      <div className={`font-bold ${agent.totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {agent.totalPnl >= 0 ? '+' : ''}{agent.totalPnl.toFixed(2)} SOL
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {agent.winRate.toFixed(1)}% WR • {agent.totalTrades} trades
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-6 pt-6 border-t border-gray-700/50">
-              <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg font-semibold text-white transition-all">
-                View Full Leaderboard →
-              </button>
-            </div>
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 sm:mb-8 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Swords className="w-5 h-5 sm:w-6 sm:h-6 text-accent-primary" />
+            <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Arena</h1>
           </div>
-
-          {/* Epoch Details & Stats */}
-          <div className="space-y-6">
-            {/* Current Epoch Card */}
-            {currentEpoch ? (
-              <div className={`bg-gradient-to-br ${chainConfig.gradient} border ${chainConfig.border} rounded-2xl p-6`}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="text-4xl">{chainConfig.icon}</div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">{currentEpoch.name}</h3>
-                    <p className="text-sm text-gray-400">Epoch #{currentEpoch.epochNumber}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="bg-black/20 rounded-lg p-4">
-                    <div className="text-3xl font-bold text-white">{currentEpoch.usdcPool}</div>
-                    <div className="text-sm text-gray-400">USDC Prize Pool</div>
-                  </div>
-                  <div className="bg-black/20 rounded-lg p-4">
-                    <div className="text-3xl font-bold text-green-400">{currentEpoch.status}</div>
-                    <div className="text-sm text-gray-400">Competition Status</div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Started</span>
-                    <span className="text-white font-semibold">
-                      {new Date(currentEpoch.startAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Ends</span>
-                    <span className="text-white font-semibold">
-                      {new Date(currentEpoch.endAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400">Base Reward</span>
-                    <span className="text-white font-semibold">{currentEpoch.baseAllocation} USDC</span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl p-6 text-center">
-                <div className="text-gray-500 mb-4">No active {chainConfig.name} epoch</div>
-                <p className="text-sm text-gray-600">Check back soon for the next competition!</p>
-              </div>
-            )}
-
-            {/* Reward Distribution Info */}
-            <div className="bg-gray-800/50 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <TrendingUp className="w-6 h-6 text-green-400" />
-                <h3 className="text-xl font-bold text-white">Reward Distribution</h3>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  { rank: '🥇 1st Place', multiplier: '2.0x', percent: '40%' },
-                  { rank: '🥈 2nd Place', multiplier: '1.5x', percent: '30%' },
-                  { rank: '🥉 3rd Place', multiplier: '1.0x', percent: '20%' },
-                  { rank: '4th Place', multiplier: '0.75x', percent: '7.5%' },
-                  { rank: '5th Place', multiplier: '0.5x', percent: '2.5%' },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg"
-                  >
-                    <div>
-                      <div className="font-semibold text-white">{item.rank}</div>
-                      <div className="text-sm text-gray-500">{item.multiplier} multiplier</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-bold text-green-400">{item.percent}</div>
-                      <div className="text-sm text-gray-500">of pool</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-gray-700/50 text-center text-sm text-gray-400">
-                <p>Payouts distributed automatically via {chainConfig.name}</p>
-                <p className="mt-1">Ranked by Sortino Ratio • Updated hourly</p>
-              </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-xs text-text-muted hidden sm:inline">
+              Updated {lastRefresh.toLocaleTimeString()}
+            </span>
+            <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
+              isLive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+            }`}>
+              {isLive ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+              {isLive ? 'Live' : 'Offline'}
             </div>
           </div>
         </div>
+
+        {!ready ? (
+          <ArenaPageSkeleton />
+        ) : (
+          <>
+            {/* Agent Tasks — full width compact strip */}
+            <div className="mb-6 animate-arena-reveal" style={{ animationDelay: '0ms' }}>
+              <TasksPanel />
+            </div>
+
+            {/* My Agent Panel — XP, stats, onboarding */}
+            <div className="mb-6 animate-arena-reveal" style={{ animationDelay: '60ms' }}>
+              <MyAgentPanel />
+            </div>
+
+            {/* Main layout: leaderboard left, separator, token feed right */}
+            <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
+              {/* Leaderboard + Conversations */}
+              <div className="space-y-6 animate-arena-reveal" style={{ animationDelay: '120ms' }}>
+                <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+                  <div className="flex items-center gap-1 mb-4">
+                    <button
+                      onClick={() => setLeaderboardTab('trades')}
+                      className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                        leaderboardTab === 'trades'
+                          ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                          : 'text-text-muted hover:text-text-secondary'
+                      }`}
+                    >
+                      Trades
+                    </button>
+                    <button
+                      onClick={() => setLeaderboardTab('xp')}
+                      className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
+                        leaderboardTab === 'xp'
+                          ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                          : 'text-text-muted hover:text-text-secondary'
+                      }`}
+                    >
+                      XP
+                    </button>
+                  </div>
+                  {leaderboardTab === 'trades' ? <ArenaLeaderboard /> : <XPLeaderboard />}
+                </div>
+                <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+                <ConversationsPanel />
+              </div>
+
+              {/* Vertical Separator */}
+              <div className="hidden lg:flex justify-center">
+                <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
+              </div>
+
+              {/* Epoch Rewards + Token Marquee + Featured Detail */}
+              <div className="min-w-0 space-y-6">
+                <div className="animate-arena-reveal" style={{ animationDelay: '180ms' }}>
+                  <EpochRewardPanel />
+                </div>
+
+                <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+
+                <div className="animate-arena-reveal" style={{ animationDelay: '240ms' }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                      Live Tokens
+                    </h2>
+                    <span className="text-xs text-text-muted">{tokens.length} tokens</span>
+                  </div>
+
+                  {tokens.length === 0 ? (
+                    <div className="flex items-center justify-center h-64 text-text-muted">
+                      <p>No recent trading activity</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Token Marquee */}
+                      <div
+                        className="relative overflow-hidden mb-6"
+                        onMouseEnter={() => setIsPaused(true)}
+                        onMouseLeave={() => setIsPaused(false)}
+                      >
+                        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-bg-primary to-transparent z-10 pointer-events-none" />
+                        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-bg-primary to-transparent z-10 pointer-events-none" />
+
+                        <div className={`flex gap-2 animate-marquee ${isPaused ? '[animation-play-state:paused]' : ''}`}>
+                          {tokens.map((token) => (
+                            <TokenChip
+                              key={token.tokenSymbol}
+                              token={token}
+                              isSelected={selectedToken === token.tokenSymbol}
+                              onSelect={() => setSelectedToken(token.tokenSymbol)}
+                            />
+                          ))}
+                          {tokens.map((token) => (
+                            <TokenChip
+                              key={`dup-${token.tokenSymbol}`}
+                              token={token}
+                              isSelected={selectedToken === token.tokenSymbol}
+                              onSelect={() => setSelectedToken(token.tokenSymbol)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Featured Token Detail (inline) */}
+                      {selectedToken ? (
+                        <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
+                          <TokenDetailContent tokenSymbol={selectedToken} compact />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-64 text-text-muted">
+                          <p>Select a token to view live data</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
       </div>
     </div>
   );
