@@ -233,7 +233,7 @@ agentAuth.post('/twitter/verify', agentJwtMiddleware, async (c) => {
     console.log(`Twitter verified: ${agentId} -> @${twitterHandle}`);
 
     // Auto-complete LINK_TWITTER onboarding task (fire-and-forget)
-    autoCompleteOnboardingTask(agentId, 'LINK_TWITTER', { twitterHandle: `@${twitterHandle}` }).catch(() => {});
+    autoCompleteOnboardingTask(agentId, 'LINK_TWITTER', { twitterHandle: `@${twitterHandle}` }).catch(() => { });
 
     return c.json({
       success: true,
@@ -263,27 +263,27 @@ async function verifyTweet(
   try {
     // Try TwitterAPI.io first (preferred - used in DevPrint)
     const apiKey = process.env.TWITTER_API_KEY;
-    
+
     if (apiKey) {
       const { getTwitterAPI } = await import('../services/twitter-api.service');
-      
+
       try {
         const twitterAPI = getTwitterAPI();
-        
+
         // Fetch tweet content
         const tweet = await twitterAPI.fetchTweet(tweetId);
-        
+
         // Verify tweet contains code
         if (!tweet.text.includes(expectedCode)) {
           return { success: false, error: 'Tweet does not contain verification code' };
         }
-        
+
         // Verify author matches
         const authorUsername = tweet.author.userName.toLowerCase();
         if (authorUsername !== username.toLowerCase()) {
           return { success: false, error: `Tweet author (@${tweet.author.userName}) does not match provided username (@${username})` };
         }
-        
+
         // Success - return profile data to save
         return {
           success: true,
@@ -297,7 +297,7 @@ async function verifyTweet(
             location: tweet.author.location,
           }
         };
-        
+
       } catch (apiError: any) {
         console.error('TwitterAPI.io verification error:', apiError.message);
         // Fall through to fallback
@@ -306,10 +306,10 @@ async function verifyTweet(
 
     // Fallback: Try Twitter API v2 (if bearer token set)
     const bearerToken = process.env.TWITTER_BEARER_TOKEN;
-    
+
     if (bearerToken) {
       const response = await fetch(
-        `https://api.twitter.com/2/tweets/${tweetId}?tweet.fields=text,author_id&expansions=author_id&user.fields=username`,
+        `https://api.twitter.com/2/tweets/${tweetId}?tweet.fields=text,author_id&expansions=author_id&user.fields=username,name,profile_image_url,description,public_metrics,verified,location`,
         {
           headers: {
             'Authorization': `Bearer ${bearerToken}`
@@ -323,7 +323,7 @@ async function verifyTweet(
       }
 
       const data = await response.json();
-      
+
       // Verify tweet contains code
       const tweetText = data.data?.text || '';
       if (!tweetText.includes(expectedCode)) {
@@ -331,18 +331,32 @@ async function verifyTweet(
       }
 
       // Verify author matches
-      const authorUsername = data.includes?.users?.[0]?.username;
-      if (authorUsername && authorUsername.toLowerCase() !== username.toLowerCase()) {
+      const user = data.includes?.users?.[0];
+      const authorUsername = user?.username;
+
+      if (!authorUsername || authorUsername.toLowerCase() !== username.toLowerCase()) {
         return { success: false, error: 'Tweet author does not match provided username' };
       }
 
-      return { success: true };
+      // Return success with profile data
+      return {
+        success: true,
+        userProfile: {
+          userName: user.username,
+          displayName: user.name,
+          followers: user.public_metrics?.followers_count || 0,
+          isBlueVerified: user.verified || false,
+          profilePicture: user.profile_image_url?.replace('_normal', ''), // Get high-res
+          bio: user.description,
+          location: user.location,
+        }
+      };
     }
 
     // Final fallback - Trust the URL (less secure but works without API)
     console.warn('⚠️ No Twitter API keys set - using fallback verification (less secure)');
     console.log(`ℹ️ Trusting tweet URL: https://twitter.com/${username}/status/${tweetId}`);
-    
+
     // Still do basic validation
     if (!tweetId || !username) {
       return { success: false, error: 'Invalid tweet data' };
@@ -407,7 +421,7 @@ agentAuth.post('/task/verify', agentJwtMiddleware, async (c) => {
         if (tweetMatch) {
           const username = tweetMatch[1];
           const tweetId = tweetMatch[2];
-          
+
           // Verify tweet author matches linked Twitter
           const agentTwitter = agent.twitterHandle?.replace('@', '').toLowerCase();
           if (username.toLowerCase() === agentTwitter) {
@@ -442,7 +456,7 @@ agentAuth.post('/task/verify', agentJwtMiddleware, async (c) => {
 
     // Record task completion (save to database or emit event)
     // This could integrate with your agent task manager or Ponzinomics API
-    
+
     console.log(`✅ Task verified: ${agentId} completed ${taskId} (${proofType})`);
 
     return c.json({
@@ -497,7 +511,7 @@ agentAuth.post('/profile/update', agentJwtMiddleware, async (c) => {
 
     // Auto-complete UPDATE_PROFILE onboarding task if bio was provided (fire-and-forget)
     if (bio) {
-      autoCompleteOnboardingTask(agent.id, 'UPDATE_PROFILE', { bio }).catch(() => {});
+      autoCompleteOnboardingTask(agent.id, 'UPDATE_PROFILE', { bio }).catch(() => { });
     }
 
     return c.json({
