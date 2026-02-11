@@ -64,7 +64,7 @@ export class LLMService {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'llama3-70b-8192', // Intelligent & Fast
+                model: 'llama-3.3-70b-versatile', // Intelligent & Fast (Latest)
                 messages: [
                     { role: 'system', content: system },
                     { role: 'user', content: user },
