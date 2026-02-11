@@ -289,19 +289,19 @@ export default function ArenaPage() {
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: 'url(/bg.png)' }}
         />
-        <div className="absolute inset-0 bg-black/50" />
+        <div className="absolute inset-0 bg-black/82" />
         <div
           className="absolute inset-0"
           style={{
-            background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)',
+            background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.52) 18%, rgba(0,0,0,0.86) 62%, rgba(0,0,0,0.98) 100%)',
           }}
         />
       </div>
       {/* Gradient orbs — ABOVE vignette so backdrop-blur can frost them */}
       <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] bg-accent-primary/[0.15] rounded-full blur-[200px]" />
-        <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] bg-purple-500/[0.10] rounded-full blur-[180px]" />
-        <div className="absolute bottom-[5%] left-[35%] w-[500px] h-[500px] bg-blue-500/[0.08] rounded-full blur-[160px]" />
+        <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] bg-blue-500/[0.05] rounded-full blur-[240px]" />
+        <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] bg-indigo-500/[0.04] rounded-full blur-[220px]" />
+        <div className="absolute bottom-[5%] left-[35%] w-[500px] h-[500px] bg-cyan-500/[0.03] rounded-full blur-[200px]" />
       </div>
       <div className="relative z-10">
         {/* Header */}
