@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { LayoutDashboard, Settings, Activity, GitBranch } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import { LayoutDashboard, Settings } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { getMyAgent } from '@/lib/api';
-import { AgentIdentityBar, AgentConfigPanel, DataPipelineFlow, ActivityFeed } from '@/components/dashboard';
+import { AgentConfigPanel, AgentDataFlow, ActivityFeed } from '@/components/dashboard';
+
+const IS_DEV = process.env.NODE_ENV !== 'production';
 
 // ── Skeleton ─────────────────────────────────────────────────────
 
@@ -16,25 +18,7 @@ function SkeletonBlock({ className = '' }: { className?: string }) {
 function DashboardSkeleton() {
     return (
         <div className="space-y-6">
-            {/* Identity bar skeleton */}
-            <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                    <SkeletonBlock className="w-12 h-12 rounded" />
-                    <div className="space-y-2 flex-1">
-                        <SkeletonBlock className="h-5 w-40" />
-                        <SkeletonBlock className="h-3 w-24" />
-                    </div>
-                </div>
-                <SkeletonBlock className="h-3 w-full" />
-                <div className="grid grid-cols-5 gap-3">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                        <SkeletonBlock key={i} className="h-16" />
-                    ))}
-                </div>
-            </div>
-            {/* Pipeline skeleton */}
-            <SkeletonBlock className="h-[550px]" />
-            {/* Bottom row skeleton */}
+            <SkeletonBlock className="h-[420px]" />
             <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
                 <SkeletonBlock className="h-[400px]" />
                 <SkeletonBlock className="h-[400px]" />
@@ -45,48 +29,39 @@ function DashboardSkeleton() {
 
 // ── Tab System ───────────────────────────────────────────────────
 
-type DashboardTab = 'overview' | 'pipeline' | 'config' | 'activity';
+type DashboardTab = 'overview' | 'config';
 
 const TABS: { key: DashboardTab; label: string; Icon: any }[] = [
     { key: 'overview', label: 'Overview', Icon: LayoutDashboard },
-    { key: 'pipeline', label: 'Data Pipeline', Icon: GitBranch },
     { key: 'config', label: 'Configure', Icon: Settings },
-    { key: 'activity', label: 'Activity', Icon: Activity },
 ];
 
 // ── Main Page ────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-    const router = useRouter();
-    const { isAuthenticated, agent, _hasHydrated, setAuth } = useAuthStore();
+    if (!IS_DEV) notFound();
+
+    const { isAuthenticated, _hasHydrated, setAuth } = useAuthStore();
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
 
-    // Wait for store hydration, then redirect if not authed
+    // Wait for store hydration, then refresh agent data if authed
     useEffect(() => {
         if (!_hasHydrated) return;
 
-        // Feature flag: redirect if dashboard is disabled
-        if (process.env.NEXT_PUBLIC_ENABLE_DASHBOARD !== 'true') {
-            router.push('/arena');
-            return;
+        if (isAuthenticated) {
+            getMyAgent()
+                .then((me) => {
+                    setAuth(me.agent, me.onboarding.tasks, me.onboarding.progress);
+                    setLoading(false);
+                })
+                .catch(() => {
+                    setLoading(false);
+                });
+        } else {
+            setLoading(false);
         }
-
-        if (!isAuthenticated) {
-            router.push('/arena');
-            return;
-        }
-
-        // Refresh agent data
-        getMyAgent()
-            .then((me) => {
-                setAuth(me.agent, me.onboarding.tasks, me.onboarding.progress);
-                setLoading(false);
-            })
-            .catch(() => {
-                setLoading(false);
-            });
-    }, [_hasHydrated, isAuthenticated, router, setAuth]);
+    }, [_hasHydrated, isAuthenticated, setAuth]);
 
     if (!_hasHydrated || loading) {
         return (
@@ -97,10 +72,6 @@ export default function DashboardPage() {
                 </div>
             </div>
         );
-    }
-
-    if (!isAuthenticated || !agent) {
-        return null; // Will redirect via useEffect
     }
 
     return (
@@ -136,13 +107,7 @@ export default function DashboardPage() {
                 {/* Tab Content */}
                 {activeTab === 'overview' && (
                     <div className="space-y-6 animate-arena-reveal">
-                        {/* Identity Bar */}
-                        <AgentIdentityBar />
-
-                        {/* Data Pipeline (compact) */}
-                        <DataPipelineFlow />
-
-                        {/* Config + Activity side by side */}
+                        <AgentDataFlow />
                         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
                             <AgentConfigPanel />
                             <ActivityFeed />
@@ -150,26 +115,12 @@ export default function DashboardPage() {
                     </div>
                 )}
 
-                {activeTab === 'pipeline' && (
-                    <div className="space-y-6 animate-arena-reveal">
-                        <AgentIdentityBar />
-                        <DataPipelineFlow />
-                    </div>
-                )}
-
                 {activeTab === 'config' && (
                     <div className="space-y-6 animate-arena-reveal">
-                        <AgentIdentityBar />
+                        <AgentDataFlow />
                         <div className="max-w-xl">
                             <AgentConfigPanel />
                         </div>
-                    </div>
-                )}
-
-                {activeTab === 'activity' && (
-                    <div className="space-y-6 animate-arena-reveal">
-                        <AgentIdentityBar />
-                        <ActivityFeed />
                     </div>
                 )}
             </div>
@@ -196,9 +147,9 @@ function BackgroundLayer() {
                 />
             </div>
             <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">
-                <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] bg-blue-500/[0.05] rounded-full blur-[240px]" />
-                <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] bg-indigo-500/[0.04] rounded-full blur-[220px]" />
-                <div className="absolute bottom-[5%] left-[35%] w-[500px] h-[500px] bg-cyan-500/[0.03] rounded-full blur-[200px]" />
+                <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.05)_0%,transparent_70%)]" />
+                <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.04)_0%,transparent_70%)]" />
+                <div className="absolute bottom-[5%] left-[35%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(6,182,212,0.03)_0%,transparent_70%)]" />
             </div>
         </>
     );

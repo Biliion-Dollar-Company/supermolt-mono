@@ -1,4 +1,4 @@
 export { AgentIdentityBar } from './AgentIdentityBar';
 export { AgentConfigPanel } from './AgentConfigPanel';
-export { DataPipelineFlow } from './DataPipelineFlow';
+export { AgentDataFlow } from './AgentDataFlow';
 export { ActivityFeed } from './ActivityFeed';

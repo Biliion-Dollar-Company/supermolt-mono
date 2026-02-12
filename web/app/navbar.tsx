@@ -21,9 +21,8 @@ export default function Navbar() {
     { href: '/treasury-flow', label: 'Treasury', Icon: Wallet },
   ];
 
-  const dashboardEnabled = process.env.NEXT_PUBLIC_ENABLE_DASHBOARD === 'true';
   const navLinks = allNavLinks.filter(
-    (link) => link.href !== '/dashboard' || dashboardEnabled
+    (link) => link.href !== '/dashboard' || process.env.NODE_ENV !== 'production'
   );
 
   const isActive = (href: string) => {
