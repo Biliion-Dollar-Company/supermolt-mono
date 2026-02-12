@@ -13,6 +13,7 @@ import { createFourMemeMonitor } from './services/fourmeme-monitor.js';
 
 import { createSortinoCron } from './services/sortino-cron.js';
 import { createMetricsMiddleware, getMetrics, getMetricsContentType, updateAgentMetrics, updateEpochMetrics } from './services/metrics.service.js';
+import { DistributedLockService, getReplicaId } from './services/distributed-lock.service.js';
 
 // Routes
 import { health } from './routes/health';
@@ -49,8 +50,15 @@ import arenaRoutes from './modules/arena/arena.routes';
 import arenaMeRoutes from './routes/arena-me.routes';
 import taskRoutes from './modules/tasks/tasks.routes';
 import newsRoutes from './modules/news/news.routes';
+import { systemRoutes, setDevPrintFeedGetter } from './routes/system.routes';
 
 const app = new Hono();
+
+function envFlag(name: string, defaultValue: boolean): boolean {
+  const raw = process.env[name];
+  if (!raw) return defaultValue;
+  return raw.toLowerCase() === 'true';
+}
 
 // Global Helius monitor instance (for dynamic wallet management)
 let heliusMonitor: HeliusWebSocketMonitor | null = null;
@@ -61,6 +69,11 @@ let devprintFeed: DevPrintFeedService | null = null;
 // Export function to get monitor instance
 export function getHeliusMonitor(): HeliusWebSocketMonitor | null {
   return heliusMonitor;
+}
+
+// Export function to get DevPrint feed instance
+export function getDevPrintFeed(): DevPrintFeedService | null {
+  return devprintFeed;
 }
 
 // CORS Configuration - Allow frontend origins
@@ -84,19 +97,19 @@ app.use(
     origin: (origin) => {
       // Allow requests with no origin (mobile apps, Postman, etc.)
       if (!origin) return origin;
-      
+
       // Check if origin matches allowed origins
       for (const allowed of allowedOrigins) {
         if (allowed === origin) {
           return origin;
         }
       }
-      
+
       // Allow all Vercel deployment URLs
       if (origin.match(/https:\/\/.*\.vercel\.app$/)) {
         return origin;
       }
-      
+
       return origin; // Allow all for now, can be restricted later
     },
     credentials: true,
@@ -186,6 +199,9 @@ app.route('/arena/tasks', taskRoutes);
 // News routes (platform announcements, updates, partnerships)
 app.route('/news', newsRoutes);
 
+// System routes (pipeline status, agent config)
+app.route('/api/system', systemRoutes);
+
 // Root
 app.get('/', (c) => {
   return c.json({
@@ -245,7 +261,7 @@ app.onError((err, c) => {
 // Start Helius WebSocket Monitor (real-time transaction tracking)
 async function startHeliusMonitor() {
   const heliusApiKey = process.env.HELIUS_API_KEY;
-  
+
   if (!heliusApiKey || heliusApiKey === 'your-helius-api-key') {
     console.warn('⚠️  HELIUS_API_KEY not configured, WebSocket monitor disabled');
     return;
@@ -260,7 +276,7 @@ async function startHeliusMonitor() {
 
   try {
     heliusMonitor = new HeliusWebSocketMonitor(heliusApiKey, trackedWallets, db);
-    
+
     // Start in background
     heliusMonitor.start().catch((error) => {
       console.error('❌ Helius monitor failed to start:', error);
@@ -301,7 +317,7 @@ const server = createServer(async (req, res) => {
     const protocol = 'http'; // Railway handles HTTPS termination
     const host = req.headers.host || 'localhost';
     const url = `${protocol}://${host}${req.url || '/'}`;
-    
+
     // Read request body if present
     let bodyInit: BodyInit | null = null;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -313,7 +329,7 @@ const server = createServer(async (req, res) => {
         bodyInit = Buffer.concat(chunks);
       }
     }
-    
+
     // Create Fetch Request
     const request = new Request(url, {
       method: req.method || 'GET',
@@ -327,10 +343,10 @@ const server = createServer(async (req, res) => {
 
     // Process with Hono
     const response = await app.fetch(request);
-    
+
     // Set status code
     res.statusCode = response.status;
-    
+
     // Set headers
     response.headers.forEach((value, key) => {
       res.setHeader(key, value);
@@ -391,31 +407,59 @@ if (env.DEVPRINT_WS_URL) {
     console.error('❌ DevPrint feed failed to start:', err);
   });
   console.log('✅ DevPrint feed service started');
+  // Wire DevPrint feed getter into system routes for pipeline-status
+  setDevPrintFeedGetter(() => devprintFeed);
 } else {
   console.warn('⚠️  DEVPRINT_WS_URL not set, DevPrint feed disabled');
 }
 
+const replicaId = getReplicaId();
+const enableBackgroundWorkers = envFlag('ENABLE_BACKGROUND_WORKERS', true);
+const enableHeliusMonitor = envFlag('ENABLE_HELIUS_MONITOR', enableBackgroundWorkers);
+const enableChainMonitors = envFlag('ENABLE_CHAIN_MONITORS', enableBackgroundWorkers);
+const enableSortinoCron = envFlag('ENABLE_SORTINO_CRON', enableBackgroundWorkers);
+
+console.log(`[Replica] id=${replicaId}`);
+console.log(`[Replica] ENABLE_BACKGROUND_WORKERS=${enableBackgroundWorkers}`);
+console.log(`[Replica] ENABLE_HELIUS_MONITOR=${enableHeliusMonitor}`);
+console.log(`[Replica] ENABLE_CHAIN_MONITORS=${enableChainMonitors}`);
+console.log(`[Replica] ENABLE_SORTINO_CRON=${enableSortinoCron}`);
+
 // Start WebSocket monitor in background
-startHeliusMonitor();
+if (enableHeliusMonitor) {
+  startHeliusMonitor();
+} else {
+  console.log('⏭️  Helius monitor disabled on this replica');
+}
 
 // Start BSC Trade Monitor (RPC-based, no API key needed)
-const bscMonitor = createBSCMonitor();
-bscMonitor.start().catch((err) => {
-  console.error('❌ BSC monitor failed to start:', err);
-});
+if (enableChainMonitors) {
+  const bscMonitor = createBSCMonitor();
+  bscMonitor.start().catch((err) => {
+    console.error('❌ BSC monitor failed to start:', err);
+  });
 
-// Start Four.Meme Migration Monitor (RPC-based, no API key needed)
-const fourMemeMonitor = createFourMemeMonitor();
-fourMemeMonitor.onMigration((event) => {
-  console.log(`🎉 [4meme] New token: ${event.tokenSymbol} (${event.tokenAddress.slice(0, 10)}...)`);
-});
-fourMemeMonitor.start().catch((err) => {
-  console.error('❌ 4meme monitor failed to start:', err);
-});
+  // Start Four.Meme Migration Monitor (RPC-based, no API key needed)
+  const fourMemeMonitor = createFourMemeMonitor();
+  fourMemeMonitor.onMigration((event) => {
+    console.log(`🎉 [4meme] New token: ${event.tokenSymbol} (${event.tokenAddress.slice(0, 10)}...)`);
+  });
+  fourMemeMonitor.start().catch((err) => {
+    console.error('❌ 4meme monitor failed to start:', err);
+  });
+} else {
+  console.log('⏭️  Chain monitors disabled on this replica');
+}
 
 // Start Sortino cron job (hourly recalculation)
-const sortinoCron = createSortinoCron(db);
-sortinoCron.start();
+const lockService = new DistributedLockService(db, replicaId);
+let sortinoCron: ReturnType<typeof createSortinoCron> | null = null;
+if (enableSortinoCron) {
+  sortinoCron = createSortinoCron(db, lockService);
+  sortinoCron.start();
+} else {
+  console.log('⏭️  Sortino cron disabled on this replica');
+}
 
 // Update Prometheus metrics every 30 seconds
 setInterval(async () => {
@@ -426,7 +470,7 @@ setInterval(async () => {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down...');
-  sortinoCron.stop();
+  if (sortinoCron) sortinoCron.stop();
   if (devprintFeed) await devprintFeed.stop();
   server.close(() => {
     console.log('✅ Server closed');
@@ -436,7 +480,7 @@ process.on('SIGTERM', async () => {
 
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down...');
-  sortinoCron.stop();
+  if (sortinoCron) sortinoCron.stop();
   if (devprintFeed) await devprintFeed.stop();
   server.close(() => {
     console.log('✅ Server closed');

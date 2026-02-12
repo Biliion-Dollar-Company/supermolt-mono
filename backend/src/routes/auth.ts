@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
+import { rateLimiter } from 'hono-rate-limiter';
 import * as authService from '../services/auth.service';
 import { authMiddleware } from '../middleware/auth';
+import { getOrCreateQuickstartAgent, issueAgentTokens } from '../services/agent-session.service';
+import { getOnboardingProgress } from '../services/onboarding.service';
 
 const auth = new Hono();
 
@@ -11,6 +14,23 @@ const loginSchema = z.object({
 
 const refreshSchema = z.object({
   refreshToken: z.string().min(1),
+});
+
+const quickstartSchema = z.object({
+  archetypeId: z.string().min(1).optional(),
+  name: z.string().min(1).max(32).optional(),
+  displayName: z.string().min(1).max(50).optional(),
+});
+
+const quickstartLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: 'draft-6',
+  keyGenerator: (c) =>
+    c.get('userId')
+    || c.req.header('x-forwarded-for')
+    || c.req.header('x-real-ip')
+    || 'unknown',
 });
 
 // POST /auth/login
@@ -105,6 +125,65 @@ auth.get('/me', authMiddleware, async (c) => {
       wallet: user.wallet ?? null,
     },
   });
+});
+
+// POST /auth/agent/quickstart (protected) — one-click agent setup for regular users
+auth.post('/agent/quickstart', authMiddleware, quickstartLimiter, async (c) => {
+  try {
+    const user = c.get('user');
+    const userId = c.get('userId');
+    const body = await c.req.json().catch(() => ({}));
+    const { archetypeId, name, displayName } = quickstartSchema.parse(body || {});
+
+    const agent = await getOrCreateQuickstartAgent({
+      userId,
+      walletAddress: user.wallet ?? null,
+      archetypeId,
+      name,
+      displayName,
+    });
+
+    const subject = user.wallet || userId;
+    const tokens = await issueAgentTokens(agent.id, subject);
+    const onboarding = await getOnboardingProgress(agent.id);
+
+    return c.json({
+      success: true,
+      data: {
+        agent,
+        onboarding,
+        token: tokens.token,
+        refreshToken: tokens.refreshToken,
+        expiresIn: tokens.expiresIn,
+      },
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid request body',
+            details: error.errors,
+          },
+        },
+        400
+      );
+    }
+
+    console.error('Quickstart error:', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: error instanceof Error ? error.message : 'Quickstart failed',
+        },
+      },
+      500
+    );
+  }
 });
 
 export { auth };

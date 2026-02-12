@@ -272,12 +272,40 @@ app.post('/distribute/:epochId', adminAuth, async (c) => {
     
     // Use unified service - it will auto-detect chain
     const result = await unifiedTreasuryService.distributeAgentRewards(epochId);
-    
+
+    const allocations = result.allocations.map((a: any, index: number) => ({
+      scannerId: a.scannerId || a.agentId || '',
+      scannerName: a.scannerName || a.agentName || 'Unknown',
+      pubkey: a.pubkey || a.walletAddress || '',
+      rank: a.rank || index + 1,
+      performanceScore: a.performanceScore || a.sortinoRatio || 0,
+      winRate: a.winRate || 0,
+      totalCalls: a.totalCalls || a.tradeCount || 0,
+      usdcAmount: a.usdcAmount || a.amount || 0,
+      multiplier: a.multiplier || 1,
+    }));
+
+    const transactions = result.allocations.map((a: any, index: number) => ({
+      scannerId: a.scannerId || a.agentId || '',
+      scannerName: a.scannerName || a.agentName || 'Unknown',
+      signature: a.signature || a.txHash || '',
+      status: a.status || 'failed',
+      amount: a.usdcAmount || a.amount || 0,
+      error: a.error,
+    }));
+
+    const summarySource: any = result.summary || {};
     const response: DistributionResultDto = {
       epochId,
-      allocations: result.allocations,
-      summary: result.summary,
-      blockExplorer: result.allocations[0]?.bscscan || result.allocations[0]?.solscan || null
+      epochName: 'Unified Distribution',
+      allocations,
+      transactions,
+      summary: {
+        total: summarySource.total ?? summarySource.totalAmount ?? 0,
+        successful: summarySource.successful ?? 0,
+        failed: summarySource.failed ?? 0,
+        timestamp: summarySource.timestamp || new Date().toISOString(),
+      },
     };
     
     return c.json(createSuccessResponse(response));

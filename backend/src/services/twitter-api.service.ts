@@ -196,6 +196,13 @@ export class TwitterAPIService {
   }
 
   /**
+   * Alias for searchRecent (more explicit naming for callers)
+   */
+  async searchTweets(query: string, limit: number = 20): Promise<Tweet[]> {
+    return this.searchRecent(query, limit);
+  }
+
+  /**
    * Verify tweet contains expected text
    * Used for Twitter verification flow
    */

@@ -163,6 +163,36 @@ export const sortinoCalculations = new Counter({
   labelNames: ['status'], // 'success', 'failed'
 });
 
+export const cronLockEvents = new Counter({
+  name: 'supermolt_cron_lock_events_total',
+  help: 'Total number of cron lock events',
+  labelNames: ['job', 'result'], // result: 'acquired', 'skipped', 'release_failed'
+});
+
+export const webhookQueueDepth = new Gauge({
+  name: 'supermolt_webhook_queue_depth',
+  help: 'Current depth of the webhook queue',
+  labelNames: ['mode'], // 'redis', 'memory'
+});
+
+export const webhookQueueEnqueued = new Counter({
+  name: 'supermolt_webhook_queue_enqueued_total',
+  help: 'Total items enqueued to webhook queue',
+  labelNames: ['mode', 'result'], // result: 'accepted', 'rejected'
+});
+
+export const webhookQueueProcessed = new Counter({
+  name: 'supermolt_webhook_queue_processed_total',
+  help: 'Total webhook items processed',
+  labelNames: ['mode', 'result'], // result: 'success', 'failed'
+});
+
+// ============================================================================
+// Worker/Cron Metrics
+// ============================================================================
+
+
+
 // ============================================================================
 // Helper Functions
 // ============================================================================
@@ -175,10 +205,10 @@ export function createMetricsMiddleware() {
     const start = Date.now();
     const method = c.req.method;
     const path = c.req.path;
-    
+
     // Normalize route to get meaningful patterns
     let route = path;
-    
+
     // Map common routes to patterns for better grouping
     if (path.startsWith('/api/leaderboard')) {
       route = '/api/leaderboard';
@@ -248,7 +278,7 @@ export async function updateEpochMetrics(prisma: any) {
     const activeEpoch = await prisma.scannerEpoch.findFirst({
       where: { status: 'ACTIVE' },
     });
-    
+
     if (activeEpoch) {
       usdcPoolSize.set(parseFloat(activeEpoch.usdcPool.toString()));
     }

@@ -5,6 +5,8 @@
 
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
+import { createAdapter } from '@socket.io/redis-adapter';
+import Redis from 'ioredis';
 
 type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets' | 'training';
 
@@ -47,6 +49,8 @@ interface BroadcastEvents {
 class WebSocketEventsService {
   private io: SocketIOServer | null = null;
   private connectedClients = new Map<string, Set<string>>(); // agentId -> set of socketIds
+  private redisPub: Redis | null = null;
+  private redisSub: Redis | null = null;
 
   initialize(httpServer: HTTPServer) {
     this.io = new SocketIOServer(httpServer, {
@@ -85,6 +89,8 @@ class WebSocketEventsService {
       transports: ['websocket', 'polling'],
       path: '/socket.io/',
     });
+
+    this.attachRedisAdapter();
 
     this.io.on('connection', (socket: Socket) => {
       console.log(`[WebSocket] Client connected: ${socket.id}`);
@@ -138,6 +144,33 @@ class WebSocketEventsService {
     });
 
     return this.io;
+  }
+
+  private attachRedisAdapter() {
+    if (!this.io) return;
+
+    const redisUrl = process.env.WS_REDIS_URL || process.env.REDIS_URL;
+    if (!redisUrl) {
+      console.log('[WebSocket] Redis adapter disabled (WS_REDIS_URL/REDIS_URL not set)');
+      return;
+    }
+
+    try {
+      this.redisPub = new Redis(redisUrl, { maxRetriesPerRequest: 2 });
+      this.redisSub = new Redis(redisUrl, { maxRetriesPerRequest: 2 });
+
+      this.redisPub.on('error', (err) => {
+        console.error('[WebSocket] Redis pub error:', err);
+      });
+      this.redisSub.on('error', (err) => {
+        console.error('[WebSocket] Redis sub error:', err);
+      });
+
+      this.io.adapter(createAdapter(this.redisPub, this.redisSub));
+      console.log('[WebSocket] Redis adapter enabled');
+    } catch (error) {
+      console.error('[WebSocket] Failed to initialize Redis adapter:', error);
+    }
   }
 
   broadcastAgentActivity(agentId: string, event: BroadcastEvents['agent:activity']) {

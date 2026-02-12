@@ -121,7 +121,7 @@ export class TreasuryManagerBSCService {
   async calculateAgentAllocations(epochId: string): Promise<BSCAllocationResult[]> {
     const epoch = await prisma.scannerEpoch.findUnique({ where: { id: epochId } });
     if (!epoch) throw new Error(`Epoch ${epochId} not found`);
-    if (epoch.chain !== 'bsc') throw new Error(`Epoch ${epochId} is not a BSC epoch`);
+    if ((epoch as any).chain !== 'bsc') throw new Error(`Epoch ${epochId} is not a BSC epoch`);
 
     // Get all active TradingAgents
     const agents = await prisma.tradingAgent.findMany({
@@ -216,7 +216,7 @@ export class TreasuryManagerBSCService {
 
     const epoch = await prisma.scannerEpoch.findUnique({ where: { id: epochId } });
     if (!epoch) throw new Error(`Epoch ${epochId} not found`);
-    if (epoch.chain !== 'bsc') throw new Error(`Epoch ${epochId} is not a BSC epoch`);
+    if ((epoch as any).chain !== 'bsc') throw new Error(`Epoch ${epochId} is not a BSC epoch`);
     if (epoch.status === 'PAID') throw new Error(`Epoch ${epochId} already distributed`);
 
     const allocations = await this.calculateAgentAllocations(epochId);
@@ -243,7 +243,7 @@ export class TreasuryManagerBSCService {
             performanceScore: alloc.sortinoRatio,
             rank: alloc.rank,
             txHash,
-            chain: 'bsc',
+            chain: 'BSC',
             status: 'completed',
             completedAt: new Date(),
           },
@@ -270,7 +270,7 @@ export class TreasuryManagerBSCService {
             amount: alloc.usdcAmount,
             performanceScore: alloc.sortinoRatio,
             rank: alloc.rank,
-            chain: 'bsc',
+            chain: 'BSC',
             status: 'failed',
           },
         });
@@ -329,18 +329,18 @@ export class TreasuryManagerBSCService {
 
     // Get total allocated but not distributed (BSC only)
     const allocations = await prisma.treasuryAllocation.aggregate({
-      where: { status: 'pending', chain: 'bsc' },
+      where: { status: 'pending', chain: 'BSC' },
       _sum: { amount: true },
     });
 
     // Get total distributed (BSC only)
     const distributed = await prisma.treasuryAllocation.aggregate({
-      where: { status: 'completed', chain: 'bsc' },
+      where: { status: 'completed', chain: 'BSC' },
       _sum: { amount: true },
     });
 
-    const allocated = Number(allocations._sum.amount || 0);
-    const totalDistributed = Number(distributed._sum.amount || 0);
+    const allocated = Number(allocations._sum?.amount || 0);
+    const totalDistributed = Number(distributed._sum?.amount || 0);
 
     return {
       chain: 'bsc',

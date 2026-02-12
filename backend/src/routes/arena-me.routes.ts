@@ -62,6 +62,7 @@ arenaMeRoutes.get('/me', agentJwtMiddleware, async (c) => {
         totalTrades: true,
         winRate: true,
         totalPnl: true,
+        config: true,
         createdAt: true,
       },
     });
@@ -85,11 +86,14 @@ arenaMeRoutes.get('/me', agentJwtMiddleware, async (c) => {
     // Get onboarding progress
     const onboarding = await getOnboardingProgress(agentId);
 
+    const config = agent?.config as Record<string, unknown> | null;
+    const walletOverride = config && typeof config.walletAddress === 'string' ? config.walletAddress : null;
+
     return c.json({
       success: true,
       agent: {
         id: agent.id,
-        pubkey: agent.userId,
+        pubkey: walletOverride || agent.userId,
         name: agent.displayName || agent.name,
         avatarUrl: agent.avatarUrl,
         bio: agent.bio,

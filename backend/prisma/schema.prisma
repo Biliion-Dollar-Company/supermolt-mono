@@ -322,6 +322,7 @@ model AgentTaskCompletion {
 
   @@unique([taskId, agentId])
   @@index([agentId])
+  @@index([agentId, status])
   @@index([taskId, status])
   @@map("agent_task_completions")
 }
@@ -492,6 +493,7 @@ model AgentMessage {
   conversation AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
+  @@index([conversationId, timestamp])
   @@index([agentId])
   @@map("agent_messages")
 }
@@ -572,6 +574,19 @@ model MonitorState {
   updatedAt      DateTime @updatedAt
 
   @@map("monitor_state")
+}
+
+// ─── Distributed Locks: Prevent duplicate cron/worker execution across replicas ───
+
+model JobExecutionLock {
+  jobKey     String   @id
+  owner      String
+  expiresAt  DateTime
+  acquiredAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([expiresAt])
+  @@map("job_execution_locks")
 }
 
 // ─── News & Announcements: Platform updates, partnerships, milestones ───

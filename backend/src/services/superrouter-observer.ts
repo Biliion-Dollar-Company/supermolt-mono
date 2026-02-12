@@ -136,31 +136,30 @@ export async function handleSuperRouterTrade(trade: SuperRouterTrade) {
 
     // Step 1.1: Fetch Social Context (Mindshare) via Twitter Search
     let socialData: { recentTweets?: string[], tweetCount?: number } = {};
-    // Use the symbol we just fetched from DexScreener
     const symbol = tokenMetrics.symbol || trade.tokenSymbol || '';
+    const name = trade.tokenName || '';
 
     if (symbol.length > 2 && symbol !== 'UNKNOWN') {
       try {
-        // Need to import TwitterAPI properly or assume it works
         const twitter = getTwitterAPI();
-        // Only if key configured
-        if (false /* twitter.apiKey */) {
-          // Skip if no key (handled inside getTwitterAPI throwing if missing?)
-          // getTwitterAPI() throws if missing. So wrap in try/catch.
+        const queryParts = [`$${symbol}`, '-is:retweet'];
+        if (name && name.length > 2) {
+          queryParts.push(`"${name}"`);
         }
+        const query = queryParts.join(' ');
 
-        // Actually execute search
-        console.log(`🐦 Scanning Twitter for $${symbol}...`);
-        const tweets = await twitter.searchRecent(`$${symbol} -is:retweet`, 5);
+        console.log(`🐦 Scanning Twitter for ${query}...`);
+        const tweets = await twitter.searchTweets(query, 8);
         if (tweets.length > 0) {
+          const texts = Array.from(new Set(tweets.map(t => t.text))).slice(0, 5);
           socialData = {
-            recentTweets: tweets.map(t => t.text),
-            tweetCount: tweets.length
+            recentTweets: texts,
+            tweetCount: tweets.length,
           };
           console.log(`   Found ${tweets.length} recent tweets.`);
         }
       } catch (e) {
-        // Ignore twitter errors
+        // Ignore twitter errors (missing key or API failure)
       }
     }
 
@@ -351,7 +350,7 @@ function buildProofFromTokenData(taskType: string, tokenData: any): Record<strin
           neutral: 25,
           bearish: (tokenData.priceChange24h || 0) > 0 ? 15 : 45,
         },
-        topTweets: [],
+        topTweets: (tokenData.recentTweets || []).slice(0, 3),
       };
 
     case 'HOLDER_ANALYSIS': {

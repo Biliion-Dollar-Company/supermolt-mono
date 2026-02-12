@@ -154,8 +154,11 @@ app.get('/epoch/rewards', async (c) => {
     return c.json({
       epoch: null,
       allocations: [],
+      bscAllocations: [],
       treasury: { balance: 0, distributed: 0, available: 0 },
+      bscTreasury: { balance: 0, distributed: 0, available: 0 },
       distributions: [],
+      bscDistributions: [],
     });
   }
 });

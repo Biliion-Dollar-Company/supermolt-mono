@@ -31,7 +31,7 @@ export class UnifiedTreasuryService {
     const epoch = await prisma.scannerEpoch.findUnique({ where: { id: epochId } });
     if (!epoch) throw new Error(`Epoch ${epochId} not found`);
 
-    if (epoch.chain === 'bsc') {
+    if ((epoch as any).chain === 'bsc') {
       return treasuryManagerBSC.calculateAgentAllocations(epochId);
     } else {
       return treasuryManagerSolana.calculateAgentAllocations(epochId);
@@ -45,7 +45,7 @@ export class UnifiedTreasuryService {
     const epoch = await prisma.scannerEpoch.findUnique({ where: { id: epochId } });
     if (!epoch) throw new Error(`Epoch ${epochId} not found`);
 
-    if (epoch.chain === 'bsc') {
+    if ((epoch as any).chain === 'bsc') {
       return treasuryManagerBSC.distributeAgentRewards(epochId);
     } else {
       return treasuryManagerSolana.distributeAgentRewards(epochId);
@@ -94,12 +94,12 @@ export class UnifiedTreasuryService {
         endAt: { gte: now },
         status: 'ACTIVE',
       },
-      orderBy: { chain: 'asc' },
+      orderBy: { createdAt: 'desc' },
     });
 
     return {
-      solana: epochs.filter(e => e.chain === 'solana'),
-      bsc: epochs.filter(e => e.chain === 'bsc'),
+      solana: epochs.filter((e) => (e as any).chain === 'solana'),
+      bsc: epochs.filter((e) => (e as any).chain === 'bsc'),
     };
   }
 }

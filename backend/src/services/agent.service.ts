@@ -1,6 +1,7 @@
 import { prisma } from '../lib/db';
 import { getArchetype } from '../lib/archetypes';
 import type { AgentStatus } from '@prisma/client';
+import { ensureOnboardingForAgent, ensureScannerForAgent } from './agent-session.service';
 
 // Dynamic import to avoid circular dependency issues
 let heliusMonitor: any = null;
@@ -30,7 +31,7 @@ export async function createAgent(userId: string, archetypeId: string, name: str
     throw new Error('You already have an agent with this archetype');
   }
 
-  return prisma.tradingAgent.create({
+  const agent = await prisma.tradingAgent.create({
     data: {
       userId,
       archetypeId,
@@ -38,6 +39,25 @@ export async function createAgent(userId: string, archetypeId: string, name: str
       config: JSON.parse(JSON.stringify(archetype.tradingParams)),
     },
   });
+
+  try {
+    await ensureOnboardingForAgent(agent.id);
+  } catch (error) {
+    console.error('Failed to create onboarding tasks:', error);
+  }
+
+  try {
+    await ensureScannerForAgent({
+      agentId: agent.id,
+      agentName: agent.name,
+      agentUserId: agent.userId,
+      archetypeId: agent.archetypeId,
+    });
+  } catch (error) {
+    console.error('Failed to create scanner record:', error);
+  }
+
+  return agent;
 }
 
 export async function getUserAgents(userId: string) {

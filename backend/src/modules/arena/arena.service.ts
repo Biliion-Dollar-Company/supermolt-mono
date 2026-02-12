@@ -637,11 +637,22 @@ export async function getVoteDetail(voteId: string) {
 // ── Epoch Rewards ─────────────────────────────────────────
 
 export async function getEpochRewards() {
-  // Get active epoch (or most recent ended/paid epoch)
-  const epoch = await db.scannerEpoch.findFirst({
-    where: { status: { in: ['ACTIVE', 'ENDED', 'PAID'] } },
-    orderBy: { startAt: 'desc' },
+  // Get current epoch with fallbacks:
+  // 1) ACTIVE status (case-insensitive)
+  // 2) Time-window current (startAt <= now <= endAt)
+  // 3) UPCOMING (nearest)
+  // 4) Most recent known epoch
+  const now = new Date();
+  const epochCandidates = await db.scannerEpoch.findMany({
+    where: { status: { in: ['ACTIVE', 'active', 'ENDED', 'ended', 'PAID', 'paid', 'UPCOMING', 'upcoming'] } },
+    orderBy: [{ startAt: 'desc' }],
+    take: 20,
   });
+  const epoch =
+    epochCandidates.find((e) => e.status.toUpperCase() === 'ACTIVE') ??
+    epochCandidates.find((e) => e.startAt <= now && e.endAt >= now) ??
+    epochCandidates.find((e) => e.status.toUpperCase() === 'UPCOMING') ??
+    epochCandidates[0];
 
   if (!epoch) {
     return {
@@ -671,12 +682,18 @@ export async function getEpochRewards() {
 
   try {
     const calculated = await treasuryManager.calculateAgentAllocations(epoch.id);
+    const profiles = await db.tradingAgent.findMany({
+      where: { id: { in: calculated.map((a) => a.agentId) } },
+      select: { id: true, avatarUrl: true, twitterHandle: true },
+    });
+    const profileMap = new Map(profiles.map((p) => [p.id, p]));
+
     allocations = calculated.map((a) => ({
       agentId: a.agentId,
       agentName: a.agentName,
       walletAddress: a.walletAddress,
-      avatarUrl: a.avatarUrl, // NEW
-      twitterHandle: a.twitterHandle, // NEW
+      avatarUrl: profileMap.get(a.agentId)?.avatarUrl || undefined,
+      twitterHandle: profileMap.get(a.agentId)?.twitterHandle || undefined,
       rank: a.rank,
       usdcAmount: a.usdcAmount,
       multiplier: a.multiplier,
@@ -691,6 +708,7 @@ export async function getEpochRewards() {
     where: {
       epochId: epoch.id,
       tradingAgentId: { not: null },
+      chain: 'SOLANA',
     },
     orderBy: { rank: 'asc' },
   });
@@ -760,12 +778,28 @@ export async function getEpochRewards() {
     multiplier: number;
     status: 'preview' | 'completed' | 'failed';
   }> = [];
+  let bscDistributions: Array<{
+    agentName: string;
+    amount: number;
+    txSignature: string;
+    completedAt: string;
+  }> = [];
   let bscTreasuryStatus = { balance: 0, distributed: 0, available: 0 };
 
   try {
     const { calculateBSCAllocations, getBSCTreasuryStatus } = await import('../../services/bsc-treasury.service');
     const bscCalc = await calculateBSCAllocations(epoch.id);
-    bscAllocations = bscCalc.map((a) => ({ ...a, status: 'preview' as const }));
+    const bscProfiles = await db.tradingAgent.findMany({
+      where: { id: { in: bscCalc.map((a) => a.agentId) } },
+      select: { id: true, avatarUrl: true, twitterHandle: true },
+    });
+    const bscProfileMap = new Map(bscProfiles.map((p) => [p.id, p]));
+    bscAllocations = bscCalc.map((a) => ({
+      ...a,
+      avatarUrl: bscProfileMap.get(a.agentId)?.avatarUrl || undefined,
+      twitterHandle: bscProfileMap.get(a.agentId)?.twitterHandle || undefined,
+      status: 'preview' as const,
+    }));
 
     const status = await getBSCTreasuryStatus();
     bscTreasuryStatus = {
@@ -777,6 +811,53 @@ export async function getEpochRewards() {
     console.error('[Arena] BSC allocations error:', error);
   }
 
+  // Fetch completed BSC distributions from DB (authoritative source)
+  const bscCompletedAllocations = await db.treasuryAllocation.findMany({
+    where: {
+      epochId: epoch.id,
+      tradingAgentId: { not: null },
+      chain: 'BSC',
+    },
+    orderBy: { rank: 'asc' },
+  });
+
+  if (bscCompletedAllocations.length > 0) {
+    const agentIds = bscCompletedAllocations.map((a) => a.tradingAgentId!);
+    const agents = await db.tradingAgent.findMany({
+      where: { id: { in: agentIds } },
+      select: { id: true, name: true, displayName: true, evmAddress: true, userId: true, avatarUrl: true, twitterHandle: true },
+    });
+    const agentMap = new Map(agents.map((a) => [a.id, a]));
+
+    bscAllocations = bscCompletedAllocations.map((a) => {
+      const agent = agentMap.get(a.tradingAgentId!);
+      return {
+        agentId: a.tradingAgentId!,
+        agentName: agent?.displayName || agent?.name || 'Unknown',
+        evmAddress: agent?.evmAddress || agent?.userId || '',
+        avatarUrl: agent?.avatarUrl || undefined,
+        twitterHandle: agent?.twitterHandle || undefined,
+        rank: a.rank,
+        usdcAmount: Number(a.amount),
+        multiplier: RANK_MULTIPLIERS[a.rank] || 0.5,
+        txHash: a.txSignature || undefined,
+        status: (a.status === 'completed' ? 'completed' : 'failed') as 'completed' | 'failed',
+      };
+    });
+
+    bscDistributions = bscCompletedAllocations
+      .filter((a) => a.status === 'completed' && a.txSignature)
+      .map((a) => {
+        const agent = bscAllocations.find((al) => al.agentId === a.tradingAgentId);
+        return {
+          agentName: agent?.agentName || 'Unknown',
+          amount: Number(a.amount),
+          txSignature: a.txSignature!,
+          completedAt: a.completedAt?.toISOString() || a.createdAt.toISOString(),
+        };
+      });
+  }
+
   return {
     epoch: {
       id: epoch.id,
@@ -784,7 +865,7 @@ export async function getEpochRewards() {
       number: epoch.epochNumber,
       startAt: epoch.startAt.toISOString(),
       endAt: epoch.endAt.toISOString(),
-      status: epoch.status,
+      status: epoch.status.toUpperCase(),
       usdcPool: Number(epoch.usdcPool),
     },
     allocations,
@@ -796,7 +877,7 @@ export async function getEpochRewards() {
     },
     bscTreasury: bscTreasuryStatus,
     distributions,
-    bscDistributions: [],
+    bscDistributions,
   };
 }
 

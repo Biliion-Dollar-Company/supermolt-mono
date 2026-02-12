@@ -5,6 +5,9 @@ import * as tradeService from '../services/trade.service';
 import { createSortinoService } from '../services/sortino.service';
 import { treasuryManager } from '../services/treasury-manager.service';
 import { db } from '../lib/db';
+import { analyzeSuperRouterTrade } from '../services/agent-analyzer';
+import { fetchTokenMetrics, analyzeSmartMoneyFlow } from '../services/token-data.service';
+import { getTwitterAPI } from '../services/twitter-api.service';
 
 const internal = new Hono();
 const sortinoService = createSortinoService(db);
@@ -33,6 +36,25 @@ const closeTradeSchema = z.object({
   exitPrice: z.number().positive(),
   pnl: z.number(),
   pnlPercent: z.number(),
+});
+
+const narrativeAnalyzeSchema = z.object({
+  tokenMint: z.string().min(1),
+  tokenSymbol: z.string().optional(),
+  tokenName: z.string().optional(),
+  action: z.enum(['BUY', 'SELL']).default('BUY'),
+  amount: z.number().positive().default(1),
+  includeSocial: z.boolean().optional(),
+  metrics: z.object({
+    holders: z.number().optional(),
+    liquidity: z.number().optional(),
+    volume24h: z.number().optional(),
+    priceChange24h: z.number().optional(),
+    marketCap: z.number().optional(),
+    smartMoneyFlow: z.enum(['IN', 'OUT', 'NEUTRAL']).optional(),
+    recentTweets: z.array(z.string()).optional(),
+    tweetCount: z.number().optional(),
+  }).optional(),
 });
 
 // POST /internal/trades — DevPrint creates a paper trade
@@ -78,6 +100,74 @@ internal.post('/trades/close', async (c) => {
     }
     const message = error instanceof Error ? error.message : 'Failed to close trade';
     console.error('Internal close trade error:', error);
+    return c.json(
+      { success: false, error: { code: 'INTERNAL_ERROR', message } },
+      500
+    );
+  }
+});
+
+// POST /internal/narrative/analyze — Debug narrative analysis with live LLM
+internal.post('/narrative/analyze', async (c) => {
+  try {
+    const body = await c.req.json();
+    const input = narrativeAnalyzeSchema.parse(body);
+
+    const tokenMetrics = await fetchTokenMetrics(input.tokenMint);
+    const mergedMetrics = {
+      ...tokenMetrics,
+      ...input.metrics,
+    };
+    if (!mergedMetrics.smartMoneyFlow) {
+      mergedMetrics.smartMoneyFlow = analyzeSmartMoneyFlow(mergedMetrics);
+    }
+
+    if (input.includeSocial) {
+      try {
+        const twitter = getTwitterAPI();
+        const symbol = input.tokenSymbol || '';
+        const name = input.tokenName || '';
+        if (symbol && symbol.length > 2) {
+          const queryParts = [`$${symbol}`, '-is:retweet'];
+          if (name && name.length > 2) {
+            queryParts.push(`"${name}"`);
+          }
+          const query = queryParts.join(' ');
+          const tweets = await twitter.searchTweets(query, 8);
+          if (tweets.length > 0) {
+            mergedMetrics.recentTweets = Array.from(new Set(tweets.map(t => t.text))).slice(0, 5);
+            mergedMetrics.tweetCount = tweets.length;
+          }
+        }
+      } catch {
+        // Ignore social failures
+      }
+    }
+
+    const analyses = await analyzeSuperRouterTrade(
+      {
+        signature: 'internal-debug',
+        walletAddress: 'internal',
+        tokenMint: input.tokenMint,
+        tokenSymbol: input.tokenSymbol,
+        tokenName: input.tokenName,
+        action: input.action,
+        amount: input.amount,
+        timestamp: new Date(),
+      },
+      mergedMetrics
+    );
+
+    return c.json({ success: true, data: analyses });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid request body', details: error.errors } },
+        400
+      );
+    }
+    const message = error instanceof Error ? error.message : 'Failed to analyze narrative';
+    console.error('Internal narrative analyze error:', error);
     return c.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message } },
       500

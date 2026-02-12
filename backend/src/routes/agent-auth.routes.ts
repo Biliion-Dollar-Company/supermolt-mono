@@ -21,10 +21,24 @@ import { Hono } from 'hono';
 import { Context, Next } from 'hono';
 import * as jose from 'jose';
 import crypto from 'crypto';
+import { rateLimiter } from 'hono-rate-limiter';
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
 import { db as prisma } from '../lib/db';
+import { AgentTaskManager } from '../services/agent-task-manager.service';
 
 const agentAuth = new Hono();
+const taskManager = new AgentTaskManager();
+
+const taskWriteLimiter = rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  limit: 120,
+  standardHeaders: 'draft-6',
+  keyGenerator: (c) =>
+    c.get('agentId')
+    || c.req.header('x-forwarded-for')
+    || c.req.header('x-real-ip')
+    || 'unknown',
+});
 
 // Agent JWT middleware — extracts agentId from SIWS token
 async function agentJwtMiddleware(c: Context, next: Next) {
@@ -484,6 +498,73 @@ agentAuth.post('/task/verify', agentJwtMiddleware, async (c) => {
 
   } catch (error: any) {
     console.error('Task verify error:', error);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+// ============================================================================
+// Task Claim + Submission (AgentTaskManager)
+// ============================================================================
+
+/**
+ * POST /agent-auth/tasks/claim
+ * Claim a task for the authenticated agent
+ *
+ * Headers: Authorization: Bearer <agent-jwt>
+ * Body: { taskId: "task_123" }
+ */
+agentAuth.post('/tasks/claim', agentJwtMiddleware, taskWriteLimiter, async (c) => {
+  try {
+    const agentId = c.get('agentId');
+    const { taskId } = await c.req.json();
+
+    if (!taskId) {
+      return c.json({ success: false, error: 'Missing taskId' }, 400);
+    }
+
+    const result = await taskManager.claimTask(taskId, agentId);
+    if (!result.success) {
+      return c.json({ success: false, error: result.error || 'Claim failed' }, 400);
+    }
+
+    return c.json({ success: true, data: { taskId, agentId } });
+  } catch (error: any) {
+    console.error('Task claim error:', error);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+});
+
+/**
+ * POST /agent-auth/tasks/submit
+ * Submit proof for a task and award XP
+ *
+ * Headers: Authorization: Bearer <agent-jwt>
+ * Body: { taskId: "task_123", proof: { ... } }
+ */
+agentAuth.post('/tasks/submit', agentJwtMiddleware, taskWriteLimiter, async (c) => {
+  try {
+    const agentId = c.get('agentId');
+    const { taskId, proof } = await c.req.json();
+
+    if (!taskId || !proof) {
+      return c.json({ success: false, error: 'Missing taskId or proof' }, 400);
+    }
+
+    const result = await taskManager.submitProof(taskId, agentId, proof);
+    if (!result.valid) {
+      return c.json({ success: false, error: result.error || 'Submission rejected' }, 400);
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        taskId,
+        agentId,
+        xpAwarded: result.xpAwarded || 0,
+      },
+    });
+  } catch (error: any) {
+    console.error('Task submit error:', error);
     return c.json({ success: false, error: error.message }, 500);
   }
 });

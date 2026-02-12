@@ -1,91 +1,32 @@
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { db } from '../src/lib/db';
 
-async function checkDatabase() {
-  console.log('📊 Database Status Check\n');
+async function checkDb() {
+  const url = process.env.DATABASE_URL || 'NOT_SET';
+  console.log(`DB Host: ${url.split('@')[1]?.split(':')[0] || 'UNKNOWN'}`);
 
-  try {
-    const agents = await prisma.tradingAgent.count();
-    const trades = await prisma.paperTrade.count();
-    const positions = await prisma.agentPosition.count();
-    const stats = await prisma.agentStats.count();
-    const feedActivity = await prisma.feedActivity.count();
+  const agentCount = await db.tradingAgent.count();
+  const scannerCount = await db.scanner.count();
+  const tradeCount = await db.agentTrade.count();
+  const paperTradeCount = await db.paperTrade.count();
 
-    console.log('📈 Record Counts:');
-    console.log(`  Agents:        ${agents}`);
-    console.log(`  Trades:        ${trades}`);
-    console.log(`  Positions:     ${positions}`);
-    console.log(`  Agent Stats:   ${stats}`);
-    console.log(`  Feed Activity: ${feedActivity}`);
-    console.log('');
+  console.log(`
+  Stats:
+  - TradingAgents: ${agentCount}
+  - Scanners: ${scannerCount}
+  - AgentTrades: ${tradeCount}
+  - PaperTrades: ${paperTradeCount}
+  `);
 
-    if (agents > 0) {
-      console.log('🤖 Recent Agents:');
-      const recentAgents = await prisma.tradingAgent.findMany({
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          userId: true,
-          displayName: true,
-          createdAt: true,
-        },
-      });
-      recentAgents.forEach((agent, idx) => {
-        console.log(`  ${idx + 1}. ${agent.displayName || 'Unnamed'} (${agent.userId?.slice(0, 8)}...)`);
-        console.log(`     Created: ${agent.createdAt.toISOString()}`);
-      });
-      console.log('');
-    }
-
-    if (trades > 0) {
-      console.log('💸 Recent Trades:');
-      const recentTrades = await prisma.paperTrade.findMany({
-        take: 5,
-        orderBy: { executedAt: 'desc' },
-        select: {
-          id: true,
-          action: true,
-          tokenSymbol: true,
-          quantityUsd: true,
-          executedAt: true,
-        },
-      });
-      recentTrades.forEach((trade, idx) => {
-        console.log(`  ${idx + 1}. ${trade.action} ${trade.tokenSymbol} - $${trade.quantityUsd}`);
-        console.log(`     Executed: ${trade.executedAt?.toISOString() || 'N/A'}`);
-      });
-      console.log('');
-    }
-
-    if (positions > 0) {
-      console.log('📍 Active Positions:');
-      const activePositions = await prisma.agentPosition.findMany({
-        take: 5,
-        orderBy: { updatedAt: 'desc' },
-        select: {
-          id: true,
-          tokenSymbol: true,
-          quantity: true,
-          currentValue: true,
-          pnl: true,
-        },
-      });
-      activePositions.forEach((pos, idx) => {
-        const pnlStr = pos.pnl >= 0 ? `+$${pos.pnl.toFixed(2)}` : `-$${Math.abs(pos.pnl).toFixed(2)}`;
-        console.log(`  ${idx + 1}. ${pos.tokenSymbol}: ${pos.quantity} units ($${pos.currentValue.toFixed(2)}) - P&L: ${pnlStr}`);
-      });
-      console.log('');
-    }
-
-    console.log('✅ Database check complete!\n');
-  } catch (error) {
-    console.error('❌ Error checking database:', error);
-    process.exit(1);
-  } finally {
-    await prisma.$disconnect();
+  if (tradeCount > 0) {
+    console.log('Sample Trade:');
+    const t = await db.agentTrade.findFirst();
+    console.log(JSON.stringify(t, null, 2));
+  } else if (paperTradeCount > 0) {
+    console.log('Sample PaperTrade:');
+    const t = await db.paperTrade.findFirst();
+    console.log(JSON.stringify(t, null, 2));
   }
 }
 
-checkDatabase();
+checkDb();

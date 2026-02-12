@@ -6,6 +6,7 @@ import { PositionTracker } from '../services/position-tracker';
 import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-observer';
 // closePaperTrade/recalculateAgentStats now handled inline in closePaperTradesForSell $transaction
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
+import { webhookQueue } from '../services/webhook-queue.service';
 import { db } from '../lib/db';
 const positionTracker = new PositionTracker(db);
 
@@ -478,6 +479,165 @@ async function createTradeRecord(
   }
 }
 
+function getDedupeKey(rawBody: string, signature?: string): string {
+  if (signature && signature.length > 0) return signature;
+  return crypto.createHash('sha256').update(rawBody).digest('hex');
+}
+
+async function markWebhookProcessed(heliusSignature: string, processed: boolean) {
+  try {
+    await db.webhookEvent.update({
+      where: { heliusSignature },
+      data: { processed },
+    });
+  } catch (error) {
+    console.error('[WEBHOOK] Failed to update processed status:', error);
+  }
+}
+
+async function processSolanaWebhookPayload(rawBody: string, heliusSignature: string) {
+  // Parse the payload - Helius enhanced webhooks send ARRAY of transactions
+  const parsed = JSON.parse(rawBody);
+
+  // Normalize to array format (handle both single object and array)
+  const transactions = Array.isArray(parsed) ? parsed : [parsed];
+
+  console.log('🎯🎯🎯 ARRAY DETECTION:', {
+    isArray: Array.isArray(parsed),
+    count: transactions.length,
+    firstItemKeys: transactions[0] ? Object.keys(transactions[0]).slice(0, 10) : []
+  });
+
+  console.log('📊 [WEBHOOK] Received transactions:', {
+    count: transactions.length,
+    isArray: Array.isArray(parsed)
+  });
+
+  let totalSwapsFound = 0;
+  let totalTradesCreated = 0;
+  const allDexes: string[] = [];
+
+  // Process each transaction in the webhook payload
+  for (const transaction of transactions) {
+    const txSignature = transaction.signature || transaction.tx || 'unknown';
+
+    console.log('📊 [WEBHOOK] Processing transaction:', {
+      signature: typeof txSignature === 'string' ? txSignature.slice(0, 16) + '...' : 'unknown',
+      type: transaction.type || 'unknown',
+      source: transaction.source || 'unknown',
+      hasInstructions: !!(transaction.instructions && transaction.instructions.length > 0),
+      instructionCount: transaction.instructions?.length || 0
+    });
+
+    // Enhanced webhooks have feePayer as signer
+    let signerWallet = transaction.feePayer || transaction.signer;
+
+    // Fallback: try to extract from accountData or instructions
+    if (!signerWallet) {
+      signerWallet = extractSignerWallet(transaction);
+    }
+
+    if (!signerWallet) {
+      console.warn('⚠️ [WEBHOOK] Could not extract signer for transaction:', txSignature);
+      continue;
+    }
+
+    console.log('👤 [WEBHOOK] Signer wallet:', signerWallet.slice(0, 8) + '...');
+
+    // Check if this is a SWAP transaction (Helius enhanced format tells us)
+    if (transaction.type !== 'SWAP') {
+      console.log('⏭️ [WEBHOOK] Skipping non-swap transaction:', transaction.type);
+      continue;
+    }
+
+    // Extract swap info from Helius enhanced data (already parsed)
+    const tokenTransfers = transaction.tokenTransfers || [];
+    const source = transaction.source || 'unknown';
+
+    console.log('💱 [WEBHOOK] Swap detected:', {
+      signature: typeof txSignature === 'string' ? txSignature.slice(0, 16) + '...' : 'unknown',
+      signer: signerWallet.slice(0, 8) + '...',
+      source,
+      tokenTransfers: tokenTransfers.length
+    });
+
+    if (tokenTransfers.length === 0) {
+      console.warn('⚠️ [WEBHOOK] No token transfers found in swap');
+      continue;
+    }
+
+    const swap = {
+      dex: mapSourceToDex(source),
+      inputMint: tokenTransfers[0]?.mint || 'unknown',
+      outputMint: tokenTransfers[tokenTransfers.length - 1]?.mint || 'unknown',
+      inputAmount: Number(tokenTransfers[0]?.tokenAmount || 0),
+      outputAmount: Number(tokenTransfers[tokenTransfers.length - 1]?.tokenAmount || 0),
+      signature: txSignature,
+      timestamp: transaction.timestamp
+    };
+
+    totalSwapsFound += 1;
+    allDexes.push(swap.dex);
+    try {
+      await createTradeRecord(signerWallet, swap);
+      totalTradesCreated++;
+
+      if (isSuperRouter(signerWallet)) {
+        const isBuy = swap.inputMint === SOL_MINT;
+        const action: 'BUY' | 'SELL' = isBuy ? 'BUY' : 'SELL';
+
+        const tradeEvent = {
+          signature: swap.signature,
+          walletAddress: signerWallet,
+          tokenMint: isBuy ? swap.outputMint : swap.inputMint,
+          tokenSymbol: undefined as string | undefined,
+          tokenName: undefined as string | undefined,
+          action,
+          amount: isBuy ? swap.inputAmount : swap.outputAmount,
+          timestamp: new Date(swap.timestamp || Date.now())
+        };
+
+        handleSuperRouterTrade(tradeEvent).catch((err) => {
+          console.error('❌ Observer analysis failed:', err);
+        });
+      }
+    } catch (error) {
+      console.error('❌ [WEBHOOK] Failed to process swap:', error instanceof Error ? error.message : error);
+    }
+  }
+
+  console.log('📤 [WEBHOOK] Processing complete:', {
+    transactionsProcessed: transactions.length,
+    swapsFound: totalSwapsFound,
+    tradesCreated: totalTradesCreated,
+    dexes: allDexes,
+  });
+
+  await markWebhookProcessed(heliusSignature, true);
+}
+
+// Register Redis/memory queue processor once at module load.
+// In multi-replica deployments, each replica can host workers safely when Redis mode is enabled.
+const enableWebhookWorker = (
+  process.env.ENABLE_WEBHOOK_WORKER
+  ?? process.env.ENABLE_BACKGROUND_WORKERS
+  ?? 'true'
+).toLowerCase() === 'true';
+if (enableWebhookWorker) {
+  webhookQueue.registerSolanaProcessor(async ({ rawBody, heliusSignature }) => {
+    try {
+      await processSolanaWebhookPayload(rawBody, heliusSignature);
+    } catch (error) {
+      console.error('❌ [WEBHOOK_QUEUE] Processing error:', error);
+      await markWebhookProcessed(heliusSignature, false);
+    }
+  }).catch((error) => {
+    console.error('[WEBHOOK_QUEUE] Failed to register processor:', error);
+  });
+} else {
+  console.log('[WEBHOOK_QUEUE] Worker disabled on this replica (ENABLE_WEBHOOK_WORKER=false)');
+}
+
 /**
  * POST /webhooks/solana
  * Helius webhook endpoint for Solana transactions
@@ -527,153 +687,58 @@ webhooks.post('/solana', async (c) => {
       }
     }
 
-    // Parse the payload - Helius enhanced webhooks send ARRAY of transactions
-    let parsed = JSON.parse(rawBody);
-    
-    // Normalize to array format (handle both single object and array)
-    const transactions = Array.isArray(parsed) ? parsed : [parsed];
-    
-    console.log('🎯🎯🎯 ARRAY DETECTION:', {
-      isArray: Array.isArray(parsed),
-      count: transactions.length,
-      firstItemKeys: transactions[0] ? Object.keys(transactions[0]).slice(0, 10) : []
-    });
-    
-    console.log('📊 [WEBHOOK] Received transactions:', {
-      count: transactions.length,
-      isArray: Array.isArray(parsed)
-    });
+    const heliusSignature = getDedupeKey(rawBody, signature);
 
-    let totalSwapsFound = 0;
-    let totalTradesCreated = 0;
-    const allDexes: string[] = [];
-
-    // Process each transaction in the webhook payload
-    for (const transaction of transactions) {
-      const txSignature = transaction.signature || transaction.tx || 'unknown';
-
-      console.log('📊 [WEBHOOK] Processing transaction:', {
-        signature: typeof txSignature === 'string' ? txSignature.slice(0, 16) + '...' : 'unknown',
-        type: transaction.type || 'unknown',
-        source: transaction.source || 'unknown',
-        hasInstructions: !!(transaction.instructions && transaction.instructions.length > 0),
-        instructionCount: transaction.instructions?.length || 0
+    try {
+      await db.webhookEvent.create({
+        data: {
+          heliusSignature,
+          eventType: 'solana_webhook',
+          agentPubkey: 'unknown',
+          payload: {
+            receivedAt: new Date().toISOString(),
+            bodySize: rawBody.length,
+          },
+          processed: false,
+        },
       });
-
-      // Enhanced webhooks have feePayer as signer
-      let signerWallet = transaction.feePayer || transaction.signer;
-      
-      // Fallback: try to extract from accountData or instructions
-      if (!signerWallet) {
-        signerWallet = extractSignerWallet(transaction);
+    } catch (error: any) {
+      if (error?.code === 'P2002') {
+        return c.json({
+          success: true,
+          message: 'Duplicate webhook ignored',
+        }, 200);
       }
-
-      if (!signerWallet) {
-        console.warn('⚠️ [WEBHOOK] Could not extract signer for transaction:', txSignature);
-        continue;
-      }
-
-      console.log('👤 [WEBHOOK] Signer wallet:', signerWallet.slice(0, 8) + '...');
-
-      // 🎯 CHECK IF THIS IS SUPERROUTER
-      if (isSuperRouter(signerWallet)) {
-        console.log('🎯🎯🎯 SUPERROUTER DETECTED! 🎯🎯🎯');
-        console.log('Triggering observer agent analysis...');
-      }
-
-      // Check if this is a SWAP transaction (Helius enhanced format tells us)
-      if (transaction.type !== 'SWAP') {
-        console.log('⏭️ [WEBHOOK] Skipping non-swap transaction:', transaction.type);
-        continue;
-      }
-
-      // Extract swap info from Helius enhanced data (already parsed!)
-      const tokenTransfers = transaction.tokenTransfers || [];
-      const source = transaction.source || 'unknown'; // e.g., "JUPITER", "PUMP_AMM", "RAYDIUM"
-      
-      console.log('💱 [WEBHOOK] Swap detected:', {
-        signature: typeof txSignature === 'string' ? txSignature.slice(0, 16) + '...' : 'unknown',
-        signer: signerWallet.slice(0, 8) + '...',
-        source,
-        tokenTransfers: tokenTransfers.length
-      });
-
-      // Build swap object from Helius data
-      if (tokenTransfers.length > 0) {
-        const swap = {
-          dex: mapSourceToDex(source),
-          inputMint: tokenTransfers[0]?.mint || 'unknown',
-          outputMint: tokenTransfers[tokenTransfers.length - 1]?.mint || 'unknown',
-          inputAmount: Number(tokenTransfers[0]?.tokenAmount || 0),
-          outputAmount: Number(tokenTransfers[tokenTransfers.length - 1]?.tokenAmount || 0),
-          signature: txSignature,
-          timestamp: transaction.timestamp
-        };
-
-        totalSwapsFound += 1;
-        allDexes.push(swap.dex);
-        try {
-          console.log('💱 [WEBHOOK] Creating trade record for swap:', {
-            dex: swap.dex,
-            input: swap.inputMint.slice(0, 8) + '...',
-            output: swap.outputMint.slice(0, 8) + '...',
-            inputAmount: swap.inputAmount,
-            signature: typeof txSignature === 'string' ? txSignature.slice(0, 16) + '...' : 'unknown'
-          });
-
-          // Create trade record for this agent
-          await createTradeRecord(signerWallet, swap);
-          totalTradesCreated++;
-          console.log('✅ [WEBHOOK] Trade record created successfully');
-
-          // 🎯 SUPERROUTER OBSERVER: Trigger analysis if this is SuperRouter
-          if (isSuperRouter(signerWallet)) {
-            console.log('\n🤖 TRIGGERING OBSERVER AGENT ANALYSIS 🤖\n');
-            
-            // Determine BUY or SELL action
-            const isBuy = swap.inputMint === 'So11111111111111111111111111111111111111112'; // SOL mint
-            const action: 'BUY' | 'SELL' = isBuy ? 'BUY' : 'SELL';
-
-            // Build trade event for observers
-            const tradeEvent = {
-              signature: swap.signature,
-              walletAddress: signerWallet,
-              tokenMint: isBuy ? swap.outputMint : swap.inputMint,
-              tokenSymbol: undefined as string | undefined,
-              tokenName: undefined as string | undefined,
-              action,
-              amount: isBuy ? swap.inputAmount : swap.outputAmount,
-              timestamp: new Date(swap.timestamp || Date.now())
-            };
-
-            // Fire and forget - don't block webhook response
-            handleSuperRouterTrade(tradeEvent).catch((err) => {
-              console.error('❌ Observer analysis failed:', err);
-            });
-          }
-        } catch (error) {
-          console.error('❌ [WEBHOOK] Failed to process swap:', error instanceof Error ? error.message : error);
-        }
-      } else {
-        console.warn('⚠️ [WEBHOOK] No token transfers found in swap');
-      }
+      throw error;
     }
 
-    // Return success (Helius expects 200 response)
-    console.log('📤 [WEBHOOK] Returning response:', {
-      success: true,
-      transactionsProcessed: transactions.length,
-      swapsFound: totalSwapsFound,
-      tradesCreated: totalTradesCreated
+    const accepted = await webhookQueue.enqueueSolanaWebhook({
+      rawBody,
+      heliusSignature,
     });
+
+    if (!accepted) {
+      await db.webhookEvent.update({
+        where: { heliusSignature },
+        data: {
+          payload: {
+            droppedAt: new Date().toISOString(),
+            reason: 'queue_full',
+          },
+          processed: false,
+        },
+      }).catch(() => {});
+
+      return c.json({
+        success: false,
+        error: 'Webhook queue is full',
+      }, 503);
+    }
 
     return c.json({
       success: true,
-      message: 'Webhook received',
-      transactionsProcessed: transactions.length,
-      swapsFound: totalSwapsFound,
-      tradesCreated: totalTradesCreated,
-      dexes: allDexes
+      message: 'Webhook accepted for async processing',
+      queue: await webhookQueue.getStats(),
     }, 200);
   } catch (error) {
     console.error('❌ [WEBHOOK] Processing error:', error);
@@ -726,10 +791,11 @@ webhooks.post('/task-validation', async (c) => {
  * GET /webhooks/health
  * Health check endpoint
  */
-webhooks.get('/health', (c) => {
+webhooks.get('/health', async (c) => {
   return c.json({
     status: 'healthy',
     service: 'Helius Webhook Handler',
+    queue: await webhookQueue.getStats(),
     timestamp: new Date().toISOString()
   });
 });
