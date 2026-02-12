@@ -155,11 +155,24 @@ function FlowCard({
   );
 }
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
+}
+
 /* ── Main page ── */
 export default function TreasuryFlowPage() {
   const [activeStep, setActiveStep] = useState(1);
   const containerRef = useRef<HTMLDivElement>(null);
   const activeStepRef = useRef(activeStep);
+  const isMobile = useIsMobile();
   activeStepRef.current = activeStep;
 
   useEffect(() => {
@@ -213,29 +226,31 @@ export default function TreasuryFlowPage() {
             }}
           />
         </div>
-        {/* LaserFlow — absolute, starts from very top of page container */}
-        <div
-          className="absolute top-0 left-4 sm:left-6 lg:left-1/2 lg:-translate-x-[92%] w-[55%] max-w-[550px] h-[1200px] pointer-events-none"
-          style={{ zIndex: 1, marginTop: '-90px' }}
-        >
-          <LaserFlow
-            color="#E8B45E"
-            horizontalBeamOffset={0.0}
-            verticalBeamOffset={0.1}
-            horizontalSizing={0.98}
-            verticalSizing={2}
-            wispDensity={1}
-            wispSpeed={15}
-            wispIntensity={5}
-            flowSpeed={0.35}
-            flowStrength={0.25}
-            fogIntensity={0.45}
-            fogScale={0.3}
-            fogFallSpeed={0.6}
-            decay={1.1}
-            falloffStart={1.2}
-          />
-        </div>
+        {/* LaserFlow — skipped on mobile for performance */}
+        {!isMobile && (
+          <div
+            className="absolute top-0 left-4 sm:left-6 lg:left-1/2 lg:-translate-x-[92%] w-[55%] max-w-[550px] h-[1200px] pointer-events-none"
+            style={{ zIndex: 1, marginTop: '-90px' }}
+          >
+            <LaserFlow
+              color="#E8B45E"
+              horizontalBeamOffset={0.0}
+              verticalBeamOffset={0.1}
+              horizontalSizing={0.98}
+              verticalSizing={2}
+              wispDensity={1}
+              wispSpeed={15}
+              wispIntensity={5}
+              flowSpeed={0.35}
+              flowStrength={0.25}
+              fogIntensity={0.45}
+              fogScale={0.3}
+              fogFallSpeed={0.6}
+              decay={1.1}
+              falloffStart={1.2}
+            />
+          </div>
+        )}
 
         <div className="max-w-5xl mx-auto relative" style={{ zIndex: 2 }}>
           {/* Header */}

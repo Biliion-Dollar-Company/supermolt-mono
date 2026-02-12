@@ -297,11 +297,11 @@ export default function ArenaPage() {
           }}
         />
       </div>
-      {/* Gradient orbs — ABOVE vignette so backdrop-blur can frost them */}
+      {/* Gradient orbs — CSS radial gradients instead of blur filters for performance */}
       <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] bg-blue-500/[0.05] rounded-full blur-[240px]" />
-        <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] bg-indigo-500/[0.04] rounded-full blur-[220px]" />
-        <div className="absolute bottom-[5%] left-[35%] w-[500px] h-[500px] bg-cyan-500/[0.03] rounded-full blur-[200px]" />
+        <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.05)_0%,transparent_70%)]" />
+        <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.04)_0%,transparent_70%)]" />
+        <div className="absolute bottom-[5%] left-[35%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(6,182,212,0.03)_0%,transparent_70%)]" />
       </div>
       <div className="relative z-10">
         {/* Header */}
