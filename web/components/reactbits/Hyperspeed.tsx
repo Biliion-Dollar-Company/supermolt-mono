@@ -669,6 +669,7 @@ const Hyperspeed = ({ effectOptions = {}, className = '' }: HyperspeedProps) => 
       assets: any; disposed: boolean; road: Road; leftCarLights: CarLights; rightCarLights: CarLights;
       leftSticks: LightsSticks; fovTarget: number; speedUpTarget: number; speedUp: number; timeOffset: number;
       renderPass: any; bloomPass: any; boundResize: () => void;
+      paused: boolean; intersectionObserver: IntersectionObserver | null;
 
       constructor(ctr: HTMLDivElement, options: any) {
         this.options = options;
@@ -677,7 +678,7 @@ const Hyperspeed = ({ effectOptions = {}, className = '' }: HyperspeedProps) => 
         }
         this.container = ctr;
         this.renderer = new THREE.WebGLRenderer({ antialias: false });
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
         this.renderer.setSize(ctr.offsetWidth, ctr.offsetHeight);
         this.composer = new EffectComposer(this.renderer);
         ctr.append(this.renderer.domElement);
@@ -706,10 +707,23 @@ const Hyperspeed = ({ effectOptions = {}, className = '' }: HyperspeedProps) => 
         this.speedUp = 0;
         this.timeOffset = 0;
 
+        this.paused = false;
+        this.intersectionObserver = null;
+
         this.tick = this.tick.bind(this);
         this.init = this.init.bind(this);
         this.boundResize = this.onWindowResize.bind(this);
         window.addEventListener('resize', this.boundResize);
+
+        this.intersectionObserver = new IntersectionObserver(
+          (entries) => { this.paused = !entries[0]?.isIntersecting; },
+          { root: null, threshold: 0 }
+        );
+        this.intersectionObserver.observe(ctr);
+
+        const onVis = () => { if (document.hidden) this.paused = true; };
+        document.addEventListener('visibilitychange', onVis, { passive: true });
+        (this as any)._onVis = onVis;
       }
 
       onWindowResize() {
@@ -789,10 +803,14 @@ const Hyperspeed = ({ effectOptions = {}, className = '' }: HyperspeedProps) => 
         this.composer?.dispose();
         this.scene?.clear();
         window.removeEventListener('resize', this.boundResize);
+        this.intersectionObserver?.disconnect();
+        if ((this as any)._onVis) document.removeEventListener('visibilitychange', (this as any)._onVis);
       }
 
       tick() {
         if (this.disposed) return;
+        requestAnimationFrame(this.tick);
+        if (this.paused) { this.clock.getDelta(); return; }
         if (resizeRendererToDisplaySize(this.renderer, this.container)) {
           const w = this.container.offsetWidth;
           const h = this.container.offsetHeight;
@@ -803,7 +821,6 @@ const Hyperspeed = ({ effectOptions = {}, className = '' }: HyperspeedProps) => 
         const delta = this.clock.getDelta();
         this.render(delta);
         this.update(delta);
-        requestAnimationFrame(this.tick);
       }
     }
 

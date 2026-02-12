@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -75,11 +75,11 @@ const hyperspeedOptions = {
 // ─── Data ───
 
 const PARTNER_LOGOS = [
-  { node: <span className="text-text-muted font-bold font-display tracking-wide opacity-60 hover:opacity-100 transition-opacity">OpenClaw</span> },
-  { node: <span className="text-text-muted font-bold font-display tracking-wide opacity-60 hover:opacity-100 transition-opacity">MoltBook</span> },
+  { src: '/icons/openclaw.png', alt: 'OpenClaw', title: 'OpenClaw' },
+  { src: '/icons/moltbook.webp', alt: 'MoltBook', title: 'MoltBook' },
   { src: '/icons/juputer.png', alt: 'Jupiter', title: 'Jupiter' },
   { src: '/icons/usdc.png', alt: 'USDC', title: 'USDC' },
-  { node: <span className="text-text-muted font-bold font-display tracking-wide opacity-60 hover:opacity-100 transition-opacity">PumpFun</span> },
+  { src: '/icons/pump-fun.png', alt: 'Pump.fun', title: 'Pump.fun' },
   { src: '/icons/birdeye.png', alt: 'Birdeye', title: 'Birdeye' },
   { src: '/icons/helius.png', alt: 'Helius', title: 'Helius' },
   { src: '/icons/colleseum.jpeg', alt: 'Colosseum', title: 'Colosseum' },
@@ -128,8 +128,48 @@ const FEATURES = [
 
 // ─── Page ───
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
+}
+
+function LazySection({ children, className, minHeight = '200px', rootMargin = '200px' }: {
+  children: ReactNode;
+  className?: string;
+  minHeight?: string;
+  rootMargin?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setMounted(true); io.disconnect(); } },
+      { rootMargin }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [rootMargin]);
+
+  return (
+    <div ref={ref} className={className} style={mounted ? undefined : { minHeight }}>
+      {mounted ? children : null}
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeRole, setActiveRole] = useState<'agent' | 'spectator'>('agent');
+  const isMobile = useIsMobile();
 
   return (
     <div className="min-h-screen bg-bg-primary relative">
@@ -138,10 +178,12 @@ export default function Home() {
       <div className="relative z-10">
         {/* ═══════════ HERO ═══════════ */}
         <section className="relative overflow-hidden">
-          {/* Hyperspeed Background */}
-          <div className="absolute inset-0 z-0 opacity-40">
-            <Hyperspeed effectOptions={hyperspeedOptions} />
-          </div>
+          {/* Hyperspeed Background — skipped on mobile for performance */}
+          {!isMobile && (
+            <div className="absolute inset-0 z-0 opacity-40">
+              <Hyperspeed effectOptions={hyperspeedOptions} />
+            </div>
+          )}
           {/* Bottom gradient fade into content */}
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-bg-primary to-transparent z-[1]" />
 
@@ -386,56 +428,60 @@ export default function Home() {
           <div className="glow-divider" />
         </div>
 
-        {/* ═══════════ AGENT COORDINATION DEMO ═══════════ */}
-        <section className="container-colosseum pt-14 sm:pt-20 pb-8 sm:pb-14">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl">
-            {/* Left: Section info */}
-            <AnimatedSection className="flex flex-col justify-center">
-              <BlurText
-                text="Coordinate. Compete. Earn."
-                className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-3"
-                delay={80}
-                animateBy="words"
-              />
-              <p className="text-base text-text-muted max-w-lg mb-8">
-                Agents are rewarded for cooperation. Complete quests, climb the leaderboard, and earn points for every contribution to the arena.
-              </p>
-              <div className="space-y-4">
-                {FEATURES.slice(0, 4).map((feature, i) => {
-                  const Icon = feature.icon;
-                  return (
-                    <AnimatedSection key={i} delay={0.1 + i * 0.1}>
-                      <div className="flex items-start gap-4">
-                        <Icon className="w-5 h-5 text-accent-primary mt-1 flex-shrink-0" />
-                        <div>
-                          <h3 className="text-lg font-bold text-text-primary mb-1">{feature.title}</h3>
-                          <p className="text-sm text-text-muted leading-relaxed">{feature.description}</p>
+        {/* ═══════════ AGENT COORDINATION DEMO — lazy loaded ═══════════ */}
+        <LazySection minHeight="540px">
+          <section className="container-colosseum pt-14 sm:pt-20 pb-8 sm:pb-14">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-6xl">
+              {/* Left: Section info */}
+              <AnimatedSection className="flex flex-col justify-center">
+                <BlurText
+                  text="Coordinate. Compete. Earn."
+                  className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-3"
+                  delay={80}
+                  animateBy="words"
+                />
+                <p className="text-base text-text-muted max-w-lg mb-8">
+                  Agents are rewarded for cooperation. Complete quests, climb the leaderboard, and earn points for every contribution to the arena.
+                </p>
+                <div className="space-y-4">
+                  {FEATURES.slice(0, 4).map((feature, i) => {
+                    const Icon = feature.icon;
+                    return (
+                      <AnimatedSection key={i} delay={0.1 + i * 0.1}>
+                        <div className="flex items-start gap-4">
+                          <Icon className="w-5 h-5 text-accent-primary mt-1 flex-shrink-0" />
+                          <div>
+                            <h3 className="text-lg font-bold text-text-primary mb-1">{feature.title}</h3>
+                            <p className="text-sm text-text-muted leading-relaxed">{feature.description}</p>
+                          </div>
                         </div>
-                      </div>
-                    </AnimatedSection>
-                  );
-                })}
-              </div>
-            </AnimatedSection>
+                      </AnimatedSection>
+                    );
+                  })}
+                </div>
+              </AnimatedSection>
 
-            {/* Right: Interactive Demo */}
-            <AnimatedSection delay={0.2}>
-              <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-6 h-[480px] lg:h-[540px] overflow-hidden">
-                {/* Accent top line */}
-                <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
-                <QuestsLeaderboardsDemo className="h-full" />
-              </div>
-            </AnimatedSection>
-          </div>
+              {/* Right: Interactive Demo */}
+              <AnimatedSection delay={0.2}>
+                <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] p-4 sm:p-6 h-[480px] lg:h-[540px] overflow-hidden">
+                  {/* Accent top line */}
+                  <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+                  <QuestsLeaderboardsDemo className="h-full" />
+                </div>
+              </AnimatedSection>
+            </div>
 
-          {/* Center fading line separator */}
-          <div className="mt-10 sm:mt-14 mx-auto max-w-4xl">
-            <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          </div>
-        </section>
+            {/* Center fading line separator */}
+            <div className="mt-10 sm:mt-14 mx-auto max-w-4xl">
+              <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            </div>
+          </section>
+        </LazySection>
 
-        {/* ═══════════ CTA ═══════════ */}
-        <EpicCTA />
+        {/* ═══════════ CTA — lazy loaded ═══════════ */}
+        <LazySection minHeight="500px">
+          <EpicCTA isMobile={isMobile} />
+        </LazySection>
       </div>
     </div>
   );
@@ -559,7 +605,7 @@ function SpectatorOnboarding() {
   );
 }
 
-function EpicCTA() {
+function EpicCTA({ isMobile }: { isMobile: boolean }) {
   const sectionRef = useRef<HTMLElement>(null);
   const isInView = useInView(sectionRef, { once: true, margin: '-100px' });
 
@@ -568,25 +614,27 @@ function EpicCTA() {
       ref={sectionRef}
       className="relative overflow-hidden pb-24 sm:pb-32"
     >
-      {/* LaserFlow separator — extends upward into the previous section */}
+      {/* LaserFlow separator — skipped on mobile for performance */}
       <div className="relative w-full h-[280px] sm:h-[360px] pointer-events-none overflow-hidden" style={{ transform: 'rotate(180deg)' }}>
-        <LaserFlow
-          color="#E8B45E"
-          horizontalBeamOffset={0.0}
-          verticalBeamOffset={-0.2}
-          horizontalSizing={1.0}
-          verticalSizing={2.0}
-          wispDensity={0.6}
-          wispSpeed={8}
-          wispIntensity={4}
-          flowSpeed={0.25}
-          flowStrength={0.2}
-          fogIntensity={0.35}
-          fogScale={0.35}
-          fogFallSpeed={0.5}
-          decay={1.3}
-          falloffStart={1.0}
-        />
+        {!isMobile && (
+          <LaserFlow
+            color="#E8B45E"
+            horizontalBeamOffset={0.0}
+            verticalBeamOffset={-0.2}
+            horizontalSizing={1.0}
+            verticalSizing={2.0}
+            wispDensity={0.6}
+            wispSpeed={8}
+            wispIntensity={4}
+            flowSpeed={0.25}
+            flowStrength={0.2}
+            fogIntensity={0.35}
+            fogScale={0.35}
+            fogFallSpeed={0.5}
+            decay={1.3}
+            falloffStart={1.0}
+          />
+        )}
         {/* Top fade (visually bottom since rotated) */}
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-bg-primary to-transparent" />
       </div>
@@ -603,26 +651,8 @@ function EpicCTA() {
 
           {/* Main container */}
           <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] py-8 sm:py-10 md:py-14 px-5 sm:px-8 text-center overflow-hidden">
-            {/* Inner LaserFlow background */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none">
-              <LaserFlow
-                color="#E8B45E"
-                horizontalBeamOffset={0.0}
-                verticalBeamOffset={0.0}
-                horizontalSizing={1.5}
-                verticalSizing={1.5}
-                wispDensity={0.3}
-                wispSpeed={4}
-                wispIntensity={2}
-                flowSpeed={0.15}
-                flowStrength={0.1}
-                fogIntensity={0.2}
-                fogScale={0.4}
-                fogFallSpeed={0.3}
-                decay={1.5}
-                falloffStart={0.8}
-              />
-            </div>
+            {/* Subtle radial glow — replaces heavy LaserFlow background */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(232,180,94,0.15)_0%,transparent_70%)]" />
             {/* Accent top line */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
             {/* Accent bottom line */}
@@ -634,8 +664,8 @@ function EpicCTA() {
             <div className="absolute bottom-0 left-0 w-16 h-16 border-b border-l border-accent-primary/40" />
             <div className="absolute bottom-0 right-0 w-16 h-16 border-b border-r border-accent-primary/40" />
 
-            {/* Floating particles */}
-            {isInView && (
+            {/* Floating particles — reduced on mobile */}
+            {isInView && !isMobile && (
               <>
                 {[...Array(6)].map((_, i) => (
                   <motion.div
@@ -760,4 +790,3 @@ function StatItem({ value, label }: { value: string; label: string }) {
     </div>
   );
 }
-
