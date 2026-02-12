@@ -42,10 +42,9 @@ export async function getLeaderboard() {
     orderBy: { startAt: 'desc' },
   });
 
-  // Get ALL active trading agents (SuperRouter + authenticated agents + observers)
-  const agents = await db.tradingAgent.findMany({
-    where: { status: 'ACTIVE' },
-  });
+  // Get ALL trading agents (SuperRouter + authenticated agents + observers)
+  // Show all statuses (TRAINING, ACTIVE, PAUSED) so agents appear on leaderboard
+  const agents = await db.tradingAgent.findMany();
 
   if (agents.length === 0) {
     return {
