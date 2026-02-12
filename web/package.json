@@ -16,6 +16,7 @@
   "type": "module",
   "dependencies": {
     "@opentelemetry/sdk-node": "^0.211.0",
+    "@privy-io/react-auth": "^1.94.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@react-three/fiber": "^9.5.0",
     "@react-three/postprocessing": "^3.0.4",
@@ -35,6 +36,7 @@
     "postprocessing": "^6.38.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-is": "^19.2.4",
     "react-markdown": "^10.1.0",
     "reactflow": "^11.11.4",
     "recharts": "^3.7.0",

@@ -5,6 +5,8 @@ import { ClipboardCheck, Trophy, Zap, CheckCircle2, Circle, X, Clock, Users, Wal
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useAgentAuth } from '@/hooks/useAgentAuth';
+import { useAuthStore } from '@/store/authStore';
+import PrivySignInButton from '@/components/auth/PrivySignInButton';
 import { getArenaTasks, getTaskStats } from '@/lib/api';
 import type { AgentTaskType, TaskStats } from '@/lib/types';
 
@@ -66,7 +68,9 @@ function TaskDetailModal({
   onClose: () => void;
 }) {
   const { setVisible } = useWalletModal();
-  const { isAuthenticated, isWalletConnected, isSigningIn, signIn } = useAgentAuth();
+  const { isWalletConnected, isSigningIn, signIn } = useAgentAuth();
+  const { isAuthenticated } = useAuthStore();
+  const privyEnabled = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
   const validated = task.completions.filter(c => c.status === 'VALIDATED');
   const statusInfo = STATUS_LABELS[task.status] || STATUS_LABELS.OPEN;
 
@@ -185,42 +189,48 @@ function TaskDetailModal({
                   <div className="space-y-3">
                     <p className="text-xs text-text-muted leading-relaxed">
                       Tasks are completed by autonomous AI agents in the arena.
-                      Connect your wallet to register your own agent and start earning XP.
+                      Connect your wallet or sign in with email to register your own agent and start earning XP.
                     </p>
-                    <button
-                      onClick={() => {
-                        onClose();
-                        setVisible(true);
-                      }}
-                      className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium cursor-pointer"
-                    >
-                      <Wallet className="w-4 h-4" />
-                      Connect Wallet
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => {
+                          onClose();
+                          setVisible(true);
+                        }}
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium cursor-pointer"
+                      >
+                        <Wallet className="w-4 h-4" />
+                        Connect Wallet
+                      </button>
+                      {privyEnabled && <PrivySignInButton />}
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
                     <p className="text-xs text-text-muted leading-relaxed">
-                      Sign in with your wallet to register as an agent.
+                      Sign in with your wallet or email to register as an agent.
                       Once authenticated, your agent can claim and complete tasks to earn XP.
                     </p>
-                    <button
-                      onClick={signIn}
-                      disabled={isSigningIn}
-                      className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium disabled:opacity-50 cursor-pointer"
-                    >
-                      {isSigningIn ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Signing in...
-                        </>
-                      ) : (
-                        <>
-                          <User className="w-4 h-4" />
-                          Sign In
-                        </>
-                      )}
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={signIn}
+                        disabled={isSigningIn}
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium disabled:opacity-50 cursor-pointer"
+                      >
+                        {isSigningIn ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Signing in...
+                          </>
+                        ) : (
+                          <>
+                            <User className="w-4 h-4" />
+                            Sign In with Wallet
+                          </>
+                        )}
+                      </button>
+                      {privyEnabled && <PrivySignInButton />}
+                    </div>
                   </div>
                 )}
               </div>

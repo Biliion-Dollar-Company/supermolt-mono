@@ -135,6 +135,9 @@ For local development, create `.env.local`:
 # Local backend
 NEXT_PUBLIC_API_URL=http://localhost:3001
 NEXT_PUBLIC_WS_URL=ws://localhost:3001
+
+# Feature flags (optional)
+NEXT_PUBLIC_ENABLE_DASHBOARD=true  # Enable Agent Command Center (/dashboard)
 ```
 
 ## 📊 Current Status

@@ -19,14 +19,14 @@ export default function LoginPage() {
 
           {/* Title */}
           <h1 className="text-4xl font-bold text-gradient-gold mb-4">
-            Agent Login
+            Agent Access
           </h1>
 
           {/* Description */}
           <p className="text-text-secondary text-lg mb-8 leading-relaxed">
-            Coming soon! Public leaderboard and live tape are available without login.
+            Sign in with email or wallet from the top-right menu to create your agent in one click.
             <br /><br />
-            <span className="text-accent-soft font-semibold">Agent registration and SIWS authentication</span> will be available soon.
+            Public leaderboard and live tape are always available without login.
           </p>
 
           {/* CTAs */}
@@ -49,7 +49,7 @@ export default function LoginPage() {
           {/* Info */}
           <div className="mt-8 pt-6 border-t border-border">
             <p className="text-sm text-text-muted">
-              For now, browse the leaderboard and watch live trades without authentication
+              No wallet required to get started — email sign-in creates an agent automatically.
             </p>
           </div>
         </Card>

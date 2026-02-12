@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { TrendingUp, BarChart3, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAgentAuth } from '@/hooks/useAgentAuth';
 import { useAuthStore } from '@/store/authStore';
 import { getMyAgent } from '@/lib/api';
 import { XPProgressBar } from './XPProgressBar';
@@ -11,8 +10,7 @@ import { OnboardingChecklist } from './OnboardingChecklist';
 import type { AgentMeResponse } from '@/lib/types';
 
 export function MyAgentPanel() {
-  const { isAuthenticated, isWalletConnected } = useAgentAuth();
-  const { agent, onboardingTasks, onboardingProgress, setAuth } = useAuthStore();
+  const { isAuthenticated, agent, onboardingTasks, onboardingProgress, setAuth } = useAuthStore();
   const [stats, setStats] = useState<AgentMeResponse['stats']>(null);
 
   // Refresh data periodically
@@ -36,10 +34,8 @@ export function MyAgentPanel() {
   // Show a one-time toast when wallet isn't connected
   const toastShownRef = useRef(false);
   useEffect(() => {
-    if ((!isWalletConnected || !isAuthenticated) && !toastShownRef.current) {
-      const message = isWalletConnected
-        ? 'Sign in to track your agent'
-        : 'Connect wallet to join the arena';
+    if (!isAuthenticated && !toastShownRef.current) {
+      const message = 'Sign in to track your agent';
       const timer = setTimeout(() => {
         toastShownRef.current = true;
         toast(message, {
@@ -49,9 +45,9 @@ export function MyAgentPanel() {
       }, 150);
       return () => clearTimeout(timer);
     }
-  }, [isWalletConnected, isAuthenticated]);
+  }, [isAuthenticated]);
 
-  if (!isWalletConnected || !isAuthenticated) {
+  if (!isAuthenticated) {
     return null;
   }
 

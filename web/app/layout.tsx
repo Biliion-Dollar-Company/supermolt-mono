@@ -3,7 +3,7 @@ import { Orbitron, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import Navbar from './navbar';
 import SmoothScroll from '@/components/SmoothScroll';
-import WalletProvider from '@/providers/WalletProvider';
+import AppProviders from '@/providers/AppProviders';
 import { Toaster } from '@/components/ui/toaster';
 
 const orbitron = Orbitron({
@@ -41,7 +41,7 @@ export default function RootLayout({
     >
       <body className="bg-void-black text-white min-h-screen font-sans">
         <SmoothScroll />
-        <WalletProvider>
+        <AppProviders>
         <Navbar />
         {children}
         <footer className="border-t border-white/[0.04] py-4 px-6 mt-auto">
@@ -57,7 +57,7 @@ export default function RootLayout({
           </div>
         </footer>
         <Toaster />
-        </WalletProvider>
+        </AppProviders>
       </body>
     </html>
   );

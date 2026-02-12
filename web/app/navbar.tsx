@@ -4,20 +4,27 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Home, Swords, BookOpen, Menu, X, Wallet } from 'lucide-react';
+import { Home, Swords, BookOpen, Menu, X, Wallet, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '@/components/reactbits/GradientText';
 import WalletButton from '@/components/wallet/WalletButton';
+import UserAuthButton from '@/components/auth/UserAuthButton';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navLinks = [
+  const allNavLinks = [
     { href: '/', label: 'Home', Icon: Home },
     { href: '/arena', label: 'Arena', Icon: Swords },
+    { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
     { href: '/treasury-flow', label: 'Treasury', Icon: Wallet },
   ];
+
+  const dashboardEnabled = process.env.NEXT_PUBLIC_ENABLE_DASHBOARD === 'true';
+  const navLinks = allNavLinks.filter(
+    (link) => link.href !== '/dashboard' || dashboardEnabled
+  );
 
   const isActive = (href: string) => {
     if (!pathname) return false;
@@ -61,10 +68,9 @@ export default function Navbar() {
                     href={link.href}
                     className={`
                       relative flex items-center gap-2.5 px-5 py-2.5 rounded-none font-medium transition-all duration-200
-                      ${
-                        active
-                          ? 'text-accent-primary'
-                          : 'text-text-secondary hover:text-text-primary'
+                      ${active
+                        ? 'text-accent-primary'
+                        : 'text-text-secondary hover:text-text-primary'
                       }
                     `}
                   >
@@ -91,6 +97,9 @@ export default function Navbar() {
                 <BookOpen className="w-5 h-5" />
                 <span className="text-base">Docs</span>
               </a>
+            </li>
+            <li className="relative h-full flex items-center ml-2">
+              <UserAuthButton />
             </li>
             <li className="relative h-full flex items-center ml-2">
               <WalletButton />
@@ -139,10 +148,9 @@ export default function Navbar() {
                         onClick={() => setMobileMenuOpen(false)}
                         className={`
                           flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200
-                          ${
-                            active
-                              ? 'text-accent-primary border-l-2 border-accent-primary bg-accent-primary/5'
-                              : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                          ${active
+                            ? 'text-accent-primary border-l-2 border-accent-primary bg-accent-primary/5'
+                            : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
                           }
                         `}
                       >
@@ -174,6 +182,15 @@ export default function Navbar() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -16 }}
                   transition={{ duration: 0.2, delay: (navLinks.length + 1) * 0.05 }}
+                  className="px-4 pt-2"
+                >
+                  <UserAuthButton />
+                </motion.li>
+                <motion.li
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.2, delay: (navLinks.length + 2) * 0.05 }}
                   className="px-4 pt-2"
                 >
                   <WalletButton />

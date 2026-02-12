@@ -246,6 +246,27 @@ export interface AgentMeResponse {
   onboarding: OnboardingProgress;
 }
 
+// ── Auth (Privy) ──
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
+export interface LoginResponse {
+  userId: string;
+  tokens: AuthTokens;
+}
+
+export interface QuickstartResponse {
+  agent: AgentProfile;
+  onboarding: OnboardingProgress;
+  token: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
 // ── Agent Tasks ──
 
 export interface AgentTaskType {
