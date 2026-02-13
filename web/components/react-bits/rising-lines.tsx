@@ -83,17 +83,31 @@ export const RisingLines = ({
     const container = containerRef.current;
     if (!container) return;
 
+    // Check WebGL availability before attempting to create renderer
+    try {
+      const testCanvas = document.createElement('canvas');
+      const gl = testCanvas.getContext('webgl') || testCanvas.getContext('experimental-webgl');
+      if (!gl) return;
+    } catch {
+      return;
+    }
+
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      premultipliedAlpha: false,
-    });
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        premultipliedAlpha: false,
+      });
+    } catch {
+      return;
+    }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     rendererRef.current = renderer;
 
