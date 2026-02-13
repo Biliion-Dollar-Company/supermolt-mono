@@ -16,4 +16,4 @@ RUN bunx prisma generate
 COPY . .
 
 EXPOSE 3001
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "run", "start"]

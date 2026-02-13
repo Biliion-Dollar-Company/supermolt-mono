@@ -492,8 +492,12 @@ let predictionCron: ReturnType<typeof createPredictionCron> | null = null;
 if (enableSortinoCron) {
   sortinoCron = createSortinoCron(db, lockService);
   sortinoCron.start();
-  predictionCron = createPredictionCron(db, lockService);
-  predictionCron.start();
+  try {
+    predictionCron = createPredictionCron(db, lockService);
+    predictionCron.start();
+  } catch (err) {
+    console.warn('⚠️  Prediction cron failed to start (tables may not exist yet):', err);
+  }
 } else {
   console.log('⏭️  Sortino cron disabled on this replica');
 }

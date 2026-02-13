@@ -5,11 +5,12 @@
  * and optional order placement. Works without API keys for
  * public market data; authenticated endpoints are opt-in.
  *
+ * IMPORTANT: kalshi-typescript is loaded lazily (dynamic import)
+ * so the server starts even if the package has Bun compatibility issues.
+ *
  * Pattern: singleton via getKalshiService(), same as fourmeme-api.service.ts
  */
 
-import { Configuration, MarketApi, OrdersApi, PortfolioApi } from 'kalshi-typescript';
-import type { Market } from 'kalshi-typescript';
 import { db } from '../lib/db';
 import type {
   PredictionMarketProvider,
@@ -41,16 +42,54 @@ interface CachedMarkets {
   key: string;
 }
 
+// Lazy-loaded SDK references
+let KalshiSDK: {
+  Configuration: any;
+  MarketApi: any;
+  OrdersApi: any;
+  PortfolioApi: any;
+} | null = null;
+let sdkLoadAttempted = false;
+let sdkLoadError: string | null = null;
+
+async function loadKalshiSDK() {
+  if (sdkLoadAttempted) return KalshiSDK;
+  sdkLoadAttempted = true;
+
+  try {
+    const mod = await import('kalshi-typescript');
+    KalshiSDK = {
+      Configuration: mod.Configuration,
+      MarketApi: mod.MarketApi,
+      OrdersApi: mod.OrdersApi,
+      PortfolioApi: mod.PortfolioApi,
+    };
+    console.log('[Kalshi] SDK loaded successfully');
+    return KalshiSDK;
+  } catch (error: any) {
+    sdkLoadError = error.message || 'Unknown import error';
+    console.warn(`[Kalshi] SDK failed to load: ${sdkLoadError}`);
+    console.warn('[Kalshi] Prediction market features will be degraded (DB-only, no live Kalshi data)');
+    return null;
+  }
+}
+
 export class KalshiService implements PredictionMarketProvider {
   readonly platform = 'KALSHI';
-  private config: Configuration;
-  private marketApi: MarketApi;
-  private ordersApi: OrdersApi | null = null;
-  private portfolioApi: PortfolioApi | null = null;
+  private marketApi: any = null;
+  private ordersApi: any = null;
+  private portfolioApi: any = null;
   private authenticated = false;
   private marketCache: CachedMarkets | null = null;
+  private initialized = false;
 
-  constructor() {
+  async ensureInitialized(): Promise<boolean> {
+    if (this.initialized) return this.marketApi !== null;
+
+    this.initialized = true;
+    const sdk = await loadKalshiSDK();
+    if (!sdk) return false;
+
     const mode = process.env.KALSHI_MODE || 'demo';
     const basePath = mode === 'production'
       ? 'https://trading-api.kalshi.com/trade-api/v2'
@@ -67,20 +106,26 @@ export class KalshiService implements PredictionMarketProvider {
         : Buffer.from(privateKeyPem, 'base64').toString('utf-8');
     }
 
-    this.config = new Configuration({
-      basePath,
-      ...(apiKey && pem ? { apiKey, privateKeyPem: pem } : {}),
-    });
+    try {
+      const config = new sdk.Configuration({
+        basePath,
+        ...(apiKey && pem ? { apiKey, privateKeyPem: pem } : {}),
+      });
 
-    this.marketApi = new MarketApi(this.config);
+      this.marketApi = new sdk.MarketApi(config);
 
-    if (apiKey && pem) {
-      this.ordersApi = new OrdersApi(this.config);
-      this.portfolioApi = new PortfolioApi(this.config);
-      this.authenticated = true;
-      console.log(`[Kalshi] Configured with API key (${mode} mode)`);
-    } else {
-      console.log('[Kalshi] No API key configured — public endpoints only');
+      if (apiKey && pem) {
+        this.ordersApi = new sdk.OrdersApi(config);
+        this.portfolioApi = new sdk.PortfolioApi(config);
+        this.authenticated = true;
+        console.log(`[Kalshi] Configured with API key (${mode} mode)`);
+      } else {
+        console.log('[Kalshi] No API key configured — public endpoints only');
+      }
+      return true;
+    } catch (error: any) {
+      console.error('[Kalshi] Failed to initialize:', error.message);
+      return false;
     }
   }
 
@@ -89,6 +134,9 @@ export class KalshiService implements PredictionMarketProvider {
   }
 
   async getMarkets(filter?: MarketFilter): Promise<MarketData[]> {
+    const ready = await this.ensureInitialized();
+    if (!ready) return [];
+
     const cacheKey = JSON.stringify(filter || {});
 
     // Return cached if fresh
@@ -116,7 +164,7 @@ export class KalshiService implements PredictionMarketProvider {
         status,
       );
 
-      const markets = (response.data?.markets || []).map((m) => this.mapMarket(m));
+      const markets = (response.data?.markets || []).map((m: any) => this.mapMarket(m));
       this.marketCache = { data: markets, fetchedAt: Date.now(), key: cacheKey };
       return markets;
     } catch (error) {
@@ -127,6 +175,9 @@ export class KalshiService implements PredictionMarketProvider {
   }
 
   async getMarket(ticker: string): Promise<MarketData | null> {
+    const ready = await this.ensureInitialized();
+    if (!ready) return null;
+
     try {
       const response = await this.marketApi.getMarket(ticker);
       if (!response.data?.market) return null;
@@ -138,6 +189,9 @@ export class KalshiService implements PredictionMarketProvider {
   }
 
   async getOrderbook(ticker: string): Promise<OrderbookData | null> {
+    const ready = await this.ensureInitialized();
+    if (!ready) return null;
+
     try {
       const response = await this.marketApi.getMarketOrderbook(ticker);
       if (!response.data?.orderbook) return null;
@@ -262,8 +316,9 @@ export class KalshiService implements PredictionMarketProvider {
   }
 
   async placeOrder(params: OrderParams): Promise<OrderResult> {
-    if (!this.ordersApi) {
-      throw new Error('Kalshi API key not configured — cannot place real orders');
+    const ready = await this.ensureInitialized();
+    if (!ready || !this.ordersApi) {
+      throw new Error('Kalshi API not available — cannot place real orders');
     }
 
     const response = await this.ordersApi.createOrder({
@@ -285,14 +340,12 @@ export class KalshiService implements PredictionMarketProvider {
   }
 
   async getPositions(): Promise<PositionData[]> {
-    // Kalshi SDK doesn't expose a direct positions endpoint.
-    // Positions can be derived from fills — for now return empty.
-    // Real portfolio tracking happens via AgentPrediction table.
     return [];
   }
 
   async getBalance(): Promise<number> {
-    if (!this.portfolioApi) return 0;
+    const ready = await this.ensureInitialized();
+    if (!ready || !this.portfolioApi) return 0;
 
     try {
       const response = await this.portfolioApi.getBalance();
@@ -303,14 +356,14 @@ export class KalshiService implements PredictionMarketProvider {
     }
   }
 
-  private mapMarket(m: Market): MarketData {
+  private mapMarket(m: any): MarketData {
     const yesPrice = (m.yes_bid ?? m.last_price ?? 50) / 100;
     const noPrice = 1 - yesPrice;
 
     return {
       externalId: m.ticker,
       title: m.title || m.subtitle || 'Untitled',
-      category: 'Other', // Kalshi Market model doesn't include category directly
+      category: 'Other',
       subtitle: m.subtitle || undefined,
       yesPrice,
       noPrice,
