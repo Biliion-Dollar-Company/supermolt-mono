@@ -22,8 +22,10 @@ import { db as prisma } from '../lib/db';
 
 const trading = new Hono();
 
-// Initialize services
-const executor = createTradingExecutor(process.env.HELIUS_RPC_URL!);
+// Initialize services (trading executor requires valid Solana RPC URL)
+const rpcUrl = process.env.HELIUS_RPC_URL || process.env.SOLANA_RPC_URL || '';
+const executor = rpcUrl.startsWith('http') ? createTradingExecutor(rpcUrl) : null;
+if (!executor) console.warn('⚠️  Trading executor disabled: no valid HELIUS_RPC_URL or SOLANA_RPC_URL');
 const positionManager = createPositionManager();
 const priceFetcher = getPriceFetcher();
 
@@ -98,6 +100,7 @@ async function getTokenPriceUSD(tokenMint: string): Promise<number | null> {
  */
 trading.post('/buy', async (c) => {
   try {
+    if (!executor) return c.json({ success: false, error: 'Trading executor not configured (no Solana RPC URL)' }, 503);
     const body = await c.req.json();
     const { agentId, tokenMint, tokenSymbol, tokenName, solAmount } = body;
 
@@ -182,6 +185,7 @@ trading.post('/buy', async (c) => {
  */
 trading.post('/sell', async (c) => {
   try {
+    if (!executor) return c.json({ success: false, error: 'Trading executor not configured (no Solana RPC URL)' }, 503);
     const body = await c.req.json();
     const { agentId, tokenMint, tokenSymbol, tokenName, tokenAmount } = body;
 
@@ -361,6 +365,7 @@ trading.get('/positions', async (c) => {
  */
 trading.get('/balance/:agentId', async (c) => {
   try {
+    if (!executor) return c.json({ success: false, error: 'Trading executor not configured (no Solana RPC URL)' }, 503);
     const agentId = c.req.param('agentId');
     const agentKeypair = await getAgentKeypair(agentId);
     const balance = await executor.getBalance(agentKeypair.publicKey);

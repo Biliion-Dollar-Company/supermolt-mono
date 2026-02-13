@@ -21,7 +21,7 @@ type LocalJob = () => Promise<void>;
 type SolanaProcessor = (data: SolanaWebhookJobData) => Promise<void>;
 
 class WebhookQueueService {
-  private readonly queueName = process.env.WEBHOOK_QUEUE_NAME || 'supermolt:solana:webhooks';
+  private readonly queueName = process.env.WEBHOOK_QUEUE_NAME || 'supermolt-solana-webhooks';
   private readonly concurrency = parseInt(process.env.WEBHOOK_QUEUE_CONCURRENCY || '4', 10);
   private readonly maxQueueLength = parseInt(process.env.WEBHOOK_QUEUE_MAX || '2000', 10);
   private readonly redisUrl = process.env.WEBHOOK_QUEUE_REDIS_URL || process.env.REDIS_URL || '';
