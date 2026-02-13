@@ -1,83 +1,111 @@
 /**
  * usePnLHistory Hook - PnL chart data
- * Provides historical profit/loss data for chart display
+ * Derives cumulative PnL from agent trades via arena API
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { getRecentTrades } from '@/lib/api/client';
 
 export interface PnLDataPoint {
   timestamp: number;
-  value: number; // SOL value
+  value: number; // cumulative PnL
 }
 
 export type Timeframe = '1D' | '3D' | '7D' | '30D';
 
-// Generate mock data points
-function generateMockData(timeframe: Timeframe): PnLDataPoint[] {
+const TIMEFRAME_MS: Record<Timeframe, number> = {
+  '1D': 24 * 60 * 60 * 1000,
+  '3D': 3 * 24 * 60 * 60 * 1000,
+  '7D': 7 * 24 * 60 * 60 * 1000,
+  '30D': 30 * 24 * 60 * 60 * 1000,
+};
+
+function buildPnLCurve(
+  trades: { timestamp: string; pnl: number }[],
+  timeframe: Timeframe,
+): PnLDataPoint[] {
   const now = Date.now();
-  const points: PnLDataPoint[] = [];
+  const cutoff = now - TIMEFRAME_MS[timeframe];
 
-  let duration: number;
-  let interval: number;
+  // Filter to timeframe and sort oldest first
+  const filtered = trades
+    .filter((t) => new Date(t.timestamp).getTime() >= cutoff)
+    .sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
 
-  switch (timeframe) {
-    case '1D':
-      duration = 24 * 60 * 60 * 1000; // 1 day
-      interval = 60 * 60 * 1000; // 1 hour
-      break;
-    case '3D':
-      duration = 3 * 24 * 60 * 60 * 1000; // 3 days
-      interval = 4 * 60 * 60 * 1000; // 4 hours
-      break;
-    case '7D':
-      duration = 7 * 24 * 60 * 60 * 1000; // 7 days
-      interval = 12 * 60 * 60 * 1000; // 12 hours
-      break;
-    case '30D':
-      duration = 30 * 24 * 60 * 60 * 1000; // 30 days
-      interval = 24 * 60 * 60 * 1000; // 1 day
-      break;
-    default:
-      duration = 3 * 24 * 60 * 60 * 1000;
-      interval = 4 * 60 * 60 * 1000;
+  if (filtered.length === 0) {
+    // Return flat line at 0
+    return [
+      { timestamp: cutoff, value: 0 },
+      { timestamp: now, value: 0 },
+    ];
   }
 
-  const numPoints = Math.floor(duration / interval);
-  let value = 0.1; // Starting value
+  // Build cumulative PnL curve
+  let cumulative = 0;
+  const points: PnLDataPoint[] = [
+    { timestamp: cutoff, value: 0 }, // start at 0
+  ];
 
-  for (let i = 0; i <= numPoints; i++) {
-    const timestamp = now - duration + (i * interval);
-
-    // Add some randomness but trend upward
-    const change = (Math.random() - 0.3) * 0.05;
-    value = Math.max(0.05, value + change);
-
-    points.push({ timestamp, value });
+  for (const trade of filtered) {
+    cumulative += trade.pnl;
+    points.push({
+      timestamp: new Date(trade.timestamp).getTime(),
+      value: cumulative,
+    });
   }
 
-  // Ensure last point is current and ends higher
-  points[points.length - 1] = { timestamp: now, value: 0.45 };
+  // Add current point
+  points.push({ timestamp: now, value: cumulative });
 
   return points;
 }
 
 export function usePnLHistory() {
   const [timeframe, setTimeframe] = useState<Timeframe>('3D');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [trades, setTrades] = useState<
+    { timestamp: string; pnl: number }[]
+  >([]);
 
-  const data = useMemo(() => generateMockData(timeframe), [timeframe]);
+  const fetchTrades = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await getRecentTrades(200);
+      setTrades(
+        data.map((t) => ({
+          timestamp: t.timestamp,
+          pnl: t.pnl ?? 0,
+        })),
+      );
+    } catch (err) {
+      console.error('[usePnLHistory] Fetch failed:', err);
+      // Keep existing data on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTrades();
+  }, [fetchTrades]);
+
+  const data = useMemo(
+    () => buildPnLCurve(trades, timeframe),
+    [trades, timeframe],
+  );
 
   const changeTimeframe = useCallback((newTimeframe: Timeframe) => {
-    setIsLoading(true);
     setTimeframe(newTimeframe);
-    // Simulate loading
-    setTimeout(() => setIsLoading(false), 200);
   }, []);
 
   const currentValue = data[data.length - 1]?.value ?? 0;
   const startValue = data[0]?.value ?? 0;
   const pnlChange = currentValue - startValue;
-  const pnlChangePercent = startValue > 0 ? (pnlChange / startValue) * 100 : 0;
+  const pnlChangePercent =
+    startValue !== 0 ? (pnlChange / Math.abs(startValue)) * 100 : 0;
 
   return {
     data,

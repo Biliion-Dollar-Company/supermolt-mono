@@ -12,6 +12,7 @@ import { Prisma } from '@prisma/client';
 import { estimateBnbValue, getBscTokenPrice, getBnbPrice } from '../lib/bsc-prices';
 import { PositionTracker } from './position-tracker';
 import { autoCompleteOnboardingTask } from './onboarding.service';
+import { evaluateTriggers, type DetectedTrade } from './trigger-engine';
 
 const positionTracker = new PositionTracker(db);
 
@@ -388,7 +389,7 @@ export class BSCTradeMonitor {
       await this.handleTokenToTokenSwap(txHash, incoming, outgoing, walletAddress, agentId, bnbPrice);
     } else if (incoming.length > 0) {
       for (const t of incoming) {
-        await this.handleBuy(txHash, t, agentId, bnbPrice, isDexSwap);
+        await this.handleBuy(txHash, t, agentId, bnbPrice, isDexSwap, walletAddress);
       }
     } else if (outgoing.length > 0) {
       for (const t of outgoing) {
@@ -405,7 +406,8 @@ export class BSCTradeMonitor {
     transfer: TokenTransfer,
     agentId: string,
     bnbPrice: number,
-    isDexSwap: boolean
+    isDexSwap: boolean,
+    walletAddress?: string
   ) {
     const tokenMint = transfer.tokenAddress;
     const meta = await getTokenMetadata(tokenMint);
@@ -454,6 +456,19 @@ export class BSCTradeMonitor {
       });
 
       autoCompleteOnboardingTask(agentId, 'FIRST_TRADE', { tradeId: txHash, tokenSymbol: meta.symbol }).catch(() => {});
+
+      // Fire trigger engine for other agents tracking this wallet
+      if (walletAddress) {
+        evaluateTriggers({
+          walletAddress,
+          tokenMint,
+          tokenSymbol: meta.symbol,
+          action: 'BUY',
+          amount: bnbValue,
+          chain: 'BSC',
+          signature: txHash,
+        }).catch((err) => console.error('[TriggerEngine] BSC evaluation failed:', err));
+      }
 
       console.log(`[BSCMonitor] BUY ${tokenAmount.toFixed(2)} ${meta.symbol} (≈${bnbValue.toFixed(4)} BNB) — ${txHash.slice(0, 10)}...`);
     } catch (error: any) {
@@ -586,6 +601,17 @@ export class BSCTradeMonitor {
         where: { id: agentId },
         data: { totalTrades: { increment: 2 } },
       });
+
+      // Fire trigger engine for the BUY side
+      evaluateTriggers({
+        walletAddress,
+        tokenMint: buyTransfer.tokenAddress,
+        tokenSymbol: buyMeta.symbol,
+        action: 'BUY',
+        amount: bnbValue,
+        chain: 'BSC',
+        signature: `${txHash}-buy`,
+      }).catch((err) => console.error('[TriggerEngine] BSC token-to-token evaluation failed:', err));
     } catch (error: any) {
       if (error.code === 'P2002') return;
       console.error(`[BSCMonitor] Token-to-token error:`, error.message);

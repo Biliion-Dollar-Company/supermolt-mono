@@ -4,11 +4,15 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { usePortfolioStore } from '@/store/portfolio';
 import { useAgentLiveStore } from '@/store/agentLive';
+import { useFeedStore } from '@/store/feed';
+import { useTradeRecommendationStore } from '@/store/tradeRecommendations';
+import { successNotification, mediumImpact } from '@/lib/haptics';
 
 // Types
 interface WebSocketContextType {
@@ -32,62 +36,27 @@ interface WebSocketProviderProps {
   children: ReactNode;
 }
 
-const WS_URL = process.env.EXPO_PUBLIC_WS_URL || 'wss://devprint-v2-production.up.railway.app/ws';
-const RECONNECT_DELAY = 3000;
+// Derive WS URL from API URL: https://foo.bar → wss://foo.bar/ws
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
+const WS_URL = process.env.EXPO_PUBLIC_WS_URL || API_URL.replace(/^http/, 'ws') + '/ws';
+const RECONNECT_DELAY = 5000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
 export function WebSocketProvider({ children }: WebSocketProviderProps) {
-  const [ws, setWs] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState<any>(null);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
-  const updatePositions = usePortfolioStore((state) => state.updatePositions);
-  const addDecision = useAgentLiveStore((state) => state.addDecision);
+  const wsRef = useRef<WebSocket | null>(null);
+  const attemptsRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
 
-  // Connect to WebSocket
-  const connect = useCallback(() => {
-    if (ws?.readyState === WebSocket.OPEN) return;
-
-    console.log('[WS] Connecting to:', WS_URL);
-    const socket = new WebSocket(WS_URL);
-
-    socket.onopen = () => {
-      console.log('[WS] Connected');
-      setIsConnected(true);
-      setReconnectAttempts(0);
-    };
-
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        setLastMessage(data);
-        handleMessage(data);
-      } catch (error) {
-        console.error('[WS] Parse error:', error);
-      }
-    };
-
-    socket.onerror = (error) => {
-      console.error('[WS] Error:', error);
-    };
-
-    socket.onclose = (event) => {
-      console.log('[WS] Closed:', event.code, event.reason);
-      setIsConnected(false);
-      setWs(null);
-
-      // Attempt reconnect
-      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-        setTimeout(() => {
-          setReconnectAttempts((prev) => prev + 1);
-          connect();
-        }, RECONNECT_DELAY);
-      }
-    };
-
-    setWs(socket);
-  }, [reconnectAttempts]);
+  // Store selectors (stable refs — Zustand selectors don't change)
+  const updatePositions = usePortfolioStore((s) => s.updatePositions);
+  const updatePosition = usePortfolioStore((s) => s.updatePosition);
+  const addDecision = useAgentLiveStore((s) => s.addDecision);
+  const pushFeedItem = useFeedStore((s) => s.pushItem);
+  const pushRecommendation = useTradeRecommendationStore((s) => s.push);
 
   // Handle incoming messages
   const handleMessage = useCallback(
@@ -98,17 +67,44 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
           break;
 
         case 'price_update':
-          // Update specific position price
+          if (data.tokenMint && data.price != null) {
+            const positions = usePortfolioStore.getState().positions;
+            const pos = positions.find((p) => p.tokenMint === data.tokenMint);
+            if (pos) {
+              const currentPrice = Number(data.price);
+              const currentValueSol = pos.quantity * currentPrice;
+              const unrealizedPnlSol = currentValueSol - pos.entrySol;
+              const unrealizedPnlPct = pos.entrySol > 0 ? (unrealizedPnlSol / pos.entrySol) * 100 : 0;
+              updatePosition(pos.id, { currentPrice, currentValueSol, unrealizedPnlSol, unrealizedPnlPct });
+            }
+          }
           break;
 
         case 'take_profit_triggered':
-          // Show notification, haptic feedback
           console.log('[WS] TP Triggered:', data);
+          successNotification();
           break;
 
         case 'trade_executed':
-          // Add to feed, update positions
           console.log('[WS] Trade executed:', data);
+          if (data.action && data.token) {
+            addDecision({
+              action: data.action === 'BUY' ? 'buy' : data.action === 'SELL' ? 'sell' : 'skip',
+              token: data.token || data.tokenSymbol || 'Unknown',
+              reason: data.reason || `${data.action} executed`,
+              time: new Date().toLocaleTimeString(),
+            });
+            pushFeedItem({
+              id: `ws-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              type: 'trade',
+              title: `${data.action === 'BUY' ? 'Bought' : 'Sold'} ${data.tokenSymbol || data.token || 'Token'}`,
+              description: data.reason || `${data.action} executed`,
+              time: new Date().toLocaleTimeString(),
+              action: data.action,
+              agentName: data.agentName,
+              tokenSymbol: data.tokenSymbol || data.token,
+            });
+          }
           break;
 
         case 'agent_decision':
@@ -120,58 +116,132 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
           });
           break;
 
+        case 'trade_recommendation': {
+          mediumImpact();
+          pushRecommendation({
+            agentId: data.agentId || '',
+            tokenMint: data.tokenMint || '',
+            tokenSymbol: data.tokenSymbol || 'Unknown',
+            suggestedAmount: data.suggestedAmount || data.amount || 0,
+            chain: data.chain || 'SOLANA',
+            trigger: data.trigger || 'auto',
+            sourceWallet: data.sourceWallet || '',
+            reason: data.reason || 'AI trade recommendation',
+          });
+          break;
+        }
+
+        case 'agent:activity': {
+          const innerData = data.data;
+          if (innerData?.type === 'trade_recommendation') {
+            mediumImpact();
+            pushRecommendation({
+              agentId: data.agentId || '',
+              tokenMint: innerData.tokenMint || '',
+              tokenSymbol: innerData.tokenSymbol || 'Unknown',
+              suggestedAmount: innerData.suggestedAmount || 0,
+              chain: innerData.chain || 'SOLANA',
+              trigger: innerData.trigger || 'auto',
+              sourceWallet: innerData.sourceWallet || '',
+              reason: innerData.reason || 'AI trade recommendation',
+            });
+          }
+          break;
+        }
+
         default:
-          console.log('[WS] Unknown message type:', data.type);
+          // Silently ignore unknown types
+          break;
       }
     },
-    [updatePositions, addDecision]
+    [updatePositions, updatePosition, addDecision, pushFeedItem, pushRecommendation]
   );
 
-  // Send message
-  const send = useCallback(
-    (message: any) => {
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
-      } else {
-        console.warn('[WS] Cannot send - not connected');
+  // Connect to WebSocket (ref-based, no stale closures)
+  const connect = useCallback(() => {
+    if (!mountedRef.current) return;
+    if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
+
+    console.log(`[WS] Connecting (attempt ${attemptsRef.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
+    const socket = new WebSocket(WS_URL);
+
+    socket.onopen = () => {
+      console.log('[WS] Connected');
+      attemptsRef.current = 0;
+      if (mountedRef.current) setIsConnected(true);
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (mountedRef.current) setLastMessage(data);
+        handleMessage(data);
+      } catch {
+        // ignore parse errors
       }
-    },
-    [ws]
-  );
+    };
+
+    socket.onerror = () => {
+      // Silent — onclose will handle reconnect
+    };
+
+    socket.onclose = () => {
+      if (!mountedRef.current) return;
+      setIsConnected(false);
+      wsRef.current = null;
+
+      if (attemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
+        const delay = RECONNECT_DELAY * Math.pow(2, attemptsRef.current);
+        console.log(`[WS] Closed. Reconnecting in ${Math.round(delay / 1000)}s...`);
+        attemptsRef.current += 1;
+        reconnectTimerRef.current = setTimeout(connect, delay);
+      } else {
+        console.log('[WS] Max reconnect attempts reached');
+      }
+    };
+
+    wsRef.current = socket;
+  }, [handleMessage]);
+
+  // Send message
+  const send = useCallback((message: any) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(message));
+    }
+  }, []);
 
   // Manual reconnect
   const reconnect = useCallback(() => {
-    if (ws) {
-      ws.close();
-    }
-    setReconnectAttempts(0);
+    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    if (wsRef.current) wsRef.current.close();
+    wsRef.current = null;
+    attemptsRef.current = 0;
     connect();
-  }, [ws, connect]);
+  }, [connect]);
 
-  // Connect on mount
+  // Connect on mount, cleanup on unmount
   useEffect(() => {
+    mountedRef.current = true;
     connect();
 
     return () => {
-      ws?.close();
+      mountedRef.current = false;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      if (wsRef.current) wsRef.current.close();
+      wsRef.current = null;
     };
-  }, []);
+  }, [connect]);
 
-  // Handle app state changes (reconnect when app comes to foreground)
+  // Reconnect when app comes to foreground
   useEffect(() => {
-    const subscription = AppState.addEventListener(
-      'change',
-      (nextAppState: AppStateStatus) => {
-        if (nextAppState === 'active' && !isConnected) {
-          reconnect();
-        }
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active' && !wsRef.current) {
+        attemptsRef.current = 0;
+        connect();
       }
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, [isConnected, reconnect]);
+    });
+    return () => sub.remove();
+  }, [connect]);
 
   const value: WebSocketContextType = {
     isConnected,

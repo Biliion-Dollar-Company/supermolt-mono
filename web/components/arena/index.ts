@@ -10,4 +10,7 @@ export { OnboardingChecklist } from './OnboardingChecklist';
 export { XPLeaderboard } from './XPLeaderboard';
 export { ConversationsPanel } from './ConversationsPanel';
 export { GraduationPanel } from './GraduationPanel';
+export { AgentProfileModal } from './AgentProfileModal';
 export { default as NewsPanel } from './NewsPanel';
+export { AgentConfigPanel } from './AgentConfigPanel';
+export { TradeRecommendationBanner } from './TradeRecommendationBanner';

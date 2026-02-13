@@ -1,173 +1,90 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import {
-    Wifi, Radio, BarChart3, Brain, Users, ArrowDown, X,
-    Zap, Shield, BookOpen, Activity,
-} from 'lucide-react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { Pill, Crosshair, Swords, Drama, Rocket, Zap, ChevronDown, ListChecks, MessageSquare, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Activity, Eye, BarChart3, Users, Flame, Sparkles, Target, Globe } from 'lucide-react';
+import { usePrivy } from '@privy-io/react-auth';
 import { useAuthStore } from '@/store/authStore';
-import { getPipelineStatus } from '@/lib/api';
+import { getArenaTasks, getAgentPositions, getAgentConversations } from '@/lib/api';
+import type { AgentTaskType, Position, AgentConversationSummary } from '@/lib/types';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/useIsMobile';
 
-// ── Types ───────────────────────────────────────────────────────
+// ── Feed node definitions ───────────────────────────────────────
 
-type NodeCategory = 'source' | 'processor';
-
-interface FlowNode {
-    id: string;
-    label: string;
-    subtitle: string;
-    icon: typeof Wifi;
-    category: NodeCategory;
-}
-
-interface SidebarContent {
-    id: string;
-    label: string;
-    subtitle: string;
-    icon: typeof Wifi;
-    category: NodeCategory;
-}
-
-// ── Node definitions ────────────────────────────────────────────
-
-const SOURCES: FlowNode[] = [
-    { id: 'helius', label: 'Helius', subtitle: 'On-Chain Data', icon: Wifi, category: 'source' },
-    { id: 'twitter', label: 'Twitter', subtitle: 'Social Intelligence', icon: Radio, category: 'source' },
-    { id: 'dexscreener', label: 'DexScreener', subtitle: 'Market Data', icon: BarChart3, category: 'source' },
-    { id: 'arena', label: 'Arena', subtitle: 'Community Signals', icon: Users, category: 'source' },
+const FEEDS = [
+    { id: 'pumpfun', label: 'PumpFun', desc: 'New token launches', icon: Pill, color: '#E8B45E' },
+    { id: 'wallets', label: 'Tracker', desc: 'Smart money moves', icon: Crosshair, color: '#818CF8' },
+    { id: 'blitz', label: 'Blitzkrieg', desc: 'Community buy signals', icon: Swords, color: '#34D399' },
+    { id: 'narrative', label: 'Narratives', desc: 'Trends & rising themes', icon: Drama, color: '#F472B6' },
 ];
 
-const PROCESSORS: FlowNode[] = [
-    { id: 'signal', label: 'Signal Analyzer', subtitle: 'Combining feeds', icon: Zap, category: 'processor' },
-    { id: 'risk', label: 'Risk Engine', subtitle: 'Position sizing', icon: Shield, category: 'processor' },
-    { id: 'narrative', label: 'Narrative Engine', subtitle: 'Market narratives', icon: BookOpen, category: 'processor' },
-];
-
-const ALL_NODES = [...SOURCES, ...PROCESSORS];
-
-// Source → Processor connections (each source feeds nearest processors)
-const SOURCE_TO_PROCESSOR: [string, string][] = [
-    ['helius', 'signal'],
-    ['twitter', 'signal'],
-    ['twitter', 'risk'],
-    ['dexscreener', 'risk'],
-    ['dexscreener', 'narrative'],
-    ['arena', 'narrative'],
-];
-
-// ── Layout: top-to-bottom funnel ────────────────────────────────
-//    Row 1 (top):    4 sources spread horizontally
-//    Row 2 (mid):    3 processors spread horizontally
-//    Row 3 (bottom): Agent center
-
-const W = 960;
-const H = 640;
-const CX = W / 2;
-
-const ROW_Y = { source: 65, processor: 280, agent: 520 };
-
-// Explicit positions for each node
-const NODE_POS: Record<string, { x: number; y: number }> = {
-    helius:      { x: 130, y: ROW_Y.source },
-    twitter:     { x: 370, y: ROW_Y.source },
-    dexscreener: { x: 590, y: ROW_Y.source },
-    arena:       { x: 830, y: ROW_Y.source },
-    signal:      { x: 220, y: ROW_Y.processor },
-    risk:        { x: 480, y: ROW_Y.processor },
-    narrative:   { x: 740, y: ROW_Y.processor },
-};
-
-const AGENT_POS = { x: CX, y: ROW_Y.agent };
-
-function getNodePos(id: string) {
-    return NODE_POS[id] ?? { x: CX, y: H / 2 };
-}
-
-function buildCurve(from: { x: number; y: number }, to: { x: number; y: number }) {
-    const midY = from.y + (to.y - from.y) * 0.5;
-    return `M ${from.x} ${from.y} C ${from.x} ${midY}, ${to.x} ${midY}, ${to.x} ${to.y}`;
-}
-
-// ── Sidebar detail data ─────────────────────────────────────────
-
-const SIDEBAR_DATA: Record<string, { streams: string[]; description: string }> = {
-    helius: {
-        description: 'Real-time blockchain event monitoring via Helius WebSocket. Tracks wallet activity, token transfers, and DEX swaps as they happen.',
-        streams: ['Token transfers & swaps', 'Wallet balance changes', 'DEX trade events', 'LP position updates'],
+const FEED_DETAILS: Record<string, {
+    tagline: string;
+    description: string;
+    features: { icon: typeof Activity; title: string; desc: string }[];
+    stats: { label: string; value: string }[];
+}> = {
+    pumpfun: {
+        tagline: 'Real-time new token launch detection',
+        description: 'Monitors PumpFun for newly created tokens the moment they launch. Your agent analyzes launch patterns, initial liquidity, developer wallet history, and early trading volume to identify high-potential entries before the crowd.',
+        features: [
+            { icon: Zap, title: 'Instant Detection', desc: 'Sub-second alerts on new token deployments as they hit the blockchain' },
+            { icon: Eye, title: 'Dev Wallet Analysis', desc: 'Screens creator wallets for past rug history, funding patterns, and credibility signals' },
+            { icon: BarChart3, title: 'Liquidity Scoring', desc: 'Evaluates initial liquidity depth and bonding curve progression to gauge launch quality' },
+            { icon: Flame, title: 'Momentum Tracking', desc: 'Monitors buy/sell ratio and holder growth in the critical first minutes after launch' },
+        ],
+        stats: [
+            { label: 'Avg detection time', value: '<1s' },
+            { label: 'Tokens scanned daily', value: '2,000+' },
+            { label: 'Filter pass rate', value: '~8%' },
+        ],
     },
-    twitter: {
-        description: 'Social intelligence layer monitoring influencer activity, sentiment shifts, and emerging narratives across crypto Twitter.',
-        streams: ['Influencer tweet monitoring', 'Mindshare density scoring', 'Sentiment analysis', 'Engagement tracking'],
+    wallets: {
+        tagline: 'Follow the smart money in real-time',
+        description: 'Tracks whale wallets and proven profitable traders across Solana. When a tracked wallet makes a significant move — buying, selling, or rotating — your agent receives the signal instantly and can act on it.',
+        features: [
+            { icon: Target, title: 'Wallet Tracking', desc: 'Monitor any Solana wallet address and get real-time alerts on their transactions' },
+            { icon: Activity, title: 'Trade Mirroring', desc: 'Agent can automatically mirror trades from your highest-conviction wallets' },
+            { icon: TrendingUp, title: 'PnL Analysis', desc: 'Tracks the historical performance of each wallet to weight signal quality' },
+            { icon: Users, title: 'Whale Clustering', desc: 'Detects when multiple tracked wallets converge on the same token simultaneously' },
+        ],
+        stats: [
+            { label: 'Signal latency', value: '<2s' },
+            { label: 'Wallets trackable', value: 'Unlimited' },
+            { label: 'Avg whale alpha', value: '+34%' },
+        ],
     },
-    dexscreener: {
-        description: 'Market data feeds providing real-time pricing, volume, liquidity metrics, and market cap data across DEXs.',
-        streams: ['Real-time token prices', 'Volume & liquidity metrics', 'Market cap tracking', 'Price change alerts'],
-    },
-    arena: {
-        description: 'Cooperative intelligence from the SuperMolt arena — agent votes, task completions, and collective trading signals.',
-        streams: ['Agent voting results', 'Task completions & XP', 'Leaderboard signals', 'Collective trade proposals'],
-    },
-    signal: {
-        description: 'Combines all incoming data feeds into actionable trading signals. Your aggression level and enabled feeds determine signal sensitivity.',
-        streams: ['Multi-source signal fusion', 'Configurable sensitivity', 'Feed weighting', 'Alert thresholds'],
-    },
-    risk: {
-        description: 'Evaluates every signal against your risk parameters before executing trades. Controls position sizing, take-profit, and stop-loss levels.',
-        streams: ['Position size limits', 'Risk level enforcement', 'Take-profit targets', 'Stop-loss protection'],
+    blitz: {
+        tagline: 'Community-driven buy signal aggregation',
+        description: 'Aggregates buy signals from community channels, group chats, and coordinated trading groups. Blitzkrieg detects when momentum is building around a token before it shows up on charts, giving your agent a first-mover advantage.',
+        features: [
+            { icon: Users, title: 'Signal Aggregation', desc: 'Combines signals from multiple community sources into a single conviction score' },
+            { icon: Flame, title: 'Momentum Detection', desc: 'Identifies when coordinated buying pressure is forming around a specific token' },
+            { icon: Clock, title: 'Time-Sensitive Alerts', desc: 'Blitz signals are time-critical — your agent acts within seconds of detection' },
+            { icon: Sparkles, title: 'Sentiment Analysis', desc: 'NLP processing of community messages to gauge genuine excitement vs noise' },
+        ],
+        stats: [
+            { label: 'Sources monitored', value: '50+' },
+            { label: 'Avg signal lead', value: '~3min' },
+            { label: 'Hit rate', value: '~62%' },
+        ],
     },
     narrative: {
-        description: 'LLM-powered engine that detects and scores market narratives. Identifies trending themes across social and market data.',
-        streams: ['Narrative detection', 'Theme scoring', 'Trend identification', 'Cross-source correlation'],
+        tagline: 'Catch emerging narratives before they trend',
+        description: 'Scans crypto Twitter, forums, and news feeds to identify emerging market narratives and sector rotations. When a new theme starts gaining traction — AI tokens, RWA, meme seasons — your agent positions early.',
+        features: [
+            { icon: Globe, title: 'Trend Detection', desc: 'Monitors thousands of sources to identify rising narratives and thematic shifts' },
+            { icon: TrendingUp, title: 'Sector Rotation', desc: 'Tracks capital flow between sectors to identify where money is moving next' },
+            { icon: Sparkles, title: 'Early Signal', desc: 'Detects narrative formation 12-48 hours before it becomes mainstream consensus' },
+            { icon: BarChart3, title: 'Narrative Scoring', desc: 'Assigns conviction scores based on engagement velocity, influencer overlap, and on-chain data' },
+        ],
+        stats: [
+            { label: 'Sources tracked', value: '1,200+' },
+            { label: 'Avg early signal', value: '~24h' },
+            { label: 'Narrative accuracy', value: '~71%' },
+        ],
     },
 };
-
-// ── Status hook ─────────────────────────────────────────────────
-
-function usePipelineStatus() {
-    const [status, setStatus] = useState<Record<string, boolean>>({});
-
-    useEffect(() => {
-        let active = true;
-        async function poll() {
-            try {
-                const res = await getPipelineStatus();
-                if (!active) return;
-                const s = res.services;
-                setStatus({
-                    helius: s.helius?.connected ?? false,
-                    twitter: s.twitter?.connected ?? false,
-                    dexscreener: true,
-                    arena: s.socketio?.connected ?? true,
-                    signal: s.helius?.connected ?? false,
-                    risk: true,
-                    narrative: s.llm?.connected ?? false,
-                });
-            } catch { /* keep defaults */ }
-        }
-        poll();
-        const id = setInterval(poll, 30_000);
-        return () => { active = false; clearInterval(id); };
-    }, []);
-
-    return status;
-}
-
-// ── Mobile check ────────────────────────────────────────────────
-
-function useIsMobile() {
-    const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-        const mq = window.matchMedia('(max-width: 768px)');
-        setIsMobile(mq.matches);
-        const h = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-        mq.addEventListener('change', h);
-        return () => mq.removeEventListener('change', h);
-    }, []);
-    return isMobile;
-}
-
-// ── Status config ───────────────────────────────────────────────
 
 const AGENT_STATUS: Record<string, { label: string; color: string; dot: string }> = {
     TRAINING: { label: 'Training', color: 'text-yellow-400', dot: 'bg-yellow-400' },
@@ -175,397 +92,662 @@ const AGENT_STATUS: Record<string, { label: string; color: string; dot: string }
     PAUSED: { label: 'Paused', color: 'text-text-muted', dot: 'bg-text-muted' },
 };
 
+// ── Pulse animation engine ──────────────────────────────────────
+
+interface Pulse {
+    id: string;
+    feedIndex: number;
+    startTime: number;
+}
+
+function usePulseEngine(feedCount: number, duration: number, interval: number) {
+    const [pulses, setPulses] = useState<Pulse[]>([]);
+
+    useEffect(() => {
+        const timeouts: NodeJS.Timeout[] = [];
+
+        const spawn = (i: number) => {
+            setPulses(prev => [
+                ...prev,
+                { id: `${i}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, feedIndex: i, startTime: Date.now() },
+            ]);
+            timeouts.push(setTimeout(() => spawn(i), interval * 1000 * (0.7 + Math.random() * 0.6)));
+        };
+
+        for (let i = 0; i < feedCount; i++) {
+            timeouts.push(setTimeout(() => spawn(i), Math.random() * interval * 1000));
+        }
+
+        return () => timeouts.forEach(clearTimeout);
+    }, [feedCount, interval]);
+
+    // Prune expired
+    useEffect(() => {
+        let raf: number;
+        const durationMs = duration * 1000;
+        const tick = () => {
+            const now = Date.now();
+            setPulses(prev => prev.filter(p => (now - p.startTime) / durationMs < 1));
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [duration]);
+
+    return pulses;
+}
+
+// ── SVG pulse layer ─────────────────────────────────────────────
+
+function PulseLayer({
+    feedPositions,
+    agentPos,
+    pulses,
+    duration,
+    width,
+    height,
+}: {
+    feedPositions: { x: number; y: number }[];
+    agentPos: { x: number; y: number };
+    pulses: Pulse[];
+    duration: number;
+    width: number;
+    height: number;
+}) {
+    const pathCacheRef = useRef<Map<number, SVGPathElement>>(new Map());
+    const [segments, setSegments] = useState<{ id: string; d: string; opacity: number; color: string }[]>([]);
+
+    useEffect(() => {
+        pathCacheRef.current.clear();
+    }, [feedPositions, agentPos]);
+
+    useEffect(() => {
+        let raf: number;
+        const durationMs = duration * 1000;
+
+        const calc = () => {
+            const now = Date.now();
+            const segs: typeof segments = [];
+
+            for (const pulse of pulses) {
+                const from = feedPositions[pulse.feedIndex];
+                if (!from) continue;
+
+                let path = pathCacheRef.current.get(pulse.feedIndex);
+                if (!path) {
+                    path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    const dx = agentPos.x - from.x;
+                    const dy = agentPos.y - from.y;
+                    path.setAttribute('d', `M ${from.x} ${from.y} C ${from.x + dx * 0.3} ${from.y + dy * 0.6}, ${agentPos.x - dx * 0.3} ${agentPos.y - dy * 0.3}, ${agentPos.x} ${agentPos.y}`);
+                    pathCacheRef.current.set(pulse.feedIndex, path);
+                }
+
+                const progress = Math.min((now - pulse.startTime) / durationMs, 1);
+                if (progress <= 0 || progress >= 1) continue;
+
+                const length = path.getTotalLength();
+                const headPos = progress;
+                const tailPos = Math.max(0, progress - 0.3);
+                const pts: { x: number; y: number }[] = [];
+                for (let i = 0; i <= 8; i++) {
+                    const pt = path.getPointAtLength(length * (tailPos + (headPos - tailPos) * (i / 8)));
+                    pts.push({ x: pt.x, y: pt.y });
+                }
+                if (pts.length < 2) continue;
+
+                const opacity = Math.min(1, progress / 0.15) * Math.min(1, (1 - progress) / 0.15);
+                segs.push({
+                    id: pulse.id,
+                    d: `M ${pts[0].x} ${pts[0].y}` + pts.slice(1).map(p => ` L ${p.x} ${p.y}`).join(''),
+                    opacity,
+                    color: FEEDS[pulse.feedIndex]?.color ?? '#E8B45E',
+                });
+            }
+
+            setSegments(segs);
+            raf = requestAnimationFrame(calc);
+        };
+        raf = requestAnimationFrame(calc);
+        return () => cancelAnimationFrame(raf);
+    }, [pulses, feedPositions, agentPos, duration]);
+
+    return (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ overflow: 'visible' }}>
+            <defs>
+                <filter id="pulseGlow2" x="-100%" y="-100%" width="300%" height="300%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+            </defs>
+
+            {/* Static connection lines */}
+            {feedPositions.map((from, i) => {
+                const dx = agentPos.x - from.x;
+                const dy = agentPos.y - from.y;
+                const d = `M ${from.x} ${from.y} C ${from.x + dx * 0.3} ${from.y + dy * 0.6}, ${agentPos.x - dx * 0.3} ${agentPos.y - dy * 0.3}, ${agentPos.x} ${agentPos.y}`;
+                return (
+                    <path key={`line-${i}`} d={d} fill="none" stroke={FEEDS[i]?.color ?? '#333'} strokeWidth={1.5} opacity={0.12} />
+                );
+            })}
+
+            {/* Animated pulses */}
+            {segments.map(seg => (
+                <g key={seg.id}>
+                    <path d={seg.d} fill="none" stroke={seg.color} strokeWidth={4} strokeLinecap="round" opacity={seg.opacity * 0.3} filter="url(#pulseGlow2)" />
+                    <path d={seg.d} fill="none" stroke={seg.color} strokeWidth={1.5} strokeLinecap="round" opacity={seg.opacity} />
+                </g>
+            ))}
+        </svg>
+    );
+}
+
 // ── Main component ──────────────────────────────────────────────
+
+type DetailTab = 'tasks' | 'positions' | 'chats';
+
+const DETAIL_TABS: { id: DetailTab; label: string; icon: typeof ListChecks }[] = [
+    { id: 'tasks', label: 'Tasks', icon: ListChecks },
+    { id: 'positions', label: 'Positions', icon: TrendingUp },
+    { id: 'chats', label: 'Chats', icon: MessageSquare },
+];
 
 export function AgentDataFlow() {
     const { agent } = useAuthStore();
-    const pipelineStatus = usePipelineStatus();
-    const isMobile = useIsMobile();
-    const [selectedNode, setSelectedNode] = useState<string | null>(null);
-    const sidebarRef = useRef<HTMLDivElement>(null);
-
-    const closeSidebar = useCallback(() => setSelectedNode(null), []);
-
-    // Close on click outside
-    useEffect(() => {
-        if (!selectedNode) return;
-        function handleClick(e: MouseEvent) {
-            if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
-                closeSidebar();
-            }
-        }
-        const timer = setTimeout(() => document.addEventListener('click', handleClick), 0);
-        return () => { clearTimeout(timer); document.removeEventListener('click', handleClick); };
-    }, [selectedNode, closeSidebar]);
-
-    if (isMobile) {
-        return <MobileDataFlow agent={agent} status={pipelineStatus} selectedNode={selectedNode} setSelectedNode={setSelectedNode} />;
-    }
-
+    const { user, authenticated, login } = usePrivy();
+    const rawAvatarUrl = agent?.avatarUrl || user?.twitter?.profilePictureUrl || null;
+    const avatarUrl = rawAvatarUrl?.replace('_normal.', '_400x400.') ?? null;
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [dims, setDims] = useState({ w: 800, h: 500 });
     const statusInfo = AGENT_STATUS[agent?.status ?? 'TRAINING'] ?? AGENT_STATUS.TRAINING;
-    const selectedData = selectedNode ? ALL_NODES.find(n => n.id === selectedNode) : null;
+
+    const [expanded, setExpanded] = useState(false);
+    const [activeTab, setActiveTab] = useState<DetailTab>('tasks');
+    const [selectedFeed, setSelectedFeed] = useState<string | null>(null);
+    const isMobile = useIsMobile();
+    const [tasks, setTasks] = useState<AgentTaskType[]>([]);
+    const [positions, setPositions] = useState<Position[]>([]);
+    const [chats, setChats] = useState<AgentConversationSummary[]>([]);
+    const [detailLoading, setDetailLoading] = useState(false);
+    const fetchedRef = useRef(false);
+
+    useEffect(() => {
+        const update = () => {
+            if (containerRef.current) {
+                const { width, height } = containerRef.current.getBoundingClientRect();
+                setDims({ w: width, h: height });
+            }
+        };
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
+
+    // Fetch detail data when expanded for the first time
+    useEffect(() => {
+        if (!expanded || !agent || fetchedRef.current) return;
+        fetchedRef.current = true;
+        setDetailLoading(true);
+
+        Promise.allSettled([
+            getArenaTasks().catch(() => []),
+            getAgentPositions(agent.agentId).catch(() => []),
+            getAgentConversations(agent.agentId).catch(() => []),
+        ]).then(([tasksRes, posRes, chatsRes]) => {
+            if (tasksRes.status === 'fulfilled') setTasks(tasksRes.value as AgentTaskType[]);
+            if (posRes.status === 'fulfilled') setPositions(posRes.value as Position[]);
+            if (chatsRes.status === 'fulfilled') setChats(chatsRes.value as AgentConversationSummary[]);
+            setDetailLoading(false);
+        });
+    }, [expanded, agent]);
+
+    const pulses = usePulseEngine(FEEDS.length, 3.5, 5);
+
+    const feedPositions = useMemo(() => {
+        const y = 55;
+        const margin = dims.w * 0.12;
+        const usable = dims.w - margin * 2;
+        return FEEDS.map((_, i) => ({
+            x: margin + (usable / (FEEDS.length - 1)) * i,
+            y,
+        }));
+    }, [dims.w]);
+
+    const agentPos = useMemo(() => ({ x: dims.w / 2, y: dims.h * 0.68 }), [dims]);
+
+    const xpPercent = agent ? Math.min(100, Math.round((agent.xp / Math.max(1, agent.xpForNextLevel)) * 100)) : 0;
+    const hasAgent = !!agent;
+
+    const activeTasks = useMemo(() => tasks.filter(t => t.status === 'OPEN' || t.status === 'CLAIMED'), [tasks]);
+    const openPositions = useMemo(() => positions.filter(p => !p.closedAt), [positions]);
 
     return (
-        <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-6 overflow-hidden">
-            <div className="relative w-full" style={{ maxWidth: W, margin: '0 auto', aspectRatio: `${W}/${H}` }}>
+        <div className="bg-[#0a0a12]/60 backdrop-blur-xl border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
+            <div ref={containerRef} className="relative h-[290px] sm:h-[320px]">
 
-                {/* ── SVG connection layer ── */}
-                <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 w-full h-full pointer-events-none" fill="none">
-                    <defs>
-                        {/* Source → Processor gradients (amber) */}
-                        {SOURCE_TO_PROCESSOR.map(([srcId, procId], i) => {
-                            const from = getNodePos(srcId);
-                            const to = getNodePos(procId);
-                            return (
-                                <linearGradient key={`sg-${i}`} id={`sg-${srcId}-${procId}`} gradientUnits="userSpaceOnUse"
-                                    x1={from.x} y1={from.y} x2={to.x} y2={to.y}>
-                                    <stop offset="0%" stopColor="#E8B45E" stopOpacity="0.4" />
-                                    <stop offset="100%" stopColor="#E8B45E" stopOpacity="0.1" />
-                                </linearGradient>
-                            );
-                        })}
-                        {/* Processor → Agent gradients (blue-purple) */}
-                        {PROCESSORS.map(p => {
-                            const from = getNodePos(p.id);
-                            return (
-                                <linearGradient key={`pg-${p.id}`} id={`pg-${p.id}`} gradientUnits="userSpaceOnUse"
-                                    x1={from.x} y1={from.y} x2={AGENT_POS.x} y2={AGENT_POS.y}>
-                                    <stop offset="0%" stopColor="#818CF8" stopOpacity="0.5" />
-                                    <stop offset="100%" stopColor="#E8B45E" stopOpacity="0.15" />
-                                </linearGradient>
-                            );
-                        })}
-                    </defs>
+                {/* Pulse animation layer */}
+                <PulseLayer
+                    feedPositions={feedPositions}
+                    agentPos={agentPos}
+                    pulses={pulses}
+                    duration={3.5}
+                    width={dims.w}
+                    height={dims.h}
+                />
 
-                    {/* Source → Processor paths */}
-                    {SOURCE_TO_PROCESSOR.map(([srcId, procId], i) => {
-                        const from = getNodePos(srcId);
-                        const to = getNodePos(procId);
-                        const path = buildCurve(from, to);
-                        const delay = `${i * 0.5}s`;
-                        return (
-                            <g key={`sp-${i}`}>
-                                <path d={path} stroke={`url(#sg-${srcId}-${procId})`} strokeWidth="1.2" />
-                                <circle r="1.8" fill="#E8B45E" opacity="0.8">
-                                    <animateMotion dur="3.5s" repeatCount="indefinite" path={path} begin={delay} />
-                                </circle>
-                                <circle r="4.5" fill="#E8B45E" opacity="0.1">
-                                    <animateMotion dur="3.5s" repeatCount="indefinite" path={path} begin={delay} />
-                                </circle>
-                            </g>
-                        );
-                    })}
-
-                    {/* Processor → Agent paths */}
-                    {PROCESSORS.map((p, i) => {
-                        const from = getNodePos(p.id);
-                        const path = buildCurve(from, AGENT_POS);
-                        const delay = `${i * 0.8}s`;
-                        return (
-                            <g key={`pa-${p.id}`}>
-                                <path d={path} stroke={`url(#pg-${p.id})`} strokeWidth="1.5" />
-                                <circle r="2" fill="#818CF8" opacity="0.9">
-                                    <animateMotion dur="2.8s" repeatCount="indefinite" path={path} begin={delay} />
-                                </circle>
-                                <circle r="5" fill="#818CF8" opacity="0.12">
-                                    <animateMotion dur="2.8s" repeatCount="indefinite" path={path} begin={delay} />
-                                </circle>
-                            </g>
-                        );
-                    })}
-                </svg>
-
-                {/* ── Source nodes (outer ring) ── */}
-                {SOURCES.map((s) => {
-                    const pos = getNodePos(s.id);
-                    const Icon = s.icon;
-                    const connected = pipelineStatus[s.id] ?? false;
-                    const isSelected = selectedNode === s.id;
+                {/* ── Feed nodes (top row) ── */}
+                {FEEDS.map((feed, i) => {
+                    const Icon = feed.icon;
+                    const pos = feedPositions[i];
+                    const c = `${feed.color}40`;
                     return (
-                        <button
-                            key={s.id}
-                            onClick={(e) => { e.stopPropagation(); setSelectedNode(isSelected ? null : s.id); }}
-                            className={`absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200 group
-                                ${isSelected ? 'scale-105 z-20' : 'hover:scale-105'}`}
-                            style={{ left: `${(pos.x / W) * 100}%`, top: `${(pos.y / H) * 100}%` }}
+                        <div
+                            key={feed.id}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 z-10"
+                            style={{ left: pos?.x, top: pos?.y }}
                         >
-                            <div className={`relative bg-[#12121a]/90 border rounded-lg px-3.5 py-2.5 backdrop-blur-sm transition-colors
-                                ${isSelected ? 'border-accent-primary/40 shadow-[0_0_16px_rgba(232,180,94,0.12)]' : 'border-white/[0.1] hover:border-white/[0.2]'}`}>
-                                <div className="flex items-center gap-2">
-                                    <Icon className="w-4 h-4 text-accent-primary/80 flex-shrink-0" />
-                                    <div className="text-left">
-                                        <div className="text-xs font-bold text-text-primary whitespace-nowrap">{s.label}</div>
-                                        <div className="text-[10px] text-text-muted whitespace-nowrap">{s.subtitle}</div>
+                            <div
+                                className="relative bg-[#0e0e18]/90 backdrop-blur-md px-6 py-3.5 cursor-pointer group hover:bg-[#0e0e18] transition-colors duration-200"
+                                onClick={() => setSelectedFeed(feed.id)}
+                            >
+                                {/* Corner brackets */}
+                                <span className="absolute top-0 left-0 w-3 h-3 border-t border-l" style={{ borderColor: c }} />
+                                <span className="absolute top-0 right-0 w-3 h-3 border-t border-r" style={{ borderColor: c }} />
+                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b border-l" style={{ borderColor: c }} />
+                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b border-r" style={{ borderColor: c }} />
+
+                                <div className="flex items-center gap-3.5">
+                                    <Icon className="w-6 h-6 flex-shrink-0" style={{ color: feed.color }} />
+                                    <div className="flex flex-col">
+                                        <span className="text-base font-bold text-text-primary whitespace-nowrap leading-tight">{feed.label}</span>
+                                        <span className="text-[10px] text-text-muted whitespace-nowrap">{feed.desc}</span>
                                     </div>
-                                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ml-1 ${connected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400/60'}`} />
                                 </div>
                             </div>
-                        </button>
+                        </div>
                     );
                 })}
 
-                {/* ── Processor nodes (inner ring) ── */}
-                {PROCESSORS.map((p) => {
-                    const pos = getNodePos(p.id);
-                    const Icon = p.icon;
-                    const active = pipelineStatus[p.id] ?? false;
-                    const isSelected = selectedNode === p.id;
-                    return (
-                        <button
-                            key={p.id}
-                            onClick={(e) => { e.stopPropagation(); setSelectedNode(isSelected ? null : p.id); }}
-                            className={`absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-200
-                                ${isSelected ? 'scale-105 z-20' : 'hover:scale-105'}`}
-                            style={{ left: `${(pos.x / W) * 100}%`, top: `${(pos.y / H) * 100}%` }}
-                        >
-                            <div className={`relative bg-[#12121a]/90 border rounded-lg px-3.5 py-2.5 backdrop-blur-sm transition-colors
-                                ${isSelected ? 'border-indigo-400/40 shadow-[0_0_16px_rgba(129,140,248,0.12)]' : 'border-indigo-500/[0.15] hover:border-indigo-400/[0.3]'}`}>
-                                <div className="flex items-center gap-2">
-                                    <Icon className="w-4 h-4 text-indigo-400/80 flex-shrink-0" />
-                                    <div className="text-left">
-                                        <div className="text-xs font-bold text-text-primary whitespace-nowrap">{p.label}</div>
-                                        <div className="text-[10px] text-text-muted whitespace-nowrap">{p.subtitle}</div>
-                                    </div>
-                                    <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ml-1 ${active ? 'bg-indigo-400 animate-pulse' : 'bg-red-400/60'}`} />
-                                </div>
-                            </div>
-                        </button>
-                    );
-                })}
-
-                {/* ── Agent center node ── */}
-                <div className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-10" style={{ left: `${(AGENT_POS.x / W) * 100}%`, top: `${(AGENT_POS.y / H) * 100}%` }}>
-                    <div className="absolute inset-0 -m-4 rounded-full bg-accent-primary/[0.06] blur-xl" />
-                    <div className="relative bg-[#12121a]/90 border border-accent-primary/20 rounded-xl px-6 py-4 flex flex-col items-center gap-2 backdrop-blur-xl shadow-[0_0_30px_rgba(232,180,94,0.08)]">
-                        <div className="w-16 h-16 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center">
-                            {agent?.avatarUrl ? (
-                                <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
-                            ) : (
-                                <span className="text-accent-primary font-bold text-2xl">
-                                    {agent?.name?.charAt(0)?.toUpperCase() ?? '?'}
-                                </span>
-                            )}
-                        </div>
-                        <div className="text-center">
-                            <h3 className="text-sm font-bold text-text-primary">{agent?.name ?? 'Your Agent'}</h3>
-                            <div className={`flex items-center justify-center gap-1 text-[10px] font-semibold ${statusInfo.color}`}>
-                                <div className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot} animate-pulse`} />
-                                {statusInfo.label}
-                            </div>
-                        </div>
-                        {agent && (
-                            <div className="bg-accent-primary/10 border border-accent-primary/20 rounded px-2.5 py-0.5">
-                                <span className="text-[10px] font-bold text-accent-primary">Lv.{agent.level} {agent.levelName}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* ── Detail sidebar ── */}
+                {/* ── Agent card (bottom center) ── */}
                 <div
-                    ref={sidebarRef}
-                    className={`absolute top-0 right-0 h-full w-[320px] z-30 transition-transform duration-300 ease-out
-                        ${selectedNode ? 'translate-x-0' : 'translate-x-full'}`}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 z-10"
+                    style={{ left: agentPos.x, top: agentPos.y }}
                 >
-                    {selectedData && (
-                        <div className="h-full bg-[#0e0e16]/95 backdrop-blur-xl border-l border-white/[0.08] p-4 overflow-y-auto">
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <selectedData.icon className={`w-4.5 h-4.5 ${selectedData.category === 'source' ? 'text-accent-primary' : 'text-indigo-400'}`} />
-                                    <div>
-                                        <h4 className="text-sm font-bold text-text-primary">{selectedData.label}</h4>
-                                        <p className="text-[10px] text-text-muted">{selectedData.subtitle}</p>
+                    {hasAgent ? (
+                        <button
+                            onClick={() => setExpanded(!expanded)}
+                            className="relative cursor-pointer group"
+                        >
+                            {/* Glow */}
+                            <div className="absolute -inset-3 bg-accent-primary/[0.06] blur-xl pointer-events-none group-hover:bg-accent-primary/[0.1] transition-all duration-300" />
+
+                            <div className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-8 py-5 flex items-center gap-5 shadow-[0_0_40px_rgba(232,180,94,0.06)] group-hover:bg-[#0e0e18] transition-colors duration-200">
+                                {/* Corner brackets */}
+                                <span className="absolute top-0 left-0 w-4 h-4 border-t border-l border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute top-0 right-0 w-4 h-4 border-t border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
+
+                                {/* Avatar */}
+                                <div className="w-16 h-16 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                    {avatarUrl ? (
+                                        <img src={avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
+                                    ) : (
+                                        <span className="text-accent-primary font-bold text-2xl">
+                                            {agent.name?.charAt(0)?.toUpperCase() ?? '?'}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {/* Info */}
+                                <div className="flex flex-col gap-1.5 min-w-0 text-left">
+                                    <div className="flex items-center gap-2.5">
+                                        <h3 className="text-lg font-bold text-text-primary truncate">{agent.name}</h3>
+                                        <span className="bg-accent-primary/15 border border-accent-primary/25 px-2 py-0.5 text-xs font-bold text-accent-primary whitespace-nowrap">
+                                            Lv.{agent.level}
+                                        </span>
+                                        <div className={`flex items-center gap-1 text-[10px] font-semibold ${statusInfo.color}`}>
+                                            <div className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot} animate-pulse`} />
+                                            {statusInfo.label}
+                                        </div>
+                                    </div>
+
+                                    {/* XP bar */}
+                                    <div className="flex items-center gap-3 mt-1">
+                                        <div className="w-44 h-2 bg-white/[0.06] overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-accent-primary/80 to-accent-primary transition-all duration-500"
+                                                style={{ width: `${xpPercent}%` }}
+                                            />
+                                        </div>
+                                        <span className="text-xs text-text-muted font-mono whitespace-nowrap">
+                                            {agent.xp} / {agent.xpForNextLevel} XP
+                                        </span>
                                     </div>
                                 </div>
-                                <button onClick={closeSidebar} className="text-text-muted hover:text-text-primary transition-colors cursor-pointer p-1">
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
 
-                            {/* Status */}
-                            <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-3 mb-3">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <Activity className="w-3 h-3 text-text-muted" />
-                                    <span className="text-[10px] text-text-muted uppercase tracking-wider">Status</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <div className={`w-2 h-2 rounded-full ${pipelineStatus[selectedNode!] ? 'bg-emerald-400 animate-pulse' : 'bg-red-400/60'}`} />
-                                    <span className={`text-xs font-semibold ${pipelineStatus[selectedNode!] ? 'text-emerald-400' : 'text-red-400'}`}>
-                                        {pipelineStatus[selectedNode!] ? 'Connected' : 'Disconnected'}
-                                    </span>
+                                {/* Expand chevron */}
+                                <div className="pl-3 border-l border-white/[0.06] ml-2 flex-shrink-0">
+                                    <ChevronDown
+                                        className="w-5 h-5 text-text-muted transition-transform duration-300 ease-out"
+                                        style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                                    />
                                 </div>
                             </div>
+                        </button>
+                    ) : (
+                        /* No agent — CTA */
+                        <div className="relative group">
+                            <div className="absolute -inset-4 bg-accent-primary/[0.06] blur-2xl pointer-events-none group-hover:bg-accent-primary/[0.1] transition-all duration-500" />
+                            <button
+                                onClick={() => { if (!authenticated) login(); }}
+                                className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-8 py-5 flex flex-col items-center gap-3 max-w-md cursor-pointer hover:bg-[#0e0e18] transition-all duration-300"
+                            >
+                                {/* Corner brackets */}
+                                <span className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
 
-                            {/* Description */}
-                            <p className="text-xs text-text-muted leading-relaxed mb-4">
-                                {SIDEBAR_DATA[selectedNode!]?.description}
-                            </p>
-
-                            {/* Capabilities / Streams */}
-                            <div className="mb-4">
-                                <h5 className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
-                                    {selectedData.category === 'source' ? 'Data Streams' : 'Capabilities'}
-                                </h5>
-                                <div className="space-y-1.5">
-                                    {SIDEBAR_DATA[selectedNode!]?.streams.map((stream, i) => (
-                                        <div key={i} className="flex items-center gap-2 text-xs text-text-secondary">
-                                            <div className={`w-1 h-1 rounded-full flex-shrink-0 ${selectedData.category === 'source' ? 'bg-accent-primary/60' : 'bg-indigo-400/60'}`} />
-                                            {stream}
-                                        </div>
-                                    ))}
+                                <div className="w-12 h-12 rounded-full bg-accent-primary/10 border-2 border-accent-primary/25 flex items-center justify-center group-hover:border-accent-primary/50 group-hover:bg-accent-primary/15 transition-all duration-300">
+                                    <Rocket className="w-5 h-5 text-accent-primary" />
                                 </div>
-                            </div>
-
-                            {/* Config hint for processors */}
-                            {selectedData.category === 'processor' && (
-                                <div className="bg-indigo-500/[0.06] border border-indigo-500/[0.12] rounded-lg p-3">
-                                    <p className="text-[10px] text-indigo-300/80 leading-relaxed">
-                                        Configure this in the <strong>Configure</strong> tab to adjust how your agent processes signals and manages risk.
+                                <div className="text-center">
+                                    <h3 className="text-base font-bold text-text-primary mb-1">
+                                        {authenticated ? 'Create Your Agent' : 'Sign In to Deploy'}
+                                    </h3>
+                                    <p className="text-[11px] text-text-muted leading-relaxed max-w-[260px]">
+                                        {authenticated
+                                            ? 'Set up your AI trading agent to start receiving live feeds and executing trades automatically.'
+                                            : 'Connect with Twitter to deploy your own AI trading agent and join the arena.'}
                                     </p>
                                 </div>
-                            )}
+                                <div className="flex items-center gap-2 px-4 py-1.5 bg-accent-primary/10 border border-accent-primary/30 group-hover:bg-accent-primary/20 group-hover:border-accent-primary/50 transition-all duration-300">
+                                    <Zap className="w-3.5 h-3.5 text-accent-primary" />
+                                    <span className="text-xs font-bold text-accent-primary">
+                                        {authenticated ? 'Get Started' : 'Sign In with Twitter'}
+                                    </span>
+                                </div>
+                            </button>
                         </div>
                     )}
                 </div>
+
             </div>
+
+
+            {/* Expandable detail panel */}
+            {hasAgent && (
+                <div
+                    className="grid transition-[grid-template-rows] duration-300 ease-out"
+                    style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
+                >
+                    <div className="overflow-hidden">
+                        <div className="border-t border-white/[0.06]">
+                            {/* Tab icons — top right */}
+                            <div className="flex items-center justify-between px-4 py-2.5">
+                                <span className="text-xs font-bold text-text-primary">
+                                    {DETAIL_TABS.find(t => t.id === activeTab)?.label}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                    {DETAIL_TABS.map((tab) => {
+                                        const Icon = tab.icon;
+                                        const isActive = activeTab === tab.id;
+                                        const count = tab.id === 'tasks' ? activeTasks.length
+                                            : tab.id === 'positions' ? openPositions.length
+                                            : chats.length;
+                                        return (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setActiveTab(tab.id)}
+                                                className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
+                                                    isActive
+                                                        ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                                                        : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.03] border border-transparent'
+                                                }`}
+                                            >
+                                                <Icon className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">{tab.label}</span>
+                                                {count > 0 && (
+                                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                                                        isActive ? 'bg-accent-primary/20 text-accent-primary' : 'bg-white/[0.06] text-text-muted'
+                                                    }`}>
+                                                        {count}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Tab content */}
+                            <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
+                                {detailLoading ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
+                                    </div>
+                                ) : activeTab === 'tasks' ? (
+                                    <TasksSection tasks={activeTasks} />
+                                ) : activeTab === 'positions' ? (
+                                    <PositionsSection positions={openPositions} />
+                                ) : (
+                                    <ChatsSection chats={chats} />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Feed Detail Sheet */}
+            <FeedDetailSheet
+                feedId={selectedFeed}
+                open={!!selectedFeed}
+                onClose={() => setSelectedFeed(null)}
+                isMobile={isMobile}
+            />
         </div>
     );
 }
 
-// ── Mobile layout ───────────────────────────────────────────────
+// ── Feed Detail Sheet ───────────────────────────────────────────
 
-function MobileDataFlow({
-    agent, status, selectedNode, setSelectedNode,
-}: {
-    agent: any;
-    status: Record<string, boolean>;
-    selectedNode: string | null;
-    setSelectedNode: (id: string | null) => void;
-}) {
-    const statusInfo = AGENT_STATUS[agent?.status ?? 'TRAINING'] ?? AGENT_STATUS.TRAINING;
+function FeedDetailSheet({ feedId, open, onClose, isMobile }: { feedId: string | null; open: boolean; onClose: () => void; isMobile: boolean }) {
+    const feed = FEEDS.find(f => f.id === feedId);
+    const details = feedId ? FEED_DETAILS[feedId] : null;
+    if (!feed || !details) return null;
+
+    const Icon = feed.icon;
 
     return (
-        <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4">
-            {/* Section label */}
-            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-2">Data Sources</div>
-
-            {/* Source cards */}
-            <div className="grid grid-cols-2 gap-2 mb-2">
-                {SOURCES.map((s) => {
-                    const Icon = s.icon;
-                    const connected = status[s.id] ?? false;
-                    return (
-                        <button
-                            key={s.id}
-                            onClick={() => setSelectedNode(selectedNode === s.id ? null : s.id)}
-                            className={`bg-white/[0.02] border rounded-lg px-3 py-2.5 flex items-center gap-2 text-left cursor-pointer transition-colors
-                                ${selectedNode === s.id ? 'border-accent-primary/30' : 'border-white/[0.06] hover:border-white/[0.12]'}`}
+        <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+            <SheetContent side={isMobile ? 'bottom' : 'right'} className="overflow-y-auto">
+                <SheetHeader className="text-left">
+                    <div className="flex items-center gap-3 mb-1">
+                        <div
+                            className="w-10 h-10 flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: `${feed.color}15`, border: `1px solid ${feed.color}30` }}
                         >
-                            <Icon className="w-3.5 h-3.5 text-accent-primary/70 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                                <div className="text-xs font-semibold text-text-secondary truncate">{s.label}</div>
-                                <div className="text-[10px] text-text-muted truncate">{s.subtitle}</div>
-                            </div>
-                            <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${connected ? 'bg-emerald-400' : 'bg-red-400/60'}`} />
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* Animated connector */}
-            <div className="flex flex-col items-center py-1.5">
-                <div className="relative w-0.5 h-8 bg-gradient-to-b from-[#E8B45E]/50 to-[#E8B45E]/15">
-                    <motion.div
-                        className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-3 rounded-full bg-[#E8B45E]/60 blur-[2px]"
-                        animate={{ y: [0, 20, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                </div>
-                <ArrowDown className="w-3 h-3 text-[#E8B45E]/40 -mt-0.5" />
-            </div>
-
-            {/* Processor section */}
-            <div className="text-[10px] text-text-muted uppercase tracking-wider mb-2">Processing</div>
-            <div className="grid grid-cols-3 gap-2 mb-2">
-                {PROCESSORS.map((p) => {
-                    const Icon = p.icon;
-                    const active = status[p.id] ?? false;
-                    return (
-                        <button
-                            key={p.id}
-                            onClick={() => setSelectedNode(selectedNode === p.id ? null : p.id)}
-                            className={`bg-white/[0.02] border rounded-lg px-2 py-2 flex flex-col items-center gap-1 cursor-pointer transition-colors
-                                ${selectedNode === p.id ? 'border-indigo-400/30' : 'border-indigo-500/[0.08] hover:border-indigo-500/[0.2]'}`}
-                        >
-                            <Icon className="w-3.5 h-3.5 text-indigo-400/70" />
-                            <div className="text-[10px] font-semibold text-text-secondary text-center leading-tight">{p.label}</div>
-                            <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-indigo-400' : 'bg-red-400/60'}`} />
-                        </button>
-                    );
-                })}
-            </div>
-
-            {/* Animated connector */}
-            <div className="flex flex-col items-center py-1.5">
-                <div className="relative w-0.5 h-8 bg-gradient-to-b from-[#818CF8]/50 to-[#818CF8]/15">
-                    <motion.div
-                        className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-3 rounded-full bg-[#818CF8]/60 blur-[2px]"
-                        animate={{ y: [0, 20, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-                    />
-                </div>
-                <ArrowDown className="w-3 h-3 text-[#818CF8]/40 -mt-0.5" />
-            </div>
-
-            {/* Agent card */}
-            <div className="bg-[#12121a]/90 border border-accent-primary/20 rounded-lg p-3 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-accent-primary/10 border border-accent-primary/30 flex items-center justify-center flex-shrink-0">
-                    {agent?.avatarUrl ? (
-                        <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
-                    ) : (
-                        <span className="text-accent-primary font-bold text-base">
-                            {agent?.name?.charAt(0)?.toUpperCase() ?? '?'}
-                        </span>
-                    )}
-                </div>
-                <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-bold text-text-primary truncate">{agent?.name ?? 'Your Agent'}</h3>
-                    <div className={`flex items-center gap-1 text-[10px] font-semibold ${statusInfo.color}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot} animate-pulse`} />
-                        {statusInfo.label}
-                    </div>
-                </div>
-                {agent && (
-                    <div className="bg-accent-primary/10 border border-accent-primary/20 rounded px-2 py-0.5 flex-shrink-0">
-                        <span className="text-[10px] font-bold text-accent-primary">Lv.{agent.level}</span>
-                    </div>
-                )}
-            </div>
-
-            {/* Mobile sidebar (bottom sheet style) */}
-            {selectedNode && SIDEBAR_DATA[selectedNode] && (
-                <div className="mt-3 bg-[#0e0e16]/95 border border-white/[0.08] rounded-lg p-3 animate-arena-reveal">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                            {(() => { const n = ALL_NODES.find(n => n.id === selectedNode); const Icon = n?.icon ?? Zap; return <Icon className="w-3.5 h-3.5 text-accent-primary" />; })()}
-                            <span className="text-xs font-bold text-text-primary">{ALL_NODES.find(n => n.id === selectedNode)?.label}</span>
+                            <Icon className="w-5 h-5" style={{ color: feed.color }} />
                         </div>
-                        <button onClick={() => setSelectedNode(null)} className="text-text-muted p-1 cursor-pointer">
-                            <X className="w-3.5 h-3.5" />
-                        </button>
+                        <div>
+                            <SheetTitle className="text-lg font-bold text-text-primary">{feed.label}</SheetTitle>
+                            <SheetDescription className="text-xs text-text-muted mt-0">{details.tagline}</SheetDescription>
+                        </div>
                     </div>
-                    <p className="text-[11px] text-text-muted leading-relaxed mb-2">{SIDEBAR_DATA[selectedNode].description}</p>
-                    <div className="space-y-1">
-                        {SIDEBAR_DATA[selectedNode].streams.map((s, i) => (
-                            <div key={i} className="flex items-center gap-1.5 text-[11px] text-text-secondary">
-                                <div className="w-1 h-1 rounded-full bg-accent-primary/50 flex-shrink-0" />
-                                {s}
+                </SheetHeader>
+
+                <div className="mt-5 space-y-6 px-1">
+                    {/* Description */}
+                    <p className="text-sm text-text-secondary leading-relaxed">
+                        {details.description}
+                    </p>
+
+                    {/* Stats row */}
+                    <div className="grid grid-cols-3 gap-3">
+                        {details.stats.map((stat) => (
+                            <div key={stat.label} className="bg-white/[0.03] border border-white/[0.06] px-3 py-2.5 text-center">
+                                <div className="text-base font-bold font-mono" style={{ color: feed.color }}>{stat.value}</div>
+                                <div className="text-[10px] text-text-muted mt-0.5">{stat.label}</div>
                             </div>
                         ))}
                     </div>
+
+                    {/* Features */}
+                    <div>
+                        <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider mb-3">How it works</h4>
+                        <div className="space-y-3">
+                            {details.features.map((feature) => {
+                                const FeatureIcon = feature.icon;
+                                return (
+                                    <div key={feature.title} className="flex gap-3">
+                                        <div
+                                            className="w-8 h-8 flex items-center justify-center flex-shrink-0 mt-0.5"
+                                            style={{ backgroundColor: `${feed.color}10` }}
+                                        >
+                                            <FeatureIcon className="w-4 h-4" style={{ color: feed.color }} />
+                                        </div>
+                                        <div>
+                                            <h5 className="text-sm font-semibold text-text-primary">{feature.title}</h5>
+                                            <p className="text-xs text-text-muted leading-relaxed mt-0.5">{feature.desc}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Status indicator */}
+                    <div className="flex items-center gap-2 px-3 py-2.5 bg-white/[0.02] border border-white/[0.06]">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs text-text-muted">Feed active — delivering signals to your agent</span>
+                    </div>
                 </div>
-            )}
+            </SheetContent>
+        </Sheet>
+    );
+}
+
+// ── Detail section components ────────────────────────────────────
+
+function TasksSection({ tasks }: { tasks: AgentTaskType[] }) {
+    if (tasks.length === 0) {
+        return (
+            <div className="text-center py-6">
+                <ListChecks className="w-6 h-6 text-white/10 mx-auto mb-2" />
+                <p className="text-xs text-text-muted">No active tasks</p>
+            </div>
+        );
+    }
+    return (
+        <div className="space-y-2">
+            {tasks.map((task) => (
+                <div key={task.taskId} className="flex items-center gap-3 px-3 py-2.5 bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.1] transition-colors">
+                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.status === 'CLAIMED' ? 'bg-yellow-400' : 'bg-emerald-400'}`} />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-text-primary truncate">{task.title}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[10px] text-text-muted uppercase">{task.taskType}</span>
+                            {task.tokenSymbol && (
+                                <span className="text-[10px] text-accent-primary font-mono">${task.tokenSymbol}</span>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-1 px-2 py-0.5 bg-accent-primary/10 border border-accent-primary/20 flex-shrink-0">
+                        <Zap className="w-3 h-3 text-accent-primary" />
+                        <span className="text-[10px] font-bold text-accent-primary">+{task.xpReward} XP</span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function PositionsSection({ positions }: { positions: Position[] }) {
+    if (positions.length === 0) {
+        return (
+            <div className="text-center py-6">
+                <TrendingUp className="w-6 h-6 text-white/10 mx-auto mb-2" />
+                <p className="text-xs text-text-muted">No open positions</p>
+            </div>
+        );
+    }
+    return (
+        <div className="space-y-2">
+            {positions.map((pos) => {
+                const isProfit = pos.pnl >= 0;
+                return (
+                    <div key={pos.positionId} className="flex items-center gap-3 px-3 py-2.5 bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.1] transition-colors">
+                        <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 ${isProfit ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+                            {isProfit ? (
+                                <ArrowUpRight className="w-4 h-4 text-emerald-400" />
+                            ) : (
+                                <ArrowDownRight className="w-4 h-4 text-red-400" />
+                            )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-text-primary">${pos.tokenSymbol}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[10px] text-text-muted font-mono">
+                                    Entry: ${pos.entryPrice.toFixed(6)}
+                                </span>
+                                <span className="text-[10px] text-text-muted">→</span>
+                                <span className="text-[10px] text-text-muted font-mono">
+                                    Now: ${pos.currentPrice.toFixed(6)}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                            <p className={`text-xs font-bold font-mono ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {isProfit ? '+' : ''}{pos.pnlPercent.toFixed(1)}%
+                            </p>
+                            <p className="text-[10px] text-text-muted font-mono">
+                                ${pos.currentValue.toFixed(2)}
+                            </p>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function ChatsSection({ chats }: { chats: AgentConversationSummary[] }) {
+    if (chats.length === 0) {
+        return (
+            <div className="text-center py-6">
+                <MessageSquare className="w-6 h-6 text-white/10 mx-auto mb-2" />
+                <p className="text-xs text-text-muted">No conversations yet</p>
+            </div>
+        );
+    }
+    return (
+        <div className="space-y-2">
+            {chats.map((chat) => (
+                <div key={chat.conversationId} className="flex items-center gap-3 px-3 py-2.5 bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.1] transition-colors">
+                    <div className="w-8 h-8 bg-[#818CF8]/10 flex items-center justify-center flex-shrink-0">
+                        <MessageSquare className="w-4 h-4 text-[#818CF8]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-text-primary truncate">{chat.topic}</p>
+                        {chat.lastMessage && (
+                            <p className="text-[10px] text-text-muted truncate mt-0.5">{chat.lastMessage}</p>
+                        )}
+                    </div>
+                    <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                        <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-text-muted">{chat.agentMessageCount} msgs</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-text-muted">
+                            <Clock className="w-3 h-3" />
+                            <span>{new Date(chat.lastMessageAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }

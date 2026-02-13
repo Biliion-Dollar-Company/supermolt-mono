@@ -3,10 +3,17 @@ import { env } from './env';
 
 export const privy = new PrivyClient(env.PRIVY_APP_ID, env.PRIVY_APP_SECRET);
 
+export interface PrivyTwitterData {
+  username: string;
+  name: string;
+  profilePictureUrl?: string;
+}
+
 export interface PrivyUserData {
   privyId: string;
   walletAddress: string | null;
   email: string | null;
+  twitter: PrivyTwitterData | null;
 }
 
 export async function verifyPrivyToken(token: string): Promise<PrivyUserData> {
@@ -21,9 +28,23 @@ export async function verifyPrivyToken(token: string): Promise<PrivyUserData> {
   const emailAccount = privyUser.linkedAccounts.find((account) => account.type === 'email');
   const email = emailAccount && 'address' in emailAccount ? emailAccount.address : null;
 
+  // Extract Twitter (OAuth linked account)
+  const twitterAccount = privyUser.linkedAccounts.find(
+    (account: any) => account.type === 'twitter_oauth'
+  );
+  const twitter: PrivyTwitterData | null =
+    twitterAccount && 'username' in twitterAccount
+      ? {
+          username: (twitterAccount as any).username,
+          name: (twitterAccount as any).name || (twitterAccount as any).username,
+          profilePictureUrl: (twitterAccount as any).profilePictureUrl,
+        }
+      : null;
+
   return {
     privyId: privyUser.id,
     walletAddress,
     email,
+    twitter,
   };
 }

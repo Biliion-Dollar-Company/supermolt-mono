@@ -6,6 +6,7 @@ import { PositionTracker } from '../services/position-tracker';
 import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-observer';
 // closePaperTrade/recalculateAgentStats now handled inline in closePaperTradesForSell $transaction
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
+import { evaluateTriggers, type DetectedTrade } from '../services/trigger-engine';
 import { webhookQueue } from '../services/webhook-queue.service';
 import { db } from '../lib/db';
 const positionTracker = new PositionTracker(db);
@@ -350,6 +351,19 @@ async function createTradeRecord(
 
       // Auto-complete FIRST_TRADE onboarding task (fire-and-forget)
       autoCompleteOnboardingTask(agent.id, 'FIRST_TRADE', { tradeId: swapData.signature, tokenSymbol }).catch(() => {});
+
+      // Evaluate buy triggers for agents tracking this wallet (fire-and-forget)
+      evaluateTriggers({
+        walletAddress: agentUserId,
+        tokenMint,
+        tokenSymbol,
+        action: 'BUY',
+        amount: swapData.inputAmount || 0,
+        chain: 'SOLANA',
+        signature: swapData.signature,
+        liquidity: outputPrice?.liquidity,
+        marketCap: outputPrice?.marketCap,
+      }).catch((err) => console.error('[TriggerEngine] Evaluation failed:', err));
 
     } else if (isSell) {
       // ── SELL: Token → SOL/USDC ─────────────────────────

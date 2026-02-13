@@ -72,3 +72,23 @@ export const useAgentUpdated = (callback: (event: FeedEvent) => void) => {
 export const usePriceUpdate = (callback: (event: FeedEvent) => void) => {
   useFeedEvent('price_update', callback);
 };
+
+/**
+ * Hook to listen for trade_recommendation events and subscribe to agent room
+ */
+export const useTradeRecommendations = (
+  agentId: string | null | undefined,
+  callback: (event: FeedEvent) => void,
+) => {
+  // Subscribe to agent room when agentId is available
+  useEffect(() => {
+    if (!agentId) return;
+    const ws = getWebSocketManager();
+    ws.subscribeToAgent(agentId);
+    return () => {
+      ws.unsubscribeFromAgent(agentId);
+    };
+  }, [agentId]);
+
+  useFeedEvent('trade_recommendation', callback);
+};

@@ -1,0 +1,11 @@
+# Ignore native build artifacts (EAS builds from scratch)
+ios/Pods
+ios/build
+android/build
+android/.gradle
+
+# Ignore dev files
+.claude
+*.md
+build.log
+dist

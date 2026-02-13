@@ -2,8 +2,9 @@ import io, { Socket } from 'socket.io-client';
 import { getJWT } from './api';
 
 export interface FeedEvent {
-  type: 'trade_detected' | 'token_deployed' | 'agent_updated' | 'price_update' | 
-        'position_opened' | 'position_closed' | 'agent_message' | 'vote_started' | 'vote_cast';
+  type: 'trade_detected' | 'token_deployed' | 'agent_updated' | 'price_update' |
+        'position_opened' | 'position_closed' | 'agent_message' | 'vote_started' | 'vote_cast' |
+        'trade_recommendation' | 'auto_buy_executed';
   data: {
     agent_id?: string;
     token_mint?: string;
@@ -18,6 +19,18 @@ export interface FeedEvent {
     vote?: 'yes' | 'no';
     [key: string]: any;
   };
+}
+
+export interface TradeRecommendation {
+  agentId: string;
+  tokenMint: string;
+  tokenSymbol: string;
+  suggestedAmount: number;
+  chain: 'SOLANA' | 'BSC';
+  trigger: string;
+  sourceWallet: string;
+  reason: string;
+  timestamp: string;
 }
 
 class WebSocketManager {
@@ -91,6 +104,30 @@ class WebSocketManager {
       this.socket.on('vote_cast', (data) =>
         this.emit('vote_cast', { type: 'vote_cast', data })
       );
+
+      // Agent activity events (trade recommendations, auto-buy executed)
+      this.socket.on('agent:activity', (data: any) => {
+        const eventData = data?.data;
+        if (eventData?.type === 'trade_recommendation') {
+          this.emit('trade_recommendation', {
+            type: 'trade_recommendation',
+            data: {
+              ...eventData,
+              agentId: data.agentId,
+              timestamp: data.timestamp,
+            },
+          });
+        } else if (eventData?.type === 'auto_buy_executed') {
+          this.emit('auto_buy_executed', {
+            type: 'auto_buy_executed',
+            data: {
+              ...eventData,
+              agentId: data.agentId,
+              timestamp: data.timestamp,
+            },
+          });
+        }
+      });
     });
   }
 
@@ -160,6 +197,28 @@ class WebSocketManager {
 
   onVoteCast(callback: (event: FeedEvent) => void): () => void {
     return this.on('vote_cast', callback);
+  }
+
+  onTradeRecommendation(callback: (event: FeedEvent) => void): () => void {
+    return this.on('trade_recommendation', callback);
+  }
+
+  onAutoBuyExecuted(callback: (event: FeedEvent) => void): () => void {
+    return this.on('auto_buy_executed', callback);
+  }
+
+  /** Subscribe to a specific agent's activity room */
+  subscribeToAgent(agentId: string): void {
+    if (this.socket?.connected) {
+      this.socket.emit('subscribe:agent', agentId);
+    }
+  }
+
+  /** Unsubscribe from an agent's activity room */
+  unsubscribeFromAgent(agentId: string): void {
+    if (this.socket?.connected) {
+      this.socket.emit('unsubscribe', `agent:${agentId}`);
+    }
   }
 }
 

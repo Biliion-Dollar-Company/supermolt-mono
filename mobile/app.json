@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "SuperRouter",
+    "slug": "sr-mobile",
+    "owner": "henry6262",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "sr-mobile",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.superrouter.mobile",
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0f0f0f"
+      },
+      "package": "com.superrouter.mobile"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "f30ebaa8-689e-4e47-91c5-69d3fc3406c3"
+      }
+    }
+  }
+}

@@ -12,6 +12,7 @@ import { createBSCMonitor } from './services/bsc-monitor.js';
 import { createFourMemeMonitor } from './services/fourmeme-monitor.js';
 
 import { createSortinoCron } from './services/sortino-cron.js';
+import { createPredictionCron } from './services/prediction-cron.js';
 import { createMetricsMiddleware, getMetrics, getMetricsContentType, updateAgentMetrics, updateEpochMetrics } from './services/metrics.service.js';
 import { DistributedLockService, getReplicaId } from './services/distributed-lock.service.js';
 
@@ -39,7 +40,9 @@ import { swaggerRoutes } from './routes/swagger';
 import { siweAuthRoutes } from './routes/auth.siwe';
 import { bscRoutes } from './routes/bsc.routes';
 import { pumpfunRoutes } from './routes/pumpfun.routes';
-// import { trading } from './routes/trading.routes'; // DISABLED for hackathon - passive observation only
+import { predictionRoutes } from './routes/prediction.routes';
+import { trading } from './routes/trading.routes';
+import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
 
 // USDC Hackathon Routes (Standardized Modules)
 import treasuryModule from './modules/treasury/treasury.routes';
@@ -48,6 +51,7 @@ import epochs from './modules/epoch/epoch.routes';
 import calls from './modules/scanner-calls/scanner-calls.routes';
 import arenaRoutes from './modules/arena/arena.routes';
 import arenaMeRoutes from './routes/arena-me.routes';
+import agentConfigRoutes from './routes/agent-config.routes';
 import taskRoutes from './modules/tasks/tasks.routes';
 import newsRoutes from './modules/news/news.routes';
 import { systemRoutes, setDevPrintFeedGetter } from './routes/system.routes';
@@ -168,10 +172,8 @@ app.route('/messaging', messaging); // Agent messaging
 app.route('/voting', voting); // Voting system
 app.route('/agent-auth', agentAuth); // Twitter auth + task verification
 
-// Trading routes (Agent trade execution) - DISABLED FOR HACKATHON
-// app.route('/trading', trading); // BUY/SELL execution + portfolio management
-// Note: Trading system built but disabled - agents don't trade through us
-// We only observe on-chain activity, show positions, enable conversations
+// Trading routes (Agent trade execution via Jupiter)
+app.route('/trading', trading);
 
 // Treasury routes (USDC reward distribution)
 app.route('/treasury', treasuryModule); // Treasury management and USDC distribution
@@ -191,8 +193,12 @@ app.route('/bsc', bscRoutes);
 // Solana routes (pump.fun token launcher)
 app.route('/pumpfun', pumpfunRoutes);
 
+// Prediction market routes (Kalshi + future platforms)
+app.route('/prediction', predictionRoutes);
+
 // Arena routes (public, frontend arena page)
 app.route('/arena', arenaMeRoutes); // /arena/me — must be before generic arena routes
+app.route('/arena/me', agentConfigRoutes); // Agent configuration endpoints
 app.route('/arena', arenaRoutes);
 app.route('/arena/tasks', taskRoutes);
 
@@ -224,7 +230,8 @@ app.get('/', (c) => {
         tokens: '/bsc/tokens/*',
         factory: '/bsc/factory/info',
         treasury: '/bsc/treasury/*',
-      }
+      },
+      prediction: '/prediction/*'
     }
   });
 });
@@ -281,6 +288,26 @@ async function startHeliusMonitor() {
     heliusMonitor.start().catch((error) => {
       console.error('❌ Helius monitor failed to start:', error);
     });
+
+    // Load user-defined tracked wallets from DB into monitor
+    try {
+      const userWallets = await db.trackedWallet.findMany({
+        where: { chain: 'SOLANA' },
+        select: { address: true },
+      });
+      let added = 0;
+      for (const w of userWallets) {
+        if (!trackedWallets.includes(w.address)) {
+          heliusMonitor.addWallet(w.address);
+          added++;
+        }
+      }
+      if (added > 0) {
+        console.log(`✅ Loaded ${added} user-tracked Solana wallets from DB`);
+      }
+    } catch (err) {
+      console.warn('⚠️  Failed to load tracked wallets from DB:', err);
+    }
 
     console.log('✅ Helius monitor instance saved globally (dynamic wallet support enabled)');
 
@@ -451,12 +478,22 @@ if (enableChainMonitors) {
   console.log('⏭️  Chain monitors disabled on this replica');
 }
 
+// Start Auto-Buy Executor (processes trigger engine queue)
+if (enableChainMonitors) {
+  startAutoBuyExecutor();
+} else {
+  console.log('⏭️  Auto-buy executor disabled on this replica');
+}
+
 // Start Sortino cron job (hourly recalculation)
 const lockService = new DistributedLockService(db, replicaId);
 let sortinoCron: ReturnType<typeof createSortinoCron> | null = null;
+let predictionCron: ReturnType<typeof createPredictionCron> | null = null;
 if (enableSortinoCron) {
   sortinoCron = createSortinoCron(db, lockService);
   sortinoCron.start();
+  predictionCron = createPredictionCron(db, lockService);
+  predictionCron.start();
 } else {
   console.log('⏭️  Sortino cron disabled on this replica');
 }
@@ -471,6 +508,8 @@ setInterval(async () => {
 process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down...');
   if (sortinoCron) sortinoCron.stop();
+  if (predictionCron) predictionCron.stop();
+  stopAutoBuyExecutor();
   if (devprintFeed) await devprintFeed.stop();
   server.close(() => {
     console.log('✅ Server closed');
@@ -481,6 +520,8 @@ process.on('SIGTERM', async () => {
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down...');
   if (sortinoCron) sortinoCron.stop();
+  if (predictionCron) predictionCron.stop();
+  stopAutoBuyExecutor();
   if (devprintFeed) await devprintFeed.stop();
   server.close(() => {
     console.log('✅ Server closed');

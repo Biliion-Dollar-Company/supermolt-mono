@@ -7,28 +7,28 @@ import WalletProvider from './WalletProvider';
 export default function AppProviders({ children }: { children: ReactNode }) {
   const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
 
-  const content = (
-    <WalletProvider>
-      {children}
-    </WalletProvider>
-  );
-
   if (!privyAppId) {
-    return content;
+    console.warn('⚠️ NEXT_PUBLIC_PRIVY_APP_ID not set - authentication will not work');
+    return <WalletProvider>{children}</WalletProvider>;
   }
 
   return (
     <PrivyProvider
       appId={privyAppId}
       config={{
-        loginMethods: ['email', 'wallet'],
+        loginMethods: ['email', 'wallet', 'twitter', 'github', 'google'],
         appearance: {
           theme: 'dark',
           accentColor: '#E8B45E',
         },
+        embeddedWallets: {
+          createOnLogin: 'all-users',
+        },
       }}
     >
-      {content}
+      <WalletProvider>
+        {children}
+      </WalletProvider>
     </PrivyProvider>
   );
 }

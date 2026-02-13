@@ -4,7 +4,7 @@ import { Loader2, User } from 'lucide-react';
 import { usePrivyAgentAuth } from '@/hooks/usePrivyAgentAuth';
 
 export default function PrivySignInButton({
-  label = 'Sign In with Email',
+  label = 'Sign In',
   className,
 }: {
   label?: string;

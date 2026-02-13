@@ -2,13 +2,17 @@ import { createContext, useContext, useState, useEffect, ReactNode, useCallback 
 import { View, ActivityIndicator } from 'react-native';
 import { useRouter, useSegments } from 'expo-router';
 import { usePrivy, useLoginWithOAuth } from '@privy-io/expo';
+import * as Linking from 'expo-linking';
 import { colors } from '@/theme/colors';
 import {
   loginWithPrivyToken,
   clearTokens,
   getAccessToken,
+  getMyAgent,
+  getMyAgents,
   SRTokens,
 } from '@/lib/api/client';
+import { useAuthStore } from '@/store/auth';
 
 // Types
 interface User {
@@ -54,13 +58,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [srAuthLoading, setSrAuthLoading] = useState(false);
   const router = useRouter();
   const segments = useSegments();
+  const setAgentMe = useAuthStore((s) => s.setAgentMe);
+  const setAgents = useAuthStore((s) => s.setAgents);
+  const clearAuthStore = useAuthStore((s) => s.clear);
 
   // Privy hooks
   const { user: privyUser, isReady, logout: privyLogout, getAccessToken: getPrivyToken } = usePrivy();
   const { login: oauthLogin, state: oauthState } = useLoginWithOAuth();
 
-  // Debug logging for Privy state
+  // Debug logging for Privy state + redirect URL
   useEffect(() => {
+    const redirectUrl = Linking.createURL('/');
+    console.log('[Auth] Redirect URL that Privy will use:', redirectUrl);
     console.log('[Auth] Privy state:', {
       isReady,
       hasUser: !!privyUser,
@@ -94,6 +103,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const existing = await getAccessToken();
       if (existing && !cancelled) {
         setSrToken(existing);
+        // Populate auth store if not already populated
+        try {
+          const [meData, agentsList] = await Promise.all([
+            getMyAgent().catch(() => null),
+            getMyAgents().catch(() => []),
+          ]);
+          if (meData?.agent && !cancelled) {
+            setAgentMe({
+              agent: meData.agent,
+              stats: meData.stats ?? null,
+              onboarding: meData.onboarding,
+            });
+          }
+          if (!cancelled && agentsList.length > 0) {
+            setAgents(agentsList);
+          }
+        } catch {
+          // Token may be expired — will get refreshed on next API call
+        }
         return;
       }
 
@@ -106,6 +134,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (!cancelled) {
           setSrToken(result.tokens.accessToken);
           console.log('[Auth] SR-Mobile JWT obtained for user:', result.userId);
+
+          // Populate auth store with agent profile + stats + onboarding + agents list
+          try {
+            const [meData, agentsList] = await Promise.all([
+              getMyAgent().catch(() => null),
+              getMyAgents().catch(() => []),
+            ]);
+            if (meData?.agent && !cancelled) {
+              setAgentMe({
+                agent: meData.agent,
+                stats: meData.stats ?? null,
+                onboarding: meData.onboarding,
+              });
+            }
+            if (!cancelled && agentsList.length > 0) {
+              setAgents(agentsList);
+            }
+          } catch (meErr) {
+            console.warn('[Auth] Could not fetch agent profile:', meErr);
+          }
         }
       } catch (err) {
         console.error('[Auth] SR-Mobile login failed:', err);
@@ -120,19 +168,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [privyUser?.id]);
 
   // Redirect based on auth state (trench redirect logic)
+  const agents = useAuthStore((s) => s.agents);
+  const agentProfile = useAuthStore((s) => s.agentProfile);
+
   useEffect(() => {
     if (!isReady && !initTimeout) return;
+    // Don't redirect while still exchanging tokens
+    if (srAuthLoading) return;
 
     const firstSegment = segments[0];
     const inAuthGroup = firstSegment === '(auth)';
     const onRootIndex = firstSegment === undefined;
+    const onCreateAgent = segments.join('/') === 'create-agent';
 
     if (!privyUser && !inAuthGroup && !onRootIndex) {
       router.replace('/');
     } else if (privyUser && (inAuthGroup || onRootIndex)) {
-      router.replace('/(tabs)');
+      // If user has no agents yet, send to create-agent onboarding
+      if (srToken && agents.length === 0 && !agentProfile && !onCreateAgent) {
+        router.replace('/create-agent');
+      } else {
+        router.replace('/(tabs)');
+      }
     }
-  }, [privyUser, segments, isReady, initTimeout, router]);
+  }, [privyUser, segments, isReady, initTimeout, router, srAuthLoading, srToken, agents.length, agentProfile]);
 
   // Only show loading if we're actively doing OAuth, not for Privy init (handled by timeout)
   const isLoading = oauthState.status === 'loading' || srAuthLoading;
@@ -178,13 +237,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await clearTokens();
       setSrToken(null);
+      clearAuthStore();
       await privyLogout();
       setWallet(null);
     } catch (error) {
       console.error('Logout failed:', error);
       throw error;
     }
-  }, [privyLogout]);
+  }, [privyLogout, clearAuthStore]);
 
   const value: AuthContextType = {
     user,

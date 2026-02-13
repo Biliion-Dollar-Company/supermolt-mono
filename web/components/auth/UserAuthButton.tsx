@@ -6,8 +6,14 @@ import { usePrivyAgentAuth } from '@/hooks/usePrivyAgentAuth';
 import { useAuthStore } from '@/store/authStore';
 
 function UserAuthButtonInner() {
-  const { ready, authenticated, isSigningIn, signIn, signOut } = usePrivyAgentAuth();
+  const { ready, authenticated, user, isSigningIn, signIn, signOut } = usePrivyAgentAuth();
   const { agent, isAuthenticated } = useAuthStore();
+
+  const rawAvatarUrl = agent?.avatarUrl || user?.twitter?.profilePictureUrl || null;
+  const avatarUrl = rawAvatarUrl?.replace('_normal.', '_400x400.') ?? null;
+  const displayName = agent?.twitterHandle
+    ? `@${agent.twitterHandle}`
+    : agent?.name || user?.twitter?.username || 'Agent';
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -59,12 +65,20 @@ function UserAuthButtonInner() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setDropdownOpen(!dropdownOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.06] transition-all text-sm"
+        className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.06] transition-all"
       >
-        <span className="text-accent-primary font-mono text-xs">Lv.{agent.level}</span>
-        <span className="text-text-primary font-medium truncate max-w-[100px]">{agent.name}</span>
-        <span className="text-text-muted font-mono text-xs">{agent.xp} XP</span>
-        <ChevronDown className={`w-3 h-3 text-text-muted transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt=""
+            className="w-7 h-7 rounded-full object-cover"
+          />
+        ) : (
+          <User className="w-5 h-5 text-text-muted" />
+        )}
+        <span className="text-text-primary font-medium truncate max-w-[140px] text-base">{displayName}</span>
+        <span className="text-accent-primary font-mono text-sm">Lv.{agent.level}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-text-muted transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {dropdownOpen && (
@@ -86,7 +100,6 @@ function UserAuthButtonInner() {
 }
 
 export default function UserAuthButton() {
-  const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-  if (!privyAppId) return null;
+  // Privy is now the primary auth method
   return <UserAuthButtonInner />;
 }

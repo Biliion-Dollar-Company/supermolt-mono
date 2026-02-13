@@ -71,20 +71,23 @@ arenaMeRoutes.get('/me', agentJwtMiddleware, async (c) => {
       return c.json({ success: false, error: 'Agent not found' }, 404);
     }
 
-    // Get stats from AgentStats table
-    const stats = await db.agentStats.findUnique({
-      where: { agentId },
-      select: {
-        sortinoRatio: true,
-        maxDrawdown: true,
-        totalPnl: true,
-        totalTrades: true,
-        winRate: true,
-      },
-    });
-
-    // Get onboarding progress
-    const onboarding = await getOnboardingProgress(agentId);
+    // Get stats from AgentStats table + prediction stats in parallel
+    const [stats, predictionStats, onboarding] = await Promise.all([
+      db.agentStats.findUnique({
+        where: { agentId },
+        select: {
+          sortinoRatio: true,
+          maxDrawdown: true,
+          totalPnl: true,
+          totalTrades: true,
+          winRate: true,
+        },
+      }),
+      db.predictionStats.findUnique({
+        where: { agentId },
+      }),
+      getOnboardingProgress(agentId),
+    ]);
 
     const config = agent?.config as Record<string, unknown> | null;
     const walletOverride = config && typeof config.walletAddress === 'string' ? config.walletAddress : null;
@@ -116,6 +119,17 @@ arenaMeRoutes.get('/me', agentJwtMiddleware, async (c) => {
             totalPnl: Number(stats.totalPnl),
             totalTrades: stats.totalTrades,
             winRate: Number(stats.winRate),
+          }
+        : null,
+      predictionStats: predictionStats
+        ? {
+            totalPredictions: predictionStats.totalPredictions,
+            correctPredictions: predictionStats.correctPredictions,
+            accuracy: Number(predictionStats.accuracy),
+            brierScore: Number(predictionStats.brierScore),
+            roi: Number(predictionStats.roi),
+            streak: predictionStats.streak,
+            bestStreak: predictionStats.bestStreak,
           }
         : null,
       onboarding,

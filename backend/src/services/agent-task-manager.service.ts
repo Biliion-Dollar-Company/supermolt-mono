@@ -291,6 +291,14 @@ export class AgentTaskManager {
         return this.validateGodWalletTracking(proof);
       case 'LIQUIDITY_LOCK':
         return this.validateLiquidityLock(proof);
+      case 'MARKET_ANALYSIS':
+        return this.validateMarketAnalysis(proof);
+      case 'PREDICTION_RESEARCH':
+        return this.validatePredictionResearch(proof);
+      case 'CONTRARIAN_BET':
+        return this.validateContrarianBet(proof);
+      case 'PREDICTION_ACCURACY':
+        return this.validatePredictionAccuracy(proof);
       default:
         return { valid: true };
     }
@@ -398,5 +406,109 @@ export class AgentTaskManager {
       return { valid: false, error: 'riskAssessment required' };
     }
     return { valid: true };
+  }
+
+  private validateMarketAnalysis(proof: any): { valid: boolean; error?: string } {
+    if (!proof.marketTicker || typeof proof.marketTicker !== 'string') {
+      return { valid: false, error: 'marketTicker must be a non-empty string' };
+    }
+    if (!proof.analysis || typeof proof.analysis !== 'string' || proof.analysis.length < 20) {
+      return { valid: false, error: 'analysis must be at least 20 characters' };
+    }
+    if (proof.predictedOutcome !== 'YES' && proof.predictedOutcome !== 'NO') {
+      return { valid: false, error: 'predictedOutcome must be "YES" or "NO"' };
+    }
+    if (typeof proof.confidence !== 'number' || proof.confidence < 0 || proof.confidence > 100) {
+      return { valid: false, error: 'confidence must be a number between 0 and 100' };
+    }
+    return { valid: true };
+  }
+
+  private validatePredictionResearch(proof: any): { valid: boolean; error?: string } {
+    if (!proof.eventTicker || typeof proof.eventTicker !== 'string') {
+      return { valid: false, error: 'eventTicker must be a non-empty string' };
+    }
+    if (!Array.isArray(proof.relatedMarkets) || proof.relatedMarkets.length < 2) {
+      return { valid: false, error: 'relatedMarkets must be an array with at least 2 entries' };
+    }
+    if (!proof.narrative || typeof proof.narrative !== 'string' || proof.narrative.length < 30) {
+      return { valid: false, error: 'narrative must be at least 30 characters' };
+    }
+    return { valid: true };
+  }
+
+  private validateContrarianBet(proof: any): { valid: boolean; error?: string } {
+    if (!proof.marketTicker || typeof proof.marketTicker !== 'string') {
+      return { valid: false, error: 'marketTicker must be a non-empty string' };
+    }
+    if (typeof proof.marketPrice !== 'number') {
+      return { valid: false, error: 'marketPrice must be a number' };
+    }
+    if (proof.marketPrice <= 0.4 || proof.marketPrice >= 0.6) {
+      // This is the contrarian check — there must be consensus to bet against
+    } else {
+      return { valid: false, error: 'marketPrice must be > 0.60 or < 0.40 (consensus required for contrarian bet)' };
+    }
+    if (!proof.contrarianReasoning || typeof proof.contrarianReasoning !== 'string' || proof.contrarianReasoning.length < 30) {
+      return { valid: false, error: 'contrarianReasoning must be at least 30 characters' };
+    }
+    if (proof.side !== 'YES' && proof.side !== 'NO') {
+      return { valid: false, error: 'side must be "YES" or "NO"' };
+    }
+    return { valid: true };
+  }
+
+  private validatePredictionAccuracy(proof: any): { valid: boolean; error?: string } {
+    if (typeof proof.totalPredictions !== 'number' || proof.totalPredictions < 5) {
+      return { valid: false, error: 'totalPredictions must be an integer >= 5' };
+    }
+    if (typeof proof.accuracy !== 'number' || proof.accuracy < 0 || proof.accuracy > 100) {
+      return { valid: false, error: 'accuracy must be a number between 0 and 100' };
+    }
+    if (typeof proof.brierScore !== 'number' || proof.brierScore < 0 || proof.brierScore > 1) {
+      return { valid: false, error: 'brierScore must be a number between 0 and 1' };
+    }
+    return { valid: true };
+  }
+
+  /**
+   * Create prediction-category tasks for a market.
+   * Similar to createTasksForToken but for prediction markets with 48h expiry.
+   */
+  async createTasksForMarket(
+    marketTicker: string,
+    marketTitle: string,
+  ): Promise<{ taskIds: string[]; totalXP: number }> {
+    const predictionSkills = getSkillsByCategory('prediction');
+    const taskIds: string[] = [];
+    let totalXP = 0;
+
+    console.log(`\n🔮 Creating prediction tasks for market: ${marketTicker}`);
+
+    for (const skill of predictionSkills) {
+      try {
+        const task = await db.agentTask.create({
+          data: {
+            tokenMint: null, // Prediction tasks aren't tied to a token mint
+            tokenSymbol: null,
+            taskType: skill.name,
+            title: `${skill.title}: ${marketTitle.substring(0, 60)}`,
+            description: `${skill.description} — Market: ${marketTicker}`,
+            xpReward: skill.xpReward || 50,
+            requiredFields: skill.requiredFields || [],
+            expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48h
+          },
+        });
+
+        taskIds.push(task.id);
+        totalXP += skill.xpReward || 50;
+        console.log(`   ✅ ${skill.name} (${skill.xpReward} XP) → ID: ${task.id}`);
+      } catch (error) {
+        console.error(`❌ Error creating prediction task ${skill.name}:`, error);
+      }
+    }
+
+    console.log(`\n📊 Total: ${taskIds.length} prediction tasks created (${totalXP} XP available)\n`);
+    return { taskIds, totalXP };
   }
 }

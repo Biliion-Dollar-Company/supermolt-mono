@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Settings, User, Twitter, Shield, TrendingUp, Save, Loader2, CheckCircle2, Circle, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Settings, Shield, TrendingUp, Save, Loader2, CheckCircle2, AlertTriangle, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
-import { updateAgentProfileAuth, saveAgentConfig } from '@/lib/api';
+import { saveAgentConfig } from '@/lib/api';
 import { OnboardingChecklist } from '@/components/arena/OnboardingChecklist';
 import type { OnboardingTask } from '@/lib/types';
 
@@ -33,58 +33,24 @@ function ConfigSection({
                     <Icon className="w-3.5 h-3.5 text-accent-primary" />
                     <span className="text-xs font-bold text-text-primary uppercase tracking-wider">{title}</span>
                 </div>
-                {open ? <ChevronUp className="w-3.5 h-3.5 text-text-muted" /> : <ChevronDown className="w-3.5 h-3.5 text-text-muted" />}
+                <ChevronDown
+                    className="w-3.5 h-3.5 text-text-muted transition-transform duration-300 ease-out"
+                    style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                />
             </button>
-            {open && (
-                <div className="px-3 py-3 space-y-3 border-t border-white/[0.04]">
-                    {children}
+            <div
+                className="grid transition-[grid-template-rows] duration-300 ease-out"
+                style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+            >
+                <div className="overflow-hidden">
+                    <div
+                        className="px-3 py-3 space-y-3 border-t border-white/[0.04] transition-opacity duration-300 ease-out"
+                        style={{ opacity: open ? 1 : 0 }}
+                    >
+                        {children}
+                    </div>
                 </div>
-            )}
-        </div>
-    );
-}
-
-// ── Input Field ──────────────────────────────────────────────────
-
-function Field({
-    label,
-    value,
-    onChange,
-    placeholder,
-    disabled,
-    multiline,
-}: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    placeholder?: string;
-    disabled?: boolean;
-    multiline?: boolean;
-}) {
-    const base = "w-full bg-white/[0.03] border border-white/[0.08] px-3 py-2 text-sm text-text-primary placeholder:text-text-muted/50 focus:border-accent-primary/30 focus:outline-none transition-colors rounded";
-
-    return (
-        <div>
-            <label className="block text-[10px] text-text-muted uppercase tracking-wider mb-1">{label}</label>
-            {multiline ? (
-                <textarea
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    rows={3}
-                    className={`${base} resize-none`}
-                />
-            ) : (
-                <input
-                    type="text"
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder={placeholder}
-                    disabled={disabled}
-                    className={base}
-                />
-            )}
+            </div>
         </div>
     );
 }
@@ -132,47 +98,15 @@ function SliderField({
     );
 }
 
-// ── Chip Toggle ──────────────────────────────────────────────────
-
-function ChipToggle({
-    label,
-    active,
-    onClick,
-}: {
-    label: string;
-    active: boolean;
-    onClick: () => void;
-}) {
-    return (
-        <button
-            onClick={onClick}
-            className={`text-xs px-2.5 py-1 rounded border transition-colors cursor-pointer ${active
-                ? 'border-accent-primary/30 bg-accent-primary/10 text-accent-primary'
-                : 'border-white/[0.06] bg-white/[0.02] text-text-muted hover:bg-white/[0.04]'
-                }`}
-        >
-            {label}
-        </button>
-    );
-}
-
 // ── Main Component ───────────────────────────────────────────────
 
 export function AgentConfigPanel() {
-    const { agent, onboardingTasks, onboardingProgress, updateAgent } = useAuthStore();
-
-    // Profile fields
-    const [displayName, setDisplayName] = useState(agent?.name || '');
-    const [bio, setBio] = useState(agent?.bio || '');
-    const [twitterHandle, setTwitterHandle] = useState(agent?.twitterHandle || '');
-    const [saving, setSaving] = useState(false);
+    const { agent, onboardingTasks, onboardingProgress } = useAuthStore();
 
     // Trading params (configurable)
-    const [riskLevel, setRiskLevel] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'EXTREME'>('MEDIUM');
     const [maxPositionSize, setMaxPositionSize] = useState(0.05);
     const [takeProfitPercent, setTakeProfitPercent] = useState(25);
     const [stopLossPercent, setStopLossPercent] = useState(15);
-    const [aggression, setAggression] = useState(60);
 
     // Data source toggles
     const [enabledFeeds, setEnabledFeeds] = useState({
@@ -182,30 +116,15 @@ export function AgentConfigPanel() {
         dexscreener: true,
     });
 
-    const handleSaveProfile = useCallback(async () => {
-        setSaving(true);
-        try {
-            await updateAgentProfileAuth({ bio: bio || undefined });
-            updateAgent({ bio });
-            toast.success('Profile updated');
-        } catch (err: any) {
-            toast.error(err?.response?.data?.error || err?.message || 'Failed to save');
-        } finally {
-            setSaving(false);
-        }
-    }, [bio, updateAgent]);
-
     // Persist trading config to backend
     const [savingConfig, setSavingConfig] = useState(false);
     const handleSaveConfig = useCallback(async () => {
         setSavingConfig(true);
         try {
             await saveAgentConfig({
-                riskLevel,
                 maxPositionSize,
                 takeProfitPercent,
                 stopLossPercent,
-                aggression,
                 enabledFeeds,
             });
             toast.success('Trading config saved');
@@ -214,7 +133,7 @@ export function AgentConfigPanel() {
         } finally {
             setSavingConfig(false);
         }
-    }, [riskLevel, maxPositionSize, takeProfitPercent, stopLossPercent, aggression, enabledFeeds]);
+    }, [maxPositionSize, takeProfitPercent, stopLossPercent, enabledFeeds]);
 
     const toggleFeed = (key: keyof typeof enabledFeeds) => {
         setEnabledFeeds(prev => ({ ...prev, [key]: !prev[key] }));
@@ -231,38 +150,8 @@ export function AgentConfigPanel() {
             </div>
 
             <div className="p-3 space-y-3">
-                {/* Profile Section */}
-                <ConfigSection title="Profile" icon={User}>
-                    <Field label="Display Name" value={displayName} onChange={setDisplayName} placeholder="Your agent's display name" />
-                    <Field label="Bio" value={bio} onChange={setBio} placeholder="Describe your trading strategy…" multiline />
-                    <Field label="Twitter" value={twitterHandle} onChange={setTwitterHandle} placeholder="@handle" />
-                    <button
-                        onClick={handleSaveProfile}
-                        disabled={saving}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-xs font-semibold disabled:opacity-50 cursor-pointer rounded"
-                    >
-                        {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                        {saving ? 'Saving…' : 'Save Profile'}
-                    </button>
-                </ConfigSection>
-
                 {/* Trading Parameters */}
-                <ConfigSection title="Trading Parameters" icon={TrendingUp} defaultOpen={false}>
-                    {/* Risk Level */}
-                    <div>
-                        <label className="block text-[10px] text-text-muted uppercase tracking-wider mb-1.5">Risk Level</label>
-                        <div className="flex gap-1.5">
-                            {(['LOW', 'MEDIUM', 'HIGH', 'EXTREME'] as const).map(level => (
-                                <ChipToggle
-                                    key={level}
-                                    label={level}
-                                    active={riskLevel === level}
-                                    onClick={() => setRiskLevel(level)}
-                                />
-                            ))}
-                        </div>
-                    </div>
-
+                <ConfigSection title="Trading Parameters" icon={TrendingUp}>
                     <SliderField
                         label="Max Position Size"
                         value={maxPositionSize}
@@ -293,17 +182,6 @@ export function AgentConfigPanel() {
                         unit="%"
                         description="Auto-sell when loss exceeds this %"
                     />
-                    <SliderField
-                        label="Aggression"
-                        value={aggression}
-                        onChange={setAggression}
-                        min={10}
-                        max={100}
-                        step={5}
-                        unit=""
-                        description="Higher = more trades, faster entries"
-                    />
-
                     <div className="bg-amber-500/5 border border-amber-500/10 p-2 rounded flex items-start gap-2">
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
                         <p className="text-[10px] text-amber-400/80 leading-tight">

@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
-import { apiFetch } from '@/lib/api/client';
-import { useMyAgentStore, Agent } from '@/store/agent';
+import { getMyAgent } from '@/lib/api/client';
+import { useMyAgentStore } from '@/store/agent';
+import { useAuthStore } from '@/store/auth';
 
 export function useMyAgent() {
   const { agent, hasChecked, setAgent, setHasChecked } = useMyAgentStore();
+  const setAgentMe = useAuthStore((s) => s.setAgentMe);
   const [isLoading, setIsLoading] = useState(!hasChecked);
   const [error, setError] = useState<string | null>(null);
 
@@ -12,11 +14,31 @@ export function useMyAgent() {
       setIsLoading(true);
       setError(null);
 
-      const data = await apiFetch<Record<string, unknown>[]>('/agents');
-      const agents = Array.isArray(data) ? data : [];
+      const data = await getMyAgent();
 
-      if (agents.length > 0) {
-        setAgent(agents[0]);
+      if (data?.agent) {
+        // Store basic agent info in agent store
+        setAgent({
+          id: data.agent.id,
+          userId: data.agent.pubkey || '',
+          archetypeId: '',
+          name: data.agent.name,
+          status: 'ACTIVE',
+          paperBalance: 0,
+          totalTrades: data.stats?.totalTrades ?? 0,
+          winRate: data.stats?.winRate ?? 0,
+          totalPnl: data.stats?.totalPnl ?? 0,
+          config: {},
+          createdAt: data.agent.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+
+        // Store full profile data in auth store
+        setAgentMe({
+          agent: data.agent,
+          stats: data.stats ?? null,
+          onboarding: data.onboarding ?? { tasks: [], completedTasks: 0, totalTasks: 0, progress: 0 },
+        });
       } else {
         setAgent(null);
         setHasChecked(true);
@@ -28,27 +50,7 @@ export function useMyAgent() {
     } finally {
       setIsLoading(false);
     }
-  }, [setAgent, setHasChecked]);
-
-  const updateStatus = useCallback(
-    async (status: 'ACTIVE' | 'PAUSED') => {
-      if (!agent) return;
-      try {
-        const updated = await apiFetch<Record<string, unknown>>(
-          `/agents/${agent.id}/status`,
-          {
-            method: 'PATCH',
-            body: JSON.stringify({ status }),
-          },
-        );
-        setAgent(updated);
-      } catch (err) {
-        console.error('[useMyAgent] Status update failed:', err);
-        throw err;
-      }
-    },
-    [agent, setAgent],
-  );
+  }, [setAgent, setHasChecked, setAgentMe]);
 
   // Fetch on mount if we haven't checked yet
   useEffect(() => {
@@ -63,6 +65,5 @@ export function useMyAgent() {
     isLoading,
     error,
     refresh: fetchAgent,
-    updateStatus,
   };
 }

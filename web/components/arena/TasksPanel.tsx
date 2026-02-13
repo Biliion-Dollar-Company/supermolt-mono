@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ClipboardCheck, Trophy, Zap, CheckCircle2, Circle, X, Clock, Users, Wallet, User, Loader2 } from 'lucide-react';
+import { ClipboardCheck, Trophy, Zap, CheckCircle2, Circle, X, Clock, Users, Wallet, User, Loader2, Twitter, BarChart3, BookOpen, Lock, Search, type LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useAgentAuth } from '@/hooks/useAgentAuth';
@@ -10,13 +10,13 @@ import PrivySignInButton from '@/components/auth/PrivySignInButton';
 import { getArenaTasks, getTaskStats } from '@/lib/api';
 import type { AgentTaskType, TaskStats } from '@/lib/types';
 
-const TASK_ICONS: Record<string, string> = {
-  TWITTER_DISCOVERY: '\u{1F426}',
-  COMMUNITY_ANALYSIS: '\u{1F465}',
-  HOLDER_ANALYSIS: '\u{1F4CA}',
-  NARRATIVE_RESEARCH: '\u{1F4D6}',
-  GOD_WALLET_TRACKING: '\u{1F40B}',
-  LIQUIDITY_LOCK: '\u{1F512}',
+const TASK_ICONS: Record<string, LucideIcon> = {
+  TWITTER_DISCOVERY: Twitter,
+  COMMUNITY_ANALYSIS: Users,
+  HOLDER_ANALYSIS: BarChart3,
+  NARRATIVE_RESEARCH: BookOpen,
+  GOD_WALLET_TRACKING: Search,
+  LIQUIDITY_LOCK: Lock,
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -26,36 +26,41 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   EXPIRED: { label: 'Expired', color: 'text-text-muted' },
 };
 
-function TaskChip({ task, onClick }: { task: AgentTaskType; onClick: () => void }) {
+function TaskCard({ task, onClick }: { task: AgentTaskType; onClick: () => void }) {
   const validated = task.completions.filter(c => c.status === 'VALIDATED');
   const isDone = task.status === 'COMPLETED';
+  const Icon = TASK_ICONS[task.taskType] || ClipboardCheck;
 
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-3 py-1.5 border flex-shrink-0 cursor-pointer transition-colors hover:bg-white/[0.04] ${
+      className={`group relative text-left w-full p-3 border cursor-pointer transition-all hover:bg-white/[0.04] hover:border-white/[0.12] ${
         isDone
           ? 'border-green-500/20 bg-green-500/[0.03]'
-          : 'border-white/[0.06] bg-white/[0.01]'
+          : 'border-white/[0.06] bg-white/[0.02]'
       }`}
     >
-      <span className="text-sm">{TASK_ICONS[task.taskType] || '\u{1F4CB}'}</span>
-      <span className="text-xs text-text-primary whitespace-nowrap truncate max-w-[140px]">
-        {task.taskType.replace(/_/g, ' ')}
-      </span>
-      <span className="flex items-center gap-0.5 text-[10px] font-mono text-yellow-400 flex-shrink-0">
-        <Zap className="w-2.5 h-2.5" />{task.xpReward}
-      </span>
-      {isDone ? (
-        <CheckCircle2 className="w-3 h-3 text-green-400 flex-shrink-0" />
-      ) : (
-        <Circle className="w-3 h-3 text-accent-primary/50 flex-shrink-0" />
-      )}
-      {validated.length > 0 && (
-        <span className="text-[10px] text-green-400 bg-green-400/10 px-1 rounded flex-shrink-0">
-          {validated[0].agentName}
-        </span>
-      )}
+      <div className="flex items-center gap-3">
+        <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 border ${
+          isDone ? 'border-green-500/20 bg-green-500/[0.06]' : 'border-white/[0.08] bg-white/[0.03]'
+        }`}>
+          <Icon className={`w-4 h-4 ${isDone ? 'text-green-400' : 'text-accent-primary'}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-semibold text-text-primary truncate block">
+            {task.taskType.replace(/_/g, ' ')}
+          </span>
+          <p className="text-xs text-text-muted truncate">{task.title}</p>
+        </div>
+        <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+          <span className="flex items-center gap-1 text-xs font-mono font-bold text-yellow-400">
+            <Zap className="w-3 h-3" />{task.xpReward}
+          </span>
+          {validated.length > 0 && (
+            <span className="text-[10px] text-green-400">{validated.length} done</span>
+          )}
+        </div>
+      </div>
     </button>
   );
 }
@@ -104,7 +109,7 @@ function TaskDetailModal({
           {/* Header */}
           <div className="bg-bg-primary border border-white/[0.1] border-b-0 px-5 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{TASK_ICONS[task.taskType] || '\u{1F4CB}'}</span>
+              {(() => { const Icon = TASK_ICONS[task.taskType] || ClipboardCheck; return <Icon className="w-6 h-6 text-accent-primary" />; })()}
               <div>
                 <h3 className="text-base font-bold text-text-primary">
                   {task.taskType.replace(/_/g, ' ')}
@@ -246,8 +251,8 @@ export function TasksPanel() {
   const [tasks, setTasks] = useState<AgentTaskType[]>([]);
   const [stats, setStats] = useState<TaskStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [tab, setTab] = useState<'active' | 'completed'>('active');
 
   const selectedTask = selectedTaskId ? tasks.find(t => t.taskId === selectedTaskId) ?? null : null;
 
@@ -274,107 +279,84 @@ export function TasksPanel() {
 
   if (loading) {
     return (
-      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] px-4 py-3">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-4 h-4 bg-white/[0.03] animate-pulse rounded" />
-            <div className="h-3 w-12 bg-white/[0.03] animate-pulse rounded" />
-          </div>
-          <div className="w-px h-5 bg-white/[0.08] flex-shrink-0" />
-          <div className="flex-1 flex gap-2 overflow-hidden">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-2 h-8 px-3 border border-white/[0.04] bg-white/[0.01] flex-shrink-0 rounded">
-                <div className="w-4 h-4 bg-white/[0.03] animate-pulse rounded" />
-                <div className="h-3 w-20 bg-white/[0.03] animate-pulse rounded" />
-                <div className="h-3 w-6 bg-white/[0.02] animate-pulse rounded" />
+      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-5 h-5 bg-white/[0.03] animate-pulse rounded" />
+          <div className="h-4 w-16 bg-white/[0.03] animate-pulse rounded" />
+          <div className="flex-1" />
+          <div className="h-3 w-20 bg-white/[0.02] animate-pulse rounded" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="border border-white/[0.04] bg-white/[0.01] p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-white/[0.03] animate-pulse rounded" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-28 bg-white/[0.03] animate-pulse rounded" />
+                  <div className="h-3 w-full bg-white/[0.02] animate-pulse rounded" />
+                  <div className="h-3 w-16 bg-white/[0.02] animate-pulse rounded" />
+                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
-  const displayTasks = tasks.slice(0, 12);
-  const useMarquee = displayTasks.length >= 4;
+  const activeTasks = tasks.filter(t => t.status !== 'COMPLETED');
+  const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
+  const displayTasks = (tab === 'active' ? activeTasks : completedTasks).slice(0, 12);
 
   return (
     <>
-      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] px-4 py-3">
-        <div className="flex items-center gap-4">
-          {/* Left: label + stats */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <div className="flex items-center gap-1.5">
-              <ClipboardCheck className="w-4 h-4 text-accent-primary" />
-              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Tasks</span>
-            </div>
-            {stats && (
-              <div className="hidden sm:flex items-center gap-3 text-[11px] text-text-muted">
-                <span className="flex items-center gap-1">
-                  <Circle className="w-2.5 h-2.5 text-accent-primary" />
-                  {stats.active}
-                </span>
-                <span className="flex items-center gap-1">
-                  <CheckCircle2 className="w-2.5 h-2.5 text-green-400" />
-                  {stats.completed}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Trophy className="w-2.5 h-2.5 text-yellow-400" />
-                  {stats.totalXPAwarded} XP
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Separator */}
-          <div className="w-px h-5 bg-white/[0.08] flex-shrink-0" />
-
-          {/* Right: task chips */}
-          {tasks.length === 0 ? (
-            <span className="text-xs text-text-muted">
-              No tasks yet — created when SuperRouter trades
+      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+        <div className="text-sm font-bold text-text-primary uppercase tracking-wider mb-3">Tasks</div>
+        {/* Toggle tabs */}
+        <div className="flex items-center gap-1 mb-4">
+          <button
+            onClick={() => setTab('active')}
+            className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
+              tab === 'active'
+                ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            Active{stats ? ` (${stats.active})` : ''}
+          </button>
+          <button
+            onClick={() => setTab('completed')}
+            className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
+              tab === 'completed'
+                ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                : 'text-text-muted hover:text-text-secondary'
+            }`}
+          >
+            Completed{stats ? ` (${stats.completed})` : ''}
+          </button>
+          {stats && (
+            <span className="ml-auto flex items-center gap-1 text-[11px] text-yellow-400 font-mono">
+              <Trophy className="w-3 h-3" />{stats.totalXPAwarded} XP
             </span>
-          ) : useMarquee ? (
-            <div className="flex-1 min-w-0 relative">
-              <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-black/60 to-transparent z-10 pointer-events-none" />
-              <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/60 to-transparent z-10 pointer-events-none" />
-              <div
-                className="overflow-hidden"
-                onMouseEnter={() => setIsPaused(true)}
-                onMouseLeave={() => setIsPaused(false)}
-              >
-                <div className={`flex gap-2 animate-marquee ${isPaused ? '[animation-play-state:paused]' : ''}`}>
-                  {displayTasks.map((task) => (
-                    <TaskChip
-                      key={task.taskId}
-                      task={task}
-                      onClick={() => setSelectedTaskId(task.taskId)}
-                    />
-                  ))}
-                  {displayTasks.map((task) => (
-                    <TaskChip
-                      key={`dup-${task.taskId}`}
-                      task={task}
-                      onClick={() => setSelectedTaskId(task.taskId)}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 min-w-0 relative">
-              <div className="flex gap-2 overflow-x-auto no-scrollbar">
-                {displayTasks.map((task) => (
-                  <TaskChip
-                    key={task.taskId}
-                    task={task}
-                    onClick={() => setSelectedTaskId(task.taskId)}
-                  />
-                ))}
-              </div>
-            </div>
           )}
         </div>
+
+        {/* Task list */}
+        {displayTasks.length === 0 ? (
+          <div className="flex items-center justify-center py-8 text-text-muted text-sm">
+            {tab === 'active' ? 'No active tasks' : 'No completed tasks yet'}
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[480px] overflow-y-auto scrollbar-custom">
+            {displayTasks.map((task) => (
+              <TaskCard
+                key={task.taskId}
+                task={task}
+                onClick={() => setSelectedTaskId(task.taskId)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <AnimatePresence>

@@ -115,6 +115,8 @@ export async function getOrCreateQuickstartAgent(options: {
   archetypeId?: string;
   name?: string;
   displayName?: string;
+  twitterUsername?: string;
+  avatarUrl?: string;
 }) {
   const existing = await db.tradingAgent.findFirst({
     where: { userId: options.userId },
@@ -122,10 +124,34 @@ export async function getOrCreateQuickstartAgent(options: {
   });
 
   if (existing) {
+    // Backfill profile data on re-login (only if not already set)
+    const updates: Record<string, any> = {};
+
     if (options.displayName && !existing.displayName) {
+      updates.displayName = options.displayName;
+    }
+    if (options.twitterUsername && !existing.twitterHandle) {
+      updates.twitterHandle = `@${options.twitterUsername}`;
+    }
+    if (options.avatarUrl && !existing.avatarUrl) {
+      updates.avatarUrl = options.avatarUrl;
+    }
+
+    // Mark as Twitter-verified via Privy OAuth
+    if (options.twitterUsername && !existing.twitterHandle) {
+      const existingConfig = (existing.config as Record<string, unknown>) || {};
+      updates.config = {
+        ...existingConfig,
+        twitterVerified: true,
+        twitterVerifiedVia: 'privy_oauth',
+        twitterVerifiedAt: new Date().toISOString(),
+      };
+    }
+
+    if (Object.keys(updates).length > 0) {
       await db.tradingAgent.update({
         where: { id: existing.id },
-        data: { displayName: options.displayName },
+        data: updates,
       });
     }
 
@@ -158,11 +184,18 @@ export async function getOrCreateQuickstartAgent(options: {
       archetypeId: archetype.id,
       name: agentName,
       displayName: options.displayName || null,
+      twitterHandle: options.twitterUsername ? `@${options.twitterUsername}` : null,
+      avatarUrl: options.avatarUrl || null,
       status: 'TRAINING',
       config: {
         ...archetype.tradingParams,
         origin: 'quickstart',
         walletAddress: options.walletAddress || null,
+        ...(options.twitterUsername ? {
+          twitterVerified: true,
+          twitterVerifiedVia: 'privy_oauth',
+          twitterVerifiedAt: new Date().toISOString(),
+        } : {}),
       },
     },
   });

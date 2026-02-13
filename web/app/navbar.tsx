@@ -4,10 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Home, Swords, BookOpen, Menu, X, Wallet, LayoutDashboard } from 'lucide-react';
+import { Swords, BookOpen, Menu, X, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '@/components/reactbits/GradientText';
-import WalletButton from '@/components/wallet/WalletButton';
 import UserAuthButton from '@/components/auth/UserAuthButton';
 
 export default function Navbar() {
@@ -15,10 +14,8 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const allNavLinks = [
-    { href: '/', label: 'Home', Icon: Home },
     { href: '/arena', label: 'Arena', Icon: Swords },
     { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
-    { href: '/treasury-flow', label: 'Treasury', Icon: Wallet },
   ];
 
   const navLinks = allNavLinks.filter(
@@ -99,9 +96,6 @@ export default function Navbar() {
             </li>
             <li className="relative h-full flex items-center ml-2">
               <UserAuthButton />
-            </li>
-            <li className="relative h-full flex items-center ml-2">
-              <WalletButton />
             </li>
           </ul>
 
@@ -184,15 +178,6 @@ export default function Navbar() {
                   className="px-4 pt-2"
                 >
                   <UserAuthButton />
-                </motion.li>
-                <motion.li
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -16 }}
-                  transition={{ duration: 0.2, delay: (navLinks.length + 2) * 0.05 }}
-                  className="px-4 pt-2"
-                >
-                  <WalletButton />
                 </motion.li>
               </ul>
             </motion.div>

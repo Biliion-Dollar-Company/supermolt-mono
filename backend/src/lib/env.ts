@@ -23,6 +23,10 @@ const envSchema = z.object({
   BSC_TREASURY_PRIVATE_KEY: z.string().optional(), // Signs Four.Meme auth + pays gas
   BSC_REWARD_TOKEN_ADDRESS: z.string().optional(),
   FOURMEME_API_URL: z.string().optional(), // defaults to https://four.meme/meme-api/v1
+  // Kalshi Prediction Markets (all optional — browsing works without keys)
+  KALSHI_API_KEY: z.string().optional(),
+  KALSHI_PRIVATE_KEY_PEM: z.string().optional(), // RSA-PSS PEM (base64 or inline)
+  KALSHI_MODE: z.enum(['demo', 'production']).optional(), // defaults to 'demo'
 });
 
 function loadEnv() {

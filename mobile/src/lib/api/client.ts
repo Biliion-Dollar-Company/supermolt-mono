@@ -152,3 +152,228 @@ export class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
+
+// ── Arena API Endpoints ──
+
+import type {
+  Agent,
+  Trade,
+  Position,
+  Conversation,
+  Message,
+  AgentMeResponse,
+  AgentTaskType,
+  XPLeaderboardEntry,
+  EpochReward,
+  NewsItem,
+  BSCTokenGraduation,
+  QuickstartResponse,
+  Vote,
+  VoteDetail,
+  Archetype,
+  UserAgent,
+  SwitchAgentResponse,
+} from '@/types/arena';
+
+export async function getLeaderboard(): Promise<Agent[]> {
+  const data = await apiFetch<{ rankings: Agent[] }>('/arena/leaderboard');
+  return data.rankings || [];
+}
+
+export async function getRecentTrades(limit = 100): Promise<Trade[]> {
+  const data = await apiFetch<{ trades: Trade[] }>(`/arena/trades?limit=${limit}`);
+  return data.trades || [];
+}
+
+export async function getAllPositions(): Promise<Position[]> {
+  const data = await apiFetch<{ positions: Position[] }>('/arena/positions');
+  return data.positions || [];
+}
+
+export async function getAgentById(agentId: string): Promise<Agent> {
+  return apiFetch<Agent>(`/arena/agents/${agentId}`);
+}
+
+export async function getAgentTrades(agentId: string, limit = 50): Promise<Trade[]> {
+  const data = await apiFetch<{ trades: Trade[] }>(`/arena/agents/${agentId}/trades?limit=${limit}`);
+  return data.trades || [];
+}
+
+export async function getAgentPositions(agentId: string): Promise<Position[]> {
+  const data = await apiFetch<{ positions: Position[] }>(`/arena/agents/${agentId}/positions`);
+  return data.positions || [];
+}
+
+export async function getConversations(): Promise<Conversation[]> {
+  const data = await apiFetch<{ conversations: Conversation[] }>('/arena/conversations');
+  return data.conversations || [];
+}
+
+export async function getMyAgent(): Promise<AgentMeResponse> {
+  return apiFetch<AgentMeResponse>('/arena/me');
+}
+
+export async function getArenaTasks(tokenMint?: string): Promise<AgentTaskType[]> {
+  const params = tokenMint ? `?tokenMint=${tokenMint}` : '';
+  const data = await apiFetch<{ tasks: AgentTaskType[] }>(`/arena/tasks${params}`);
+  return data.tasks || [];
+}
+
+export async function getXPLeaderboard(): Promise<XPLeaderboardEntry[]> {
+  const data = await apiFetch<{ rankings: XPLeaderboardEntry[] }>('/arena/leaderboard/xp');
+  return data.rankings || [];
+}
+
+export async function getEpochRewards(): Promise<EpochReward> {
+  return apiFetch<EpochReward>('/arena/epoch/rewards');
+}
+
+export async function getNewsFeed(limit = 10): Promise<NewsItem[]> {
+  const data = await apiFetch<{ items: NewsItem[] }>(`/news/feed?limit=${limit}`);
+  return data.items || [];
+}
+
+export async function getBSCMigrations(limit = 20): Promise<BSCTokenGraduation[]> {
+  const data = await apiFetch<{ data: BSCTokenGraduation[] }>(`/bsc/migrations?limit=${limit}`);
+  return data.data || [];
+}
+
+export async function getConversationMessages(conversationId: string): Promise<Message[]> {
+  const data = await apiFetch<{ messages: Message[] }>(`/arena/conversations/${conversationId}/messages`);
+  return data.messages || [];
+}
+
+export async function getActiveVotes(): Promise<Vote[]> {
+  const data = await apiFetch<{ votes: Vote[] }>('/arena/votes/active');
+  return data.votes || [];
+}
+
+export async function getAllVotes(): Promise<Vote[]> {
+  const data = await apiFetch<{ votes: Vote[] }>('/arena/votes');
+  return data.votes || [];
+}
+
+export async function getVoteDetail(voteId: string): Promise<VoteDetail> {
+  return apiFetch<VoteDetail>(`/arena/votes/${voteId}`);
+}
+
+export async function quickstartAgent(payload?: {
+  archetypeId?: string;
+  name?: string;
+  displayName?: string;
+}): Promise<QuickstartResponse> {
+  return apiFetch<QuickstartResponse>('/auth/agent/quickstart', {
+    method: 'POST',
+    body: JSON.stringify(payload || {}),
+  });
+}
+
+// ── Multi-Agent Endpoints ──
+
+export async function getMyAgents(): Promise<UserAgent[]> {
+  const data = await apiFetch<UserAgent[]>('/agents');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createNewAgent(archetypeId: string, name: string): Promise<UserAgent> {
+  return apiFetch<UserAgent>('/agents', {
+    method: 'POST',
+    body: JSON.stringify({ archetypeId, name }),
+  });
+}
+
+export async function switchAgent(agentId: string): Promise<SwitchAgentResponse> {
+  return apiFetch<SwitchAgentResponse>(`/agents/${agentId}/switch`, {
+    method: 'POST',
+  });
+}
+
+export async function getArchetypes(): Promise<Archetype[]> {
+  const data = await apiFetch<Archetype[]>('/agents/archetypes');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function deleteAgentById(agentId: string): Promise<void> {
+  await apiFetch(`/agents/${agentId}`, { method: 'DELETE' });
+}
+
+// ── Agent Configuration Endpoints ──
+
+export interface TrackedWalletConfig {
+  id?: string;
+  address: string;
+  label?: string;
+  chain?: 'SOLANA' | 'BSC';
+  createdAt?: string;
+}
+
+export interface BuyTriggerConfig {
+  id?: string;
+  type: 'consensus' | 'volume' | 'liquidity' | 'godwallet';
+  enabled: boolean;
+  config: Record<string, any>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface AgentConfiguration {
+  archetypeId?: string;
+  config?: Record<string, any>;
+  trackedWallets: TrackedWalletConfig[];
+  buyTriggers: BuyTriggerConfig[];
+}
+
+export async function getAgentConfig(): Promise<AgentConfiguration> {
+  return apiFetch<AgentConfiguration>('/arena/me/config');
+}
+
+export async function updateAgentConfig(payload: {
+  archetypeId?: string;
+  trackedWallets?: TrackedWalletConfig[];
+  triggers?: BuyTriggerConfig[];
+}): Promise<void> {
+  await apiFetch('/arena/me/config', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function addTrackedWallet(wallet: {
+  address: string;
+  label?: string;
+  chain?: 'SOLANA' | 'BSC';
+}): Promise<TrackedWalletConfig> {
+  return apiFetch<TrackedWalletConfig>('/arena/me/wallets', {
+    method: 'POST',
+    body: JSON.stringify(wallet),
+  });
+}
+
+export async function removeTrackedWallet(walletId: string): Promise<void> {
+  await apiFetch(`/arena/me/wallets/${walletId}`, { method: 'DELETE' });
+}
+
+// ── Vote Casting ──
+
+export async function castVote(
+  voteId: string,
+  agentId: string,
+  vote: 'YES' | 'NO',
+): Promise<void> {
+  await apiFetch(`/voting/${voteId}/cast`, {
+    method: 'POST',
+    body: JSON.stringify({ agentId, vote }),
+  });
+}
+
+// ── Agent Detail Endpoints ──
+
+export async function getAgentTaskCompletions(agentId: string): Promise<AgentTaskType[]> {
+  const data = await apiFetch<{ tasks: AgentTaskType[] }>(`/arena/agents/${agentId}/task-completions`);
+  return data.tasks || [];
+}
+
+export async function getAgentConversations(agentId: string): Promise<Conversation[]> {
+  const data = await apiFetch<{ conversations: Conversation[] }>(`/arena/agents/${agentId}/conversations`);
+  return data.conversations || [];
+}

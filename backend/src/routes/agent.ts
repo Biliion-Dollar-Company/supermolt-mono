@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import * as agentService from '../services/agent.service';
 import { authMiddleware } from '../middleware/auth';
+import { getAllArchetypes } from '../lib/archetypes';
+import { issueAgentTokens } from '../services/agent-session.service';
 
 const agent = new Hono();
 
@@ -31,6 +33,12 @@ agent.get('/', async (c) => {
       500
     );
   }
+});
+
+// GET /agents/archetypes — list all available archetypes (must be before /:id)
+agent.get('/archetypes', async (c) => {
+  const archetypes = getAllArchetypes();
+  return c.json({ success: true, data: archetypes });
 });
 
 // POST /agents — create a new agent
@@ -112,6 +120,41 @@ agent.delete('/:id', async (c) => {
     return c.json({ success: true, data: { deleted: true } });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete agent';
+    return c.json(
+      { success: false, error: { code: 'NOT_FOUND', message } },
+      404
+    );
+  }
+});
+
+// POST /agents/:id/switch — switch active agent, issue new JWT
+agent.post('/:id/switch', async (c) => {
+  try {
+    const userId = c.get('userId');
+    const agentId = c.req.param('id');
+
+    // Validate agent belongs to user
+    const targetAgent = await agentService.getAgent(agentId, userId);
+
+    // Issue new JWT for the target agent
+    const { token, refreshToken, expiresIn } = await issueAgentTokens(
+      targetAgent.id,
+      userId,
+    );
+
+    return c.json({
+      success: true,
+      data: {
+        agent: targetAgent,
+        tokens: {
+          accessToken: token,
+          refreshToken,
+        },
+        expiresIn,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to switch agent';
     return c.json(
       { success: false, error: { code: 'NOT_FOUND', message } },
       404

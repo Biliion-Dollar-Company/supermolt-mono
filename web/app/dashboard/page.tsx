@@ -1,11 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
-import { LayoutDashboard, Settings } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { getMyAgent } from '@/lib/api';
-import { AgentConfigPanel, AgentDataFlow, ActivityFeed } from '@/components/dashboard';
+import { AgentConfigPanel, AgentDataFlow, TrackedWalletsPanel } from '@/components/dashboard';
+import { useIsMobile } from '@/hooks/useIsMobile';
+
+const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), { ssr: false });
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
@@ -27,15 +31,6 @@ function DashboardSkeleton() {
     );
 }
 
-// ── Tab System ───────────────────────────────────────────────────
-
-type DashboardTab = 'overview' | 'config';
-
-const TABS: { key: DashboardTab; label: string; Icon: any }[] = [
-    { key: 'overview', label: 'Overview', Icon: LayoutDashboard },
-    { key: 'config', label: 'Configure', Icon: Settings },
-];
-
 // ── Main Page ────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -43,7 +38,7 @@ export default function DashboardPage() {
 
     const { isAuthenticated, _hasHydrated, setAuth } = useAuthStore();
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+    const isMobile = useIsMobile();
 
     // Wait for store hydration, then refresh agent data if authed
     useEffect(() => {
@@ -66,7 +61,7 @@ export default function DashboardPage() {
     if (!_hasHydrated || loading) {
         return (
             <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[12%] relative">
-                <BackgroundLayer />
+                <BackgroundLayer isMobile={isMobile} />
                 <div className="relative z-10">
                     <DashboardSkeleton />
                 </div>
@@ -76,75 +71,63 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[12%] relative">
-            <BackgroundLayer />
+            <BackgroundLayer isMobile={isMobile} />
 
             <div className="relative z-10">
                 {/* Page Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
-                    <div className="flex items-center gap-3">
-                        <LayoutDashboard className="w-5 h-5 text-accent-primary" />
+                <div className="flex items-center gap-4 mb-6">
+                    <LayoutDashboard className="w-10 h-10 text-accent-primary flex-shrink-0" />
+                    <div>
                         <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Command Center</h1>
-                    </div>
-
-                    {/* Tab Navigation */}
-                    <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.06] rounded p-1">
-                        {TABS.map(({ key, label, Icon }) => (
-                            <button
-                                key={key}
-                                onClick={() => setActiveTab(key)}
-                                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded transition-all cursor-pointer ${activeTab === key
-                                    ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20'
-                                    : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.03]'
-                                    }`}
-                            >
-                                <Icon className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">{label}</span>
-                            </button>
-                        ))}
+                        <p className="text-xs sm:text-sm text-text-muted mt-0.5">Configure your agent, manage tracked wallets, and monitor live data feeds.</p>
                     </div>
                 </div>
 
-                {/* Tab Content */}
-                {activeTab === 'overview' && (
-                    <div className="space-y-6 animate-arena-reveal">
-                        <AgentDataFlow />
-                        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
-                            <AgentConfigPanel />
-                            <ActivityFeed />
-                        </div>
+                <div className="space-y-6 animate-arena-reveal">
+                    <AgentDataFlow />
+                    <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+                        <AgentConfigPanel />
+                        <TrackedWalletsPanel />
                     </div>
-                )}
-
-                {activeTab === 'config' && (
-                    <div className="space-y-6 animate-arena-reveal">
-                        <AgentDataFlow />
-                        <div className="max-w-xl">
-                            <AgentConfigPanel />
-                        </div>
-                    </div>
-                )}
+                </div>
             </div>
         </div>
     );
 }
 
-// ── Background Layer (shared with Arena) ─────────────────────────
+// ── Background Layer ─────────────────────────────────────────────
 
-function BackgroundLayer() {
+function BackgroundLayer({ isMobile }: { isMobile: boolean }) {
     return (
         <>
             <div className="fixed inset-0 z-0">
                 <div
-                    className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-                    style={{ backgroundImage: 'url(/bg.png)' }}
-                />
-                <div className="absolute inset-0 bg-black/82" />
-                <div
                     className="absolute inset-0"
                     style={{
-                        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.52) 18%, rgba(0,0,0,0.86) 62%, rgba(0,0,0,0.98) 100%)',
+                        background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.60) 15%, rgba(0,0,0,0.85) 55%, rgba(0,0,0,0.95) 100%)',
                     }}
                 />
+                {!isMobile && (
+                    <div className="absolute inset-0 opacity-40">
+                        <RisingLines
+                            color="#E8B45E"
+                            horizonColor="#E8B45E"
+                            haloColor="#F5D78E"
+                            riseSpeed={0.05}
+                            riseScale={8.0}
+                            riseIntensity={1.0}
+                            flowSpeed={0.1}
+                            flowDensity={3.5}
+                            flowIntensity={0.5}
+                            horizonIntensity={0.7}
+                            haloIntensity={5.0}
+                            horizonHeight={-0.85}
+                            circleScale={-0.5}
+                            scale={6.5}
+                            brightness={0.9}
+                        />
+                    </div>
+                )}
             </div>
             <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">
                 <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.05)_0%,transparent_70%)]" />

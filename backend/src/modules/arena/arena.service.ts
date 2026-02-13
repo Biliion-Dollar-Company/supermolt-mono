@@ -67,7 +67,7 @@ export async function getLeaderboard() {
 
   // Get AgentStats for sortino ratios (populated by sortino cron)
   // Also get PaperTrade counts as fallback volume source (AgentTrade may be empty)
-  const [stats, agentTradeCounts, paperTradeCounts] = await Promise.all([
+  const [stats, agentTradeCounts, paperTradeCounts, predictionStats] = await Promise.all([
     db.agentStats.findMany({
       where: { agentId: { in: agentIds } },
     }),
@@ -84,6 +84,9 @@ export async function getLeaderboard() {
       },
       _count: { agentId: true },
       _sum: { amount: true },
+    }),
+    db.predictionStats.findMany({
+      where: { agentId: { in: agentIds } },
     }),
   ]);
 
@@ -106,11 +109,13 @@ export async function getLeaderboard() {
       },
     ])
   );
+  const predictionStatsMap = new Map(predictionStats.map((ps) => [ps.agentId, ps]));
 
   const rankings = agents.map((agent) => {
     const agentStats = statsMap.get(agent.id);
     const atData = agentTradeMap.get(agent.id);
     const ptData = paperTradeMap.get(agent.id);
+    const pStats = predictionStatsMap.get(agent.id);
     const winRate = parseFloat(agent.winRate.toString());
     const totalPnl = parseFloat(agent.totalPnl.toString());
     const sortinoRatio = agentStats ? parseFloat(agentStats.sortinoRatio.toString()) : 0;
@@ -123,8 +128,8 @@ export async function getLeaderboard() {
       agentId: agent.id,
       agentName: agent.displayName || agent.name,
       walletAddress: agent.userId,
-      avatarUrl: agent.avatarUrl || undefined, // NEW
-      twitterHandle: agent.twitterHandle || undefined, // NEW
+      avatarUrl: agent.avatarUrl || undefined,
+      twitterHandle: agent.twitterHandle || undefined,
       chain: agent.chain,
       evmAddress: agent.evmAddress || undefined,
       sortino_ratio: sortinoRatio,
@@ -136,6 +141,10 @@ export async function getLeaderboard() {
       average_loss: totalPnl < 0 && agent.totalTrades > 0 ? totalPnl / agent.totalTrades : 0,
       max_win: 0,
       max_loss: 0,
+      prediction_accuracy: pStats ? parseFloat(pStats.accuracy.toString()) : undefined,
+      prediction_count: pStats?.totalPredictions || undefined,
+      prediction_pnl: pStats ? parseFloat(pStats.roi.toString()) : undefined,
+      brier_score: pStats ? parseFloat(pStats.brierScore.toString()) : undefined,
       createdAt: agent.createdAt.toISOString(),
       updatedAt: agent.updatedAt.toISOString(),
     };

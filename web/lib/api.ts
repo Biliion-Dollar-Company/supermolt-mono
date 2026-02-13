@@ -311,6 +311,8 @@ export async function quickstartAgent(accessToken: string, payload?: {
   archetypeId?: string;
   name?: string;
   displayName?: string;
+  twitterUsername?: string;
+  avatarUrl?: string;
 }): Promise<QuickstartResponse> {
   const response = await axios.post<{ success: boolean; data: QuickstartResponse }>(
     `${API_URL}/auth/agent/quickstart`,

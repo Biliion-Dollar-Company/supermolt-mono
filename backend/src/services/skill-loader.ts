@@ -73,9 +73,10 @@ export function loadSkills(): SkillDefinition[] {
   const onboarding = loadFromDirectory(join(SKILLS_DIR, 'onboarding'));
   const reference = loadFromDirectory(join(SKILLS_DIR, 'reference'));
   const openclaw = loadFromDirectory(join(SKILLS_DIR, 'openclaw'));
+  const prediction = loadFromDirectory(join(SKILLS_DIR, 'prediction'));
 
-  skillCache = [...tasks, ...trading, ...onboarding, ...reference, ...openclaw];
-  console.log(`Loaded ${skillCache.length} skills (${tasks.length} tasks, ${trading.length} trading, ${onboarding.length} onboarding, ${reference.length} reference, ${openclaw.length} openclaw)`);
+  skillCache = [...tasks, ...trading, ...onboarding, ...reference, ...openclaw, ...prediction];
+  console.log(`Loaded ${skillCache.length} skills (${tasks.length} tasks, ${trading.length} trading, ${onboarding.length} onboarding, ${reference.length} reference, ${openclaw.length} openclaw, ${prediction.length} prediction)`);
   return skillCache;
 }
 
@@ -87,7 +88,7 @@ export function getSkillsByCategory(category: string): SkillDefinition[] {
   return loadSkills().filter(s => s.category === category);
 }
 
-export function getSkillPack(): { version: string; tasks: SkillDefinition[]; trading: SkillDefinition[]; onboarding: SkillDefinition[]; reference: SkillDefinition[]; openclaw: SkillDefinition[] } {
+export function getSkillPack(): { version: string; tasks: SkillDefinition[]; trading: SkillDefinition[]; onboarding: SkillDefinition[]; reference: SkillDefinition[]; openclaw: SkillDefinition[]; prediction: SkillDefinition[] } {
   const all = loadSkills();
   return {
     version: '1.0',
@@ -96,5 +97,6 @@ export function getSkillPack(): { version: string; tasks: SkillDefinition[]; tra
     onboarding: all.filter(s => s.category === 'onboarding'),
     reference: all.filter(s => s.category === 'reference'),
     openclaw: all.filter(s => s.category === 'openclaw'),
+    prediction: all.filter(s => s.category === 'prediction'),
   };
 }

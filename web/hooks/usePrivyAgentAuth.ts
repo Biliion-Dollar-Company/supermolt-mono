@@ -12,6 +12,11 @@ export function usePrivyAgentAuth() {
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const exchangeAttemptedRef = useRef(false);
+  const userRef = useRef(user);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   const signIn = useCallback(async () => {
     setError(null);
@@ -34,7 +39,7 @@ export function usePrivyAgentAuth() {
   }, [logout, clearAuth]);
 
   useEffect(() => {
-    if (!ready || !authenticated || !user) {
+    if (!ready || !authenticated) {
       exchangeAttemptedRef.current = false;
       return;
     }
@@ -43,9 +48,10 @@ export function usePrivyAgentAuth() {
       return;
     }
 
-    let cancelled = false;
     exchangeAttemptedRef.current = true;
     setIsSigningIn(true);
+
+    let cancelled = false;
 
     async function exchange() {
       try {
@@ -55,7 +61,17 @@ export function usePrivyAgentAuth() {
         const loginResponse = await loginWithPrivyToken(privyToken);
         if (cancelled) return;
 
-        const quickstart = await quickstartAgent(loginResponse.tokens.accessToken);
+        const currentUser = userRef.current;
+        const twitterProfile = currentUser?.twitter;
+        const quickstartPayload = twitterProfile?.username
+          ? {
+              twitterUsername: twitterProfile.username,
+              displayName: twitterProfile.name || undefined,
+              avatarUrl: twitterProfile.profilePictureUrl || undefined,
+            }
+          : undefined;
+
+        const quickstart = await quickstartAgent(loginResponse.tokens.accessToken, quickstartPayload);
         if (cancelled) return;
 
         setJWT(quickstart.token);
@@ -72,9 +88,7 @@ export function usePrivyAgentAuth() {
         exchangeAttemptedRef.current = false;
         setError(err?.message || 'Authentication failed');
       } finally {
-        if (!cancelled) {
-          setIsSigningIn(false);
-        }
+        setIsSigningIn(false);
       }
     }
 
@@ -82,7 +96,7 @@ export function usePrivyAgentAuth() {
     return () => {
       cancelled = true;
     };
-  }, [ready, authenticated, user, isAuthenticated, getAccessToken, setAuth]);
+  }, [ready, authenticated, isAuthenticated, getAccessToken, setAuth]);
 
   return {
     ready,

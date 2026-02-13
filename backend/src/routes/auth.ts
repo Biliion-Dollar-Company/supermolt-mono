@@ -20,6 +20,8 @@ const quickstartSchema = z.object({
   archetypeId: z.string().min(1).optional(),
   name: z.string().min(1).max(32).optional(),
   displayName: z.string().min(1).max(50).optional(),
+  twitterUsername: z.string().max(50).optional(),
+  avatarUrl: z.string().url().optional(),
 });
 
 const quickstartLimiter = rateLimiter({
@@ -133,7 +135,7 @@ auth.post('/agent/quickstart', authMiddleware, quickstartLimiter, async (c) => {
     const user = c.get('user');
     const userId = c.get('userId');
     const body = await c.req.json().catch(() => ({}));
-    const { archetypeId, name, displayName } = quickstartSchema.parse(body || {});
+    const { archetypeId, name, displayName, twitterUsername, avatarUrl } = quickstartSchema.parse(body || {});
 
     const agent = await getOrCreateQuickstartAgent({
       userId,
@@ -141,6 +143,8 @@ auth.post('/agent/quickstart', authMiddleware, quickstartLimiter, async (c) => {
       archetypeId,
       name,
       displayName,
+      twitterUsername,
+      avatarUrl,
     });
 
     const subject = user.wallet || userId;

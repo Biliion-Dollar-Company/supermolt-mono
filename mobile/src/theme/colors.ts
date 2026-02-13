@@ -1,5 +1,5 @@
 /**
- * SuperRouter Design System Colors
+ * SuperMolt Design System Colors
  *
  * These colors match tailwind.config.js for programmatic access.
  * Use these in JS/TS code; use Tailwind classes in JSX.
@@ -8,9 +8,9 @@
 export const colors = {
   // Brand colors
   brand: {
-    primary: '#68ac6e',     // SuperRouter green
+    primary: '#E8B45E',     // SuperMolt gold/orange
     secondary: '#9945ff',   // Solana purple
-    accent: '#00ff41',      // Matrix green (neon)
+    accent: '#F0C97A',      // Light gold
   },
 
   // Void blacks
@@ -46,7 +46,7 @@ export const colors = {
   // Glass effects (with alpha)
   glass: {
     white: 'rgba(255, 255, 255, 0.05)',
-    green: 'rgba(104, 172, 110, 0.1)',
+    green: 'rgba(232, 180, 94, 0.1)',
   },
 } as const;
 
