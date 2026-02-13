@@ -293,8 +293,8 @@ export function AgentDataFlow() {
 
         Promise.allSettled([
             getArenaTasks().catch(() => []),
-            getAgentPositions(agent.agentId).catch(() => []),
-            getAgentConversations(agent.agentId).catch(() => []),
+            getAgentPositions(agent.id).catch(() => []),
+            getAgentConversations(agent.id).catch(() => []),
         ]).then(([tasksRes, posRes, chatsRes]) => {
             if (tasksRes.status === 'fulfilled') setTasks(tasksRes.value as AgentTaskType[]);
             if (posRes.status === 'fulfilled') setPositions(posRes.value as Position[]);

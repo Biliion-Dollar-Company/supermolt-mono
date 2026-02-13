@@ -199,6 +199,7 @@ export interface VoteDetailResponse {
 export interface AgentProfile {
   id: string;
   pubkey: string;
+  walletAddress: string;
   name: string;
   avatarUrl: string | null;
   bio: string | null;
