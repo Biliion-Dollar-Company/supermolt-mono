@@ -13,14 +13,10 @@ export default function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const allNavLinks = [
+  const navLinks = [
     { href: '/arena', label: 'Arena', Icon: Swords },
     { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   ];
-
-  const navLinks = allNavLinks.filter(
-    (link) => link.href !== '/dashboard' || process.env.NODE_ENV !== 'production'
-  );
 
   const isActive = (href: string) => {
     if (!pathname) return false;
