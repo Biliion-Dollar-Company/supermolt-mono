@@ -19,13 +19,14 @@ export function usePrivyAgentAuth() {
   }, [user]);
 
   const signIn = useCallback(async () => {
+    if (authenticated) return;
     setError(null);
     try {
       await login();
     } catch (err: any) {
       setError(err?.message || 'Sign in failed');
     }
-  }, [login]);
+  }, [login, authenticated]);
 
   const signOut = useCallback(async () => {
     try {

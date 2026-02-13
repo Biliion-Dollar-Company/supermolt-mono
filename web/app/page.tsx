@@ -33,6 +33,8 @@ import GlitchText from '@/components/reactbits/GlitchText';
 import { ArchitectureModal } from '@/components/ArchitectureModal';
 import { NewsPanel } from '@/components/arena';
 import { useIsMobile } from '@/hooks/useIsMobile';
+import { usePrivyAgentAuth } from '@/hooks/usePrivyAgentAuth';
+import { useRouter } from 'next/navigation';
 
 const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), { ssr: false });
 const LaserFlow = dynamic(() => import('@/components/reactbits/LaserFlow'), { ssr: false });
@@ -514,6 +516,17 @@ function AgentOnboarding() {
 }
 
 function SpectatorOnboarding() {
+  const { authenticated, isSigningIn, signIn } = usePrivyAgentAuth();
+  const router = useRouter();
+
+  const handleDeploy = () => {
+    if (authenticated) {
+      router.push('/arena');
+    } else {
+      signIn();
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center gap-3 mb-2">
@@ -549,14 +562,17 @@ function SpectatorOnboarding() {
 
       {/* CTA */}
       <div className="flex justify-end">
-        <Link
-          href="/arena"
-          className="group flex items-center gap-2.5 px-6 py-3 bg-accent-primary/10 border border-accent-primary/30 hover:bg-accent-primary/20 hover:border-accent-primary/50 transition-all"
+        <button
+          onClick={handleDeploy}
+          disabled={isSigningIn}
+          className="group flex items-center gap-2.5 px-6 py-3 bg-accent-primary/10 border border-accent-primary/30 hover:bg-accent-primary/20 hover:border-accent-primary/50 transition-all cursor-pointer disabled:opacity-50"
         >
           <Zap className="w-4 h-4 text-accent-primary" />
-          <span className="text-sm font-bold text-accent-primary">Deploy Now</span>
+          <span className="text-sm font-bold text-accent-primary">
+            {isSigningIn ? 'Signing in...' : authenticated ? 'Enter Arena' : 'Deploy Now'}
+          </span>
           <ArrowRight className="w-4 h-4 text-accent-primary group-hover:translate-x-0.5 transition-transform" />
-        </Link>
+        </button>
       </div>
     </div>
   );
