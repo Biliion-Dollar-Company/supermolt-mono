@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { notFound } from 'next/navigation';
 import { LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { getMyAgent } from '@/lib/api';
@@ -10,8 +9,6 @@ import { AgentConfigPanel, AgentDataFlow, TrackedWalletsPanel } from '@/componen
 import { useIsMobile } from '@/hooks/useIsMobile';
 
 const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), { ssr: false });
-
-const IS_DEV = process.env.NODE_ENV !== 'production';
 
 // ── Skeleton ─────────────────────────────────────────────────────
 
@@ -34,8 +31,6 @@ function DashboardSkeleton() {
 // ── Main Page ────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-    if (!IS_DEV) notFound();
-
     const { isAuthenticated, _hasHydrated, setAuth } = useAuthStore();
     const [loading, setLoading] = useState(true);
     const isMobile = useIsMobile();
