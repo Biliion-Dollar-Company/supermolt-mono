@@ -62,13 +62,11 @@ class WebSocketManager {
 
       this.socket.on('connect', () => {
         this.connected = true;
-        console.log('✅ WebSocket connected');
         resolve();
       });
 
       this.socket.on('disconnect', () => {
         this.connected = false;
-        console.log('❌ WebSocket disconnected');
       });
 
       this.socket.on('error', (error) => {
