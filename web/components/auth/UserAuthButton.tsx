@@ -12,7 +12,7 @@ function UserAuthButtonInner() {
   const rawAvatarUrl = agent?.avatarUrl || user?.twitter?.profilePictureUrl || null;
   const avatarUrl = rawAvatarUrl?.replace('_normal.', '_400x400.') ?? null;
   const displayName = agent?.twitterHandle
-    ? `@${agent.twitterHandle}`
+    ? (agent.twitterHandle.startsWith('@') ? agent.twitterHandle : `@${agent.twitterHandle}`)
     : agent?.name || user?.twitter?.username || 'Agent';
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
