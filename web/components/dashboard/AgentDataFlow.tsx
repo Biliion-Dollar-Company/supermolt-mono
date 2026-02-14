@@ -323,9 +323,179 @@ export function AgentDataFlow() {
     const activeTasks = useMemo(() => tasks.filter(t => t.status === 'OPEN' || t.status === 'CLAIMED'), [tasks]);
     const openPositions = useMemo(() => positions.filter(p => !p.closedAt), [positions]);
 
+    // ── Mobile layout ──────────────────────────────────────────
+    if (isMobile) {
+        return (
+            <div className="bg-[#0a0a12]/60 backdrop-blur-xl border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
+                {/* Feed grid — 2x2 */}
+                <div className="grid grid-cols-2 gap-px bg-white/[0.04]">
+                    {FEEDS.map((feed) => {
+                        const Icon = feed.icon;
+                        return (
+                            <button
+                                key={feed.id}
+                                onClick={() => setSelectedFeed(feed.id)}
+                                className="bg-[#0a0a12] px-3.5 py-3 flex items-center gap-3 cursor-pointer active:bg-white/[0.03] transition-colors"
+                            >
+                                <div
+                                    className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+                                    style={{ backgroundColor: `${feed.color}12`, border: `1px solid ${feed.color}25` }}
+                                >
+                                    <Icon className="w-4 h-4" style={{ color: feed.color }} />
+                                </div>
+                                <div className="min-w-0 text-left">
+                                    <div className="text-sm font-bold text-text-primary leading-tight">{feed.label}</div>
+                                    <div className="text-[10px] text-text-muted truncate">{feed.desc}</div>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Agent card */}
+                <div className="border-t border-white/[0.06]">
+                    {hasAgent ? (
+                        <button
+                            onClick={() => setExpanded(!expanded)}
+                            className="w-full px-4 py-4 flex items-center gap-3.5 cursor-pointer active:bg-white/[0.02] transition-colors"
+                        >
+                            <div className="w-11 h-11 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                {avatarUrl ? (
+                                    <img src={avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
+                                ) : (
+                                    <span className="text-accent-primary font-bold text-lg">
+                                        {agent.name?.charAt(0)?.toUpperCase() ?? '?'}
+                                    </span>
+                                )}
+                            </div>
+                            <div className="flex-1 min-w-0 text-left">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-text-primary truncate">{agent.name}</span>
+                                    <span className="bg-accent-primary/15 border border-accent-primary/25 px-1.5 py-0.5 text-[10px] font-bold text-accent-primary">
+                                        Lv.{agent.level}
+                                    </span>
+                                    <div className={`flex items-center gap-1 text-[10px] font-semibold ${statusInfo.color}`}>
+                                        <div className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot} animate-pulse`} />
+                                        {statusInfo.label}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1.5">
+                                    <div className="flex-1 h-1.5 bg-white/[0.06] overflow-hidden">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-accent-primary/80 to-accent-primary transition-all duration-500"
+                                            style={{ width: `${xpPercent}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-[10px] text-text-muted font-mono whitespace-nowrap">
+                                        {agent.xp}/{agent.xpForNextLevel}
+                                    </span>
+                                </div>
+                            </div>
+                            <ChevronDown
+                                className="w-4 h-4 text-text-muted flex-shrink-0 transition-transform duration-300"
+                                style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                            />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => { if (!authenticated) login(); }}
+                            className="w-full px-4 py-4 flex items-center gap-3.5 cursor-pointer active:bg-white/[0.02] transition-colors"
+                        >
+                            <div className="w-11 h-11 rounded-full bg-accent-primary/10 border-2 border-accent-primary/25 flex items-center justify-center flex-shrink-0">
+                                <Rocket className="w-5 h-5 text-accent-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0 text-left">
+                                <h3 className="text-sm font-bold text-text-primary">
+                                    {authenticated ? 'Create Your Agent' : 'Sign In to Deploy'}
+                                </h3>
+                                <p className="text-[11px] text-text-muted mt-0.5">
+                                    {authenticated ? 'Set up your AI trading agent.' : 'Connect with Twitter to join the arena.'}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/30 flex-shrink-0">
+                                <Zap className="w-3 h-3 text-accent-primary" />
+                                <span className="text-[11px] font-bold text-accent-primary">
+                                    {authenticated ? 'Start' : 'Sign In'}
+                                </span>
+                            </div>
+                        </button>
+                    )}
+                </div>
+
+                {/* Expandable detail panel */}
+                {hasAgent && (
+                    <div
+                        className="grid transition-[grid-template-rows] duration-300 ease-out"
+                        style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
+                    >
+                        <div className="overflow-hidden">
+                            <div className="border-t border-white/[0.06]">
+                                <div className="flex items-center justify-between px-4 py-2.5">
+                                    <span className="text-xs font-bold text-text-primary">
+                                        {DETAIL_TABS.find(t => t.id === activeTab)?.label}
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                        {DETAIL_TABS.map((tab) => {
+                                            const Icon = tab.icon;
+                                            const isActive = activeTab === tab.id;
+                                            const count = tab.id === 'tasks' ? activeTasks.length
+                                                : tab.id === 'positions' ? openPositions.length
+                                                : chats.length;
+                                            return (
+                                                <button
+                                                    key={tab.id}
+                                                    onClick={() => setActiveTab(tab.id)}
+                                                    className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
+                                                        isActive
+                                                            ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                                                            : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.03] border border-transparent'
+                                                    }`}
+                                                >
+                                                    <Icon className="w-3.5 h-3.5" />
+                                                    {count > 0 && (
+                                                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                                                            isActive ? 'bg-accent-primary/20 text-accent-primary' : 'bg-white/[0.06] text-text-muted'
+                                                        }`}>
+                                                            {count}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
+                                    {detailLoading ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
+                                        </div>
+                                    ) : activeTab === 'tasks' ? (
+                                        <TasksSection tasks={activeTasks} />
+                                    ) : activeTab === 'positions' ? (
+                                        <PositionsSection positions={openPositions} />
+                                    ) : (
+                                        <ChatsSection chats={chats} />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                <FeedDetailSheet
+                    feedId={selectedFeed}
+                    open={!!selectedFeed}
+                    onClose={() => setSelectedFeed(null)}
+                    isMobile={isMobile}
+                />
+            </div>
+        );
+    }
+
+    // ── Desktop layout ──────────────────────────────────────────
     return (
         <div className="bg-[#0a0a12]/60 backdrop-blur-xl border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
-            <div ref={containerRef} className="relative h-[290px] sm:h-[320px]">
+            <div ref={containerRef} className="relative h-[320px]">
 
                 {/* Pulse animation layer */}
                 <PulseLayer
