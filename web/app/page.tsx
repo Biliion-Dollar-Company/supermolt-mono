@@ -519,6 +519,9 @@ function SpectatorOnboarding() {
   const { authenticated, isSigningIn, signIn } = usePrivyAgentAuth();
   const router = useRouter();
 
+  // Prefetch arena page so navigation feels instant
+  useEffect(() => { router.prefetch('/arena'); }, [router]);
+
   const handleDeploy = () => {
     if (authenticated) {
       router.push('/arena');
@@ -587,8 +590,8 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
       ref={sectionRef}
       className="relative overflow-hidden pb-12 sm:pb-32"
     >
-      {/* LaserFlow separator */}
-      <div className="relative w-full h-[180px] sm:h-[360px] pointer-events-none overflow-hidden" style={{ transform: 'rotate(180deg)' }}>
+      {/* LaserFlow separator — hidden on mobile */}
+      <div className="relative w-full hidden sm:block h-[360px] pointer-events-none overflow-hidden" style={{ transform: 'rotate(180deg)' }}>
         <LaserFlow
             color="#E8B45E"
             horizontalBeamOffset={0.0}
@@ -712,16 +715,6 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
                   </div>
                 </Link>
 
-                {/* Secondary CTA */}
-                <a
-                  href="/api/docs"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-2.5 px-6 py-3.5 border border-white/[0.12] hover:border-accent-primary/40 text-text-secondary hover:text-text-primary transition-all hover:bg-white/[0.03]"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span className="text-base font-medium">Read the Docs</span>
-                </a>
               </motion.div>
 
             </div>

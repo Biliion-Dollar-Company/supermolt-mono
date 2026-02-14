@@ -315,7 +315,7 @@ export function AgentDataFlow() {
         }));
     }, [dims.w]);
 
-    const agentPos = useMemo(() => ({ x: dims.w / 2, y: dims.h * 0.68 }), [dims]);
+    const agentPos = useMemo(() => ({ x: dims.w / 2, y: dims.h * 0.78 }), [dims]);
 
     const xpPercent = agent ? Math.min(100, Math.round((agent.xp / Math.max(1, agent.xpForNextLevel)) * 100)) : 0;
     const hasAgent = !!agent;
@@ -631,7 +631,7 @@ export function AgentDataFlow() {
     // ── Desktop layout ──────────────────────────────────────────
     return (
         <div className="bg-[#0a0a12]/60 backdrop-blur-xl border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
-            <div ref={containerRef} className="relative h-[320px]">
+            <div ref={containerRef} className="relative h-[400px]">
 
                 {/* Pulse animation layer */}
                 <PulseLayer
@@ -749,7 +749,7 @@ export function AgentDataFlow() {
                             <div className="absolute -inset-4 bg-accent-primary/[0.06] blur-2xl pointer-events-none group-hover:bg-accent-primary/[0.1] transition-all duration-500" />
                             <button
                                 onClick={() => { if (!authenticated) login(); }}
-                                className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-8 py-5 flex flex-col items-center gap-3 max-w-md cursor-pointer hover:bg-[#0e0e18] transition-all duration-300"
+                                className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-8 py-5 max-w-md cursor-pointer hover:bg-[#0e0e18] transition-all duration-300"
                             >
                                 {/* Corner brackets */}
                                 <span className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
@@ -757,23 +757,16 @@ export function AgentDataFlow() {
                                 <span className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
                                 <span className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
 
-                                <div className="w-12 h-12 rounded-full bg-accent-primary/10 border-2 border-accent-primary/25 flex items-center justify-center group-hover:border-accent-primary/50 group-hover:bg-accent-primary/15 transition-all duration-300">
-                                    <Rocket className="w-5 h-5 text-accent-primary" />
-                                </div>
-                                <div className="text-center">
-                                    <h3 className="text-base font-bold text-text-primary mb-1">
-                                        {authenticated ? 'Create Your Agent' : 'Sign In to Deploy'}
-                                    </h3>
-                                    <p className="text-[11px] text-text-muted leading-relaxed max-w-[260px]">
-                                        {authenticated
-                                            ? 'Set up your AI trading agent to start receiving live feeds and executing trades automatically.'
-                                            : 'Connect with Twitter to deploy your own AI trading agent and join the arena.'}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2 px-4 py-1.5 bg-accent-primary/10 border border-accent-primary/30 group-hover:bg-accent-primary/20 group-hover:border-accent-primary/50 transition-all duration-300">
-                                    <Zap className="w-3.5 h-3.5 text-accent-primary" />
-                                    <span className="text-xs font-bold text-accent-primary">
-                                        {authenticated ? 'Get Started' : 'Sign In with Twitter'}
+                                {/* Title */}
+                                <h3 className="text-base font-bold text-text-primary text-center mb-4">
+                                    {authenticated ? 'Create Your Agent' : 'Deploy Your Agent'}
+                                </h3>
+
+                                {/* Button */}
+                                <div className="flex items-center justify-center gap-2 w-full py-3 bg-accent-primary/10 border border-accent-primary/30 group-hover:bg-accent-primary/20 group-hover:border-accent-primary/50 transition-all duration-300">
+                                    <Zap className="w-4 h-4 text-accent-primary" />
+                                    <span className="text-sm font-bold text-accent-primary">
+                                        {authenticated ? 'Get Started' : 'Create'}
                                     </span>
                                 </div>
                             </button>
