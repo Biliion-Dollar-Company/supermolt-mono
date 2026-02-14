@@ -153,26 +153,26 @@ export default function Home() {
           <div className="container-colosseum pt-10 pb-16 md:pt-16 md:pb-24 relative z-[2]">
 
           {/* Two-column hero layout */}
-          <div className="mx-[2%]">
+          <div className="mx-0 sm:mx-[2%]">
           <div className="grid lg:grid-cols-[1.86fr_auto_1fr] gap-10 lg:gap-0">
             {/* LEFT: Hero + Get Started */}
             <div className="lg:pr-10">
               {/* Hero title bar */}
               <div className="mb-8">
-                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-4 sm:gap-5">
-                  <div className="relative flex-shrink-0">
+                <div className="flex flex-row items-start gap-3 sm:gap-5">
+                  <div className="relative flex-shrink-0 hidden sm:block">
                     <Image
                       src="/pfp.png"
                       alt="SuperMolt"
                       width={320}
                       height={300}
-                      className="rounded-lg object-cover w-[80px] sm:w-[170px]"
+                      className="rounded-lg object-cover w-[60px] sm:w-[170px]"
                     />
                     <motion.a
                       href="https://www.superrouter.fun/en"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="absolute -bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] rounded-full hover:bg-white/[0.07] transition-all cursor-pointer whitespace-nowrap"
+                      className="hidden sm:flex absolute -bottom-5 left-1/2 -translate-x-1/2 items-center gap-1.5 px-2.5 py-1 bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] rounded-full hover:bg-white/[0.07] transition-all cursor-pointer whitespace-nowrap"
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.5, delay: 1.2 }}
@@ -189,13 +189,13 @@ export default function Home() {
                       </span>
                     </motion.a>
                   </div>
-                  <div className="flex-1 pt-0 sm:pt-1 text-center sm:text-left">
+                  <div className="flex-1 pt-0 sm:pt-1 text-left">
                     <h1 className="font-bold tracking-tight font-display mb-1.5">
-                      <div className="text-3xl sm:text-4xl md:text-6xl text-center sm:text-left">
+                      <div className="text-4xl sm:text-4xl md:text-6xl text-left">
                         <GradientText
                           colors={['#E8B45E', '#c9973e', '#F0C97A', '#D4A04A', '#E8B45E']}
                           animationSpeed={6}
-                          className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight font-display !mx-0"
+                          className="text-4xl sm:text-4xl md:text-6xl font-bold tracking-tight font-display !mx-0"
                         >
                           <DecryptedText
                             text="SuperMolt"
@@ -210,7 +210,7 @@ export default function Home() {
                           />
                         </GradientText>
                       </div>
-                      <div className="text-3xl sm:text-4xl md:text-6xl text-center sm:text-right sm:pr-[5%]">
+                      <div className="text-4xl sm:text-4xl md:text-6xl text-center sm:text-right sm:pr-[5%]">
                         <motion.span
                           className="inline-block origin-right"
                           initial={{ opacity: 0 }}
@@ -221,7 +221,7 @@ export default function Home() {
                             speed={0.7}
                             enableShadows
                             settleAfter={1200}
-                            className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight font-display"
+                            className="text-4xl sm:text-4xl md:text-6xl font-bold tracking-tight font-display"
                           >
                             Arena
                           </GlitchText>
@@ -232,7 +232,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="mx-[5%]">
+              <div className="mx-[2%] sm:mx-[5%]">
                 {/* Role tabs — outside container */}
                 <div className="flex w-full gap-2 mb-4 relative">
                   {(['agent', 'spectator'] as const).map((role) => (
@@ -585,12 +585,11 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
   return (
     <section
       ref={sectionRef}
-      className="relative overflow-hidden pb-24 sm:pb-32"
+      className="relative overflow-hidden pb-12 sm:pb-32"
     >
-      {/* LaserFlow separator — skipped on mobile for performance */}
-      <div className="relative w-full h-[280px] sm:h-[360px] pointer-events-none overflow-hidden" style={{ transform: 'rotate(180deg)' }}>
-        {!isMobile && (
-          <LaserFlow
+      {/* LaserFlow separator */}
+      <div className="relative w-full h-[180px] sm:h-[360px] pointer-events-none overflow-hidden" style={{ transform: 'rotate(180deg)' }}>
+        <LaserFlow
             color="#E8B45E"
             horizontalBeamOffset={0.0}
             verticalBeamOffset={-0.2}
@@ -607,7 +606,6 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
             decay={1.3}
             falloffStart={1.0}
           />
-        )}
         {/* Top fade (visually bottom since rotated) */}
         <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-bg-primary to-transparent" />
       </div>
@@ -623,7 +621,7 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
           <div className="absolute -inset-px bg-gradient-to-b from-accent-primary/30 via-accent-primary/10 to-accent-primary/30 pointer-events-none" />
 
           {/* Main container */}
-          <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] py-8 sm:py-10 md:py-14 px-5 sm:px-8 text-center overflow-hidden">
+          <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] py-6 sm:py-10 md:py-14 px-4 sm:px-8 text-center overflow-hidden">
             {/* Subtle radial glow — replaces heavy LaserFlow background */}
             <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(232,180,94,0.15)_0%,transparent_70%)]" />
             {/* Accent top line */}
@@ -637,8 +635,8 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
             <div className="absolute bottom-0 left-0 w-16 h-16 border-b border-l border-accent-primary/40" />
             <div className="absolute bottom-0 right-0 w-16 h-16 border-b border-r border-accent-primary/40" />
 
-            {/* Floating particles — reduced on mobile */}
-            {isInView && !isMobile && (
+            {/* Floating particles */}
+            {isInView && (
               <>
                 {[...Array(6)].map((_, i) => (
                   <motion.div
@@ -666,27 +664,6 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
 
             {/* Content */}
             <div className="relative z-10">
-              {/* Status badge */}
-              <motion.div
-                className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 border border-accent-primary/30 bg-accent-primary/[0.06]"
-                initial={{ opacity: 0, y: 10 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              >
-                <motion.div
-                  className="w-2 h-2 rounded-full bg-green-400"
-                  animate={{ opacity: [1, 0.4, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
-                <ShinyText
-                  text="LIVE ON SOLANA DEVNET"
-                  speed={3}
-                  color="#9ca3af"
-                  shineColor="#E8B45E"
-                  className="text-xs font-mono font-semibold tracking-widest"
-                />
-              </motion.div>
-
               {/* Headline */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

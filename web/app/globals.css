@@ -48,7 +48,7 @@
 @layer components {
   /* 📦 Container System */
   .container-colosseum {
-    @apply max-w-container mx-auto px-6 lg:px-16;
+    @apply max-w-container mx-auto px-3 sm:px-6 lg:px-16;
   }
 
   /* 🟨 CTA Button System (Colosseum Gold) */
