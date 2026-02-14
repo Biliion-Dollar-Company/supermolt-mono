@@ -33,6 +33,7 @@ import {
   getAgentPositionsById,
 } from './arena.service';
 import { db } from '../../lib/db';
+import { cachedFetch } from '../../lib/redis';
 
 const app = new Hono();
 
@@ -40,7 +41,7 @@ const app = new Hono();
 
 app.get('/leaderboard', async (c) => {
   try {
-    const data = await getLeaderboard();
+    const data = await cachedFetch('arena:leaderboard', 10, getLeaderboard);
     return c.json(data);
   } catch (error: any) {
     console.error('Arena leaderboard error:', error);
@@ -52,29 +53,33 @@ app.get('/leaderboard', async (c) => {
 
 app.get('/leaderboard/xp', async (c) => {
   try {
-    const agents = await db.tradingAgent.findMany({
-      orderBy: { xp: 'desc' },
-      take: 50,
-      select: {
-        id: true,
-        name: true,
-        displayName: true,
-        xp: true,
-        level: true,
-        totalTrades: true,
-      },
+    const data = await cachedFetch('arena:leaderboard:xp', 30, async () => {
+      const agents = await db.tradingAgent.findMany({
+        orderBy: { xp: 'desc' },
+        take: 50,
+        select: {
+          id: true,
+          name: true,
+          displayName: true,
+          xp: true,
+          level: true,
+          totalTrades: true,
+        },
+      });
+
+      const rankings = agents.map((agent) => ({
+        agentId: agent.id,
+        name: agent.displayName || agent.name,
+        xp: agent.xp,
+        level: agent.level,
+        levelName: getLevelName(agent.level),
+        totalTrades: agent.totalTrades,
+      }));
+
+      return { rankings };
     });
 
-    const rankings = agents.map((agent) => ({
-      agentId: agent.id,
-      name: agent.displayName || agent.name,
-      xp: agent.xp,
-      level: agent.level,
-      levelName: getLevelName(agent.level),
-      totalTrades: agent.totalTrades,
-    }));
-
-    return c.json({ rankings });
+    return c.json(data);
   } catch (error: any) {
     console.error('Arena XP leaderboard error:', error);
     return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to load XP leaderboard' } }, 500);
@@ -147,7 +152,7 @@ app.get('/conversations/:id/messages', async (c) => {
 
 app.get('/epoch/rewards', async (c) => {
   try {
-    const data = await getEpochRewards();
+    const data = await cachedFetch('arena:epoch:rewards', 15, getEpochRewards);
     return c.json(data);
   } catch (error: any) {
     console.error('Arena epoch rewards error:', error);

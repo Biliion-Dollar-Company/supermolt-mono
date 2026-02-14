@@ -6,7 +6,10 @@ import { Swords, Trophy } from 'lucide-react';
 import { ArenaLeaderboard, EpochRewardPanel, MyAgentPanel, XPLeaderboard, TradeRecommendationBanner } from '@/components/arena';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
-const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), { ssr: false });
+const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0 bg-black" />,
+});
 
 
 export default function ArenaPage() {

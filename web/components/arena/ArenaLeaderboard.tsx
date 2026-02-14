@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Copy, Check } from 'lucide-react';
-import { getLeaderboard, getEpochRewards } from '@/lib/api';
-import { Agent, AgentAllocation } from '@/lib/types';
+import { AgentAllocation } from '@/lib/types';
+import { useLeaderboard, useEpochRewards } from '@/hooks/useArenaData';
 import { AgentProfileModal } from './AgentProfileModal';
 
 function shortenAddress(addr: string): string {
@@ -26,48 +26,27 @@ function getAvatarSrc(avatarUrl?: string, twitterHandle?: string): string | null
 }
 
 export function ArenaLeaderboard() {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [allocations, setAllocations] = useState<Map<string, AgentAllocation>>(new Map());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data: rawAgents, error: leaderboardError, isLoading } = useLeaderboard();
+  const { data: rewards } = useEpochRewards(); // deduplicated with EpochRewardPanel automatically
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [data, rewards] = await Promise.all([
-          getLeaderboard(),
-          getEpochRewards().catch(() => null),
-        ]);
-        // Sort by trade_count descending — the only meaningful metric right now
-        const sorted = (data || [])
-          .sort((a, b) => b.trade_count - a.trade_count)
-          .slice(0, 50);
-        setAgents(sorted);
+  const agents = useMemo(() =>
+    (rawAgents || []).sort((a, b) => b.trade_count - a.trade_count).slice(0, 50),
+    [rawAgents]
+  );
 
-        // Build allocation lookup map
-        if (rewards?.allocations) {
-          const map = new Map<string, AgentAllocation>();
-          for (const a of rewards.allocations) {
-            map.set(a.agentId, a);
-          }
-          setAllocations(map);
-        }
-
-        setError(false);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
+  const allocations = useMemo(() => {
+    const map = new Map<string, AgentAllocation>();
+    if (rewards?.allocations) {
+      for (const a of rewards.allocations) {
+        map.set(a.agentId, a);
       }
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    }
+    return map;
+  }, [rewards]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-1">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -87,7 +66,7 @@ export function ArenaLeaderboard() {
     );
   }
 
-  if (error || agents.length === 0) {
+  if (leaderboardError || agents.length === 0) {
     return (
       <div className="text-center py-8 text-text-muted text-sm">
         No leaderboard data available

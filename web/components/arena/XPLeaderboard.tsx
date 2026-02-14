@@ -1,34 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { Star, ArrowRight } from 'lucide-react';
-import { getXPLeaderboard } from '@/lib/api';
-import type { XPLeaderboardEntry } from '@/lib/types';
+import { useXPLeaderboard } from '@/hooks/useArenaData';
 
 export function XPLeaderboard() {
-  const [entries, setEntries] = useState<XPLeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data: rawEntries, error, isLoading } = useXPLeaderboard();
+  const entries = useMemo(() => (rawEntries || []).slice(0, 15), [rawEntries]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const data = await getXPLeaderboard();
-        setEntries(data.slice(0, 15));
-        setError(false);
-      } catch {
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="space-y-1">
         {Array.from({ length: 6 }).map((_, i) => (

@@ -6,6 +6,7 @@ export const KEYS = {
   session: (userId: string) => `session:${userId}`,
   agentState: (userId: string) => `agent:${userId}:state`,
   rateLimit: (ip: string) => `ratelimit:${ip}`,
+  cache: (key: string) => `cache:${key}`,
 };
 
 // In-memory fallback for development
@@ -45,4 +46,43 @@ export async function deleteSession(userId: string): Promise<void> {
   } else {
     memoryStore.delete(KEYS.session(userId));
   }
+}
+
+// ── Generic cache helper ────────────────────────────────────
+
+/**
+ * Cache-aside helper. Returns cached value if fresh, otherwise calls fetcher,
+ * caches the result, and returns it. Works with Redis or in-memory fallback.
+ */
+export async function cachedFetch<T>(
+  key: string,
+  ttlSeconds: number,
+  fetcher: () => Promise<T>,
+): Promise<T> {
+  const cacheKey = KEYS.cache(key);
+
+  // Try cache first
+  if (redis) {
+    const cached = await redis.get(cacheKey);
+    if (cached) return JSON.parse(cached) as T;
+  } else {
+    const item = memoryStore.get(cacheKey);
+    if (item && item.expires > Date.now()) return JSON.parse(item.value) as T;
+    if (item) memoryStore.delete(cacheKey);
+  }
+
+  // Cache miss — call fetcher
+  const result = await fetcher();
+  const serialized = JSON.stringify(result);
+
+  if (redis) {
+    await redis.setex(cacheKey, ttlSeconds, serialized);
+  } else {
+    memoryStore.set(cacheKey, {
+      value: serialized,
+      expires: Date.now() + ttlSeconds * 1000,
+    });
+  }
+
+  return result;
 }

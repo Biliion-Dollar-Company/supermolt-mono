@@ -5,7 +5,7 @@ import { BarChart3, Trophy, ChevronDown, ClipboardCheck, MessageSquare, Settings
 import { toast } from 'sonner';
 import { usePrivy } from '@privy-io/react-auth';
 import { useAuthStore } from '@/store/authStore';
-import { getMyAgent } from '@/lib/api';
+import { useMyAgent } from '@/hooks/useArenaData';
 import { OnboardingChecklist } from './OnboardingChecklist';
 import { TasksPanel } from './TasksPanel';
 import { ConversationsPanel } from './ConversationsPanel';
@@ -33,22 +33,14 @@ export function MyAgentPanel() {
   const displayName = agent?.name || user?.twitter?.name || 'Agent';
   const handle = agent?.twitterHandle || (user?.twitter?.username ? `@${user.twitter.username}` : null);
 
-  // Refresh data periodically
+  // SWR handles polling + caching + deduplication
+  const { data: meData } = useMyAgent(isAuthenticated);
+
   useEffect(() => {
-    if (!isAuthenticated) return;
-
-    const refresh = () => {
-      getMyAgent()
-        .then((me) => {
-          setAuth(me.agent, me.onboarding.tasks, me.onboarding.progress);
-        })
-        .catch(() => {});
-    };
-
-    refresh();
-    const interval = setInterval(refresh, 30000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated, setAuth]);
+    if (meData) {
+      setAuth(meData.agent, meData.onboarding.tasks, meData.onboarding.progress);
+    }
+  }, [meData, setAuth]);
 
   // Show a one-time toast when wallet isn't connected
   const toastShownRef = useRef(false);

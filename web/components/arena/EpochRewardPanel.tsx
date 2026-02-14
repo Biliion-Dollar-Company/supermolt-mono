@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { ExternalLink, Clock, CheckCircle2, AlertCircle, Gift, Info } from 'lucide-react';
 
-import { getEpochRewards } from '@/lib/api';
-import { EpochReward, AgentAllocation } from '@/lib/types';
+import { AgentAllocation } from '@/lib/types';
+import { useEpochRewards } from '@/hooks/useArenaData';
 import { AgentProfileModal } from './AgentProfileModal';
 
 function formatTwitterHandle(handle?: string): string {
@@ -164,29 +164,11 @@ const VISIBLE_ROWS = 5;
 const ROW_HEIGHT = 60;
 
 export function EpochRewardPanel() {
-  const [data, setData] = useState<EpochReward | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useEpochRewards(); // deduplicated with ArenaLeaderboard
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const fetchData = useCallback(async () => {
-    try {
-      const result = await getEpochRewards();
-      setData(result);
-    } catch {
-      // Silently fail
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
