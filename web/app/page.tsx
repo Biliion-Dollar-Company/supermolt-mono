@@ -38,7 +38,6 @@ import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 
 const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), { ssr: false });
-const LaserFlow = dynamic(() => import('@/components/reactbits/LaserFlow'), { ssr: false });
 
 // ─── Data ───
 
@@ -597,29 +596,6 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
       ref={sectionRef}
       className="relative overflow-hidden pb-12 sm:pb-32"
     >
-      {/* LaserFlow separator — hidden on mobile */}
-      <div className="relative w-full hidden sm:block h-[360px] pointer-events-none overflow-hidden" style={{ transform: 'rotate(180deg)' }}>
-        <LaserFlow
-            color="#E8B45E"
-            horizontalBeamOffset={0.0}
-            verticalBeamOffset={-0.2}
-            horizontalSizing={1.0}
-            verticalSizing={2.0}
-            wispDensity={0.6}
-            wispSpeed={8}
-            wispIntensity={4}
-            flowSpeed={0.25}
-            flowStrength={0.2}
-            fogIntensity={0.35}
-            fogScale={0.35}
-            fogFallSpeed={0.5}
-            decay={1.3}
-            falloffStart={1.0}
-          />
-        {/* Top fade (visually bottom since rotated) */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-bg-primary to-transparent" />
-      </div>
-
       {/* Radial glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-accent-primary/[0.05] rounded-full blur-[100px]" />
