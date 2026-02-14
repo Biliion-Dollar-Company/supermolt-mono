@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { checkDbConnection } from '../lib/db';
-import { redis } from '../lib/redis';
+import { redis, cacheStats } from '../lib/redis';
 
 const health = new Hono();
 
@@ -42,6 +42,34 @@ health.get('/ready', async (c) => {
     },
     allOk ? 200 : 503
   );
+});
+
+// ── Cache diagnostic ─────────────────────────────────────────
+
+health.get('/cache', (c) => {
+  const total = cacheStats.hits + cacheStats.misses;
+  const hitRate = total > 0 ? Math.round((cacheStats.hits / total) * 100) : 0;
+  const now = Date.now();
+
+  const keys: Record<string, any> = {};
+  for (const [key, stats] of cacheStats.keys) {
+    keys[key] = {
+      ttlSeconds: stats.ttl,
+      lastHitAgo: stats.lastHit ? `${Math.round((now - stats.lastHit) / 1000)}s` : 'never',
+      lastMissAgo: stats.lastMiss ? `${Math.round((now - stats.lastMiss) / 1000)}s` : 'never',
+    };
+  }
+
+  return c.json({
+    cache: {
+      backend: cacheStats.backend,
+      hits: cacheStats.hits,
+      misses: cacheStats.misses,
+      total,
+      hitRate: `${hitRate}%`,
+      keys,
+    },
+  });
 });
 
 // Temporary setup endpoint (no auth required) - REMOVE AFTER SETUP

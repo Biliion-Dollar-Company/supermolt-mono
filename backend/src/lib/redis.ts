@@ -48,6 +48,16 @@ export async function deleteSession(userId: string): Promise<void> {
   }
 }
 
+// ── Cache stats (for /health/cache diagnostic) ─────────────
+
+export const cacheStats = {
+  hits: 0,
+  misses: 0,
+  backend: redis ? 'redis' as const : 'memory' as const,
+  /** Per-key last-hit timestamps for TTL visibility */
+  keys: new Map<string, { lastHit: number; lastMiss: number; ttl: number }>(),
+};
+
 // ── Generic cache helper ────────────────────────────────────
 
 /**
@@ -60,19 +70,41 @@ export async function cachedFetch<T>(
   fetcher: () => Promise<T>,
 ): Promise<T> {
   const cacheKey = KEYS.cache(key);
+  const start = Date.now();
+  const backend = redis ? 'redis' : 'memory';
+
+  const keyStats = cacheStats.keys.get(key) || { lastHit: 0, lastMiss: 0, ttl: ttlSeconds };
+  keyStats.ttl = ttlSeconds;
 
   // Try cache first
   if (redis) {
     const cached = await redis.get(cacheKey);
-    if (cached) return JSON.parse(cached) as T;
+    if (cached) {
+      cacheStats.hits++;
+      keyStats.lastHit = Date.now();
+      cacheStats.keys.set(key, keyStats);
+      console.log(`[cache] HIT  ${key} (${backend}, ${Date.now() - start}ms)`);
+      return JSON.parse(cached) as T;
+    }
   } else {
     const item = memoryStore.get(cacheKey);
-    if (item && item.expires > Date.now()) return JSON.parse(item.value) as T;
+    if (item && item.expires > Date.now()) {
+      cacheStats.hits++;
+      keyStats.lastHit = Date.now();
+      cacheStats.keys.set(key, keyStats);
+      console.log(`[cache] HIT  ${key} (${backend}, ${Date.now() - start}ms)`);
+      return JSON.parse(item.value) as T;
+    }
     if (item) memoryStore.delete(cacheKey);
   }
 
   // Cache miss — call fetcher
+  cacheStats.misses++;
+  keyStats.lastMiss = Date.now();
+  cacheStats.keys.set(key, keyStats);
+
   const result = await fetcher();
+  const fetchMs = Date.now() - start;
   const serialized = JSON.stringify(result);
 
   if (redis) {
@@ -84,5 +116,6 @@ export async function cachedFetch<T>(
     });
   }
 
+  console.log(`[cache] MISS ${key} (${backend}, fetched in ${fetchMs}ms, ttl=${ttlSeconds}s)`);
   return result;
 }
