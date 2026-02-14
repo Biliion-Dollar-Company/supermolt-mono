@@ -46,3 +46,11 @@ prisma/.env
 # Bun
 .bun
 .env.colosseum
+
+# Sensitive docs with secrets
+backend/REWARD_SYSTEMS.md
+backend/docs-archive/QUICK_ACTION_DEVPRINT.md
+backend/docs-archive/DEVPRINT_REUSE_ANALYSIS.md
+RAILWAY_SETUP.md
+SECURITY_ALERT.md
+backend/docs/deployment/devnet-migration.md
