@@ -34,6 +34,7 @@ import { ArchitectureModal } from '@/components/ArchitectureModal';
 import { NewsPanel } from '@/components/arena';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { usePrivyAgentAuth } from '@/hooks/usePrivyAgentAuth';
+import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 
 const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), { ssr: false });
@@ -516,16 +517,19 @@ function AgentOnboarding() {
 }
 
 function SpectatorOnboarding() {
-  const { authenticated, isSigningIn, signIn } = usePrivyAgentAuth();
+  const { authenticated, isSigningIn, error, signIn } = usePrivyAgentAuth();
+  const { isAuthenticated } = useAuthStore();
   const router = useRouter();
 
   // Prefetch arena page so navigation feels instant
   useEffect(() => { router.prefetch('/arena'); }, [router]);
 
   const handleDeploy = () => {
-    if (authenticated) {
+    if (authenticated && isAuthenticated) {
+      // Both Privy + backend auth complete — go to arena
       router.push('/arena');
     } else {
+      // Either Privy not authed, or backend exchange needed
       signIn();
     }
   };
@@ -564,7 +568,7 @@ function SpectatorOnboarding() {
       </div>
 
       {/* CTA */}
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-1.5">
         <button
           onClick={handleDeploy}
           disabled={isSigningIn}
@@ -572,10 +576,13 @@ function SpectatorOnboarding() {
         >
           <Zap className="w-4 h-4 text-accent-primary" />
           <span className="text-sm font-bold text-accent-primary">
-            {isSigningIn ? 'Signing in...' : authenticated ? 'Enter Arena' : 'Deploy Now'}
+            {isSigningIn ? 'Signing in...' : (authenticated && isAuthenticated) ? 'Enter Arena' : error ? 'Retry' : 'Deploy Now'}
           </span>
           <ArrowRight className="w-4 h-4 text-accent-primary group-hover:translate-x-0.5 transition-transform" />
         </button>
+        {error && !isSigningIn && (
+          <span className="text-[10px] text-red-400">{error}</span>
+        )}
       </div>
     </div>
   );

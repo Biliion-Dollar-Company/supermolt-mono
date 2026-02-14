@@ -6,7 +6,7 @@ import { usePrivyAgentAuth } from '@/hooks/usePrivyAgentAuth';
 import { useAuthStore } from '@/store/authStore';
 
 function UserAuthButtonInner() {
-  const { ready, authenticated, user, isSigningIn, signIn, signOut } = usePrivyAgentAuth();
+  const { ready, authenticated, user, isSigningIn, error, signIn, signOut } = usePrivyAgentAuth();
   const { agent, isAuthenticated } = useAuthStore();
 
   const rawAvatarUrl = agent?.avatarUrl || user?.twitter?.profilePictureUrl || null;
@@ -41,23 +41,35 @@ function UserAuthButtonInner() {
 
   if (!authenticated || !isAuthenticated || !agent) {
     return (
-      <button
-        onClick={signIn}
-        disabled={isSigningIn}
-        className="flex items-center gap-2 px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium disabled:opacity-50"
-      >
-        {isSigningIn ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Signing...
-          </>
-        ) : (
-          <>
-            <User className="w-4 h-4" />
-            Sign In
-          </>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={signIn}
+          disabled={isSigningIn}
+          className="flex items-center gap-2 px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium disabled:opacity-50"
+        >
+          {isSigningIn ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Signing...
+            </>
+          ) : error ? (
+            <>
+              <User className="w-4 h-4" />
+              Retry
+            </>
+          ) : (
+            <>
+              <User className="w-4 h-4" />
+              Sign In
+            </>
+          )}
+        </button>
+        {error && !isSigningIn && (
+          <span className="text-[10px] text-red-400 max-w-[120px] truncate" title={error}>
+            {error}
+          </span>
         )}
-      </button>
+      </div>
     );
   }
 
