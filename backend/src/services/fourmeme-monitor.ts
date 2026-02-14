@@ -179,6 +179,13 @@ export class FourMemeMonitor {
   private seenGraduationTxHashes: Set<string> = new Set();
   private onMigrationCallbacks: ((event: MigrationEvent) => void)[] = [];
 
+  // Backoff state — slows polling when RPC is rate-limited
+  private pollBackoff: number = 0; // 0 = normal, each rate-limit doubles interval
+  private gradBackoff: number = 0;
+  private pollSkipsRemaining: number = 0;
+  private gradSkipsRemaining: number = 0;
+  private lastRateLimitLog: number = 0; // suppress repeated logs
+
   // Accept apiKey for backwards-compat but it's no longer needed
   constructor(_apiKey?: string) {}
 
@@ -257,6 +264,12 @@ export class FourMemeMonitor {
    */
   private async poll() {
     try {
+      // Skip ticks during backoff
+      if (this.pollSkipsRemaining > 0) {
+        this.pollSkipsRemaining--;
+        return;
+      }
+
       // Get latest block
       const latestHex = await rpcCall('eth_blockNumber', []);
       const latestBlock = parseInt(latestHex, 16);
@@ -289,6 +302,9 @@ export class FourMemeMonitor {
         topics: [[TOKEN_CREATE_TOPIC, LIQUIDITY_ADDED_TOPIC]],
       }]);
 
+      // Success — reset backoff
+      this.pollBackoff = 0;
+
       // Update last processed block (in memory + DB)
       this.lastBlock = toBlock;
       db.monitorState.upsert({
@@ -316,8 +332,22 @@ export class FourMemeMonitor {
           await this.handleLiquidityAdded(log, txHash, blockNum, timestamp);
         }
       }
-    } catch (error) {
-      console.error('[4meme] Poll error:', error);
+    } catch (error: any) {
+      const isRateLimit = error?.message?.includes('limit exceeded') || error?.message?.includes('-32005');
+      if (isRateLimit) {
+        this.pollBackoff = Math.min(this.pollBackoff + 1, 5); // max 5 = ~8 min backoff
+        const skipTicks = Math.pow(2, this.pollBackoff); // 2, 4, 8, 16, 32
+        this.pollSkipsRemaining = skipTicks;
+        const backoffSec = Math.round(skipTicks * POLL_INTERVAL_MS / 1000);
+        // Log rate-limit at most once per 60s
+        const now = Date.now();
+        if (now - this.lastRateLimitLog > 60_000) {
+          console.warn(`[4meme] BSC RPC rate-limited, backing off ${backoffSec}s (level ${this.pollBackoff})`);
+          this.lastRateLimitLog = now;
+        }
+      } else {
+        console.error('[4meme] Poll error:', error?.message || error);
+      }
     }
   }
 
@@ -441,6 +471,12 @@ export class FourMemeMonitor {
    */
   private async pollGraduations() {
     try {
+      // Skip ticks during backoff
+      if (this.gradSkipsRemaining > 0) {
+        this.gradSkipsRemaining--;
+        return;
+      }
+
       const latestHex = await rpcCall('eth_blockNumber', []);
       const latestBlock = parseInt(latestHex, 16);
       const safeLatest = latestBlock - 2;
@@ -462,6 +498,9 @@ export class FourMemeMonitor {
         address: PANCAKE_V2_FACTORY,
         topics: [[PAIR_CREATED_TOPIC]],
       }]);
+
+      // Success — reset backoff
+      this.gradBackoff = 0;
 
       // Persist block progress
       this.graduationLastBlock = toBlock;
@@ -504,8 +543,21 @@ export class FourMemeMonitor {
 
         await this.handlePancakeGraduation(memeToken, platform!, pairAddress, quoteTokenAddr, quoteLabel, txHash, blockNum);
       }
-    } catch (error) {
-      console.error('[graduation] Poll error:', error);
+    } catch (error: any) {
+      const isRateLimit = error?.message?.includes('limit exceeded') || error?.message?.includes('-32005');
+      if (isRateLimit) {
+        this.gradBackoff = Math.min(this.gradBackoff + 1, 5);
+        const skipTicks = Math.pow(2, this.gradBackoff);
+        this.gradSkipsRemaining = skipTicks;
+        const backoffSec = Math.round(skipTicks * GRADUATION_POLL_INTERVAL_MS / 1000);
+        const now = Date.now();
+        if (now - this.lastRateLimitLog > 60_000) {
+          console.warn(`[graduation] BSC RPC rate-limited, backing off ${backoffSec}s (level ${this.gradBackoff})`);
+          this.lastRateLimitLog = now;
+        }
+      } else {
+        console.error('[graduation] Poll error:', error?.message || error);
+      }
     }
   }
 
