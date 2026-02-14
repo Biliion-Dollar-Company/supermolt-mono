@@ -326,38 +326,161 @@ export function AgentDataFlow() {
     // ── Mobile layout ──────────────────────────────────────────
     if (isMobile) {
         return (
-            <div className="bg-[#0a0a12]/60 backdrop-blur-xl border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
-                {/* Feed grid — 2x2 */}
-                <div className="grid grid-cols-2 gap-px bg-white/[0.04]">
-                    {FEEDS.map((feed) => {
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden">
+                {/* DNA flow animation styles */}
+                <style>{`
+                    @keyframes dnaFlow {
+                        0% { stroke-dashoffset: 80; }
+                        100% { stroke-dashoffset: 0; }
+                    }
+                    @keyframes dnaFlowReverse {
+                        0% { stroke-dashoffset: -80; }
+                        100% { stroke-dashoffset: 0; }
+                    }
+                    .dna-pulse { animation: dnaFlow 2.5s ease-in-out infinite; }
+                    .dna-pulse-reverse { animation: dnaFlowReverse 2.5s ease-in-out infinite; }
+                `}</style>
+
+                {/* Feed flow — centered cards with DNA helix connectors */}
+                <div className="relative px-4 pt-5 pb-0">
+                    {FEEDS.map((feed, i) => {
                         const Icon = feed.icon;
+                        const c = `${feed.color}40`;
                         return (
-                            <button
-                                key={feed.id}
-                                onClick={() => setSelectedFeed(feed.id)}
-                                className="bg-[#0a0a12] px-3.5 py-3 flex items-center gap-3 cursor-pointer active:bg-white/[0.03] transition-colors"
-                            >
-                                <div
-                                    className="w-8 h-8 flex items-center justify-center flex-shrink-0"
-                                    style={{ backgroundColor: `${feed.color}12`, border: `1px solid ${feed.color}25` }}
-                                >
-                                    <Icon className="w-4 h-4" style={{ color: feed.color }} />
+                            <div key={feed.id}>
+                                {/* DNA helix connector from previous card */}
+                                {i > 0 && (
+                                    <div className="relative h-14">
+                                        <svg
+                                            className="absolute inset-0 w-full h-full"
+                                            viewBox="0 0 100 56"
+                                            preserveAspectRatio="none"
+                                            fill="none"
+                                        >
+                                            {/* Static strands */}
+                                            <path
+                                                d="M 36 0 C 36 22, 64 34, 64 56"
+                                                stroke={FEEDS[i - 1].color}
+                                                strokeWidth="1.5"
+                                                opacity="0.3"
+                                                vectorEffect="non-scaling-stroke"
+                                            />
+                                            <path
+                                                d="M 64 0 C 64 22, 36 34, 36 56"
+                                                stroke={feed.color}
+                                                strokeWidth="1.5"
+                                                opacity="0.3"
+                                                vectorEffect="non-scaling-stroke"
+                                            />
+                                            {/* Animated flowing pulses */}
+                                            <path
+                                                d="M 36 0 C 36 22, 64 34, 64 56"
+                                                stroke={FEEDS[i - 1].color}
+                                                strokeWidth="2"
+                                                opacity="0.6"
+                                                vectorEffect="non-scaling-stroke"
+                                                strokeDasharray="12 68"
+                                                className="dna-pulse"
+                                                style={{ animationDelay: `${i * 0.4}s` }}
+                                            />
+                                            <path
+                                                d="M 64 0 C 64 22, 36 34, 36 56"
+                                                stroke={feed.color}
+                                                strokeWidth="2"
+                                                opacity="0.6"
+                                                vectorEffect="non-scaling-stroke"
+                                                strokeDasharray="12 68"
+                                                className="dna-pulse-reverse"
+                                                style={{ animationDelay: `${i * 0.4 + 1.2}s` }}
+                                            />
+                                        </svg>
+                                        {/* Center crossing node */}
+                                        <div
+                                            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full"
+                                            style={{
+                                                background: `linear-gradient(135deg, ${FEEDS[i - 1].color}, ${feed.color})`,
+                                                opacity: 0.35,
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                                {/* Feed card */}
+                                <div className="flex justify-center">
+                                    <button
+                                        onClick={() => setSelectedFeed(feed.id)}
+                                        className="relative bg-white/[0.06] backdrop-blur-xl border border-white/[0.1] px-4 py-2.5 cursor-pointer active:bg-white/[0.1] transition-colors w-[72%]"
+                                    >
+                                        <span className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l" style={{ borderColor: c }} />
+                                        <span className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r" style={{ borderColor: c }} />
+                                        <span className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l" style={{ borderColor: c }} />
+                                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r" style={{ borderColor: c }} />
+
+                                        <div className="flex items-center gap-3">
+                                            <Icon className="w-6 h-6 flex-shrink-0" style={{ color: feed.color }} />
+                                            <div className="min-w-0 text-left">
+                                                <div className="text-sm font-bold text-text-primary leading-tight">{feed.label}</div>
+                                                <div className="text-[10px] text-text-muted">{feed.desc}</div>
+                                            </div>
+                                        </div>
+                                    </button>
                                 </div>
-                                <div className="min-w-0 text-left">
-                                    <div className="text-sm font-bold text-text-primary leading-tight">{feed.label}</div>
-                                    <div className="text-[10px] text-text-muted truncate">{feed.desc}</div>
-                                </div>
-                            </button>
+                            </div>
                         );
                     })}
+
+                    {/* Final convergence — both strands merge to center toward the agent */}
+                    <div className="relative h-10">
+                        <svg
+                            className="absolute inset-0 w-full h-full"
+                            viewBox="0 0 100 40"
+                            preserveAspectRatio="none"
+                            fill="none"
+                        >
+                            <path
+                                d="M 36 0 C 36 16, 50 28, 50 40"
+                                stroke={FEEDS[FEEDS.length - 1].color}
+                                strokeWidth="1.5"
+                                opacity="0.25"
+                                vectorEffect="non-scaling-stroke"
+                            />
+                            <path
+                                d="M 64 0 C 64 16, 50 28, 50 40"
+                                stroke={FEEDS[FEEDS.length - 1].color}
+                                strokeWidth="1.5"
+                                opacity="0.25"
+                                vectorEffect="non-scaling-stroke"
+                            />
+                            {/* Animated convergence pulses */}
+                            <path
+                                d="M 36 0 C 36 16, 50 28, 50 40"
+                                stroke={FEEDS[FEEDS.length - 1].color}
+                                strokeWidth="2"
+                                opacity="0.5"
+                                vectorEffect="non-scaling-stroke"
+                                strokeDasharray="10 50"
+                                className="dna-pulse"
+                                style={{ animationDelay: '1.6s' }}
+                            />
+                            <path
+                                d="M 64 0 C 64 16, 50 28, 50 40"
+                                stroke={FEEDS[FEEDS.length - 1].color}
+                                strokeWidth="2"
+                                opacity="0.5"
+                                vectorEffect="non-scaling-stroke"
+                                strokeDasharray="10 50"
+                                className="dna-pulse-reverse"
+                                style={{ animationDelay: '2.8s' }}
+                            />
+                        </svg>
+                    </div>
                 </div>
 
                 {/* Agent card */}
-                <div className="border-t border-white/[0.06]">
+                <div className="mx-4 mb-4 mt-2 bg-white/[0.06] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                     {hasAgent ? (
                         <button
                             onClick={() => setExpanded(!expanded)}
-                            className="w-full px-4 py-4 flex items-center gap-3.5 cursor-pointer active:bg-white/[0.02] transition-colors"
+                            className="w-full px-4 py-4 flex items-center gap-3.5 cursor-pointer active:bg-white/[0.04] transition-colors"
                         >
                             <div className="w-11 h-11 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
                                 {avatarUrl ? (
@@ -399,25 +522,38 @@ export function AgentDataFlow() {
                     ) : (
                         <button
                             onClick={() => { if (!authenticated) login(); }}
-                            className="w-full px-4 py-4 flex items-center gap-3.5 cursor-pointer active:bg-white/[0.02] transition-colors"
+                            className="w-full relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform duration-150"
                         >
-                            <div className="w-11 h-11 rounded-full bg-accent-primary/10 border-2 border-accent-primary/25 flex items-center justify-center flex-shrink-0">
-                                <Rocket className="w-5 h-5 text-accent-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0 text-left">
-                                <h3 className="text-sm font-bold text-text-primary">
-                                    {authenticated ? 'Create Your Agent' : 'Sign In to Deploy'}
+                            {/* Animated glow background */}
+                            <div className="absolute inset-0 bg-gradient-to-b from-accent-primary/[0.08] via-accent-primary/[0.03] to-transparent" />
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-[1px] bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
+
+                            <div className="relative px-4 py-5">
+                                {/* Title row — full width */}
+                                <h3 className="text-base font-bold text-text-primary text-center w-full">
+                                    {authenticated ? 'Deploy Your Agent' : 'Deploy Your Agent'}
                                 </h3>
-                                <p className="text-[11px] text-text-muted mt-0.5">
-                                    {authenticated ? 'Set up your AI trading agent.' : 'Connect with Twitter to join the arena.'}
+                                <p className="text-[11px] text-text-muted text-center mt-1 leading-relaxed">
+                                    {authenticated
+                                        ? 'All data feeds are live. Configure your strategy and start trading.'
+                                        : 'All data feeds converge here. Sign in to activate your AI trading agent.'}
                                 </p>
+
+                                {/* CTA button */}
+                                <div className="mt-4">
+                                    <div className="relative">
+                                        <div className="absolute -inset-1 bg-accent-primary/20 blur-lg" />
+                                        <div className="relative w-full py-3 bg-accent-primary/15 border border-accent-primary/40 flex items-center justify-center">
+                                            <span className="text-base font-bold text-accent-primary tracking-wide">
+                                                {authenticated ? 'Create' : 'Create'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/30 flex-shrink-0">
-                                <Zap className="w-3 h-3 text-accent-primary" />
-                                <span className="text-[11px] font-bold text-accent-primary">
-                                    {authenticated ? 'Start' : 'Sign In'}
-                                </span>
-                            </div>
+
+                            {/* Bottom accent line */}
+                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-[1px] bg-gradient-to-r from-transparent via-accent-primary/40 to-transparent" />
                         </button>
                     )}
                 </div>
