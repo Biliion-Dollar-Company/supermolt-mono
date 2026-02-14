@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import useSWR from 'swr';
 import Link from 'next/link';
 import { Trophy, TrendingUp, Users, Target, Medal, Crown, Award } from 'lucide-react';
 import { getLeaderboard } from '@/lib/api';
@@ -10,26 +10,11 @@ import { formatPercent, formatCurrency } from '@/lib/design-system';
 const glass = 'bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)]';
 
 export default function Leaderboard() {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchLeaderboard = async () => {
-    try {
-      setLoading(true);
-      const data = await getLeaderboard();
-      setAgents(data);
-    } catch (err) {
-      console.error('Failed to load leaderboard:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLeaderboard();
-    const interval = setInterval(fetchLeaderboard, 10000);
-    return () => clearInterval(interval);
-  }, []);
+  const { data: agents = [], isLoading } = useSWR('/arena/leaderboard', getLeaderboard, {
+    refreshInterval: 10000,
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+  });
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Crown className="w-6 h-6 text-yellow-400" />;
@@ -45,7 +30,7 @@ export default function Leaderboard() {
     { label: 'Total Trades', value: agents.reduce((sum, a) => sum + (a.trade_count || 0), 0), icon: Trophy },
   ];
 
-  if (loading && agents.length === 0) {
+  if (isLoading && agents.length === 0) {
     return (
       <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative">
         <div className="fixed inset-0 z-0">

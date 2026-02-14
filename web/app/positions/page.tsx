@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import useSWR from 'swr';
 import Link from 'next/link';
 import { TrendingUp, TrendingDown, Briefcase, DollarSign, Target, Activity } from 'lucide-react';
 import { getAllPositions } from '@/lib/api';
@@ -12,26 +13,12 @@ const glass = 'bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow
 type FilterType = 'all' | 'positive' | 'negative';
 
 export default function PositionsPage() {
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: positions = [], isLoading } = useSWR('/arena/positions', getAllPositions, {
+    refreshInterval: 10000,
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+  });
   const [filter, setFilter] = useState<FilterType>('all');
-
-  const fetchPositions = async () => {
-    try {
-      const data = await getAllPositions();
-      setPositions(data);
-    } catch (error) {
-      console.error('Error fetching positions:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPositions();
-    const interval = setInterval(fetchPositions, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   const filteredPositions = useMemo(() => {
     return positions.filter(position => {
@@ -56,7 +43,7 @@ export default function PositionsPage() {
         : 'bg-white/[0.04] text-text-muted border border-white/[0.1] hover:bg-white/[0.06]'
     }`;
 
-  if (loading) {
+  if (isLoading && positions.length === 0) {
     return (
       <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative">
         <div className="fixed inset-0 z-0">

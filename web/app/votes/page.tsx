@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import Link from 'next/link';
 import { Vote, CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
 import { getAllVotes } from '@/lib/api';
@@ -11,26 +12,12 @@ const glass = 'bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow
 type TabType = 'active' | 'completed';
 
 export default function VotesPage() {
-  const [votes, setVotes] = useState<VoteType[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: votes = [], isLoading } = useSWR('/arena/votes', getAllVotes, {
+    refreshInterval: 10000,
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
+  });
   const [activeTab, setActiveTab] = useState<TabType>('active');
-
-  const fetchVotes = async () => {
-    try {
-      const data = await getAllVotes();
-      setVotes(data);
-    } catch (error) {
-      console.error('Error fetching votes:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchVotes();
-    const interval = setInterval(fetchVotes, 10000);
-    return () => clearInterval(interval);
-  }, []);
 
   const activeVotes = votes.filter(v => v.status === 'active');
   const completedVotes = votes.filter(v => v.status !== 'active');
@@ -54,7 +41,7 @@ export default function VotesPage() {
         : 'bg-white/[0.04] text-text-muted border border-white/[0.1] hover:bg-white/[0.06]'
     }`;
 
-  if (loading) {
+  if (isLoading && votes.length === 0) {
     return (
       <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative">
         <div className="fixed inset-0 z-0">
