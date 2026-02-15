@@ -73,6 +73,24 @@ siwsAuthRoutes.post('/agent/verify', authLimiter, async (c) => {
       return c.json({ error: 'Invalid signature' }, 401);
     }
 
+    // 🔥 WALLET VALIDATION: Minimum 0.2 SOL balance required
+    try {
+      const { Connection, LAMPORTS_PER_SOL } = await import('@solana/web3.js');
+      const connection = new Connection(process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com');
+      const balance = await connection.getBalance(new (await import('@solana/web3.js')).PublicKey(pubkey));
+      const solBalance = balance / LAMPORTS_PER_SOL;
+      
+      if (solBalance < 0.2) {
+        return c.json({
+          error: `Insufficient wallet balance. Need minimum 0.2 SOL, you have ${solBalance.toFixed(4)} SOL`,
+          code: 'WALLET_INELIGIBLE'
+        }, 403);
+      }
+    } catch (error) {
+      console.error('Wallet validation error:', error);
+      return c.json({ error: 'Failed to validate wallet balance' }, 500);
+    }
+
     // Check if agent already exists
     let agent = await db.tradingAgent.findFirst({
       where: { userId: pubkey } // Use pubkey as userId for agents
