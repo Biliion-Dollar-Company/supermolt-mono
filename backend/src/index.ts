@@ -44,6 +44,9 @@ import { predictionRoutes } from './routes/prediction.routes';
 import { trading } from './routes/trading.routes';
 import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
 
+// TEMPORARY: Admin fix for Epic Reward scanner
+import adminFix from './routes/admin-scanner-fix';
+
 // USDC Hackathon Routes (Standardized Modules)
 import treasuryModule from './modules/treasury/treasury.routes';
 import leaderboard from './modules/leaderboard/leaderboard.routes';
@@ -137,6 +140,7 @@ app.get('/metrics', async (c) => {
 
 app.route('/archetypes', archetypes);
 app.route('/webhooks', webhooks); // Helius webhooks (public, signature validated)
+app.route('/admin-fix', adminFix); // TEMPORARY: Fix Epic Reward scanner
 app.route('/ponzinomics', ponzinomicsRoutes); // Ponzinomics analytics & trading
 // Agent onboarding (THE ONE COMMAND)
 app.route('/skills', skillsGuide); // Quickstart guide at /skills
