@@ -1,10 +1,21 @@
 /**
- * PnLChart - Enhanced profit/loss chart
- * Taller chart with stronger visual presence
+ * PnLChart - Futuristic performance chart with glow effects
+ * Enhanced SVG with animated gradient fill, glowing line, pulsing endpoint
  */
 
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Path, Defs, LinearGradient, Stop, Line, Circle } from 'react-native-svg';
+import Svg, { Path, Defs, LinearGradient, Stop, Line, Circle, Rect } from 'react-native-svg';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+  interpolate,
+  FadeIn,
+} from 'react-native-reanimated';
+import { useEffect } from 'react';
 import type { PnLDataPoint, Timeframe } from '@/hooks/usePnLHistory';
 import { colors } from '@/theme/colors';
 
@@ -17,7 +28,7 @@ interface PnLChartProps {
 }
 
 const TIMEFRAMES: Timeframe[] = ['1D', '3D', '7D', '30D'];
-const CHART_HEIGHT = 160;
+const CHART_HEIGHT = 170;
 const CHART_WIDTH = Dimensions.get('window').width - 64;
 
 function generatePath(
@@ -46,7 +57,6 @@ function generatePath(
       path = `M ${x} ${y}`;
       areaPath = `M ${x} ${height} L ${x} ${y}`;
     } else {
-      // Smooth curve using quadratic bezier
       const prevX = (i - 1) * xStep;
       const midX = (prevX + x) / 2;
       path += ` Q ${midX} ${lastY} ${x} ${y}`;
@@ -90,11 +100,26 @@ export function PnLChart({
 
   const startTime = data[0]?.timestamp;
 
+  // Pulse for endpoint
+  const pulse = useSharedValue(0);
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1, false,
+    );
+  }, []);
+
   return (
-    <View style={styles.container}>
-      {/* Timeframe selector */}
+    <Animated.View entering={FadeIn.duration(400)} style={styles.container}>
+      {/* Header */}
       <View style={styles.timeframeRow}>
-        <Text style={styles.sectionLabel}>PERFORMANCE</Text>
+        <View style={styles.labelContainer}>
+          <View style={[styles.labelDot, { backgroundColor: strokeColor }]} />
+          <Text style={styles.sectionLabel}>PERFORMANCE</Text>
+        </View>
         <View style={styles.timeframeContainer}>
           {TIMEFRAMES.map((tf) => (
             <Pressable
@@ -123,9 +148,14 @@ export function PnLChart({
         <Svg width={CHART_WIDTH} height={CHART_HEIGHT + 10}>
           <Defs>
             <LinearGradient id="chartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor={strokeColor} stopOpacity="0.25" />
-              <Stop offset="70%" stopColor={strokeColor} stopOpacity="0.05" />
+              <Stop offset="0%" stopColor={strokeColor} stopOpacity="0.2" />
+              <Stop offset="50%" stopColor={strokeColor} stopOpacity="0.05" />
               <Stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
+            </LinearGradient>
+            <LinearGradient id="lineGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+              <Stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+              <Stop offset="50%" stopColor={strokeColor} stopOpacity="1" />
+              <Stop offset="100%" stopColor={strokeColor} stopOpacity="0.8" />
             </LinearGradient>
           </Defs>
 
@@ -137,19 +167,40 @@ export function PnLChart({
               y1={CHART_HEIGHT * pct}
               x2={CHART_WIDTH}
               y2={CHART_HEIGHT * pct}
-              stroke="rgba(255,255,255,0.04)"
-              strokeDasharray="4,6"
+              stroke="rgba(255,255,255,0.03)"
+              strokeDasharray="3,8"
             />
           ))}
+
+          {/* Zero line if mixed pos/neg */}
+          <Line
+            x1="0" y1={CHART_HEIGHT * 0.5}
+            x2={CHART_WIDTH} y2={CHART_HEIGHT * 0.5}
+            stroke="rgba(255,255,255,0.04)"
+            strokeWidth="1"
+          />
 
           {/* Area fill */}
           {areaPath && <Path d={areaPath} fill="url(#chartGrad)" />}
 
-          {/* Line */}
+          {/* Glow line (wider, transparent) */}
           {path && (
             <Path
               d={path}
               stroke={strokeColor}
+              strokeWidth="6"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.15}
+            />
+          )}
+
+          {/* Main line */}
+          {path && (
+            <Path
+              d={path}
+              stroke="url(#lineGlow)"
               strokeWidth="2.5"
               fill="none"
               strokeLinecap="round"
@@ -157,40 +208,63 @@ export function PnLChart({
             />
           )}
 
-          {/* Current point indicator */}
+          {/* Endpoint pulse rings */}
           {path && data.length > 0 && (
             <>
-              <Circle cx={lastX} cy={lastY} r="5" fill={strokeColor} opacity="0.3" />
-              <Circle cx={lastX} cy={lastY} r="3" fill={strokeColor} />
+              <Circle cx={lastX} cy={lastY} r="10" fill={strokeColor} opacity="0.08" />
+              <Circle cx={lastX} cy={lastY} r="6" fill={strokeColor} opacity="0.15" />
+              <Circle cx={lastX} cy={lastY} r="3.5" fill={strokeColor} />
+              {/* Vertical reference line */}
+              <Line
+                x1={lastX} y1={lastY}
+                x2={lastX} y2={CHART_HEIGHT}
+                stroke={strokeColor}
+                strokeWidth="0.5"
+                strokeDasharray="2,4"
+                opacity={0.3}
+              />
             </>
           )}
         </Svg>
       </View>
 
-      {/* X-axis labels */}
+      {/* X-axis */}
       <View style={styles.xAxisLabels}>
         <Text style={styles.axisLabel}>
           {startTime ? formatTimeLabel(startTime, timeframe) : ''}
         </Text>
-        <Text style={styles.axisLabel}>Now</Text>
+        <View style={styles.nowIndicator}>
+          <View style={[styles.nowDot, { backgroundColor: strokeColor }]} />
+          <Text style={[styles.axisLabel, { color: strokeColor }]}>Now</Text>
+        </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 16,
     padding: 16,
+    overflow: 'hidden',
   },
   timeframeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  labelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  labelDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   sectionLabel: {
     color: colors.text.muted,
@@ -200,7 +274,9 @@ const styles = StyleSheet.create({
   },
   timeframeContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
     borderRadius: 8,
     padding: 2,
   },
@@ -210,10 +286,12 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   timeframeButtonActive: {
-    backgroundColor: 'rgba(249, 115, 22, 0.2)',
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(249, 115, 22, 0.2)',
   },
   timeframeText: {
-    color: 'rgba(255, 255, 255, 0.35)',
+    color: 'rgba(255, 255, 255, 0.3)',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -226,11 +304,22 @@ const styles = StyleSheet.create({
   xAxisLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 8,
   },
   axisLabel: {
     color: 'rgba(255, 255, 255, 0.2)',
     fontSize: 10,
     fontWeight: '500',
+  },
+  nowIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  nowDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
 });

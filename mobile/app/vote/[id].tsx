@@ -16,7 +16,9 @@ export default function VoteDetailScreen() {
   const [vote, setVote] = useState<VoteDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [casting, setCasting] = useState<'YES' | 'NO' | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
+  const agentProfile = useAuthStore((s) => s.agentProfile);
 
   const fetchVote = useCallback(async () => {
     if (!id) return;
@@ -40,6 +42,27 @@ export default function VoteDetailScreen() {
     };
   }, [fetchVote]);
 
+  const myVote = useMemo(() => {
+    if (!agentProfile || !vote) return null;
+    return vote.votes.find((v) => v.agentId === agentProfile.id)?.vote ?? null;
+  }, [vote?.votes, agentProfile]);
+
+  const handleCastVote = useCallback(async (choice: 'YES' | 'NO') => {
+    if (!agentProfile || !id) return;
+    mediumImpact();
+    setCasting(choice);
+    try {
+      await castVote(id, agentProfile.id, choice);
+      successNotification();
+      await fetchVote();
+    } catch (err) {
+      errorNotification();
+      console.error('[VoteDetail] Cast failed:', err);
+    } finally {
+      setCasting(null);
+    }
+  }, [agentProfile, id, fetchVote]);
+
   if (isLoading) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary, alignItems: 'center', justifyContent: 'center' }}>
@@ -58,35 +81,11 @@ export default function VoteDetailScreen() {
     );
   }
 
-  const [casting, setCasting] = useState<'YES' | 'NO' | null>(null);
-  const agentProfile = useAuthStore((s) => s.agentProfile);
-
   const yesPercent = vote.totalVotes > 0 ? (vote.yesVotes / vote.totalVotes) * 100 : 0;
   const noPercent = vote.totalVotes > 0 ? (vote.noVotes / vote.totalVotes) * 100 : 0;
   const timeRemaining = getTimeRemaining(vote.expiresAt);
   const yesVoters = vote.votes.filter((v) => v.vote === 'yes');
   const noVoters = vote.votes.filter((v) => v.vote === 'no');
-
-  const myVote = useMemo(() => {
-    if (!agentProfile) return null;
-    return vote.votes.find((v) => v.agentId === agentProfile.id)?.vote ?? null;
-  }, [vote.votes, agentProfile]);
-
-  const handleCastVote = useCallback(async (choice: 'YES' | 'NO') => {
-    if (!agentProfile || !id) return;
-    mediumImpact();
-    setCasting(choice);
-    try {
-      await castVote(id, agentProfile.id, choice);
-      successNotification();
-      await fetchVote();
-    } catch (err) {
-      errorNotification();
-      console.error('[VoteDetail] Cast failed:', err);
-    } finally {
-      setCasting(null);
-    }
-  }, [agentProfile, id, fetchVote]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary }} edges={['top']}>

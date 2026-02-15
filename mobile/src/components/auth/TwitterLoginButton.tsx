@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Text } from '@/components/ui/Text';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -12,9 +12,16 @@ export function TwitterLoginButton({ onSuccess, onError }: TwitterLoginButtonPro
 
   async function handlePress() {
     try {
+      console.log('[TwitterLogin] Button pressed, calling loginWithTwitter...');
+      const Linking = require('expo-linking');
+      const redirectUrl = Linking.createURL('/');
+      Alert.alert('Debug', `Login starting...\n\nRedirect URL: ${redirectUrl}`);
       await loginWithTwitter();
+      console.log('[TwitterLogin] Login succeeded');
       onSuccess?.();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('[TwitterLogin] Login failed:', error);
+      Alert.alert('Login Error', error?.message || String(error));
       onError?.(error as Error);
     }
   }

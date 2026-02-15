@@ -191,12 +191,12 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
       wsRef.current = null;
 
       if (attemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
-        const delay = RECONNECT_DELAY * Math.pow(2, attemptsRef.current);
-        console.log(`[WS] Closed. Reconnecting in ${Math.round(delay / 1000)}s...`);
         attemptsRef.current += 1;
+        const delay = RECONNECT_DELAY * Math.pow(2, attemptsRef.current - 1);
+        console.log(`[WS] Closed. Reconnecting in ${Math.round(delay / 1000)}s (${attemptsRef.current}/${MAX_RECONNECT_ATTEMPTS})`);
         reconnectTimerRef.current = setTimeout(connect, delay);
       } else {
-        console.log('[WS] Max reconnect attempts reached');
+        console.log('[WS] Max reconnect attempts reached, stopped');
       }
     };
 

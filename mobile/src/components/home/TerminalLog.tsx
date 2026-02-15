@@ -1,6 +1,6 @@
 /**
- * TerminalLog - Multi-line agent activity feed
- * Shows recent decisions in a terminal-style scrolling log
+ * TerminalLog - Cinematic agent activity terminal
+ * Matrix-inspired with scanlines, typing cursor, neon action colors
  */
 
 import { View, Text, StyleSheet } from 'react-native';
@@ -9,9 +9,12 @@ import Animated, {
   useSharedValue,
   withRepeat,
   withTiming,
+  withSequence,
   Easing,
   FadeIn,
+  interpolate,
 } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
 import { colors } from '@/theme/colors';
 
@@ -31,44 +34,48 @@ interface TerminalLogProps {
 }
 
 const ACTION_COLORS: Record<string, string> = {
-  buy: colors.status.success,
-  sell: colors.status.error,
-  skip: colors.text.muted,
+  buy: '#22c55e',
+  sell: '#ef4444',
+  skip: '#71717a',
   scanning: colors.brand.primary,
   analyzing: '#22d3ee',
   trading: colors.brand.primary,
-  watching: colors.text.muted,
+  watching: '#a78bfa',
 };
 
-function getActionIcon(action: string): string {
-  switch (action) {
-    case 'buy': return '◈';
-    case 'sell': return '◇';
-    case 'skip': return '○';
-    default: return '›';
-  }
-}
+const ACTION_ICONS: Record<string, string> = {
+  buy: '>>',
+  sell: '<<',
+  skip: '--',
+  scanning: '>_',
+  analyzing: '>>',
+  trading: '>>',
+  watching: '..',
+};
 
 function formatTime(time: string): string {
   try {
     const d = new Date(time);
     const now = new Date();
     const diff = Math.floor((now.getTime() - d.getTime()) / 1000);
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 60) return `${diff}s`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch {
     return '';
   }
 }
 
-function DecisionLine({ decision, isLatest }: { decision: Decision; isLatest: boolean }) {
+function DecisionLine({ decision }: { decision: Decision }) {
   const actionColor = ACTION_COLORS[decision.action] || colors.text.muted;
-  const icon = getActionIcon(decision.action);
+  const icon = ACTION_ICONS[decision.action] || '>';
 
   return (
     <View style={logStyles.line}>
+      <Text style={[logStyles.timestamp, { color: 'rgba(255, 255, 255, 0.15)' }]}>
+        {formatTime(decision.time)}
+      </Text>
       <Text style={[logStyles.icon, { color: actionColor }]}>{icon}</Text>
       <Text style={[logStyles.action, { color: actionColor }]}>
         {decision.action.toUpperCase()}
@@ -79,19 +86,25 @@ function DecisionLine({ decision, isLatest }: { decision: Decision; isLatest: bo
       <Text style={logStyles.reason} numberOfLines={1}>
         {decision.reason}
       </Text>
-      <Text style={logStyles.time}>{formatTime(decision.time)}</Text>
     </View>
   );
 }
 
 export function TerminalLog({ message, type = 'scanning', decisions = [] }: TerminalLogProps) {
   const cursorOpacity = useSharedValue(1);
+  const scanline = useSharedValue(0);
 
   useEffect(() => {
     cursorOpacity.value = withRepeat(
-      withTiming(0, { duration: 500, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      true,
+      withSequence(
+        withTiming(0, { duration: 400, easing: Easing.steps(1) }),
+        withTiming(1, { duration: 400, easing: Easing.steps(1) }),
+      ),
+      -1, false,
+    );
+    scanline.value = withRepeat(
+      withTiming(1, { duration: 4000, easing: Easing.linear }),
+      -1, false,
     );
   }, []);
 
@@ -99,16 +112,35 @@ export function TerminalLog({ message, type = 'scanning', decisions = [] }: Term
     opacity: cursorOpacity.value,
   }));
 
+  const scanStyle = useAnimatedStyle(() => ({
+    top: `${interpolate(scanline.value, [0, 1], [0, 100])}%` as `${number}%`,
+  }));
+
   const actionColor = ACTION_COLORS[type] || colors.brand.primary;
-  const recentDecisions = decisions.slice(0, 4);
+  const recentDecisions = decisions.slice(0, 5);
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Background gradient */}
+      <LinearGradient
+        colors={['rgba(249, 115, 22, 0.03)', 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+
+      {/* Subtle scanline */}
+      <Animated.View style={[styles.termScanline, scanStyle]} />
+
+      {/* Header bar */}
       <View style={styles.header}>
-        <View style={styles.headerDot} />
-        <Text style={styles.headerText}>AGENT LOG</Text>
-        <View style={styles.headerLine} />
+        <View style={styles.headerLeft}>
+          <View style={[styles.headerDot, { backgroundColor: colors.status.success }]} />
+          <View style={[styles.headerDot, { backgroundColor: colors.status.warning }]} />
+          <View style={[styles.headerDot, { backgroundColor: colors.text.muted, opacity: 0.3 }]} />
+        </View>
+        <Text style={styles.headerTitle}>AGENT_LOG</Text>
+        <Text style={styles.headerVersion}>v1.0</Text>
       </View>
 
       {/* Decision history */}
@@ -117,15 +149,15 @@ export function TerminalLog({ message, type = 'scanning', decisions = [] }: Term
           {recentDecisions.map((d, i) => (
             <Animated.View
               key={`${d.time}-${i}`}
-              entering={FadeIn.delay(i * 80).duration(300)}
+              entering={FadeIn.delay(i * 60).duration(200)}
             >
-              <DecisionLine decision={d} isLatest={i === 0} />
+              <DecisionLine decision={d} />
             </Animated.View>
           ))}
         </View>
       )}
 
-      {/* Current status line with blinking cursor */}
+      {/* Current status line */}
       <View style={styles.currentLine}>
         <Text style={[styles.prefix, { color: actionColor }]}>{'>'}</Text>
         <Text style={styles.message} numberOfLines={1}>
@@ -146,17 +178,25 @@ const logStyles = StyleSheet.create({
     gap: 6,
     paddingVertical: 3,
   },
+  timestamp: {
+    fontSize: 9,
+    fontFamily: 'monospace',
+    width: 22,
+    textAlign: 'right',
+  },
   icon: {
-    fontSize: 10,
-    fontWeight: '700',
-    width: 14,
+    fontSize: 9,
+    fontWeight: '800',
+    fontFamily: 'monospace',
+    width: 18,
     textAlign: 'center',
   },
   action: {
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5,
-    width: 32,
+    width: 34,
+    fontFamily: 'monospace',
   },
   token: {
     color: colors.brand.accent,
@@ -166,53 +206,65 @@ const logStyles = StyleSheet.create({
   },
   reason: {
     flex: 1,
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: 'rgba(255, 255, 255, 0.35)',
     fontSize: 10,
-    fontFamily: 'monospace',
-  },
-  time: {
-    color: 'rgba(255, 255, 255, 0.25)',
-    fontSize: 9,
     fontFamily: 'monospace',
   },
 });
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(249, 115, 22, 0.08)',
     borderRadius: 12,
     padding: 12,
     gap: 6,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  termScanline: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(249, 115, 22, 0.06)',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 2,
+    gap: 8,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    gap: 4,
   },
   headerDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.brand.primary,
   },
-  headerText: {
+  headerTitle: {
     color: colors.text.muted,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 2,
-  },
-  headerLine: {
+    fontFamily: 'monospace',
     flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    marginLeft: 4,
+  },
+  headerVersion: {
+    color: 'rgba(255, 255, 255, 0.15)',
+    fontSize: 8,
+    fontFamily: 'monospace',
+    fontWeight: '600',
   },
   history: {
     gap: 0,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.04)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.03)',
     paddingBottom: 6,
     marginBottom: 2,
   },
@@ -229,7 +281,7 @@ const styles = StyleSheet.create({
   message: {
     fontFamily: 'monospace',
     fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.6)',
+    color: 'rgba(255, 255, 255, 0.55)',
     flex: 1,
   },
   cursor: {

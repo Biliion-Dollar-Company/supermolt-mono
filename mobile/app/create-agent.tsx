@@ -1,65 +1,80 @@
-import { ScrollView, View, TextInput, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  TextInput,
+  Alert,
+  Image,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
+import { useState, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect, useCallback } from 'react';
 import { Text, Button } from '@/components/ui';
-import { ArchetypeCard } from '@/components/onboarding/ArchetypeCard';
 import { colors } from '@/theme/colors';
-import { getArchetypes, createNewAgent, switchAgent, storeTokens, getMyAgent } from '@/lib/api/client';
+import { quickstartAgent, storeTokens, getMyAgent, apiFetch } from '@/lib/api/client';
 import { useAuthStore } from '@/store/auth';
-import type { Archetype } from '@/types/arena';
+import { mediumImpact, successNotification } from '@/lib/haptics';
+
+const TRADING_STYLES = [
+  { id: 'degen_hunter', label: 'Degen Hunter', icon: 'flame-outline' as const, desc: 'High risk, high reward memecoin plays' },
+  { id: 'smart_money', label: 'Smart Money', icon: 'analytics-outline' as const, desc: 'Follow whale wallets and smart traders' },
+  { id: 'sniper', label: 'Sniper', icon: 'locate-outline' as const, desc: 'Early entries on new launches' },
+  { id: 'conservative', label: 'Conservative', icon: 'shield-checkmark-outline' as const, desc: 'Low risk, steady accumulation' },
+];
 
 export default function CreateAgentScreen() {
   const router = useRouter();
-  const { agents, addAgent, setActiveAgentId, setAgentMe } = useAuthStore();
+  const { setAgentMe } = useAuthStore();
 
-  const [archetypes, setArchetypes] = useState<Archetype[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [agentName, setAgentName] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [bio, setBio] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState('degen_hunter');
   const [isCreating, setIsCreating] = useState(false);
 
-  // Filter out archetypes user already has
-  const usedArchetypeIds = new Set(agents.map((a) => a.archetypeId));
-  const availableArchetypes = archetypes.filter((a) => !usedArchetypeIds.has(a.id));
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await getArchetypes();
-        setArchetypes(data);
-      } catch (err) {
-        console.error('[CreateAgent] Failed to load archetypes:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    load();
-  }, []);
-
   const handleCreate = useCallback(async () => {
-    if (!selectedId || !agentName.trim()) {
-      Alert.alert('Missing Info', 'Please select an archetype and enter a name.');
+    const name = agentName.trim();
+    if (!name) {
+      Alert.alert('Enter a name', 'Your agent needs a name to get started.');
       return;
     }
 
     try {
       setIsCreating(true);
+      mediumImpact();
 
-      // Create the agent
-      const newAgent = await createNewAgent(selectedId, agentName.trim());
-      addAgent(newAgent);
-
-      // Switch to the new agent
-      const result = await switchAgent(newAgent.id);
-      await storeTokens({
-        accessToken: result.tokens.accessToken,
-        refreshToken: result.tokens.refreshToken,
+      // Create agent via quickstart
+      const result = await quickstartAgent({
+        name,
+        displayName: name,
+        archetypeId: selectedStyle,
       });
-      setActiveAgentId(newAgent.id);
 
-      // Refresh profile
+      // Store tokens
+      await storeTokens({
+        accessToken: result.token,
+        refreshToken: result.refreshToken,
+      });
+
+      // Store agent profile
+      setAgentMe({
+        agent: result.agent,
+        stats: null,
+        onboarding: result.onboarding,
+      });
+
+      // Update bio if provided (fire-and-forget, uses agent JWT)
+      const trimBio = bio.trim();
+      if (trimBio) {
+        apiFetch('/agent-auth/profile/update', {
+          method: 'POST',
+          body: JSON.stringify({ bio: trimBio }),
+        }).catch(() => {});
+      }
+
+      // Refresh full profile
       try {
         const meData = await getMyAgent();
         if (meData?.agent) {
@@ -73,98 +88,247 @@ export default function CreateAgentScreen() {
         // Non-critical
       }
 
-      router.back();
+      successNotification();
+
+      // Go to strategy config instead of straight to home
+      router.replace('/configure-agent');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create agent';
       Alert.alert('Error', msg);
     } finally {
       setIsCreating(false);
     }
-  }, [selectedId, agentName, addAgent, setActiveAgentId, setAgentMe, router]);
+  }, [agentName, bio, selectedStyle, setAgentMe, router]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary }}>
       <Stack.Screen options={{ headerShown: false }} />
 
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}>
-        <Ionicons name="arrow-back" size={24} color={colors.text.primary} onPress={() => router.back()} />
-        <Text variant="h3" color="primary" style={{ flex: 1 }}>Create Agent</Text>
-      </View>
-
-      <ScrollView
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 32 }}
       >
-        {/* Name Input */}
-        <View style={{ gap: 6 }}>
-          <Text variant="label" color="secondary">Agent Name</Text>
-          <TextInput
-            value={agentName}
-            onChangeText={setAgentName}
-            placeholder="Enter agent name..."
-            placeholderTextColor={colors.text.muted}
-            maxLength={32}
-            style={{
-              backgroundColor: colors.surface.secondary,
-              borderRadius: 10,
-              padding: 14,
-              color: colors.text.primary,
-              fontSize: 16,
-            }}
-          />
-        </View>
-
-        {/* Archetype Selection */}
-        <View style={{ gap: 8 }}>
-          <Text variant="label" color="secondary">Choose Specialization</Text>
-          <Text variant="caption" color="muted">
-            {availableArchetypes.length} of {archetypes.length} available (1 agent per archetype)
-          </Text>
-        </View>
-
-        {isLoading ? (
-          <ActivityIndicator size="large" color={colors.brand.primary} style={{ padding: 32 }} />
-        ) : (
-          <View style={{ gap: 10 }}>
-            {availableArchetypes.map((arch) => (
-              <ArchetypeCard
-                key={arch.id}
-                id={arch.id}
-                emoji={arch.emoji}
-                name={arch.name}
-                description={arch.description}
-                stats={Object.entries(arch.stats).map(([label, value]) => ({
-                  label: label.replace(/([A-Z])/g, ' $1').trim(),
-                  value,
-                }))}
-                selected={selectedId === arch.id}
-                onPress={() => setSelectedId(arch.id)}
-              />
-            ))}
-          </View>
-        )}
-
-        {availableArchetypes.length === 0 && !isLoading && (
-          <View style={{ alignItems: 'center', padding: 32 }}>
-            <Text variant="body" color="muted">You have an agent for every archetype!</Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* Create Button */}
-      <View style={{ padding: 16, paddingBottom: 24 }}>
-        <Button
-          variant="primary"
-          onPress={handleCreate}
-          disabled={!selectedId || !agentName.trim() || isCreating}
-          loading={isCreating}
+        <ScrollView
+          contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text variant="body" color="primary" style={{ fontWeight: '700' }}>
-            {isCreating ? 'Creating...' : 'Create Agent'}
-          </Text>
-        </Button>
-      </View>
+          {/* Header */}
+          <View style={{ alignItems: 'center', marginBottom: 28 }}>
+            <View
+              style={{
+                width: 88,
+                height: 88,
+                borderRadius: 44,
+                backgroundColor: colors.brand.primary + '15',
+                borderWidth: 2,
+                borderColor: colors.brand.primary + '40',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16,
+              }}
+            >
+              <Image
+                source={require('../assets/images/pfp.png')}
+                style={{ width: 64, height: 64, borderRadius: 32 }}
+                resizeMode="contain"
+              />
+            </View>
+            <Text variant="h2" color="primary">
+              Deploy Your Agent
+            </Text>
+            <Text
+              variant="body"
+              color="muted"
+              style={{ marginTop: 6, textAlign: 'center', lineHeight: 22 }}
+            >
+              Set up your AI trading agent on SuperMolt
+            </Text>
+          </View>
+
+          {/* Agent Name */}
+          <View style={{ marginBottom: 20 }}>
+            <Text variant="label" color="secondary" style={{ fontWeight: '600', marginBottom: 8 }}>
+              Agent Name
+            </Text>
+            <TextInput
+              value={agentName}
+              onChangeText={setAgentName}
+              placeholder="e.g. AlphaHunter"
+              placeholderTextColor={colors.text.muted}
+              maxLength={24}
+              autoFocus
+              style={{
+                backgroundColor: colors.surface.secondary,
+                borderRadius: 12,
+                padding: 14,
+                color: colors.text.primary,
+                fontSize: 16,
+                fontWeight: '500',
+                borderWidth: 1,
+                borderColor: agentName.trim()
+                  ? colors.brand.primary + '60'
+                  : colors.surface.tertiary,
+              }}
+            />
+          </View>
+
+          {/* Bio */}
+          <View style={{ marginBottom: 20 }}>
+            <Text variant="label" color="secondary" style={{ fontWeight: '600', marginBottom: 8 }}>
+              Bio
+            </Text>
+            <TextInput
+              value={bio}
+              onChangeText={setBio}
+              placeholder="What's your agent's trading thesis?"
+              placeholderTextColor={colors.text.muted}
+              maxLength={200}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+              style={{
+                backgroundColor: colors.surface.secondary,
+                borderRadius: 12,
+                padding: 14,
+                color: colors.text.primary,
+                fontSize: 14,
+                minHeight: 80,
+                borderWidth: 1,
+                borderColor: bio.trim()
+                  ? colors.brand.primary + '30'
+                  : colors.surface.tertiary,
+              }}
+            />
+            <Text variant="caption" color="muted" style={{ marginTop: 4, textAlign: 'right' }}>
+              {bio.length}/200
+            </Text>
+          </View>
+
+          {/* Trading Style */}
+          <View style={{ marginBottom: 24 }}>
+            <Text variant="label" color="secondary" style={{ fontWeight: '600', marginBottom: 8 }}>
+              Trading Style
+            </Text>
+            <View style={{ gap: 8 }}>
+              {TRADING_STYLES.map((style) => {
+                const isSelected = selectedStyle === style.id;
+                return (
+                  <TouchableOpacity
+                    key={style.id}
+                    onPress={() => {
+                      mediumImpact();
+                      setSelectedStyle(style.id);
+                    }}
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: 14,
+                      borderRadius: 12,
+                      backgroundColor: isSelected
+                        ? colors.brand.primary + '15'
+                        : colors.surface.secondary,
+                      borderWidth: 1,
+                      borderColor: isSelected
+                        ? colors.brand.primary + '60'
+                        : colors.surface.tertiary,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        backgroundColor: isSelected
+                          ? colors.brand.primary + '25'
+                          : colors.surface.tertiary,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Ionicons
+                        name={style.icon}
+                        size={20}
+                        color={isSelected ? colors.brand.primary : colors.text.muted}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        variant="body"
+                        color={isSelected ? 'primary' : 'secondary'}
+                        style={{ fontWeight: '600', fontSize: 15 }}
+                      >
+                        {style.label}
+                      </Text>
+                      <Text variant="caption" color="muted" style={{ marginTop: 2 }}>
+                        {style.desc}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        borderWidth: 2,
+                        borderColor: isSelected
+                          ? colors.brand.primary
+                          : colors.text.muted + '50',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {isSelected && (
+                        <View
+                          style={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: 6,
+                            backgroundColor: colors.brand.primary,
+                          }}
+                        />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Info Banner */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 10,
+              padding: 12,
+              backgroundColor: colors.brand.primary + '10',
+              borderRadius: 10,
+              borderWidth: 1,
+              borderColor: colors.brand.primary + '20',
+              marginBottom: 20,
+            }}
+          >
+            <Ionicons name="information-circle-outline" size={18} color={colors.brand.primary} style={{ marginTop: 1 }} />
+            <Text variant="caption" color="secondary" style={{ flex: 1, lineHeight: 18 }}>
+              After deploying, you'll configure tracked wallets and buy triggers to define your agent's strategy.
+            </Text>
+          </View>
+
+          {/* Deploy Button */}
+          <Button
+            variant="primary"
+            size="lg"
+            onPress={handleCreate}
+            disabled={!agentName.trim() || isCreating}
+            loading={isCreating}
+          >
+            <Text variant="body" color="primary" style={{ fontWeight: '700', fontSize: 17 }}>
+              {isCreating ? 'Deploying...' : 'Deploy Agent'}
+            </Text>
+          </Button>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
