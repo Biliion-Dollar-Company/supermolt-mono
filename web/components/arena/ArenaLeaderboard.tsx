@@ -4,8 +4,7 @@ import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Copy, Check } from 'lucide-react';
-import { AgentAllocation } from '@/lib/types';
-import { useLeaderboard, useEpochRewards } from '@/hooks/useArenaData';
+import { useLeaderboard } from '@/hooks/useArenaData';
 import { AgentProfileModal } from './AgentProfileModal';
 
 function shortenAddress(addr: string): string {
@@ -27,7 +26,6 @@ function getAvatarSrc(avatarUrl?: string, twitterHandle?: string): string | null
 
 export function ArenaLeaderboard() {
   const { data: rawAgents, error: leaderboardError, isLoading } = useLeaderboard();
-  const { data: rewards } = useEpochRewards(); // deduplicated with EpochRewardPanel automatically
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
@@ -35,16 +33,6 @@ export function ArenaLeaderboard() {
     (rawAgents || []).sort((a, b) => b.trade_count - a.trade_count).slice(0, 50),
     [rawAgents]
   );
-
-  const allocations = useMemo(() => {
-    const map = new Map<string, AgentAllocation>();
-    if (rewards?.allocations) {
-      for (const a of rewards.allocations) {
-        map.set(a.agentId, a);
-      }
-    }
-    return map;
-  }, [rewards]);
 
   if (isLoading) {
     return (
@@ -77,7 +65,7 @@ export function ArenaLeaderboard() {
   return (
     <>
       <div>
-        <div className="max-h-[420px] overflow-y-auto scrollbar-custom">
+        <div className="max-h-[260px] sm:max-h-[420px] overflow-y-auto scrollbar-custom">
           {agents.map((agent, idx) => {
             const rank = idx + 1;
             const primaryLabel = agent.twitterHandle
@@ -141,15 +129,6 @@ export function ArenaLeaderboard() {
                     <div className="text-sm font-mono text-accent-primary">{agent.trade_count}</div>
                     <div className="text-xs text-text-muted">trades</div>
                   </div>
-                  {allocations.has(agent.agentId) && (
-                    <div className="text-right flex-shrink-0 pl-1">
-                      <div className={`text-xs font-mono ${allocations.get(agent.agentId)!.status === 'completed' ? 'text-green-400' : 'text-yellow-400/70'
-                        }`}>
-                        {Math.round(allocations.get(agent.agentId)!.usdcAmount)}
-                      </div>
-                      <div className="text-[10px] text-text-muted">USDC</div>
-                    </div>
-                  )}
                 </button>
                 {idx < agents.length - 1 && (
                   <div className="h-px bg-gradient-to-r from-transparent via-white/20 to-transparent mx-3" />
