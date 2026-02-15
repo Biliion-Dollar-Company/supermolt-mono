@@ -1,6 +1,7 @@
 "use client";
 
 import { usePrivy } from '@privy-io/react-auth';
+import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { clearJWT, setJWT, tokenManager } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
@@ -8,6 +9,7 @@ import { getMyAgent, loginWithPrivyToken, quickstartAgent } from '@/lib/api';
 
 export function usePrivyAgentAuth() {
   const { ready, authenticated, user, login, logout, getAccessToken } = usePrivy();
+  const { createWallet: createSolanaWallet } = useSolanaWallets();
   const { isAuthenticated, setAuth, clearAuth } = useAuthStore();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +60,14 @@ export function usePrivyAgentAuth() {
         setAuth(me.agent, me.onboarding.tasks, me.onboarding.progress);
       }
       console.log('[auth] Sign-in complete');
+
+      // Ensure user has a Solana embedded wallet (for social login users)
+      try {
+        await createSolanaWallet();
+        console.log('[auth] Solana embedded wallet created');
+      } catch {
+        // Expected if wallet already exists — ignore
+      }
     } catch (err: any) {
       console.error('[auth] Exchange failed:', err?.message || err);
       setError(err?.message || 'Authentication failed');
@@ -65,7 +75,7 @@ export function usePrivyAgentAuth() {
       setIsSigningIn(false);
       exchangeRunningRef.current = false;
     }
-  }, [getAccessToken, setAuth]);
+  }, [getAccessToken, setAuth, createSolanaWallet]);
 
   const signIn = useCallback(async () => {
     setError(null);

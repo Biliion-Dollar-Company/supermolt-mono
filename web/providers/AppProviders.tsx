@@ -2,7 +2,10 @@
 
 import type { ReactNode } from 'react';
 import { PrivyProvider } from '@privy-io/react-auth';
+import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 import WalletProvider from './WalletProvider';
+
+const solanaConnectors = toSolanaWalletConnectors();
 
 export default function AppProviders({ children }: { children: ReactNode }) {
   const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
@@ -16,13 +19,17 @@ export default function AppProviders({ children }: { children: ReactNode }) {
     <PrivyProvider
       appId={privyAppId}
       config={{
-        loginMethods: ['email', 'wallet', 'twitter'],
         appearance: {
           theme: 'dark',
           accentColor: '#E8B45E',
         },
         embeddedWallets: {
           createOnLogin: 'all-users',
+        },
+        externalWallets: {
+          solana: {
+            connectors: solanaConnectors,
+          },
         },
       }}
     >
