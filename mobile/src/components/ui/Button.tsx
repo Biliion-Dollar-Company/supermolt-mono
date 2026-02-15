@@ -26,7 +26,7 @@ interface ButtonProps extends Omit<PressableProps, 'children' | 'style'> {
 const variantStyles: Record<ButtonVariant, { bg: string; border?: string; pressedBg: string }> = {
   primary: {
     bg: colors.brand.primary,
-    pressedBg: '#5a9b60', // Slightly darker green
+    pressedBg: '#c2590f', // Slightly darker orange
   },
   secondary: {
     bg: colors.surface.secondary,
@@ -36,7 +36,7 @@ const variantStyles: Record<ButtonVariant, { bg: string; border?: string; presse
   outline: {
     bg: 'transparent',
     border: colors.brand.primary,
-    pressedBg: colors.glass.green,
+    pressedBg: colors.glass.brand,
   },
   ghost: {
     bg: 'transparent',

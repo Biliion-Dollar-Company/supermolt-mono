@@ -6,9 +6,9 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          primary: '#68ac6e',
+          primary: '#F97316',
           secondary: '#9945ff',
-          accent: '#00ff41',
+          accent: '#FB923C',
         },
         void: {
           black: '#000000',

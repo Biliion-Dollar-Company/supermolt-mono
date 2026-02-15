@@ -19,7 +19,7 @@ export const TP_TARGETS = [
 ];
 
 // Consistent colors
-const ACTIVE_COLOR = '#c4f70e';
+const ACTIVE_COLOR = '#F97316';
 const DISABLED_COLOR = 'rgba(255,255,255,0.3)';
 
 interface ProgressBarProps {

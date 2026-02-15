@@ -20,7 +20,7 @@ function getTokenIconUrl(mint?: string): string | null {
 
 // Fallback colors for tokens without images
 const CHIP_COLORS = [
-  '#c4f70e',
+  '#F97316',
   '#22d3ee',
   '#f97316',
   '#8b5cf6',

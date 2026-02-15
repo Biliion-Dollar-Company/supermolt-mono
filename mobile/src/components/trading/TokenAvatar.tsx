@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 
 const AVATAR_COLORS: [string, string][] = [
-  ['#c4f70e', '#22d3ee'],
+  ['#F97316', '#22d3ee'],
   ['#f97316', '#ef4444'],
   ['#8b5cf6', '#ec4899'],
   ['#06b6d4', '#3b82f6'],

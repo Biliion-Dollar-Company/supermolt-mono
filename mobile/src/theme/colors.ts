@@ -8,9 +8,9 @@
 export const colors = {
   // Brand colors
   brand: {
-    primary: '#E8B45E',     // SuperMolt gold/orange
+    primary: '#F97316',     // SuperMolt orange
     secondary: '#9945ff',   // Solana purple
-    accent: '#F0C97A',      // Light gold
+    accent: '#FB923C',      // Light orange
   },
 
   // Void blacks
@@ -46,7 +46,7 @@ export const colors = {
   // Glass effects (with alpha)
   glass: {
     white: 'rgba(255, 255, 255, 0.05)',
-    green: 'rgba(232, 180, 94, 0.1)',
+    brand: 'rgba(249, 115, 22, 0.1)',
   },
 } as const;
 

@@ -1,11 +1,12 @@
 /**
- * PnLChart - Line chart showing profit/loss history
- * Uses react-native-svg for rendering
+ * PnLChart - Enhanced profit/loss chart
+ * Taller chart with stronger visual presence
  */
 
 import { View, Text, Pressable, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Path, Defs, LinearGradient, Stop, Line, Text as SvgText } from 'react-native-svg';
+import Svg, { Path, Defs, LinearGradient, Stop, Line, Circle } from 'react-native-svg';
 import type { PnLDataPoint, Timeframe } from '@/hooks/usePnLHistory';
+import { colors } from '@/theme/colors';
 
 interface PnLChartProps {
   data: PnLDataPoint[];
@@ -16,26 +17,26 @@ interface PnLChartProps {
 }
 
 const TIMEFRAMES: Timeframe[] = ['1D', '3D', '7D', '30D'];
-const CHART_HEIGHT = 120;
-const CHART_WIDTH = Dimensions.get('window').width - 64; // Padding on both sides
+const CHART_HEIGHT = 160;
+const CHART_WIDTH = Dimensions.get('window').width - 64;
 
-// Generate SVG path from data points
 function generatePath(
   data: PnLDataPoint[],
   width: number,
-  height: number
-): { path: string; areaPath: string } {
-  if (data.length === 0) return { path: '', areaPath: '' };
+  height: number,
+): { path: string; areaPath: string; lastX: number; lastY: number } {
+  if (data.length === 0) return { path: '', areaPath: '', lastX: 0, lastY: 0 };
 
   const values = data.map(d => d.value);
   const minValue = Math.min(...values) * 0.9;
   const maxValue = Math.max(...values) * 1.1;
   const valueRange = maxValue - minValue || 1;
-
   const xStep = width / (data.length - 1);
 
   let path = '';
   let areaPath = '';
+  let lastX = 0;
+  let lastY = 0;
 
   data.forEach((point, i) => {
     const x = i * xStep;
@@ -45,21 +46,24 @@ function generatePath(
       path = `M ${x} ${y}`;
       areaPath = `M ${x} ${height} L ${x} ${y}`;
     } else {
-      path += ` L ${x} ${y}`;
-      areaPath += ` L ${x} ${y}`;
+      // Smooth curve using quadratic bezier
+      const prevX = (i - 1) * xStep;
+      const midX = (prevX + x) / 2;
+      path += ` Q ${midX} ${lastY} ${x} ${y}`;
+      areaPath += ` Q ${midX} ${lastY} ${x} ${y}`;
     }
+
+    lastX = x;
+    lastY = y;
   });
 
-  // Close the area path
   areaPath += ` L ${width} ${height} Z`;
 
-  return { path, areaPath };
+  return { path, areaPath, lastX, lastY };
 }
 
-// Format time label based on timeframe
 function formatTimeLabel(timestamp: number, timeframe: Timeframe): string {
   const date = new Date(timestamp);
-
   switch (timeframe) {
     case '1D':
       return date.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
@@ -80,30 +84,17 @@ export function PnLChart({
   currentValue,
   pnlChange,
 }: PnLChartProps) {
-  const { path, areaPath } = generatePath(data, CHART_WIDTH, CHART_HEIGHT);
+  const { path, areaPath, lastX, lastY } = generatePath(data, CHART_WIDTH, CHART_HEIGHT);
   const isPositive = pnlChange >= 0;
   const strokeColor = isPositive ? '#22c55e' : '#ef4444';
-  const gradientId = 'pnlGradient';
 
-  // Get time labels for x-axis
   const startTime = data[0]?.timestamp;
-  const endTime = data[data.length - 1]?.timestamp;
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Agent Profit</Text>
-          <View style={styles.valueRow}>
-            <Text style={styles.value}>{currentValue.toFixed(2)} SOL</Text>
-            <Text style={[styles.change, { color: strokeColor }]}>
-              {isPositive ? '+' : ''}{pnlChange.toFixed(3)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Timeframe selector */}
+      {/* Timeframe selector */}
+      <View style={styles.timeframeRow}>
+        <Text style={styles.sectionLabel}>PERFORMANCE</Text>
         <View style={styles.timeframeContainer}>
           {TIMEFRAMES.map((tf) => (
             <Pressable
@@ -129,39 +120,49 @@ export function PnLChart({
 
       {/* Chart */}
       <View style={styles.chartContainer}>
-        <Svg width={CHART_WIDTH} height={CHART_HEIGHT + 20}>
+        <Svg width={CHART_WIDTH} height={CHART_HEIGHT + 10}>
           <Defs>
-            <LinearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+            <LinearGradient id="chartGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor={strokeColor} stopOpacity="0.25" />
+              <Stop offset="70%" stopColor={strokeColor} stopOpacity="0.05" />
               <Stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
             </LinearGradient>
           </Defs>
 
           {/* Grid lines */}
-          <Line
-            x1="0"
-            y1={CHART_HEIGHT / 2}
-            x2={CHART_WIDTH}
-            y2={CHART_HEIGHT / 2}
-            stroke="rgba(255,255,255,0.1)"
-            strokeDasharray="4,4"
-          />
+          {[0.25, 0.5, 0.75].map((pct) => (
+            <Line
+              key={pct}
+              x1="0"
+              y1={CHART_HEIGHT * pct}
+              x2={CHART_WIDTH}
+              y2={CHART_HEIGHT * pct}
+              stroke="rgba(255,255,255,0.04)"
+              strokeDasharray="4,6"
+            />
+          ))}
 
           {/* Area fill */}
-          {areaPath && (
-            <Path d={areaPath} fill={`url(#${gradientId})`} />
-          )}
+          {areaPath && <Path d={areaPath} fill="url(#chartGrad)" />}
 
           {/* Line */}
           {path && (
             <Path
               d={path}
               stroke={strokeColor}
-              strokeWidth="2"
+              strokeWidth="2.5"
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
+          )}
+
+          {/* Current point indicator */}
+          {path && data.length > 0 && (
+            <>
+              <Circle cx={lastX} cy={lastY} r="5" fill={strokeColor} opacity="0.3" />
+              <Circle cx={lastX} cy={lastY} r="3" fill={strokeColor} />
+            </>
           )}
         </Svg>
       </View>
@@ -171,7 +172,7 @@ export function PnLChart({
         <Text style={styles.axisLabel}>
           {startTime ? formatTimeLabel(startTime, timeframe) : ''}
         </Text>
-        <Text style={styles.axisLabel}>→ Today</Text>
+        <Text style={styles.axisLabel}>Now</Text>
       </View>
     </View>
   );
@@ -179,39 +180,23 @@ export function PnLChart({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
     borderRadius: 16,
     padding: 16,
   },
-  header: {
+  timeframeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  title: {
-    color: 'rgba(255, 255, 255, 0.6)',
-    fontSize: 12,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  valueRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
-    marginTop: 4,
-  },
-  value: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  change: {
-    fontSize: 14,
-    fontWeight: '600',
+  sectionLabel: {
+    color: colors.text.muted,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 2,
   },
   timeframeContainer: {
     flexDirection: 'row',
@@ -221,30 +206,31 @@ const styles = StyleSheet.create({
   },
   timeframeButton: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 6,
   },
   timeframeButtonActive: {
-    backgroundColor: 'rgba(196, 247, 14, 0.2)',
+    backgroundColor: 'rgba(249, 115, 22, 0.2)',
   },
   timeframeText: {
-    color: 'rgba(255, 255, 255, 0.4)',
+    color: 'rgba(255, 255, 255, 0.35)',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   timeframeTextActive: {
-    color: '#c4f70e',
+    color: colors.brand.primary,
   },
   chartContainer: {
-    marginHorizontal: -8,
+    marginHorizontal: -4,
   },
   xAxisLabels: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 8,
   },
   axisLabel: {
-    color: 'rgba(255, 255, 255, 0.3)',
+    color: 'rgba(255, 255, 255, 0.2)',
     fontSize: 10,
+    fontWeight: '500',
   },
 });

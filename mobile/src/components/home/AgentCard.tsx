@@ -1,126 +1,301 @@
 /**
- * AgentCard - Displays the AI agent avatar and name
- * Shows active status with green border indicator
+ * AgentCard - Compact Agent Identity Bar
+ * Shows avatar with breathing glow, name, level badge, and XP in one row
  */
 
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { useState } from 'react';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import { useEffect } from 'react';
+import { colors } from '@/theme/colors';
 
 interface AgentCardProps {
   name: string;
+  handle?: string;
   avatarUrl?: string;
   isActive: boolean;
+  level?: number;
+  levelName?: string;
+  xp?: number;
+  xpForNextLevel?: number;
 }
 
-// Fallback gradient colors for avatar
-const FALLBACK_COLORS = ['#c4f70e', '#68ac6e'];
-
-export function AgentCard({ name, avatarUrl, isActive }: AgentCardProps) {
+export function AgentCard({
+  name,
+  handle,
+  avatarUrl,
+  isActive,
+  level,
+  levelName,
+  xp = 0,
+  xpForNextLevel = 100,
+}: AgentCardProps) {
   const [imgError, setImgError] = useState(false);
   const initials = name.slice(0, 2).toUpperCase();
-
   const showFallback = !avatarUrl || imgError;
+  const xpProgress = xpForNextLevel > 0 ? Math.min(xp / xpForNextLevel, 1) : 0;
+
+  // Breathing glow animation for avatar
+  const breathe = useSharedValue(0.4);
+
+  useEffect(() => {
+    if (isActive) {
+      breathe.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.4, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        ),
+        -1,
+        false,
+      );
+    }
+  }, [isActive]);
+
+  const glowStyle = useAnimatedStyle(() => ({
+    shadowOpacity: breathe.value,
+    transform: [{ scale: 0.95 + breathe.value * 0.05 }],
+  }));
 
   return (
-    <View className="flex-row items-center gap-3 px-4 py-3">
-      {/* Avatar with active indicator */}
-      <View
+    <View style={styles.bar}>
+      {/* Avatar with breathing glow */}
+      <Animated.View
         style={[
-          styles.avatarContainer,
-          isActive && styles.activeRing,
+          styles.avatarOuter,
+          isActive && {
+            shadowColor: colors.brand.primary,
+            shadowRadius: 16,
+            shadowOffset: { width: 0, height: 0 },
+          },
+          isActive && glowStyle,
         ]}
       >
-        {showFallback ? (
-          <View style={styles.fallbackAvatar}>
-            {/* Gradient background simulation */}
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: FALLBACK_COLORS[0], borderRadius: 28 },
-              ]}
+        <View style={[styles.avatarContainer, isActive && styles.activeRing]}>
+          {showFallback ? (
+            <View style={styles.fallbackAvatar}>
+              <View
+                style={[
+                  StyleSheet.absoluteFill,
+                  { backgroundColor: colors.brand.primary, borderRadius: 24, opacity: 0.8 },
+                ]}
+              />
+              <Text style={styles.initials}>{initials}</Text>
+            </View>
+          ) : (
+            <Image
+              source={{ uri: avatarUrl }}
+              style={styles.avatarImage}
+              onError={() => setImgError(true)}
             />
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                {
-                  backgroundColor: FALLBACK_COLORS[1],
-                  opacity: 0.6,
-                  borderRadius: 28,
-                },
-              ]}
-            />
-            <Text style={styles.initials}>{initials}</Text>
+          )}
+          {isActive && <View style={styles.activeDot} />}
+        </View>
+      </Animated.View>
+
+      {/* Info */}
+      <View style={styles.info}>
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={1}>{name}</Text>
+          {isActive ? (
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>LIVE</Text>
+            </View>
+          ) : (
+            <View style={styles.pausedBadge}>
+              <Text style={styles.pausedText}>PAUSED</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Level + XP row */}
+        <View style={styles.metaRow}>
+          {level != null && (
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelText}>Lv.{level}</Text>
+            </View>
+          )}
+          {levelName && (
+            <Text style={styles.levelName}>{levelName}</Text>
+          )}
+          <View style={styles.xpBarContainer}>
+            <View style={styles.xpBarBg}>
+              <View
+                style={[
+                  styles.xpBarFill,
+                  { width: `${Math.round(xpProgress * 100)}%` as `${number}%` },
+                ]}
+              />
+            </View>
+            <Text style={styles.xpText}>{xp}xp</Text>
           </View>
-        ) : (
-          <Image
-            source={{ uri: avatarUrl }}
-            style={styles.avatarImage}
-            onError={() => setImgError(true)}
-          />
-        )}
-
-        {/* Active indicator dot */}
-        {isActive && (
-          <View style={styles.activeIndicator} />
-        )}
-      </View>
-
-      {/* Agent name */}
-      <View>
-        <Text className="text-white font-semibold text-base">{name}</Text>
-        <Text className="text-white/50 text-xs">
-          {isActive ? 'Active • Trading' : 'Paused'}
-        </Text>
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 16,
+    padding: 12,
+  },
+
+  // Avatar
+  avatarOuter: {
+    width: 52,
+    height: 52,
+  },
   avatarContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    margin: 2,
     position: 'relative',
   },
   activeRing: {
     borderWidth: 2,
-    borderColor: '#c4f70e',
-    shadowColor: '#c4f70e',
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 0 },
+    borderColor: colors.brand.primary,
   },
   avatarImage: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    margin: 2,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
   },
   fallbackAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    margin: 2,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
   },
   initials: {
     color: '#ffffff',
-    fontWeight: '700',
-    fontSize: 18,
+    fontWeight: '800',
+    fontSize: 16,
     zIndex: 10,
   },
-  activeIndicator: {
+  activeDot: {
     position: 'absolute',
-    bottom: 2,
-    right: 2,
+    bottom: 0,
+    right: 0,
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#c4f70e',
+    backgroundColor: colors.status.success,
     borderWidth: 2,
-    borderColor: '#0a0a0a',
+    borderColor: '#111',
+  },
+
+  // Info
+  info: {
+    flex: 1,
+    gap: 6,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  name: {
+    color: colors.text.primary,
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: -0.2,
+    flex: 1,
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.status.success,
+  },
+  liveText: {
+    color: colors.status.success,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  pausedBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  pausedText: {
+    color: colors.text.muted,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+
+  // Meta row
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  levelBadge: {
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  levelText: {
+    color: colors.brand.primary,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  levelName: {
+    color: colors.brand.accent,
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  xpBarContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 'auto',
+  },
+  xpBarBg: {
+    flex: 1,
+    height: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  xpBarFill: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.brand.primary,
+  },
+  xpText: {
+    color: colors.text.muted,
+    fontSize: 10,
+    fontWeight: '600',
   },
 });
