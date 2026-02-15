@@ -75,9 +75,10 @@ siwsAuthRoutes.post('/agent/verify', authLimiter, async (c) => {
 
     // 🔥 WALLET VALIDATION: Minimum 0.2 SOL balance required
     try {
-      const { Connection, LAMPORTS_PER_SOL } = await import('@solana/web3.js');
-      const connection = new Connection(process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com');
-      const balance = await connection.getBalance(new (await import('@solana/web3.js')).PublicKey(pubkey));
+      const { Connection, LAMPORTS_PER_SOL, PublicKey } = await import('@solana/web3.js');
+      // ALWAYS use mainnet for wallet validation (production wallets are on mainnet)
+      const connection = new Connection('https://api.mainnet-beta.solana.com');
+      const balance = await connection.getBalance(new PublicKey(pubkey));
       const solBalance = balance / LAMPORTS_PER_SOL;
       
       if (solBalance < 0.2) {
