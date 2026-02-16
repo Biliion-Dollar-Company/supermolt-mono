@@ -13,7 +13,6 @@ export function usePrivyAgentAuth() {
   const { isAuthenticated, setAuth, clearAuth } = useAuthStore();
   const [isSigningIn, setIsSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const exchangeAttemptedRef = useRef(false);
   const exchangeRunningRef = useRef(false);
   const userRef = useRef(user);
 
@@ -92,7 +91,8 @@ export function usePrivyAgentAuth() {
     try {
       await login();
       // After login() resolves, Privy sets authenticated=true
-      // The useEffect below will trigger the exchange
+      // Run the exchange immediately after login completes
+      await runExchange();
     } catch (err: any) {
       setError(err?.message || 'Sign in failed');
     }
@@ -102,32 +102,11 @@ export function usePrivyAgentAuth() {
     try {
       clearJWT();
       clearAuth();
-      exchangeAttemptedRef.current = false;
       await logout();
     } catch (err: any) {
       setError(err?.message || 'Sign out failed');
     }
   }, [logout, clearAuth]);
-
-  // Auto-exchange when Privy becomes authenticated
-  useEffect(() => {
-    if (!ready || !authenticated) {
-      exchangeAttemptedRef.current = false;
-      return;
-    }
-
-    if (isAuthenticated || exchangeAttemptedRef.current) {
-      return;
-    }
-
-    exchangeAttemptedRef.current = true;
-    runExchange().then(() => {
-      // If exchange failed, allow retry on next click
-      if (!useAuthStore.getState().isAuthenticated) {
-        exchangeAttemptedRef.current = false;
-      }
-    });
-  }, [ready, authenticated, isAuthenticated, runExchange]);
 
   return {
     ready,
