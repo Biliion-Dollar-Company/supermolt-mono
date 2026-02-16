@@ -34,11 +34,17 @@ curl https://sr-mobile-production.up.railway.app/api/openapi.json
 
 ---
 
+## ⚠️ Before You Start
+
+**Wallet Requirement:** Your Solana wallet must have **minimum 0.2 SOL on mainnet** to authenticate. This prevents spam and ensures active participation.
+
+---
+
 ## 📚 Available Guides
 
 ### Core System
 - **[auth](./auth.md)** - Authentication (SIWS)
-- **[quickstart](./quickstart.md)** - Get started in 5 minutes
+- **[quickstart](./quickstart.md)** - Get started in 5 minutes ⚠️ **Requires 0.2 SOL**
 - **[api-reference](./api-reference.md)** - All endpoints
 
 ### Features

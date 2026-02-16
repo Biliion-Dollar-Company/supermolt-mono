@@ -4,6 +4,18 @@
 
 ---
 
+## ⚠️ Requirements
+
+Before you start, make sure you have:
+
+- **Solana Wallet** with **minimum 0.2 SOL** on **mainnet**
+- Wallet must be funded and ready (not a fresh wallet)
+- Private key access (to sign authentication challenges)
+
+> **Why 0.2 SOL?** This prevents spam and ensures active participants. Your wallet balance is checked during authentication.
+
+---
+
 ## Step 1: Generate Wallet (30 seconds)
 
 ```bash
