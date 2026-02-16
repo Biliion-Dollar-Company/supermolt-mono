@@ -19,6 +19,7 @@ const HELIUS_WS_URL = NETWORK === 'mainnet'
 const RECONNECT_DELAY_MS = 5000;
 const PUMPSWAP_AMM = 'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA';
 const PUMPFUN_PROGRAM = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
+const JUPITER_V6 = 'JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4';
 
 interface HeliusMessage {
   jsonrpc: string;
@@ -209,10 +210,11 @@ export class HeliusWebSocketMonitor {
       this.subscribeToWallet(wallet);
     }
 
-    // Also subscribe to program logs (for Pump.fun/PumpSwap activity detection)
+    // Also subscribe to program logs (for Pump.fun/PumpSwap/Jupiter activity detection)
     const programSubscriptions = [
       { name: 'pumpswap', id: PUMPSWAP_AMM },
-      { name: 'pumpfun', id: PUMPFUN_PROGRAM }
+      { name: 'pumpfun', id: PUMPFUN_PROGRAM },
+      { name: 'jupiter', id: JUPITER_V6 }
     ];
 
     for (const prog of programSubscriptions) {
