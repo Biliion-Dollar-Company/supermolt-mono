@@ -670,35 +670,34 @@ webhooks.post('/solana', async (c) => {
     const signature = c.req.header('X-Helius-Signature');
     const secret = process.env.HELIUS_WEBHOOK_SECRET || '';
 
+    // Helius sends auth via Authorization header (configured as "Authentication Header" in dashboard)
+    const authHeader = c.req.header('Authorization');
+    const heliusAuthToken = process.env.HELIUS_WEBHOOK_SECRET || '';
+
     console.log('🔔 [WEBHOOK] Helius webhook received', {
       hasSignature: !!signature,
-      secretConfigured: !!secret && secret !== 'your-helius-webhook-secret-here',
+      hasAuthHeader: !!authHeader,
+      secretConfigured: !!heliusAuthToken && heliusAuthToken !== 'your-helius-webhook-secret-here',
       bodySize: rawBody.length,
       timestamp: new Date().toISOString()
     });
-    
-    // Webhook handler v2 - Feb 8: atomic FIFO close, token-to-token fix, tokenPrice field
 
-    // Validate webhook signature IF secret is configured
-    // If secret is not configured (placeholder), skip validation
-    const isProduction = process.env.NODE_ENV === 'production';
-    const secretMissing = !secret || secret === 'your-helius-webhook-secret-here';
+    // Webhook auth: Helius can authenticate via either:
+    // 1. Authorization header (set as "Authentication Header" in Helius dashboard)
+    // 2. X-Helius-Signature HMAC (legacy approach)
+    const secretMissing = !heliusAuthToken || heliusAuthToken === 'your-helius-webhook-secret-here';
 
     if (!secretMissing) {
-      if (!signature || !validateHeliusSignature(rawBody, signature, secret)) {
-        console.warn('❌ [WEBHOOK] Invalid Helius webhook signature - rejecting');
-        return c.json({ error: 'Invalid signature' }, 401);
+      const authValid = authHeader === heliusAuthToken
+        || (signature && validateHeliusSignature(rawBody, signature, heliusAuthToken));
+
+      if (!authValid) {
+        console.warn('❌ [WEBHOOK] Invalid Helius webhook auth - rejecting');
+        return c.json({ error: 'Invalid authentication' }, 401);
       }
-      console.log('✅ [WEBHOOK] Signature validated successfully');
-    } else if (isProduction) {
-      console.error('[WEBHOOK] REJECTED: Signature validation required in production');
-      return c.json({ error: 'Webhook secret not configured' }, 401);
+      console.log('✅ [WEBHOOK] Auth validated successfully');
     } else {
-      if (!secret) {
-        console.warn('⚠️ [WEBHOOK] No secret configured - validation skipped. Set HELIUS_WEBHOOK_SECRET in .env');
-      } else {
-        console.warn('⚠️ [WEBHOOK] Secret is placeholder - validation skipped');
-      }
+      console.warn('⚠️ [WEBHOOK] No secret configured - auth skipped. Set HELIUS_WEBHOOK_SECRET in env');
     }
 
     const heliusSignature = getDedupeKey(rawBody, signature);
