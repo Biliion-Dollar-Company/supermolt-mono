@@ -539,4 +539,35 @@ internal.post('/cleanup/purge-non-superrouter', async (c) => {
   }
 });
 
+/**
+ * POST /internal/test-agent-reactor
+ * Manually fire the agent signal reactor with a test event.
+ * Useful for verifying the LLM pipeline is working.
+ */
+internal.post('/test-agent-reactor', async (c) => {
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const eventType = body.eventType || 'signal_detected';
+    const testData = {
+      tokenMint: body.tokenMint || 'So11111111111111111111111111111111111111112',
+      tokenSymbol: body.tokenSymbol || 'TEST',
+      liquidity: body.liquidity || 500000,
+      volume24h: body.volume24h || 2000000,
+      priceChange24h: body.priceChange24h || 12.5,
+      marketCap: body.marketCap || 5000000,
+      reason: body.reason || 'Manual test trigger',
+      type: eventType,
+    };
+
+    const { agentSignalReactor } = await import('../services/agent-signal-reactor.js');
+    await agentSignalReactor.react(eventType, testData);
+
+    return c.json({ success: true, data: { message: 'Reactor triggered', eventType, tokenMint: testData.tokenMint } });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to trigger reactor';
+    console.error('Test reactor error:', error);
+    return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message } }, 500);
+  }
+});
+
 export { internal };
