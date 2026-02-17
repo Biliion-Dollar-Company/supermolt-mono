@@ -168,20 +168,32 @@ export class AgentSignalReactor {
     try {
       let formatted: { summary: string; context: string; tokenMint: string } | null = null;
 
-      switch (eventType) {
+      // Normalise camelCase → snake_case so both formats hit same handler
+      const normalised = eventType
+        .replace('newTweet', 'new_tweet')
+        .replace('newToken', 'new_token')
+        .replace('godWalletBuy', 'god_wallet_buy_detected')
+        .replace('godWalletSell', 'god_wallet_sell_detected')
+        .replace('signalDetected', 'signal_detected')
+        .replace('buySignal', 'buy_signal');
+
+      // DevPrint wraps payload in a nested `data` field for some events — unwrap it
+      const payload = data.data && typeof data.data === 'object' ? { ...data, ...data.data } : data;
+
+      switch (normalised) {
         case 'signal_detected':
         case 'buy_signal':
-          formatted = formatSignalEvent(data);
+          formatted = formatSignalEvent(payload);
           break;
         case 'god_wallet_buy_detected':
         case 'god_wallet_sell_detected':
-          formatted = formatGodWalletEvent(data);
+          formatted = formatGodWalletEvent(payload);
           break;
         case 'new_token':
-          formatted = formatNewTokenEvent(data);
+          formatted = formatNewTokenEvent(payload);
           break;
         case 'new_tweet':
-          formatted = formatTweetEvent(data);
+          formatted = formatTweetEvent(payload);
           break;
         default:
           return;

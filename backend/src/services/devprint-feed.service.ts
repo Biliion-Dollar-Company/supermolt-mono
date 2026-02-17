@@ -42,6 +42,7 @@ const FILTERED_EVENTS = new Set([
 
 // Map event type → feed channel
 const EVENT_ROUTING: Record<string, FeedChannel> = {
+  // snake_case variants (legacy / internal)
   god_wallet_buy_detected: 'godwallet',
   god_wallet_sell_detected: 'godwallet',
   signal_detected: 'signals',
@@ -58,6 +59,15 @@ const EVENT_ROUTING: Record<string, FeedChannel> = {
   training_log: 'training',
   training_complete: 'training',
   training_started: 'training',
+  // camelCase variants (DevPrint actual wire format)
+  newTweet: 'tweets',
+  newToken: 'tokens',
+  godWalletBuy: 'godwallet',
+  godWalletSell: 'godwallet',
+  signalDetected: 'signals',
+  buySignal: 'signals',
+  buyRejected: 'signals',
+  marketDataUpdated: 'market',
 };
 
 const BASE_RECONNECT_MS = 5_000;
@@ -192,9 +202,12 @@ export class DevPrintFeedService {
 
     // Trigger agent commentary on high-signal events (fire-and-forget)
     const REACTOR_EVENTS = new Set([
+      // snake_case
       'signal_detected', 'buy_signal',
       'god_wallet_buy_detected', 'god_wallet_sell_detected',
       'new_token', 'new_tweet',
+      // camelCase (DevPrint wire format)
+      'newTweet', 'newToken', 'godWalletBuy', 'godWalletSell', 'signalDetected', 'buySignal',
     ]);
     if (REACTOR_EVENTS.has(eventType)) {
       agentSignalReactor.react(eventType, data).catch((err) =>
