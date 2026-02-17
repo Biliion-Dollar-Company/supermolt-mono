@@ -15,6 +15,7 @@
  */
 
 import { websocketEvents } from './websocket-events.js';
+import { agentSignalReactor } from './agent-signal-reactor.js';
 
 type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets' | 'training';
 
@@ -188,6 +189,18 @@ export class DevPrintFeedService {
       timestamp: data.timestamp || new Date().toISOString(),
       ...data,
     });
+
+    // Trigger agent commentary on high-signal events (fire-and-forget)
+    const REACTOR_EVENTS = new Set([
+      'signal_detected', 'buy_signal',
+      'god_wallet_buy_detected', 'god_wallet_sell_detected',
+      'new_token', 'new_tweet',
+    ]);
+    if (REACTOR_EVENTS.has(eventType)) {
+      agentSignalReactor.react(eventType, data).catch((err) =>
+        console.error('[DevPrintFeed] AgentReactor error:', err),
+      );
+    }
   }
 
   private scheduleReconnect(stream: StreamConfig): void {
