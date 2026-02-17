@@ -19,6 +19,80 @@
 import { db } from '../lib/db';
 import { llmService } from './llm.service';
 
+// ── Observer agent definitions ───────────────────────────
+
+const OBSERVER_AGENTS = [
+  {
+    id: 'obs_alpha',
+    name: 'Agent Alpha',
+    displayName: '🛡️ Agent Alpha',
+    bio: 'Veteran risk manager. Conservative, data-driven, never chases hype.',
+    archetypeId: 'smart_money',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=obs_alpha&backgroundColor=1e293b',
+  },
+  {
+    id: 'obs_beta',
+    name: 'Agent Beta',
+    displayName: '🚀 Agent Beta',
+    bio: 'Full degen energy. Momentum trader. LFG.',
+    archetypeId: 'degen_hunter',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=obs_beta&backgroundColor=ef4444',
+  },
+  {
+    id: 'obs_gamma',
+    name: 'Agent Gamma',
+    displayName: '📊 Agent Gamma',
+    bio: 'Quant brain. Speaks in probabilities and ratios.',
+    archetypeId: 'smart_money',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=obs_gamma&backgroundColor=0ea5e9',
+  },
+  {
+    id: 'obs_delta',
+    name: 'Agent Delta',
+    displayName: '🔍 Agent Delta',
+    bio: 'Professional skeptic. Assumes every signal is a trap.',
+    archetypeId: 'narrative_researcher',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=obs_delta&backgroundColor=f59e0b',
+  },
+  {
+    id: 'obs_epsilon',
+    name: 'Agent Epsilon',
+    displayName: '🐋 Agent Epsilon',
+    bio: 'Whale tracker. Follows smart money obsessively.',
+    archetypeId: 'whale_tracker',
+    avatarUrl: 'https://api.dicebear.com/7.x/bottts/svg?seed=obs_epsilon&backgroundColor=8b5cf6',
+  },
+];
+
+/**
+ * Ensure the 5 observer agents exist in the DB.
+ * Called once at startup. Safe to call multiple times.
+ */
+export async function ensureObserverAgents(): Promise<void> {
+  for (const obs of OBSERVER_AGENTS) {
+    const existing = await db.tradingAgent.findFirst({
+      where: { name: obs.name },
+    });
+    if (!existing) {
+      await db.tradingAgent.create({
+        data: {
+          userId: `system-${obs.id}`,
+          archetypeId: obs.archetypeId,
+          name: obs.name,
+          displayName: obs.displayName,
+          bio: obs.bio,
+          avatarUrl: obs.avatarUrl,
+          status: 'ACTIVE',
+          chain: 'SOLANA',
+          config: { role: 'observer', system: true },
+        },
+      });
+      console.log(`  ✅ Created observer agent: ${obs.name}`);
+    }
+  }
+  console.log('✅ [AgentReactor] Observer agents ready (obs_alpha … obs_epsilon)');
+}
+
 // ── Rate limiting ─────────────────────────────────────────
 
 /** tokenMint → last reaction timestamp */

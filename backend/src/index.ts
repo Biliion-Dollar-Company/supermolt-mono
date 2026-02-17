@@ -431,6 +431,13 @@ server.listen(port, '0.0.0.0', () => {
   console.log(`   Ready for connections`);
 });
 
+// Ensure observer agents exist in DB (idempotent, safe to run every startup)
+import('./services/agent-signal-reactor.js').then(({ ensureObserverAgents }) => {
+  ensureObserverAgents().catch((err) =>
+    console.error('❌ Failed to seed observer agents:', err),
+  );
+});
+
 // Start DevPrint feed service (market intelligence relay)
 if (env.DEVPRINT_WS_URL) {
   devprintFeed = new DevPrintFeedService(env.DEVPRINT_WS_URL);
