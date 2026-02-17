@@ -287,18 +287,41 @@ function analyzeAsEpsilon(trade: TradeEvent, data: DevPrintData): AgentAnalysis 
  */
 export async function analyzeSuperRouterTrade(
   trade: TradeEvent,
-  devPrintData: DevPrintData
+  devPrintData: DevPrintData,
+  conversationId?: string,
 ): Promise<AgentAnalysis[]> {
   console.log(`🔍 Analyzing SuperRouter trade: ${trade.tokenSymbol || trade.tokenMint.substring(0, 8)}`);
 
   const analyses: AgentAnalysis[] = [];
 
-  // If LLM is configured, generate smart narrative analysis (Top Notch AI)
+  // If LLM is configured, generate smart narrative analysis
   if (llmService.isConfigured) {
     try {
-      console.log('🤖 Generating AI Narrative Analysis...');
-      const llmAnalyses = await analyzeWithLLM(trade, devPrintData);
+      console.log('🤖 Generating AI Narrative Analysis (LLM)...');
+
+      // Fetch recent conversation context so agents can react to each other
+      let recentMessages: Array<{ agentName: string; message: string }> = [];
+      if (conversationId) {
+        const msgs = await db.agentMessage.findMany({
+          where: { conversationId },
+          orderBy: { timestamp: 'desc' },
+          take: 5,
+        });
+        const agentIds = [...new Set(msgs.map((m) => m.agentId))];
+        const agents = await db.tradingAgent.findMany({
+          where: { id: { in: agentIds } },
+          select: { id: true, name: true },
+        });
+        const agentMap = new Map(agents.map((a) => [a.id, a.name]));
+        recentMessages = msgs.reverse().map((m) => ({
+          agentName: agentMap.get(m.agentId) || 'Unknown',
+          message: m.message,
+        }));
+      }
+
+      const llmAnalyses = await analyzeWithLLM(trade, devPrintData, recentMessages);
       if (llmAnalyses.length === 5) {
+        console.log(`✅ Generated ${llmAnalyses.length} agent analyses (LLM)`);
         return llmAnalyses;
       }
     } catch (error) {
@@ -307,6 +330,7 @@ export async function analyzeSuperRouterTrade(
   }
 
   // Fallback to templates (legacy)
+  console.log('⚠️ Using template fallback (no LLM configured or LLM failed)');
   analyses.push(analyzeAsAlpha(trade, devPrintData));
   analyses.push(analyzeAsBeta(trade, devPrintData));
   analyses.push(analyzeAsGamma(trade, devPrintData));
@@ -335,45 +359,73 @@ interface DevPrintData {
 }
 
 /**
- * Generate analysis using LLM service (Narrative-Aware)
+ * Generate analysis using LLM service (Narrative-Aware, Personality-Rich)
  */
-async function analyzeWithLLM(trade: TradeEvent, data: DevPrintData): Promise<AgentAnalysis[]> {
-  const systemPrompt = `You are a decentralized trading collective of 5 AI agents observing the SuperRouter making a trade on Solana.
-  
-  CONTEXT:
-  - Token: ${trade.tokenSymbol || 'Unknown'} (Mint: ${trade.tokenMint})
-  - Action: ${trade.action} ${trade.amount} SOL
-  - Approx Liquidity: $${(data.liquidity || 0).toLocaleString()}
-  - Volume 24h: $${(data.volume24h || 0).toLocaleString()}
-  - Price Change: ${(data.priceChange24h || 0).toFixed(1)}%
-  - Holders: ${data.holders || 'Unknown'}
-  - Smart Money: ${data.smartMoneyFlow || 'NEUTRAL'}
-  
-  SOCIAL INTELLIGENCE (Mindshare Density):
-  - Recent Mentions: ${data.tweetCount || 0} (in short window)
-  - Key Tweets Context:
-    ${(data.recentTweets || []).map(t => `• "${t.substring(0, 100)}..."`).join('\n    ')}
+async function analyzeWithLLM(
+  trade: TradeEvent,
+  data: DevPrintData,
+  recentMessages?: Array<{ agentName: string; message: string }>,
+): Promise<AgentAnalysis[]> {
 
-  YOUR GOAL: Provide a short, punchy, crypto-native commentary from EACH of the 5 agents.
-  Focus on: Narrative Quality (does it match trends?), Timing Supremacy, Mindshare Density, and Context Graph Awareness.
-  
-  AGENTS:
-  1. Alpha (Global Macro/Conservative 🛡️): Focus on risk, fundamentals, liquidity depth.
-  2. Beta (Momentum/Degen 🚀): Focus on hype, volume spikes, FOMO, trend hijacking.
-  3. Gamma (Quant/Data 📊): Focus on statistical anomalies, correlation, win rates.
-  4. Delta (Contrarian/Skeptic 🔍): Question the narrative. Suspect rugs. Check dev wallet assumptions.
-  5. Epsilon (Whale Watcher 🐋): Focus on insider movement, smart money flow, wallet tracking.
+  // Build conversation context if we have prior messages
+  const conversationContext = recentMessages && recentMessages.length > 0
+    ? `\nRECENT CONVERSATION (agents have already said this — react to it, don't repeat it):\n${recentMessages.map(m => `  ${m.agentName}: "${m.message}"`).join('\n')}\n`
+    : '';
 
-  OUTPUT FORMAT: Return a valid JSON array of 5 objects (NO MARKDOWN), each with: { "agentId": "obs_alpha" (etc), "agentName", "emoji", "message", "sentiment": "BULLISH"|"BEARISH"|"NEUTRAL", "confidence": 0-100 }`;
+  const systemPrompt = `You are 5 distinct AI trading agents in a live Solana trading terminal called Trench. The SuperRouter just made a trade and you are each reacting in your own voice. This is a PUBLIC FEED — users are watching. Make it interesting.
 
-  const userPrompt = `Generate the analysis JSON for this ${trade.action} event. Ensure diverse perspectives.`;
+TRADE EVENT:
+- Token: ${trade.tokenSymbol || 'Unknown'} (${trade.tokenMint.substring(0, 8)}...)
+- Action: ${trade.action} ${trade.amount > 0 ? trade.amount.toFixed(3) + ' SOL' : ''}
+- Liquidity: $${(data.liquidity || 0).toLocaleString()}
+- 24h Volume: $${(data.volume24h || 0).toLocaleString()}
+- 24h Price Change: ${(data.priceChange24h || 0).toFixed(1)}%
+- Holders: ${data.holders || 'unknown'}
+- Market Cap: $${(data.marketCap || 0).toLocaleString()}
+- Smart Money Flow: ${data.smartMoneyFlow || 'NEUTRAL'}
+- Social Mentions: ${data.tweetCount || 0} recent tweets
+${data.recentTweets && data.recentTweets.length > 0 ? `- Top Tweet: "${data.recentTweets[0]?.substring(0, 120)}"` : ''}
+${conversationContext}
+
+THE 5 AGENTS — each has a DISTINCT voice, never generic:
+
+1. ALPHA (obs_alpha) 🛡️ — The Old Guard. Been in crypto since 2017. Disciplined, slightly condescending, risk-first. Talks like a seasoned portfolio manager who occasionally slips into degen. Cites specific numbers. Short sentences. Never uses exclamation marks.
+   Voice example: "Liquidity at $42k. That's a one-way door. Not touching it."
+
+2. BETA (obs_beta) 🚀 — Pure degen energy. Lives for the pump. Types fast, thinks fast, often wrong but never uncertain. Uses caps for emphasis. References CT culture, memes, other tokens. Sometimes calls out Alpha for being boring.
+   Voice example: "BRO the volume is INSANE rn. Alpha stays poor staying cautious lmao. LFG 🚀"
+
+3. GAMMA (obs_gamma) 📊 — Quant brain. Speaks in ratios, probabilities, historical patterns. Slightly robotic but occasionally drops dry humor. Never bullish or bearish — always probabilistic.
+   Voice example: "Vol/liq ratio: 3.2x. Historically this setup resolves 61% bullish within 4h. Proceeding with 0.4 confidence."
+
+4. DELTA (obs_delta) 🔍 — Professional skeptic. Assumes every trade is a trap until proven otherwise. Checks dev wallets, sniffs rugs, reads between the lines. Dry, dark humor. Occasionally proven right in a satisfying way.
+   Voice example: "Dev holds 34% unlocked. Seen this movie before. Popcorn's ready."
+
+5. EPSILON (obs_epsilon) 🐋 — Whale intel specialist. Tracks wallets obsessively. Drops wallet addresses (abbreviated), win rates, follow counts. Has inside-feeling commentary. Occasionally cryptic.
+   Voice example: "GH7x...3kR2 (74% win rate, 340 followers) just entered 3 min before SuperRouter. That's not a coincidence."
+
+RULES:
+- Each message MAX 2 sentences. Punchy. No fluff.
+- Agents CAN reference each other if there's prior conversation context
+- Reflect the actual data — don't make up numbers that contradict what's given
+- Personalities must stay consistent — Beta is ALWAYS hype, Delta is ALWAYS skeptical
+- If it's a SELL, react to the outcome — was it a win or a loss?
+
+OUTPUT: Valid JSON array only (NO markdown, no explanation). Format:
+[{"agentId":"obs_alpha","agentName":"Agent Alpha","emoji":"🛡️","message":"...","sentiment":"BULLISH"|"BEARISH"|"NEUTRAL","confidence":0-100}, ...]`;
+
+  const userPrompt = `React to this ${trade.action} event now. 5 agents, 5 perspectives, JSON only.`;
 
   const response = await llmService.generate(systemPrompt, userPrompt);
   if (!response) throw new Error('No LLM response');
 
-  // Parse JSON
-  const jsonStr = response.replace(/```json/g, '').replace(/```/g, '').trim();
+  // Parse JSON — strip any markdown wrapping
+  const jsonStr = response.replace(/```json/gi, '').replace(/```/g, '').trim();
   const parsed = JSON.parse(jsonStr);
+
+  if (!Array.isArray(parsed) || parsed.length !== 5) {
+    throw new Error(`Unexpected LLM response shape: got ${Array.isArray(parsed) ? parsed.length : typeof parsed} items`);
+  }
 
   return parsed as AgentAnalysis[];
 }
