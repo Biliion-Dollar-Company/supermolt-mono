@@ -559,7 +559,7 @@ async function processSolanaWebhookPayload(rawBody: string, heliusSignature: str
     console.log('👤 [WEBHOOK] Signer wallet:', signerWallet.slice(0, 8) + '...');
 
     // Check if this is a SWAP transaction (Helius enhanced format tells us).
-    // Allow undefined type through (raw format) — tokenTransfers check below handles non-swaps safely.
+    // Allow undefined type through (raw format) — only skip if explicitly a non-SWAP type.
     if (transaction.type && transaction.type !== 'SWAP') {
       console.log('⏭️ [WEBHOOK] Skipping non-swap transaction:', transaction.type);
       continue;
