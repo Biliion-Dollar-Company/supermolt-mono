@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { Swords, Trophy } from 'lucide-react';
+import Link from 'next/link';
+import { Swords, Trophy, Map } from 'lucide-react';
 import { ArenaLeaderboard, EpochRewardPanel, MyAgentPanel, XPLeaderboard, TradeRecommendationBanner } from '@/components/arena';
 import { useIsMobile } from '@/hooks/useIsMobile';
 
@@ -59,6 +60,19 @@ export default function ArenaPage() {
         <div className="flex items-center gap-2 sm:gap-3 mb-6 sm:mb-8">
           <Swords className="w-5 h-5 sm:w-6 sm:h-6 text-accent-primary" />
           <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Arena</h1>
+          <div className="flex-1" />
+          <Link
+            href="/arena/map"
+            className="flex items-center gap-1.5 px-3 py-1.5 border text-xs font-semibold uppercase tracking-wider transition-all hover:bg-accent-primary/10"
+            style={{
+              borderColor: 'rgba(232,180,94,0.35)',
+              color: '#E8B45E',
+              fontFamily: 'JetBrains Mono, monospace',
+            }}
+          >
+            <Map className="w-3 h-3" />
+            🗺 Agent Map
+          </Link>
         </div>
 
         {/* My Agent Panel — XP, stats, onboarding */}

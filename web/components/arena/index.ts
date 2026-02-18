@@ -14,3 +14,6 @@ export { AgentProfileModal } from './AgentProfileModal';
 export { default as NewsPanel } from './NewsPanel';
 export { AgentConfigPanel } from './AgentConfigPanel';
 export { TradeRecommendationBanner } from './TradeRecommendationBanner';
+export { AgentMap } from './AgentMap';
+export { AgentMapFeed } from './AgentMapFeed';
+export type { FeedEntry } from './AgentMapFeed';
