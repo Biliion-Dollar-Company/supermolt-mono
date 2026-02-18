@@ -85,6 +85,95 @@ function validateHeliusSignature(
 }
 
 /**
+ * Detect raw Solana transaction format (vs Helius Enhanced).
+ * Raw format has { blockTime, meta, slot, transaction, version } at top level.
+ */
+function isRawSolanaTransaction(tx: any): boolean {
+  return !!(tx.meta && tx.transaction && tx.slot !== undefined && !tx.tokenTransfers);
+}
+
+/**
+ * Normalize a raw Solana transaction into Enhanced-like format.
+ * Extracts signature, feePayer, and token transfers from pre/postTokenBalances.
+ */
+function normalizeRawTransaction(raw: any): any {
+  const innerTx = raw.transaction || {};
+  const meta = raw.meta || {};
+  const message = innerTx.message || {};
+
+  // Extract signature
+  const signature = innerTx.signatures?.[0] || 'unknown';
+
+  // Extract fee payer (first account key)
+  const accountKeys = message.accountKeys || [];
+  let feePayer: string | null = null;
+  if (accountKeys.length > 0) {
+    const first = accountKeys[0];
+    feePayer = typeof first === 'string' ? first : first?.pubkey || null;
+  }
+
+  // Build token transfers from pre/post token balances
+  const preBalances: any[] = meta.preTokenBalances || [];
+  const postBalances: any[] = meta.postTokenBalances || [];
+
+  // Index post balances by (owner, mint)
+  const balanceMap = new Map<string, { mint: string; owner: string; pre: number; post: number; decimals: number }>();
+
+  for (const b of preBalances) {
+    const owner = b.owner || '';
+    const mint = b.mint || '';
+    const amount = Number(b.uiTokenAmount?.uiAmount || 0);
+    const decimals = b.uiTokenAmount?.decimals || 0;
+    const key = `${owner}:${mint}`;
+    balanceMap.set(key, { mint, owner, pre: amount, post: 0, decimals });
+  }
+
+  for (const b of postBalances) {
+    const owner = b.owner || '';
+    const mint = b.mint || '';
+    const amount = Number(b.uiTokenAmount?.uiAmount || 0);
+    const decimals = b.uiTokenAmount?.decimals || 0;
+    const key = `${owner}:${mint}`;
+    const existing = balanceMap.get(key);
+    if (existing) {
+      existing.post = amount;
+    } else {
+      balanceMap.set(key, { mint, owner, pre: 0, post: amount, decimals });
+    }
+  }
+
+  // Find net changes for the fee payer (signer)
+  const tokenTransfers: any[] = [];
+  for (const [, entry] of balanceMap) {
+    if (entry.owner !== feePayer) continue;
+    const delta = entry.post - entry.pre;
+    if (Math.abs(delta) < 1e-12) continue;
+    tokenTransfers.push({
+      mint: entry.mint,
+      tokenAmount: Math.abs(delta),
+      fromUserAccount: delta < 0 ? feePayer : undefined,
+      toUserAccount: delta > 0 ? feePayer : undefined,
+    });
+  }
+
+  // Sort: tokens sent first (negative delta = input), tokens received last (positive delta = output)
+  tokenTransfers.sort((a: any, b: any) => {
+    const aIsInput = !!a.fromUserAccount;
+    const bIsInput = !!b.fromUserAccount;
+    return aIsInput === bIsInput ? 0 : aIsInput ? -1 : 1;
+  });
+
+  return {
+    signature,
+    feePayer,
+    type: tokenTransfers.length >= 2 ? 'SWAP' : undefined,
+    source: 'unknown',
+    tokenTransfers,
+    timestamp: raw.blockTime ? raw.blockTime * 1000 : Date.now(),
+  };
+}
+
+/**
  * Extract signer wallet from transaction accounts
  * Helius sends the signer as the first account in various formats
  */
@@ -576,15 +665,20 @@ async function processSolanaWebhookPayload(rawBody: string, heliusSignature: str
   const allDexes: string[] = [];
 
   // Process each transaction in the webhook payload
-  for (const transaction of transactions) {
+  for (let transaction of transactions) {
+    // Normalize raw Solana transactions to Enhanced-like format
+    if (isRawSolanaTransaction(transaction)) {
+      console.log('🔄 [WEBHOOK] Raw format detected — normalizing to enhanced format');
+      transaction = normalizeRawTransaction(transaction);
+    }
+
     const txSignature = transaction.signature || transaction.tx || 'unknown';
 
     console.log('📊 [WEBHOOK] Processing transaction:', {
       signature: typeof txSignature === 'string' ? txSignature.slice(0, 16) + '...' : 'unknown',
       type: transaction.type || 'unknown',
       source: transaction.source || 'unknown',
-      hasInstructions: !!(transaction.instructions && transaction.instructions.length > 0),
-      instructionCount: transaction.instructions?.length || 0
+      tokenTransfers: transaction.tokenTransfers?.length || 0,
     });
 
     // Enhanced webhooks have feePayer as signer
@@ -641,25 +735,24 @@ async function processSolanaWebhookPayload(rawBody: string, heliusSignature: str
       await createTradeRecord(signerWallet, swap);
       totalTradesCreated++;
 
-      if (isSuperRouter(signerWallet)) {
-        const isBuy = swap.inputMint === SOL_MINT;
-        const action: 'BUY' | 'SELL' = isBuy ? 'BUY' : 'SELL';
+      // Generate agent conversations for ALL tracked wallet trades
+      const isBuy = swap.inputMint === SOL_MINT;
+      const action: 'BUY' | 'SELL' = isBuy ? 'BUY' : 'SELL';
 
-        const tradeEvent = {
-          signature: swap.signature,
-          walletAddress: signerWallet,
-          tokenMint: isBuy ? swap.outputMint : swap.inputMint,
-          tokenSymbol: undefined as string | undefined,
-          tokenName: undefined as string | undefined,
-          action,
-          amount: isBuy ? swap.inputAmount : swap.outputAmount,
-          timestamp: new Date(swap.timestamp || Date.now())
-        };
+      const tradeEvent = {
+        signature: swap.signature,
+        walletAddress: signerWallet,
+        tokenMint: isBuy ? swap.outputMint : swap.inputMint,
+        tokenSymbol: undefined as string | undefined,
+        tokenName: undefined as string | undefined,
+        action,
+        amount: isBuy ? swap.inputAmount : swap.outputAmount,
+        timestamp: new Date(swap.timestamp || Date.now())
+      };
 
-        handleSuperRouterTrade(tradeEvent).catch((err) => {
-          console.error('❌ Observer analysis failed:', err);
-        });
-      }
+      handleSuperRouterTrade(tradeEvent).catch((err) => {
+        console.error('❌ Observer analysis failed:', err);
+      });
 
       // ── God wallet agent reactor ──────────────────────────
       // If the signer is a tracked god wallet, fire agent reactions so the

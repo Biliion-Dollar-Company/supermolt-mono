@@ -82,7 +82,7 @@ const { loginWithTwitter, logout, user, isAuthenticated } = useAuth();
 
 **Privy Configuration:**
 - App ID: `cmkraowkw0094i50c2n696dhz`
-- Client ID: `client-WY5gKa3L5wUkNj33WrNyYNXmVbVnvhLe6GZfk1zf9hQdV`
+- Client ID: `client-WY6VA9CoBJ6V9Py4uTSUv9kNY3wNUDhqN15CUhcHo335R`
 
 ## File Structure
 

@@ -290,6 +290,7 @@ export default function AgentDetailScreen() {
                     title: `${trade.action} ${trade.tokenSymbol}`,
                     description: `${trade.quantity.toFixed(0)} tokens`,
                     time: new Date(trade.timestamp).toLocaleTimeString(),
+                    timestamp: new Date(trade.timestamp).getTime(),
                     pnl: trade.pnl,
                   }}
                 />

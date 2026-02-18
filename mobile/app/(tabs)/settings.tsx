@@ -1,12 +1,18 @@
-import { ScrollView, View, Switch, TouchableOpacity, Alert, TextInput } from 'react-native';
+// eslint-disable-next-line react-native/no-deprecated-api
+import { ScrollView, View, Switch, TouchableOpacity, Alert, TextInput, Image, Linking, Clipboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { Text, Card, Button } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
 import { useAuthStore } from '@/store/auth';
-import { apiFetch } from '@/lib/api/client';
+import { useOnboardingStore } from '@/store/onboarding';
+import { apiFetch, getAgentBalance } from '@/lib/api/client';
 import { colors } from '@/theme/colors';
-import { useState } from 'react';
+import { lightImpact } from '@/lib/haptics';
+import { useState, useEffect } from 'react';
+
+const solanaIcon = require('../../assets/icons/solana.png');
 
 function SettingRow({
   label,
@@ -48,6 +54,7 @@ function SettingRow({
 export default function SettingsTab() {
   const { user, logout, isAuthenticated } = useAuth();
   const { settings, updateSetting } = useSettings();
+  const resetOnboarding = useOnboardingStore((s) => s.resetOnboarding);
   const agentProfile = useAuthStore((s) => s.agentProfile);
   const setAgentMe = useAuthStore((s) => s.setAgentMe);
   const stats = useAuthStore((s) => s.stats);
@@ -56,6 +63,26 @@ export default function SettingsTab() {
   const [editName, setEditName] = useState(agentProfile?.name ?? '');
   const [editBio, setEditBio] = useState(agentProfile?.bio ?? '');
   const [isSaving, setIsSaving] = useState(false);
+  const [solBalance, setSolBalance] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const activeAgentId = useAuthStore((s) => s.activeAgentId);
+  const walletAddress = user?.walletAddress ?? agentProfile?.pubkey ?? null;
+
+  useEffect(() => {
+    if (!activeAgentId) return;
+    getAgentBalance(activeAgentId)
+      .then((data) => setSolBalance(data.balanceFormatted))
+      .catch(() => setSolBalance(null));
+  }, [activeAgentId]);
+
+  const handleCopyAddress = () => {
+    if (!walletAddress) return;
+    Clipboard.setString(walletAddress);
+    lightImpact();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const hasChanges =
     editName !== (agentProfile?.name ?? '') ||
@@ -177,6 +204,75 @@ export default function SettingsTab() {
           </Card>
         )}
 
+        {/* Wallet & Balance */}
+        {isAuthenticated && walletAddress && (
+          <Card variant="default" padding="md">
+            <Text variant="h3" color="primary" style={{ marginBottom: 8 }}>
+              Wallet & Balance
+            </Text>
+
+            {/* SOL Balance */}
+            {solBalance !== null && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <Image source={solanaIcon} style={{ width: 20, height: 20 }} />
+                <Text variant="body" color="primary" style={{ fontWeight: '700', fontSize: 18 }}>
+                  {solBalance} SOL
+                </Text>
+              </View>
+            )}
+
+            {/* Full wallet address */}
+            <Text
+              variant="caption"
+              color="muted"
+              style={{ fontFamily: 'Courier', fontSize: 11, lineHeight: 16 }}
+            >
+              {walletAddress}
+            </Text>
+
+            {/* Copy + Solscan row */}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+              <TouchableOpacity
+                onPress={handleCopyAddress}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  backgroundColor: colors.surface.tertiary,
+                  borderRadius: 6,
+                  paddingVertical: 8,
+                }}
+              >
+                <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={14} color={copied ? colors.status.success : colors.text.secondary} />
+                <Text variant="caption" style={{ color: copied ? colors.status.success : colors.text.secondary, fontWeight: '600' }}>
+                  {copied ? 'Copied!' : 'Copy Address'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => Linking.openURL(`https://solscan.io/account/${walletAddress}`)}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  backgroundColor: colors.surface.tertiary,
+                  borderRadius: 6,
+                  paddingVertical: 8,
+                }}
+              >
+                <Ionicons name="open-outline" size={14} color={colors.text.secondary} />
+                <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>
+                  View on Solscan
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Card>
+        )}
+
         {/* Settings */}
         <Card variant="default" padding="md">
           <Text variant="h3" color="primary" style={{ marginBottom: 4 }}>
@@ -210,6 +306,28 @@ export default function SettingsTab() {
             onValueChange={(v) => updateSetting('sound', v)}
           />
         </Card>
+
+        {/* DEV: Reset onboarding */}
+        {__DEV__ && (
+          <TouchableOpacity
+            onPress={() => {
+              resetOnboarding();
+              Alert.alert('Dev', 'Onboarding reset — sign out and back in to trigger it.');
+            }}
+            style={{
+              backgroundColor: colors.surface.secondary,
+              borderRadius: 12,
+              padding: 16,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: colors.brand.secondary + '50',
+            }}
+          >
+            <Text variant="body" style={{ fontWeight: '600', color: colors.brand.secondary }}>
+              🛠 Reset Onboarding (Dev)
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Sign Out */}
         {isAuthenticated && (

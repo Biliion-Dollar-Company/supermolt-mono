@@ -310,6 +310,23 @@ export interface SwitchAgentResponse {
   expiresIn: number;
 }
 
+// Active / Hot Tokens
+
+export interface ActiveToken {
+  tokenMint: string;
+  tokenSymbol: string;
+  agentCount: number;
+  tradeCount: number;
+  conversationCount: number;
+  positionCount: number;
+  taskCount: number;
+  voteCount: number;
+  volume: number;
+  netPnl: number;
+  lastTradeTime: string | null;
+  activityScore: number;
+}
+
 // Auth
 
 export interface QuickstartResponse {

@@ -31,6 +31,7 @@ import {
   getAgentById,
   getAgentTradesById,
   getAgentPositionsById,
+  getActiveTokens,
 } from './arena.service';
 import { db } from '../../lib/db';
 import { cachedFetch } from '../../lib/redis';
@@ -204,6 +205,19 @@ app.get('/agents/:id/positions', async (c) => {
   } catch (error: any) {
     console.error('Arena agent positions error:', error);
     return c.json({ positions: [] });
+  }
+});
+
+// ── Active Tokens (Hot Tokens) ────────────────────────────
+
+app.get('/tokens/active', async (c) => {
+  try {
+    const hours = parseInt(c.req.query('hours') || '24', 10);
+    const data = await cachedFetch(`arena:tokens:active:${hours}`, 30, () => getActiveTokens(hours));
+    return c.json(data);
+  } catch (error: any) {
+    console.error('Arena active tokens error:', error);
+    return c.json({ tokens: [] });
   }
 });
 

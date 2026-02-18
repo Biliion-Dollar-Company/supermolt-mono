@@ -1,148 +1,158 @@
-import { ScrollView, View, ActivityIndicator, RefreshControl, TouchableOpacity, Alert } from 'react-native';
+import { View, Image, ActivityIndicator, RefreshControl, TouchableOpacity, Alert, FlatList, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Text, Card } from '@/components/ui';
+import { Text, Card, CardSkeleton } from '@/components/ui';
+import { FeedTradeCard } from '@/components/feed/FeedTradeCard';
 import { colors } from '@/theme/colors';
 import { useMyAgents } from '@/hooks/useMyAgents';
 import { useAuthContext } from '@/lib/auth/provider';
+import { useTradeFeed, type ActivityType, type FeedItem } from '@/hooks/useTradeFeed';
 import { getArchetype } from '@/lib/archetypes';
 import { deleteAgentById } from '@/lib/api/client';
 import { useAuthStore } from '@/store/auth';
-import { mediumImpact, errorNotification } from '@/lib/haptics';
-import { useState, useCallback } from 'react';
+import { useAgentLiveStore } from '@/store/agentLive';
+import { mediumImpact, errorNotification, selectionFeedback } from '@/lib/haptics';
+import { useState, useCallback, useMemo } from 'react';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import type { UserAgent } from '@/types/arena';
+
+const DEFAULT_PFPS = [
+  require('../../assets/images/pfp.png'),
+  require('../../assets/images/pfp-superrouter.png'),
+];
+
+function getDefaultPfp(index: number) {
+  return DEFAULT_PFPS[index % DEFAULT_PFPS.length];
+}
+
+// Agent status phrases — gives personality when no real reasoning exists
+const IDLE_PHRASES = [
+  'Scanning for alpha...',
+  'Monitoring markets...',
+  'Analyzing liquidity pools...',
+  'Watching whale wallets...',
+  'Evaluating entry points...',
+  'Tracking momentum signals...',
+];
+
+function getAgentPhrase(agentId: string): string {
+  // Deterministic but varied per agent
+  const idx = agentId.charCodeAt(0) % IDLE_PHRASES.length;
+  return IDLE_PHRASES[idx];
+}
+
+// ── Agent Card ──────────────────────────────────────────────
 
 function AgentRow({
   agent,
-  isActive,
-  onSwitch,
+  index,
   onDelete,
   onConfigure,
-  isSwitching,
+  lastReasoning,
 }: {
   agent: UserAgent;
-  isActive: boolean;
-  onSwitch: () => void;
+  index: number;
   onDelete: () => void;
-  onConfigure?: () => void;
-  isSwitching: boolean;
+  onConfigure: () => void;
+  lastReasoning?: string;
 }) {
   const archetype = getArchetype(agent.archetypeId);
+  const pfpSource = agent.avatarUrl ? { uri: agent.avatarUrl } : getDefaultPfp(index);
+  const pnl = Number(agent.totalPnl);
+  const pnlDisplay = pnl === 0 ? '$0' : `$${Math.abs(pnl).toFixed(2)}`;
+  const pnlPrefix = pnl >= 0 ? '+' : '-';
+  const statusLine = lastReasoning || getAgentPhrase(agent.id);
 
   return (
     <TouchableOpacity
       activeOpacity={0.7}
-      onPress={onSwitch}
+      onPress={onConfigure}
       onLongPress={onDelete}
-      style={{
-        backgroundColor: isActive ? colors.brand.primary + '15' : colors.surface.secondary,
-        borderRadius: 12,
-        padding: 14,
-        gap: 8,
-        borderWidth: isActive ? 1 : 0,
-        borderColor: colors.brand.primary,
-      }}
+      style={cardStyles.container}
     >
-      {/* Header Row */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Text style={{ fontSize: 28 }}>{archetype?.emoji || '🤖'}</Text>
+      {/* Row 1: Identity */}
+      <View style={cardStyles.topRow}>
+        <Image source={pfpSource} style={cardStyles.pfp} />
         <View style={{ flex: 1 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={cardStyles.nameRow}>
             <Text variant="body" color="primary" style={{ fontWeight: '700' }}>
               {agent.displayName || agent.name}
             </Text>
-            {isActive && (
-              <View style={{
-                backgroundColor: colors.brand.primary + '33',
-                paddingHorizontal: 6,
-                paddingVertical: 1,
-                borderRadius: 4,
-              }}>
-                <Text variant="caption" color="brand" style={{ fontWeight: '700', fontSize: 9 }}>
-                  ACTIVE
-                </Text>
-              </View>
+            {agent.twitterHandle && (
+              <Ionicons name="logo-twitter" size={12} color="#1DA1F2" />
             )}
           </View>
-          <Text variant="caption" color="muted">
-            {archetype?.name || agent.archetypeId} | Lv.{agent.level}
+          <Text variant="caption" color="muted" style={{ fontSize: 10 }}>
+            {archetype?.name || agent.archetypeId} · Lv.{agent.level}
           </Text>
         </View>
-        {isActive && onConfigure && (
-          <TouchableOpacity
-            onPress={(e) => { e.stopPropagation?.(); onConfigure(); }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            style={{ padding: 4 }}
-          >
-            <Ionicons name="settings-outline" size={18} color={colors.brand.primary} />
-          </TouchableOpacity>
-        )}
-        {isSwitching ? (
-          <ActivityIndicator size="small" color={colors.brand.primary} />
-        ) : (
-          <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
-        )}
-      </View>
 
-      {/* Stats Row */}
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <StatChip
-          label="PnL"
-          value={`$${Number(agent.totalPnl).toFixed(2)}`}
-          color={Number(agent.totalPnl) >= 0 ? colors.status.success : colors.status.error}
-        />
-        <StatChip label="Trades" value={String(agent.totalTrades)} color={colors.text.secondary} />
-        <StatChip
-          label="Win"
-          value={`${(Number(agent.winRate) * 100).toFixed(0)}%`}
-          color={colors.text.secondary}
-        />
-        <StatChip label="XP" value={String(agent.xp)} color={colors.brand.primary} />
-      </View>
-
-      {/* Archetype stat bars */}
-      {archetype && (
-        <View style={{ flexDirection: 'row', gap: 4, marginTop: 2 }}>
-          {Object.entries(archetype.stats).slice(0, 5).map(([key, val]) => (
-            <View key={key} style={{ flex: 1 }}>
-              <View style={{ height: 3, borderRadius: 2, backgroundColor: colors.surface.tertiary }}>
-                <View style={{
-                  height: 3,
-                  borderRadius: 2,
-                  backgroundColor: val > 70 ? colors.status.success : val > 40 ? colors.status.warning : colors.text.muted,
-                  width: `${val}%`,
-                }} />
-              </View>
-            </View>
-          ))}
+        {/* Inline stats */}
+        <View style={cardStyles.inlineStats}>
+          <Text style={[cardStyles.statValue, { color: pnl >= 0 ? colors.status.success : colors.status.error }]}>
+            {pnlPrefix}{pnlDisplay}
+          </Text>
+          <Text style={cardStyles.statMeta}>
+            {agent.totalTrades}T · {(Number(agent.winRate) * 100).toFixed(0)}%W
+          </Text>
         </View>
-      )}
+
+        <TouchableOpacity
+          onPress={(e) => { e.stopPropagation?.(); onConfigure(); }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={cardStyles.gearBtn}
+        >
+          <Ionicons name="chevron-forward" size={14} color={colors.text.muted} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Row 2: Live status line */}
+      <View style={cardStyles.statusRow}>
+        <View style={cardStyles.pulseContainer}>
+          <View style={cardStyles.pulseDot} />
+        </View>
+        <Text variant="caption" color="muted" numberOfLines={1} style={cardStyles.statusText}>
+          {statusLine}
+        </Text>
+        <Text variant="caption" style={cardStyles.xpBadge}>
+          {agent.xp} xp
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 }
 
-function StatChip({ label, value, color }: { label: string; value: string; color: string }) {
-  return (
-    <View style={{ alignItems: 'center' }}>
-      <Text variant="caption" style={{ color, fontWeight: '700', fontSize: 12 }}>{value}</Text>
-      <Text variant="caption" color="muted" style={{ fontSize: 9 }}>{label}</Text>
-    </View>
-  );
-}
+// ── Activity Filters ────────────────────────────────────────
+
+type FilterType = 'all' | ActivityType;
+
+const ACTIVITY_OPTIONS: { key: FilterType; label: string; icon: string }[] = [
+  { key: 'all', label: 'All', icon: 'layers-outline' },
+  { key: 'trade', label: 'Trades', icon: 'swap-horizontal-outline' },
+  { key: 'conversation', label: 'Chats', icon: 'chatbubble-outline' },
+  { key: 'task', label: 'Tasks', icon: 'checkmark-circle-outline' },
+  { key: 'vote', label: 'Votes', icon: 'hand-left-outline' },
+];
+
+// ── Main Screen ─────────────────────────────────────────────
 
 export default function AgentsTab() {
   const router = useRouter();
   const { isAuthenticated } = useAuthContext();
-  const { agents, activeAgentId, isLoading, isSwitching, refresh, switchToAgent } = useMyAgents();
+  const { agents, activeAgentId, isLoading, refresh } = useMyAgents();
+  const { items: feedItems, isLoading: feedLoading, refresh: refreshFeed } = useTradeFeed();
   const removeAgent = useAuthStore((s) => s.removeAgent);
+  const latestDecision = useAgentLiveStore((s) => s.decisions[0]);
+
   const [refreshing, setRefreshing] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refresh();
+    await Promise.all([refresh(), refreshFeed()]);
     setRefreshing(false);
-  }, [refresh]);
+  }, [refresh, refreshFeed]);
 
   const handleDelete = useCallback((agent: UserAgent) => {
     mediumImpact();
@@ -171,6 +181,41 @@ export default function AgentsTab() {
     );
   }, [activeAgentId, removeAgent]);
 
+  // Get active agent for filtering
+  const activeAgent = useMemo(() => {
+    return agents.find((a) => a.id === activeAgentId) ?? null;
+  }, [agents, activeAgentId]);
+
+  // Filter feed to this user's active agent only
+  const filteredFeed = useMemo(() => {
+    let result = feedItems;
+    if (activeAgent) {
+      result = result.filter((i) =>
+        i.agentName === activeAgent.displayName ||
+        i.agentName === activeAgent.name
+      );
+    }
+    if (activeFilter !== 'all') {
+      result = result.filter((i) => i.type === activeFilter);
+    }
+    return result;
+  }, [feedItems, activeFilter, activeAgent]);
+
+  // Count per type (always scoped to my agent)
+  const counts = useMemo(() => {
+    const base = activeAgent
+      ? feedItems.filter((i) =>
+          i.agentName === activeAgent.displayName ||
+          i.agentName === activeAgent.name
+        )
+      : feedItems;
+    const c: Record<string, number> = { all: base.length };
+    for (const item of base) {
+      c[item.type] = (c[item.type] || 0) + 1;
+    }
+    return c;
+  }, [feedItems, activeAgent]);
+
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary, alignItems: 'center', justifyContent: 'center', padding: 32 }} edges={['top']}>
@@ -182,79 +227,314 @@ export default function AgentsTab() {
     );
   }
 
+  const activityOptions = ACTIVITY_OPTIONS.map((o) => ({
+    ...o,
+    count: counts[o.key] || 0,
+  }));
+
+  // Build the FlatList header
+  const ListHeader = (
+    <View style={{ gap: 12 }}>
+      {/* ── My Agents Section ── */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text variant="h2" color="primary">My Agents</Text>
+        <Text variant="caption" color="muted">{agents.length}/6 slots</Text>
+      </View>
+
+      {isLoading && agents.length === 0 && (
+        <ActivityIndicator size="large" color={colors.brand.primary} style={{ padding: 24 }} />
+      )}
+
+      {!isLoading && agents.length === 0 && (
+        <View style={{ alignItems: 'center', paddingVertical: 24, gap: 8 }}>
+          <Ionicons name="rocket-outline" size={36} color={colors.text.muted} />
+          <Text variant="body" color="muted" style={{ textAlign: 'center' }}>
+            Create your first AI trading agent to get started.
+          </Text>
+        </View>
+      )}
+
+      {/* Agent cards */}
+      {agents.length > 0 && (
+        <View style={{ gap: 6 }}>
+          {agents.map((agent, idx) => (
+            <Animated.View key={agent.id} entering={FadeInDown.springify()}>
+              <AgentRow
+                agent={agent}
+                index={idx}
+                onDelete={() => handleDelete(agent)}
+                onConfigure={() => router.push('/configure-agent')}
+                lastReasoning={
+                  agent.id === activeAgentId && latestDecision
+                    ? latestDecision.reason
+                    : undefined
+                }
+              />
+            </Animated.View>
+          ))}
+        </View>
+      )}
+
+      {/* Create New Agent button */}
+      {agents.length < 6 && (
+        <TouchableOpacity
+          onPress={() => router.push('/create-agent')}
+          style={styles.createBtn}
+        >
+          <Ionicons name="add-circle-outline" size={20} color={colors.brand.primary} />
+          <Text variant="caption" color="brand" style={{ fontWeight: '600' }}>
+            Create New Agent
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {/* ── Activity Section ── */}
+      <View style={styles.activityHeader}>
+        <View style={styles.activityTitleRow}>
+          <Text variant="h3" color="primary" style={{ fontWeight: '700' }}>Activity</Text>
+          <View style={styles.liveIndicator}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE</Text>
+          </View>
+        </View>
+
+        {/* Activity type selector */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 6 }}
+        >
+          {activityOptions.map((opt) => {
+            const isOn = activeFilter === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                onPress={() => {
+                  selectionFeedback();
+                  setActiveFilter(opt.key);
+                }}
+                style={[styles.typeChip, isOn && styles.typeChipActive]}
+              >
+                <Ionicons
+                  name={opt.icon as any}
+                  size={11}
+                  color={isOn ? colors.brand.primary : colors.text.muted}
+                />
+                <Text style={[styles.typeLabel, isOn && styles.typeLabelActive]}>
+                  {opt.label}
+                </Text>
+                {opt.count > 0 && (
+                  <Text style={[styles.typeCount, isOn && styles.typeCountActive]}>
+                    {opt.count}
+                  </Text>
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
+    </View>
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary }} edges={['top']}>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 32 }}
+      <FlatList
+        data={filteredFeed}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={ListHeader}
+        ListHeaderComponentStyle={{ padding: 16, paddingBottom: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 6 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand.primary} />
         }
-      >
-        {/* Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text variant="h2" color="primary">My Agents</Text>
-          <Text variant="caption" color="muted">{agents.length}/6 slots</Text>
-        </View>
-
-        {/* Loading */}
-        {isLoading && agents.length === 0 && (
-          <ActivityIndicator size="large" color={colors.brand.primary} style={{ padding: 32 }} />
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeIn.delay(Math.min(index * 30, 300)).duration(200)}>
+            <FeedTradeCard item={item} />
+          </Animated.View>
         )}
-
-        {/* Empty State */}
-        {!isLoading && agents.length === 0 && (
-          <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
-            <Ionicons name="rocket-outline" size={48} color={colors.text.muted} />
-            <Text variant="h3" color="secondary">No agents yet</Text>
-            <Text variant="body" color="muted" style={{ textAlign: 'center', paddingHorizontal: 24 }}>
-              Create your first AI trading agent to get started. Each agent has a unique archetype with different trading strategies.
-            </Text>
-          </View>
-        )}
-
-        {/* Agent List */}
-        {agents.map((agent) => (
-          <AgentRow
-            key={agent.id}
-            agent={agent}
-            isActive={agent.id === activeAgentId}
-            isSwitching={isSwitching}
-            onSwitch={() => switchToAgent(agent.id)}
-            onDelete={() => handleDelete(agent)}
-            onConfigure={agent.id === activeAgentId ? () => router.push('/configure-agent') : undefined}
-          />
-        ))}
-
-        {/* Create New Agent */}
-        {agents.length < 6 && (
-          <TouchableOpacity
-            onPress={() => router.push('/create-agent')}
-            style={{
-              backgroundColor: colors.surface.secondary,
-              borderRadius: 12,
-              padding: 16,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              borderWidth: 1,
-              borderColor: colors.brand.primary + '33',
-              borderStyle: 'dashed',
-            }}
-          >
-            <Ionicons name="add-circle-outline" size={22} color={colors.brand.primary} />
-            <Text variant="body" color="brand" style={{ fontWeight: '600' }}>
-              Create New Agent
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Hint */}
-        <Text variant="caption" color="muted" style={{ textAlign: 'center', marginTop: 4 }}>
-          Tap to switch | Long press to delete | Gear to configure
-        </Text>
-      </ScrollView>
+        ListEmptyComponent={
+          feedLoading ? (
+            <View style={{ padding: 16, gap: 8 }}>
+              {[1, 2, 3].map((i) => <CardSkeleton key={i} />)}
+            </View>
+          ) : (
+            <View style={{ alignItems: 'center', paddingTop: 32 }}>
+              <Text variant="body" color="muted">
+                {activeFilter === 'all'
+                  ? 'No activity from your agent yet'
+                  : `No ${activeFilter}s from your agent yet`}
+              </Text>
+            </View>
+          )
+        }
+      />
     </SafeAreaView>
   );
 }
+
+// ── Agent Card Styles ────────────────────────────────────
+
+const cardStyles = StyleSheet.create({
+  container: {
+    backgroundColor: colors.surface.secondary,
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pfp: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  inlineStats: {
+    alignItems: 'flex-end',
+    gap: 1,
+  },
+  statValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  statMeta: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: colors.text.muted,
+    fontVariant: ['tabular-nums'],
+  },
+  gearBtn: {
+    padding: 4,
+    marginLeft: 2,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    borderRadius: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+  },
+  pulseContainer: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(34, 197, 94, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pulseDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.status.success,
+  },
+  statusText: {
+    flex: 1,
+    fontSize: 10,
+    fontStyle: 'italic',
+  },
+  xpBadge: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.brand.primary,
+    fontVariant: ['tabular-nums'],
+  },
+});
+
+// ── Page Styles ──────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  createBtn: {
+    backgroundColor: colors.surface.secondary,
+    borderRadius: 6,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: colors.brand.primary + '33',
+    borderStyle: 'dashed',
+  },
+  activityHeader: {
+    gap: 10,
+    marginTop: 8,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  activityTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  liveIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: colors.status.success,
+  },
+  liveText: {
+    color: colors.status.success,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  typeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: colors.surface.secondary,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.04)',
+  },
+  typeChipActive: {
+    backgroundColor: colors.brand.primary + '15',
+    borderColor: colors.brand.primary + '30',
+  },
+  typeLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.text.muted,
+  },
+  typeLabelActive: {
+    color: colors.brand.primary,
+    fontWeight: '700',
+  },
+  typeCount: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.text.muted,
+    opacity: 0.6,
+  },
+  typeCountActive: {
+    color: colors.brand.primary,
+    opacity: 1,
+  },
+});

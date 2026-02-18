@@ -8,3 +8,4 @@ export { TerminalLog } from './TerminalLog';
 export type { TerminalActionType } from './TerminalLog';
 export { WatchlistChips } from './WatchlistChips';
 export { PnLChart } from './PnLChart';
+export { LiveAgentPulse } from './LiveAgentPulse';

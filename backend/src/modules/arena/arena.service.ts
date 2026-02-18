@@ -1071,6 +1071,156 @@ export async function getAgentPositionsById(agentId: string) {
   };
 }
 
+// ── Active Tokens (Hot Tokens Aggregation) ───────────────
+
+export async function getActiveTokens(hours = 24) {
+  const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+
+  // Run all aggregation queries in parallel
+  const [
+    tradesByToken,
+    positionsByToken,
+    conversations,
+    tasksByToken,
+    votesByToken,
+  ] = await Promise.all([
+    // Trades grouped by tokenMint (last N hours)
+    db.paperTrade.groupBy({
+      by: ['tokenMint', 'tokenSymbol'],
+      where: { openedAt: { gte: since } },
+      _count: { id: true },
+      _sum: { amount: true, pnl: true },
+    }),
+    // Active positions grouped by tokenMint
+    db.agentPosition.groupBy({
+      by: ['tokenMint', 'tokenSymbol'],
+      where: { quantity: { gt: 0 } },
+      _count: { id: true },
+    }),
+    // Conversations with tokenMint
+    db.agentConversation.findMany({
+      where: { tokenMint: { not: null }, createdAt: { gte: since } },
+      select: { tokenMint: true },
+    }),
+    // Tasks with tokenMint
+    db.agentTask.groupBy({
+      by: ['tokenMint', 'tokenSymbol'],
+      where: { tokenMint: { not: null }, createdAt: { gte: since } },
+      _count: { id: true },
+    }),
+    // Votes with tokenMint
+    db.voteProposal.groupBy({
+      by: ['tokenMint', 'token'],
+      where: { tokenMint: { not: null }, createdAt: { gte: since } },
+      _count: { id: true },
+    }),
+  ]);
+
+  // Count distinct agents per token from recent trades
+  const agentsByToken = await db.paperTrade.findMany({
+    where: { openedAt: { gte: since } },
+    select: { tokenMint: true, agentId: true },
+    distinct: ['tokenMint', 'agentId'],
+  });
+
+  const agentCountMap = new Map<string, number>();
+  for (const r of agentsByToken) {
+    agentCountMap.set(r.tokenMint, (agentCountMap.get(r.tokenMint) ?? 0) + 1);
+  }
+
+  // Get last trade time per token
+  const lastTradeMap = new Map<string, string>();
+  const recentTrades = await db.paperTrade.findMany({
+    where: { openedAt: { gte: since } },
+    select: { tokenMint: true, openedAt: true },
+    orderBy: { openedAt: 'desc' },
+    distinct: ['tokenMint'],
+  });
+  for (const t of recentTrades) {
+    lastTradeMap.set(t.tokenMint, t.openedAt.toISOString());
+  }
+
+  // Build conversation count map
+  const convCountMap = new Map<string, number>();
+  for (const c of conversations) {
+    if (c.tokenMint) {
+      convCountMap.set(c.tokenMint, (convCountMap.get(c.tokenMint) ?? 0) + 1);
+    }
+  }
+
+  // Build position count map
+  const posCountMap = new Map<string, number>();
+  for (const p of positionsByToken) {
+    posCountMap.set(p.tokenMint, p._count.id);
+  }
+
+  // Build task count map
+  const taskCountMap = new Map<string, number>();
+  for (const t of tasksByToken) {
+    if (t.tokenMint) taskCountMap.set(t.tokenMint, t._count.id);
+  }
+
+  // Build vote count map
+  const voteCountMap = new Map<string, number>();
+  for (const v of votesByToken) {
+    if (v.tokenMint) voteCountMap.set(v.tokenMint, v._count.id);
+  }
+
+  // Merge everything by tokenMint
+  const allMints = new Set<string>();
+  for (const t of tradesByToken) allMints.add(t.tokenMint);
+  for (const p of positionsByToken) allMints.add(p.tokenMint);
+  for (const c of conversations) if (c.tokenMint) allMints.add(c.tokenMint);
+  for (const t of tasksByToken) if (t.tokenMint) allMints.add(t.tokenMint);
+  for (const v of votesByToken) if (v.tokenMint) allMints.add(v.tokenMint);
+
+  // Resolve symbols
+  const symbolMap = new Map<string, string>();
+  for (const t of tradesByToken) symbolMap.set(t.tokenMint, t.tokenSymbol);
+  for (const p of positionsByToken) symbolMap.set(p.tokenMint, p.tokenSymbol);
+  for (const t of tasksByToken) if (t.tokenMint && t.tokenSymbol) symbolMap.set(t.tokenMint, t.tokenSymbol);
+
+  const tokens = Array.from(allMints).map((mint) => {
+    const tradeData = tradesByToken.find((t) => t.tokenMint === mint);
+    const tradeCount = tradeData?._count.id ?? 0;
+    const volume = tradeData?._sum.amount ? parseFloat(tradeData._sum.amount.toString()) : 0;
+    const netPnl = tradeData?._sum.pnl ? parseFloat(tradeData._sum.pnl.toString()) : 0;
+    const agentCount = agentCountMap.get(mint) ?? 0;
+    const conversationCount = convCountMap.get(mint) ?? 0;
+    const positionCount = posCountMap.get(mint) ?? 0;
+    const taskCount = taskCountMap.get(mint) ?? 0;
+    const voteCount = voteCountMap.get(mint) ?? 0;
+
+    // Activity score: weighted sum
+    const activityScore =
+      tradeCount * 3 +
+      conversationCount * 2 +
+      voteCount * 2 +
+      taskCount * 1 +
+      agentCount * 5;
+
+    return {
+      tokenMint: mint,
+      tokenSymbol: symbolMap.get(mint) || mint.slice(0, 6),
+      agentCount,
+      tradeCount,
+      conversationCount,
+      positionCount,
+      taskCount,
+      voteCount,
+      volume,
+      netPnl,
+      lastTradeTime: lastTradeMap.get(mint) ?? null,
+      activityScore,
+    };
+  });
+
+  // Sort by activity score desc
+  tokens.sort((a, b) => b.activityScore - a.activityScore);
+
+  return { tokens: tokens.slice(0, 50) };
+}
+
 // Re-export RANK_MULTIPLIERS for use in getEpochRewards
 const RANK_MULTIPLIERS: { [key: number]: number } = {
   1: 2.0,

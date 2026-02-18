@@ -3,10 +3,12 @@
  * Broadcast real-time updates to connected clients
  */
 
-import { Server as HTTPServer } from 'http';
+import { Server as HTTPServer, IncomingMessage } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
+import { WebSocketServer, WebSocket as RawWebSocket } from 'ws';
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
+import { verifyToken } from '../lib/jwt';
 
 type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets' | 'training';
 
@@ -44,10 +46,21 @@ interface BroadcastEvents {
   'feed:watchlist': any;
   'feed:tokens': any;
   'feed:tweets': any;
+  'consensus:reached': {
+    tokenMint: string;
+    tokenSymbol: string;
+    walletCount: number;
+    timeWindowMinutes: number;
+    chain: 'SOLANA' | 'BSC' | 'BASE';
+    agentId: string;
+    agentName: string;
+  };
 }
 
 class WebSocketEventsService {
   private io: SocketIOServer | null = null;
+  private wss: WebSocketServer | null = null;
+  private rawClients = new Set<RawWebSocket>();
   private connectedClients = new Map<string, Set<string>>(); // agentId -> set of socketIds
   private redisPub: Redis | null = null;
   private redisSub: Redis | null = null;
@@ -92,11 +105,36 @@ class WebSocketEventsService {
 
     this.attachRedisAdapter();
 
-    this.io.on('connection', (socket: Socket) => {
-      console.log(`[WebSocket] Client connected: ${socket.id}`);
+    // Auth middleware: verify JWT if provided, attach user data to socket
+    this.io.use(async (socket, next) => {
+      const token = socket.handshake.auth?.token;
+      if (!token) {
+        // Allow unauthenticated connections for public data (leaderboard, prices, feeds)
+        (socket as any).userId = null;
+        return next();
+      }
+      try {
+        const payload = await verifyToken(token);
+        (socket as any).userId = payload.sub;
+        return next();
+      } catch {
+        console.warn(`[WebSocket] Invalid JWT from ${socket.id}, allowing as unauthenticated`);
+        (socket as any).userId = null;
+        return next();
+      }
+    });
 
-      // Subscribe to agent
+    this.io.on('connection', (socket: Socket) => {
+      const userId = (socket as any).userId;
+      console.log(`[WebSocket] Client connected: ${socket.id} (user: ${userId || 'anonymous'})`);
+
+      // Subscribe to agent — requires authentication
       socket.on('subscribe:agent', (agentId: string) => {
+        if (!userId) {
+          socket.emit('error', { message: 'Authentication required to subscribe to agent' });
+          console.warn(`[WebSocket] ${socket.id} tried subscribe:agent without auth`);
+          return;
+        }
         if (!this.connectedClients.has(agentId)) {
           this.connectedClients.set(agentId, new Set());
         }
@@ -143,6 +181,52 @@ class WebSocketEventsService {
       });
     });
 
+    // Raw WebSocket server for mobile clients (connects to /ws)
+    this.wss = new WebSocketServer({ noServer: true });
+
+    this.wss.on('connection', (ws: RawWebSocket, request: IncomingMessage) => {
+      // Extract token from query param for mobile auth
+      const url = new URL(request.url || '/', `http://${request.headers.host}`);
+      const token = url.searchParams.get('token');
+      let wsUserId: string | null = null;
+
+      if (token) {
+        verifyToken(token)
+          .then((payload) => {
+            wsUserId = payload.sub;
+            (ws as any).userId = wsUserId;
+            console.log(`[WebSocket] Raw WS authenticated: ${wsUserId}`);
+          })
+          .catch(() => {
+            console.warn('[WebSocket] Raw WS invalid token, connected as anonymous');
+          });
+      }
+
+      this.rawClients.add(ws);
+      console.log(`[WebSocket] Raw WS client connected (total: ${this.rawClients.size})`);
+
+      ws.on('close', () => {
+        this.rawClients.delete(ws);
+        console.log(`[WebSocket] Raw WS client disconnected (total: ${this.rawClients.size})`);
+      });
+
+      ws.on('error', () => {
+        this.rawClients.delete(ws);
+      });
+    });
+
+    // Handle HTTP upgrade: route /ws to raw WS, everything else to Socket.IO
+    httpServer.on('upgrade', (request: IncomingMessage, socket, head) => {
+      const pathname = new URL(request.url || '/', `http://${request.headers.host}`).pathname;
+
+      if (pathname === '/ws' && this.wss) {
+        this.wss.handleUpgrade(request, socket, head, (ws) => {
+          this.wss!.emit('connection', ws, request);
+        });
+      }
+      // Socket.IO handles its own upgrade via its internal engine
+    });
+
     return this.io;
   }
 
@@ -173,13 +257,28 @@ class WebSocketEventsService {
     }
   }
 
+  /** Send JSON to all raw WebSocket clients (mobile) */
+  private broadcastRaw(data: object) {
+    const json = JSON.stringify(data);
+    for (const client of this.rawClients) {
+      if (client.readyState === RawWebSocket.OPEN) {
+        client.send(json);
+      }
+    }
+  }
+
   broadcastAgentActivity(agentId: string, event: BroadcastEvents['agent:activity']) {
     if (!this.io) return;
-    
-    this.io.to(`agent:${agentId}`).emit('agent:activity', {
+
+    const payload = {
       timestamp: new Date().toISOString(),
       ...event,
-    });
+    };
+
+    this.io.to(`agent:${agentId}`).emit('agent:activity', payload);
+
+    // Also send to raw WS clients (mobile)
+    this.broadcastRaw({ type: 'agent:activity', ...payload });
 
     console.log(`[WebSocket] Broadcast agent:activity to agent:${agentId}`);
   }
@@ -187,10 +286,13 @@ class WebSocketEventsService {
   broadcastLeaderboardUpdate(update: BroadcastEvents['leaderboard:update']) {
     if (!this.io) return;
 
-    this.io.to('leaderboard:all').emit('leaderboard:update', {
+    const payload = {
       timestamp: new Date().toISOString(),
       ...update,
-    });
+    };
+
+    this.io.to('leaderboard:all').emit('leaderboard:update', payload);
+    this.broadcastRaw({ type: 'leaderboard:update', ...payload });
 
     console.log(`[WebSocket] Broadcast leaderboard:update for agent ${update.agentId}`);
   }
@@ -198,10 +300,13 @@ class WebSocketEventsService {
   broadcastPriceUpdate(mint: string, update: BroadcastEvents['price:update']) {
     if (!this.io) return;
 
-    this.io.to(`price:${mint}`).emit('price:update', {
+    const payload = {
       timestamp: new Date().toISOString(),
       ...update,
-    });
+    };
+
+    this.io.to(`price:${mint}`).emit('price:update', payload);
+    this.broadcastRaw({ type: 'price_update', tokenMint: mint, ...payload });
 
     console.log(`[WebSocket] Broadcast price:update for ${mint}`);
   }
@@ -209,17 +314,38 @@ class WebSocketEventsService {
   broadcastSignalAlert(alert: BroadcastEvents['signal:alert']) {
     if (!this.io) return;
 
-    this.io.emit('signal:alert', {
+    const payload = {
       timestamp: new Date().toISOString(),
       ...alert,
-    });
+    };
+
+    this.io.emit('signal:alert', payload);
+    this.broadcastRaw({ type: 'signal:alert', ...payload });
 
     console.log(`[WebSocket] Broadcast signal:alert for ${alert.symbol}`);
+  }
+
+  broadcastConsensusReached(event: BroadcastEvents['consensus:reached']) {
+    const payload = {
+      timestamp: new Date().toISOString(),
+      ...event,
+    };
+
+    // Socket.IO — global emit to all clients
+    if (this.io) {
+      this.io.emit('consensus:reached', payload);
+    }
+
+    // Raw WS — broadcast to mobile clients
+    this.broadcastRaw({ type: 'consensus:reached', ...payload });
+
+    console.log(`[WebSocket] Broadcast consensus:reached for ${event.tokenSymbol} (${event.walletCount} wallets)`);
   }
 
   broadcastFeedEvent(channel: FeedChannel, data: any): void {
     if (!this.io) return;
     this.io.to(`feed:${channel}`).emit(`feed:${channel}`, data);
+    this.broadcastRaw({ type: `feed:${channel}`, ...data });
   }
 
   getFeedSubscriberCounts(): Record<string, number> {
@@ -233,8 +359,8 @@ class WebSocketEventsService {
   }
 
   getConnectedClientsCount(): number {
-    if (!this.io) return 0;
-    return this.io.engine.clientsCount || 0;
+    const socketIO = this.io?.engine?.clientsCount || 0;
+    return socketIO + this.rawClients.size;
   }
 
   getActiveRooms(): string[] {

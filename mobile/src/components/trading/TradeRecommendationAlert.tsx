@@ -57,7 +57,7 @@ export function TradeRecommendationAlert() {
           backgroundColor: colors.status.success + '18',
           borderWidth: 1,
           borderColor: colors.status.success + '44',
-          borderRadius: 12,
+          borderRadius: 10,
           padding: 12,
           flexDirection: 'row',
           alignItems: 'center',

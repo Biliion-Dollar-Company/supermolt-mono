@@ -326,7 +326,7 @@ export function AgentDataFlow() {
     // ── Mobile layout ──────────────────────────────────────────
     if (isMobile) {
         return (
-            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden">
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)]">
                 {/* DNA flow animation styles */}
                 <style>{`
                     @keyframes dnaFlow {
@@ -476,8 +476,8 @@ export function AgentDataFlow() {
                 </div>
 
                 {/* Agent card */}
-                <div className="mx-4 mb-4 mt-2 bg-white/[0.06] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                    {hasAgent ? (
+                <div className="mx-4 mb-4 mt-2 bg-white/[0.06] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] relative z-20 overflow-visible">
+                    {hasAgent && (
                         <button
                             onClick={() => setExpanded(!expanded)}
                             className="w-full px-4 py-4 flex items-center gap-3.5 cursor-pointer active:bg-white/[0.04] transition-colors"
@@ -519,7 +519,66 @@ export function AgentDataFlow() {
                                 style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                             />
                         </button>
-                    ) : (
+                    )}
+                    {hasAgent && (
+                        <div
+                            className="grid transition-[grid-template-rows] duration-300 ease-out"
+                            style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
+                        >
+                            <div className="overflow-hidden">
+                                <div className="bg-white/[0.06] backdrop-blur-xl border-t border-white/[0.06]">
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-xs font-bold text-text-primary">
+                                            {DETAIL_TABS.find(t => t.id === activeTab)?.label}
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            {DETAIL_TABS.map((tab) => {
+                                                const Icon = tab.icon;
+                                                const isActive = activeTab === tab.id;
+                                                const count = tab.id === 'tasks' ? activeTasks.length
+                                                    : tab.id === 'positions' ? openPositions.length
+                                                    : chats.length;
+                                                return (
+                                                    <button
+                                                        key={tab.id}
+                                                        onClick={() => setActiveTab(tab.id)}
+                                                        className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
+                                                            isActive
+                                                                ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                                                                : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.03] border border-transparent'
+                                                        }`}
+                                                    >
+                                                        <Icon className="w-3.5 h-3.5" />
+                                                        {count > 0 && (
+                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                                                                isActive ? 'bg-accent-primary/20 text-accent-primary' : 'bg-white/[0.06] text-text-muted'
+                                                            }`}>
+                                                                {count}
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
+                                        {detailLoading ? (
+                                            <div className="flex items-center justify-center py-8">
+                                                <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
+                                            </div>
+                                        ) : activeTab === 'tasks' ? (
+                                            <TasksSection tasks={activeTasks} />
+                                        ) : activeTab === 'positions' ? (
+                                            <PositionsSection positions={openPositions} />
+                                        ) : (
+                                            <ChatsSection chats={chats} />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {!hasAgent && (
                         <button
                             onClick={() => { if (!authenticated) login(); }}
                             className="w-full relative overflow-hidden cursor-pointer active:scale-[0.98] transition-transform duration-150"
@@ -558,66 +617,6 @@ export function AgentDataFlow() {
                     )}
                 </div>
 
-                {/* Expandable detail panel */}
-                {hasAgent && (
-                    <div
-                        className="grid transition-[grid-template-rows] duration-300 ease-out"
-                        style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
-                    >
-                        <div className="overflow-hidden">
-                            <div className="border-t border-white/[0.06]">
-                                <div className="flex items-center justify-between px-4 py-2.5">
-                                    <span className="text-xs font-bold text-text-primary">
-                                        {DETAIL_TABS.find(t => t.id === activeTab)?.label}
-                                    </span>
-                                    <div className="flex items-center gap-1">
-                                        {DETAIL_TABS.map((tab) => {
-                                            const Icon = tab.icon;
-                                            const isActive = activeTab === tab.id;
-                                            const count = tab.id === 'tasks' ? activeTasks.length
-                                                : tab.id === 'positions' ? openPositions.length
-                                                : chats.length;
-                                            return (
-                                                <button
-                                                    key={tab.id}
-                                                    onClick={() => setActiveTab(tab.id)}
-                                                    className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
-                                                        isActive
-                                                            ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                                                            : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.03] border border-transparent'
-                                                    }`}
-                                                >
-                                                    <Icon className="w-3.5 h-3.5" />
-                                                    {count > 0 && (
-                                                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                                                            isActive ? 'bg-accent-primary/20 text-accent-primary' : 'bg-white/[0.06] text-text-muted'
-                                                        }`}>
-                                                            {count}
-                                                        </span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                                <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
-                                    {detailLoading ? (
-                                        <div className="flex items-center justify-center py-8">
-                                            <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
-                                        </div>
-                                    ) : activeTab === 'tasks' ? (
-                                        <TasksSection tasks={activeTasks} />
-                                    ) : activeTab === 'positions' ? (
-                                        <PositionsSection positions={openPositions} />
-                                    ) : (
-                                        <ChatsSection chats={chats} />
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 <FeedDetailSheet
                     feedId={selectedFeed}
                     open={!!selectedFeed}
@@ -630,7 +629,7 @@ export function AgentDataFlow() {
 
     // ── Desktop layout ──────────────────────────────────────────
     return (
-        <div className="bg-[#0a0a12]/60 backdrop-blur-xl border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden">
+        <div className="bg-[#0a0a12]/60 backdrop-blur-xl border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_32px_rgba(0,0,0,0.5)]">
             <div ref={containerRef} className="relative h-[400px]">
 
                 {/* Pulse animation layer */}
@@ -678,10 +677,11 @@ export function AgentDataFlow() {
 
                 {/* ── Agent card (bottom center) ── */}
                 <div
-                    className="absolute -translate-x-1/2 -translate-y-1/2 z-10"
+                    className="absolute -translate-x-1/2 -translate-y-1/2 z-20"
                     style={{ left: agentPos.x, top: agentPos.y }}
                 >
                     {hasAgent ? (
+                        <div>
                         <button
                             onClick={() => setExpanded(!expanded)}
                             className="relative cursor-pointer group"
@@ -743,6 +743,64 @@ export function AgentDataFlow() {
                                 </div>
                             </div>
                         </button>
+                        <div
+                            className="grid transition-[grid-template-rows] duration-300 ease-out"
+                            style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
+                        >
+                            <div className="overflow-hidden">
+                                <div className="bg-[#0e0e18]/95 backdrop-blur-xl border-t border-white/[0.06]">
+                                    <div className="flex items-center justify-between px-4 py-2.5">
+                                        <span className="text-xs font-bold text-text-primary">
+                                            {DETAIL_TABS.find(t => t.id === activeTab)?.label}
+                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            {DETAIL_TABS.map((tab) => {
+                                                const Icon = tab.icon;
+                                                const isActive = activeTab === tab.id;
+                                                const count = tab.id === 'tasks' ? activeTasks.length
+                                                    : tab.id === 'positions' ? openPositions.length
+                                                    : chats.length;
+                                                return (
+                                                    <button
+                                                        key={tab.id}
+                                                        onClick={() => setActiveTab(tab.id)}
+                                                        className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
+                                                            isActive
+                                                                ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
+                                                                : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.03] border border-transparent'
+                                                        }`}
+                                                    >
+                                                        <Icon className="w-3.5 h-3.5" />
+                                                        <span className="hidden sm:inline">{tab.label}</span>
+                                                        {count > 0 && (
+                                                            <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                                                                isActive ? 'bg-accent-primary/20 text-accent-primary' : 'bg-white/[0.06] text-text-muted'
+                                                            }`}>
+                                                                {count}
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
+                                        {detailLoading ? (
+                                            <div className="flex items-center justify-center py-8">
+                                                <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
+                                            </div>
+                                        ) : activeTab === 'tasks' ? (
+                                            <TasksSection tasks={activeTasks} />
+                                        ) : activeTab === 'positions' ? (
+                                            <PositionsSection positions={openPositions} />
+                                        ) : (
+                                            <ChatsSection chats={chats} />
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
                     ) : (
                         /* No agent — CTA */
                         <div className="relative group">
@@ -776,70 +834,6 @@ export function AgentDataFlow() {
 
             </div>
 
-
-            {/* Expandable detail panel */}
-            {hasAgent && (
-                <div
-                    className="grid transition-[grid-template-rows] duration-300 ease-out"
-                    style={{ gridTemplateRows: expanded ? '1fr' : '0fr' }}
-                >
-                    <div className="overflow-hidden">
-                        <div className="border-t border-white/[0.06]">
-                            {/* Tab icons — top right */}
-                            <div className="flex items-center justify-between px-4 py-2.5">
-                                <span className="text-xs font-bold text-text-primary">
-                                    {DETAIL_TABS.find(t => t.id === activeTab)?.label}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                    {DETAIL_TABS.map((tab) => {
-                                        const Icon = tab.icon;
-                                        const isActive = activeTab === tab.id;
-                                        const count = tab.id === 'tasks' ? activeTasks.length
-                                            : tab.id === 'positions' ? openPositions.length
-                                            : chats.length;
-                                        return (
-                                            <button
-                                                key={tab.id}
-                                                onClick={() => setActiveTab(tab.id)}
-                                                className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
-                                                    isActive
-                                                        ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                                                        : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.03] border border-transparent'
-                                                }`}
-                                            >
-                                                <Icon className="w-3.5 h-3.5" />
-                                                <span className="hidden sm:inline">{tab.label}</span>
-                                                {count > 0 && (
-                                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                                                        isActive ? 'bg-accent-primary/20 text-accent-primary' : 'bg-white/[0.06] text-text-muted'
-                                                    }`}>
-                                                        {count}
-                                                    </span>
-                                                )}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* Tab content */}
-                            <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
-                                {detailLoading ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
-                                    </div>
-                                ) : activeTab === 'tasks' ? (
-                                    <TasksSection tasks={activeTasks} />
-                                ) : activeTab === 'positions' ? (
-                                    <PositionsSection positions={openPositions} />
-                                ) : (
-                                    <ChatsSection chats={chats} />
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Feed Detail Sheet */}
             <FeedDetailSheet

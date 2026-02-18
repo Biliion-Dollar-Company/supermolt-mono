@@ -46,6 +46,10 @@ export default function RootLayout() {
               options={{ animation: 'slide_from_right' }}
             />
             <Stack.Screen
+              name="onboarding"
+              options={{ animation: 'fade', gestureEnabled: false }}
+            />
+            <Stack.Screen
               name="create-agent"
               options={{ animation: 'slide_from_bottom' }}
             />

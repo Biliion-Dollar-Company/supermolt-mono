@@ -4,21 +4,18 @@
  */
 
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Circle, Line, Defs, RadialGradient, Stop } from 'react-native-svg';
+import Svg, { Circle, Line } from 'react-native-svg';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
-  withSequence,
-  withDelay,
   Easing,
   interpolate,
 } from 'react-native-reanimated';
 import { useEffect } from 'react';
 import { colors } from '@/theme/colors';
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const RING_SIZE = SCREEN_WIDTH * 0.6;
 
@@ -39,31 +36,13 @@ export function PortfolioHero({
   const accentColor = isPositive ? colors.status.success : colors.status.error;
 
   // Animated values
-  const pulse = useSharedValue(0);
   const orbit = useSharedValue(0);
-  const breathe = useSharedValue(0);
   const scanline = useSharedValue(0);
 
   useEffect(() => {
-    // Pulse animation
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1, false,
-    );
     // Orbital rotation
     orbit.value = withRepeat(
       withTiming(360, { duration: 12000, easing: Easing.linear }),
-      -1, false,
-    );
-    // Breathe glow
-    breathe.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.3, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
-      ),
       -1, false,
     );
     // Scan line
@@ -81,41 +60,44 @@ export function PortfolioHero({
     transform: [{ rotate: `${-orbit.value * 0.6}deg` }],
   }));
 
-  const glowStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(breathe.value, [0, 1], [0.05, 0.2]),
-    transform: [{ scale: interpolate(breathe.value, [0, 1], [0.95, 1.05]) }],
-  }));
-
-  const pulseRingStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(pulse.value, [0, 1], [0.4, 0]),
-    transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 1.4]) }],
-  }));
-
   const scanStyle = useAnimatedStyle(() => ({
     top: interpolate(scanline.value, [0, 1], [-2, 200]),
     opacity: interpolate(scanline.value, [0, 0.1, 0.5, 0.9, 1], [0, 0.6, 0.3, 0.6, 0]),
   }));
 
-  // Format value parts
-  const wholePart = Math.floor(totalValue);
-  const decimalPart = (totalValue % 1).toFixed(2).slice(1); // .XX
+  // Format SOL value: 0→no decimals, <0.1→2 decimals, >=0.1→1 decimal
+  const formatSolParts = (v: number): { whole: string; decimal: string } => {
+    if (v === 0) return { whole: '0', decimal: '' };
+    const abs = Math.abs(v);
+    const decimals = abs < 0.1 ? 2 : 1;
+    const formatted = v.toFixed(decimals);
+    const dotIdx = formatted.indexOf('.');
+    return {
+      whole: formatted.slice(0, dotIdx),
+      decimal: formatted.slice(dotIdx),
+    };
+  };
+
+  const { whole: wholePart, decimal: decimalPart } = formatSolParts(totalValue);
+
+  const formatSol = (v: number): string => {
+    if (v === 0) return '0';
+    const abs = Math.abs(v);
+    const decimals = abs < 0.1 ? 2 : 1;
+    return v.toFixed(decimals);
+  };
 
   return (
     <View style={styles.container}>
-      {/* Radial glow background */}
-      <Animated.View style={[styles.radialGlow, { backgroundColor: accentColor }, glowStyle]} />
-
       {/* Scanline effect */}
       <Animated.View style={[styles.scanline, scanStyle]} />
 
       {/* HUD Grid lines */}
       <View style={styles.gridContainer}>
         <Svg width={SCREEN_WIDTH} height={200} style={StyleSheet.absoluteFill}>
-          {/* Horizontal grid */}
           {[40, 80, 120, 160].map((y) => (
             <Line key={`h${y}`} x1="0" y1={y} x2={SCREEN_WIDTH} y2={y} stroke="rgba(255,255,255,0.015)" strokeWidth="1" />
           ))}
-          {/* Vertical grid */}
           {Array.from({ length: 8 }).map((_, i) => {
             const x = (SCREEN_WIDTH / 8) * (i + 1);
             return <Line key={`v${i}`} x1={x} y1="0" x2={x} y2="200" stroke="rgba(255,255,255,0.015)" strokeWidth="1" />;
@@ -123,10 +105,8 @@ export function PortfolioHero({
         </Svg>
       </View>
 
-      {/* Animated orbital rings */}
+      {/* Animated orbital rings — contained within overflow:hidden */}
       <View style={styles.ringsContainer}>
-        {/* Pulse expanding ring */}
-        <Animated.View style={[styles.pulseRing, { borderColor: accentColor }, pulseRingStyle]} />
 
         {/* Outer orbital ring */}
         <Animated.View style={[styles.orbitalRing, outerRingStyle]}>
@@ -174,11 +154,8 @@ export function PortfolioHero({
         {/* P&L Change */}
         <View style={styles.changeContainer}>
           <View style={[styles.changePill, { backgroundColor: `${accentColor}15`, borderColor: `${accentColor}30` }]}>
-            <Text style={[styles.changeArrow, { color: accentColor }]}>
-              {isPositive ? '▲' : '▼'}
-            </Text>
             <Text style={[styles.changeValue, { color: accentColor }]}>
-              {isPositive ? '+' : ''}{pnlChange.toFixed(3)} SOL
+              {isPositive ? '+' : ''}{formatSol(pnlChange)} SOL
             </Text>
             {pnlPercent !== 0 && (
               <Text style={[styles.changePercent, { color: accentColor }]}>
@@ -229,12 +206,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     minHeight: 220,
   },
-  radialGlow: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-  },
   scanline: {
     position: 'absolute',
     left: 0,
@@ -259,13 +230,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: RING_SIZE * 0.72,
     height: RING_SIZE * 0.72,
-  },
-  pulseRing: {
-    position: 'absolute',
-    width: RING_SIZE * 0.55,
-    height: RING_SIZE * 0.55,
-    borderRadius: RING_SIZE * 0.275,
-    borderWidth: 1.5,
   },
   centerContent: {
     alignItems: 'center',
@@ -322,12 +286,8 @@ const styles = StyleSheet.create({
     gap: 5,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    borderRadius: 20,
+    borderRadius: 10,
     borderWidth: 1,
-  },
-  changeArrow: {
-    fontSize: 9,
-    fontWeight: '700',
   },
   changeValue: {
     fontSize: 13,
@@ -347,7 +307,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.06)',
     paddingHorizontal: 10,
     paddingVertical: 7,
-    borderRadius: 20,
+    borderRadius: 10,
   },
   tradesDot: {
     width: 5,

@@ -367,25 +367,11 @@ async function verifyTweet(
       }
     }
 
-    // Final fallback - Trust the URL (less secure but works without API)
-    console.warn('⚠️ No Twitter API keys set (or failed) - using fallback verification');
-    console.log(`ℹ️ Trusting tweet URL: https://twitter.com/${username}/status/${tweetId}`);
-
-    // Still do basic validation
-    if (!tweetId || !username) {
-      return { success: false, error: 'Invalid tweet data' };
-    }
-
-    // Return success with unavatar.io fallback
+    // No Twitter API keys configured — cannot verify tweet
+    console.error('Twitter verification unavailable: TWITTER_API_KEY and TWITTER_BEARER_TOKEN not set');
     return {
-      success: true,
-      userProfile: {
-        userName: username,
-        displayName: username, // Fallback
-        profilePicture: `https://unavatar.io/twitter/${username}`,
-        followers: 0,
-        isBlueVerified: false
-      }
+      success: false,
+      error: 'Twitter verification is currently unavailable. Please try again later.',
     };
 
   } catch (error: any) {

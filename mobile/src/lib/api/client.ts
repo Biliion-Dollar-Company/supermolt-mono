@@ -173,6 +173,7 @@ import type {
   Archetype,
   UserAgent,
   SwitchAgentResponse,
+  ActiveToken,
 } from '@/types/arena';
 
 export async function getLeaderboard(): Promise<Agent[]> {
@@ -309,7 +310,7 @@ export interface TrackedWalletConfig {
 
 export interface BuyTriggerConfig {
   id?: string;
-  type: 'consensus' | 'volume' | 'liquidity' | 'godwallet';
+  type: 'consensus' | 'volume' | 'liquidity' | 'godwallet' | 'trending';
   enabled: boolean;
   config: Record<string, any>;
   createdAt?: string;
@@ -353,6 +354,13 @@ export async function removeTrackedWallet(walletId: string): Promise<void> {
   await apiFetch(`/arena/me/wallets/${walletId}`, { method: 'DELETE' });
 }
 
+// ── Active Tokens (Hot Tokens) ──
+
+export async function getActiveTokens(hours = 24): Promise<ActiveToken[]> {
+  const data = await apiFetch<{ tokens: ActiveToken[] }>(`/arena/tokens/active?hours=${hours}`);
+  return data.tokens || [];
+}
+
 // ── Vote Casting ──
 
 export async function castVote(
@@ -376,4 +384,28 @@ export async function getAgentTaskCompletions(agentId: string): Promise<AgentTas
 export async function getAgentConversations(agentId: string): Promise<Conversation[]> {
   const data = await apiFetch<{ conversations: Conversation[] }>(`/arena/agents/${agentId}/conversations`);
   return data.conversations || [];
+}
+
+// ── Agent Balance ──
+
+export async function getAgentBalance(agentId: string): Promise<{ balance: number; balanceFormatted: string }> {
+  return apiFetch<{ balance: number; balanceFormatted: string }>(`/trading/balance/${agentId}`);
+}
+
+// ── Twitter Linking ──
+
+export async function requestTwitterVerification(): Promise<{
+  code: string;
+  expiresAt: number;
+  tweetTemplate: string;
+  instructions: string[];
+}> {
+  return apiFetch('/agent-auth/twitter/request', { method: 'POST' });
+}
+
+export async function verifyTwitterLink(tweetUrl: string): Promise<{ twitterHandle: string }> {
+  return apiFetch('/agent-auth/twitter/verify', {
+    method: 'POST',
+    body: JSON.stringify({ tweetUrl }),
+  });
 }

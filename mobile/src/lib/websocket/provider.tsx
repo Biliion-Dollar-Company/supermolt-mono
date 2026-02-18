@@ -87,22 +87,26 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
         case 'trade_executed':
           console.log('[WS] Trade executed:', data);
-          if (data.action && data.token) {
+          if (data.action && (data.token || data.tokenSymbol)) {
+            const sym = data.tokenSymbol || data.token || 'Token';
+            const agent = data.agentName || 'Agent';
+            const reason = data.reason || `${data.action} executed`;
             addDecision({
               action: data.action === 'BUY' ? 'buy' : data.action === 'SELL' ? 'sell' : 'skip',
-              token: data.token || data.tokenSymbol || 'Unknown',
-              reason: data.reason || `${data.action} executed`,
+              token: sym,
+              reason,
               time: new Date().toLocaleTimeString(),
             });
             pushFeedItem({
               id: `ws-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
               type: 'trade',
-              title: `${data.action === 'BUY' ? 'Bought' : 'Sold'} ${data.tokenSymbol || data.token || 'Token'}`,
-              description: data.reason || `${data.action} executed`,
-              time: new Date().toLocaleTimeString(),
+              title: `${agent} ${data.action === 'BUY' ? 'bought' : 'sold'} $${sym}`,
+              description: reason,
+              time: 'just now',
+              timestamp: Date.now(),
               action: data.action,
               agentName: data.agentName,
-              tokenSymbol: data.tokenSymbol || data.token,
+              tokenSymbol: sym,
             });
           }
           break;
@@ -131,9 +135,36 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
           break;
         }
 
+        case 'consensus:reached': {
+          successNotification();
+          const sym = data.tokenSymbol || 'Unknown';
+          const count = data.walletCount || 0;
+          const reason = `${count} wallets converged on $${sym} within ${data.timeWindowMinutes || 60}m`;
+          addDecision({
+            action: 'buy',
+            token: sym,
+            reason,
+            time: new Date().toLocaleTimeString(),
+          });
+          pushFeedItem({
+            id: `ws-consensus-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            type: 'trade',
+            title: `CONSENSUS on $${sym}`,
+            description: reason,
+            time: 'just now',
+            timestamp: Date.now(),
+            action: 'BUY' as const,
+            agentName: data.agentName || 'Arena',
+            tokenSymbol: sym,
+          });
+          break;
+        }
+
         case 'agent:activity': {
           const innerData = data.data;
-          if (innerData?.type === 'trade_recommendation') {
+          if (!innerData) break;
+
+          if (innerData.type === 'trade_recommendation') {
             mediumImpact();
             pushRecommendation({
               agentId: data.agentId || '',
@@ -144,6 +175,29 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
               trigger: innerData.trigger || 'auto',
               sourceWallet: innerData.sourceWallet || '',
               reason: innerData.reason || 'AI trade recommendation',
+            });
+          } else if (innerData.type === 'auto_buy_executed') {
+            const sym = innerData.tokenSymbol || 'Token';
+            const agent = data.agentName || innerData.agentName || 'Agent';
+            const trigger = innerData.trigger || 'auto';
+            const reason = innerData.reason || `Auto-buy via ${trigger}`;
+            successNotification();
+            addDecision({
+              action: 'buy',
+              token: sym,
+              reason,
+              time: new Date().toLocaleTimeString(),
+            });
+            pushFeedItem({
+              id: `ws-ab-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+              type: 'trade',
+              title: `${agent} auto-bought $${sym}`,
+              description: reason,
+              time: 'just now',
+              timestamp: Date.now(),
+              action: 'BUY',
+              agentName: agent,
+              tokenSymbol: sym,
             });
           }
           break;

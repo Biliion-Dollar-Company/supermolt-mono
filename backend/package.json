@@ -18,7 +18,7 @@
   "dependencies": {
     "@hono/swagger-ui": "^0.5.3",
     "@prisma/client": "^6.0.0",
-    "@privy-io/server-auth": "^1.7.0",
+    "@privy-io/node": "^0.9.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
@@ -38,6 +38,7 @@
     "socket.io": "^4.8.3",
     "tweetnacl": "^1.0.3",
     "viem": "^2.45.2",
+    "ws": "^8.19.0",
     "yaml": "^2.8.2",
     "zod": "^3.23.0"
   },
@@ -45,6 +46,7 @@
     "@openzeppelin/contracts": "^5.4.0",
     "@openzeppelin/contracts-upgradeable": "^5.4.0",
     "@types/bun": "^1.1.0",
+    "@types/ws": "^8.18.1",
     "prisma": "^6.0.0",
     "socket.io-client": "^4.8.3",
     "solc": "0.8.24",

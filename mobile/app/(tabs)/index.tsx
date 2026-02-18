@@ -4,27 +4,21 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Line } from 'react-native-svg';
 import Animated, {
   FadeInDown,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-  Easing,
-  interpolate,
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
 import { Text } from '@/components/ui';
-import { AgentCard, PortfolioHero, PnLChart, TerminalLog, WatchlistChips } from '@/components/home';
+import { AgentCard, PortfolioHero, PnLChart } from '@/components/home';
 import { PositionCard } from '@/components/trading';
 import { useMyAgent } from '@/hooks/useMyAgent';
 import { usePnLHistory } from '@/hooks/usePnLHistory';
 import { usePositions } from '@/hooks/usePositions';
-import { useWatchlist } from '@/hooks/useWatchlist';
 import { useAgentLiveStore } from '@/store/agentLive';
 import { useAuthStore } from '@/store/auth';
 import { TradeRecommendationAlert } from '@/components/trading/TradeRecommendationAlert';
 import { colors } from '@/theme/colors';
 import { useState, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useAuth } from '@/hooks/useAuth';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -47,13 +41,11 @@ function StatCard({
   label,
   value,
   color,
-  icon,
   delay = 0,
 }: {
   label: string;
   value: string;
   color?: string;
-  icon: string;
   delay?: number;
 }) {
   return (
@@ -64,9 +56,6 @@ function StatCard({
       />
       {/* Top glow line */}
       <View style={[cardStyles.glowLine, { backgroundColor: color || colors.brand.primary }]} />
-      <View style={cardStyles.iconRow}>
-        <Ionicons name={icon as any} size={14} color={color || colors.text.muted} style={{ opacity: 0.5 }} />
-      </View>
       <Text style={[cardStyles.cardValue, color ? { color } : null]}>{value}</Text>
       <Text style={cardStyles.cardLabel}>{label}</Text>
     </Animated.View>
@@ -74,28 +63,16 @@ function StatCard({
 }
 
 export default function HomeTab() {
+  const router = useRouter();
+  const { isAuthenticated, loginWithTwitter } = useAuth();
   const { agent, refresh: refreshAgent } = useMyAgent();
   const pnl = usePnLHistory();
   const { positions, refresh: refreshPositions } = usePositions();
-  const { watchlist } = useWatchlist();
   const agentLive = useAgentLiveStore();
   const agentProfile = useAuthStore((s) => s.agentProfile);
   const stats = useAuthStore((s) => s.stats);
 
   const [refreshing, setRefreshing] = useState(false);
-
-  // Ambient animation
-  const ambientPulse = useSharedValue(0);
-  useEffect(() => {
-    ambientPulse.value = withRepeat(
-      withTiming(1, { duration: 8000, easing: Easing.inOut(Easing.ease) }),
-      -1, true,
-    );
-  }, []);
-
-  const ambientStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(ambientPulse.value, [0, 0.5, 1], [0.04, 0.08, 0.04]),
-  }));
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -125,21 +102,6 @@ export default function HomeTab() {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Ambient glow orb */}
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            top: 60,
-            alignSelf: 'center',
-            width: 400,
-            height: 400,
-            borderRadius: 200,
-            backgroundColor: colors.brand.primary,
-          },
-          ambientStyle,
-        ]}
-      />
 
       {/* Subtle grid overlay */}
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -176,11 +138,13 @@ export default function HomeTab() {
             name={agentName}
             handle={agentProfile?.twitterHandle ?? undefined}
             avatarUrl={agentProfile?.avatarUrl ?? undefined}
+            walletAddress={agentProfile?.pubkey ?? undefined}
             isActive={isActive}
             level={agentProfile?.level}
             levelName={agentProfile?.levelName}
-            xp={agentProfile?.xp}
-            xpForNextLevel={agentProfile?.xpForNextLevel}
+            reasoningLine={latestDecision?.reason}
+            onSettingsPress={isAuthenticated ? () => router.push('/(tabs)/settings') : undefined}
+            onCreatePress={!isAuthenticated ? loginWithTwitter : undefined}
           />
         </View>
 
@@ -197,31 +161,19 @@ export default function HomeTab() {
           <StatCard
             label="TRADES"
             value={String(totalTrades)}
-            icon="swap-vertical-outline"
             delay={0}
           />
           <StatCard
             label="WIN RATE"
             value={`${(winRate * 100).toFixed(0)}%`}
             color={colors.brand.primary}
-            icon="trending-up-outline"
             delay={80}
           />
           <StatCard
             label="SORTINO"
             value={sortinoRatio.toFixed(2)}
             color={sortinoRatio >= 1 ? colors.status.success : sortinoRatio > 0 ? colors.brand.accent : colors.status.error}
-            icon="shield-checkmark-outline"
             delay={160}
-          />
-        </View>
-
-        {/* Agent Log — Terminal */}
-        <View style={{ paddingHorizontal: 16 }}>
-          <TerminalLog
-            message={latestDecision?.reason || 'Scanning for alpha...'}
-            type={latestDecision?.action === 'buy' ? 'trading' : latestDecision?.action === 'sell' ? 'trading' : 'scanning'}
-            decisions={agentLive.decisions}
           />
         </View>
 
@@ -235,16 +187,6 @@ export default function HomeTab() {
             pnlChange={pnl.pnlChange}
           />
         </View>
-
-        {/* Watchlist */}
-        {watchlist.length > 0 && (
-          <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
-            <SectionHeader label="WATCHLIST" count={watchlist.length} icon="eye-outline" />
-            <View style={{ marginTop: 8 }}>
-              <WatchlistChips tokens={watchlist} />
-            </View>
-          </View>
-        )}
 
         {/* Active Positions */}
         {topPositions.length > 0 && (
@@ -271,7 +213,7 @@ const cardStyles = StyleSheet.create({
     flex: 1,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 14,
+    borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 12,
     alignItems: 'center',
@@ -287,9 +229,6 @@ const cardStyles = StyleSheet.create({
     height: 1,
     opacity: 0.4,
     borderRadius: 1,
-  },
-  iconRow: {
-    marginBottom: 2,
   },
   cardValue: {
     color: colors.text.primary,
@@ -325,7 +264,7 @@ const sectionStyles = StyleSheet.create({
     borderColor: 'rgba(249, 115, 22, 0.15)',
     paddingHorizontal: 7,
     paddingVertical: 2,
-    borderRadius: 8,
+    borderRadius: 6,
   },
   countText: {
     color: colors.brand.primary,

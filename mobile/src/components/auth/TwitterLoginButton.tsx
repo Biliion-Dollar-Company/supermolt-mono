@@ -12,15 +12,9 @@ export function TwitterLoginButton({ onSuccess, onError }: TwitterLoginButtonPro
 
   async function handlePress() {
     try {
-      console.log('[TwitterLogin] Button pressed, calling loginWithTwitter...');
-      const Linking = require('expo-linking');
-      const redirectUrl = Linking.createURL('/');
-      Alert.alert('Debug', `Login starting...\n\nRedirect URL: ${redirectUrl}`);
       await loginWithTwitter();
-      console.log('[TwitterLogin] Login succeeded');
       onSuccess?.();
     } catch (error: any) {
-      console.error('[TwitterLogin] Login failed:', error);
       Alert.alert('Login Error', error?.message || String(error));
       onError?.(error as Error);
     }

@@ -19,6 +19,11 @@
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_PRIVY_APP_ID": "cmkraowkw0094i50c2n696dhz",
+        "EXPO_PUBLIC_PRIVY_CLIENT_ID": "client-WY6VA9CoBJ6V9Py4uTSUv9kNY3wNUDhqN15CUhcHo335R",
+        "EXPO_PUBLIC_API_URL": "https://sr-mobile-production.up.railway.app"
+      },
       "ios": {
         "image": "latest"
       }

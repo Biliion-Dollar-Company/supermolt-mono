@@ -1,28 +1,20 @@
 import { ScrollView, View, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, LeaderboardRowSkeleton } from '@/components/ui';
-import { LeaderboardRow, MyAgentCard, TaskCard, ConversationCard, EpochRewardCard, NewsCard, VoteCard, BSCGraduationCard } from '@/components/arena';
+import { LeaderboardRow, ConversationCard, EpochRewardCard, VoteCard } from '@/components/arena';
 import { useLeaderboard, type LeaderboardMode } from '@/hooks/useLeaderboard';
-import { useArenaTasks } from '@/hooks/useArenaTasks';
 import { useConversations } from '@/hooks/useConversations';
 import { useEpochRewards } from '@/hooks/useEpochRewards';
-import { useNews } from '@/hooks/useNews';
 import { useVotes } from '@/hooks/useVotes';
-import { useGraduations } from '@/hooks/useGraduations';
-import { useAuthStore } from '@/store/auth';
 import { colors } from '@/theme/colors';
 import { useState, useCallback } from 'react';
 
 export default function ArenaTab() {
   const [activeTab, setActiveTab] = useState<LeaderboardMode>('trades');
   const { agents, isLoading, refresh: refreshLeaderboard } = useLeaderboard(activeTab);
-  const { tasks, refresh: refreshTasks } = useArenaTasks();
   const { conversations, refresh: refreshConversations } = useConversations();
   const { rewards, refresh: refreshRewards } = useEpochRewards();
-  const { news, refresh: refreshNews } = useNews();
   const { votes, refresh: refreshVotes } = useVotes('active');
-  const { graduations, refresh: refreshGraduations } = useGraduations();
-  const { agentProfile, stats, onboarding } = useAuthStore();
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -30,15 +22,12 @@ export default function ArenaTab() {
     setRefreshing(true);
     await Promise.all([
       refreshLeaderboard(),
-      refreshTasks(),
       refreshConversations(),
       refreshRewards(),
-      refreshNews(),
       refreshVotes(),
-      refreshGraduations(),
     ]);
     setRefreshing(false);
-  }, [refreshLeaderboard, refreshTasks, refreshConversations, refreshRewards, refreshNews, refreshVotes, refreshGraduations]);
+  }, [refreshLeaderboard, refreshConversations, refreshRewards, refreshVotes]);
 
   return (
     <SafeAreaView
@@ -59,24 +48,11 @@ export default function ArenaTab() {
         {/* Header */}
         <Text variant="h2" color="primary">Arena</Text>
 
-        {/* My Agent (if authenticated) */}
-        {agentProfile && onboarding && (
-          <MyAgentCard agent={agentProfile} stats={stats} onboarding={onboarding} />
-        )}
-
-        {/* News - Horizontal Scroll */}
-        {news.length > 0 && (
+        {/* Epoch Rewards */}
+        {rewards && (
           <View style={{ gap: 8 }}>
-            <Text variant="h3" color="primary">News</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 10 }}
-            >
-              {news.map((item) => (
-                <NewsCard key={item.id} item={item} />
-              ))}
-            </ScrollView>
+            <Text variant="h3" color="primary">Epoch Rewards</Text>
+            <EpochRewardCard rewards={rewards} />
           </View>
         )}
 
@@ -154,30 +130,6 @@ export default function ArenaTab() {
           )}
         </View>
 
-        {/* Epoch Rewards */}
-        {rewards && (
-          <View style={{ gap: 8 }}>
-            <Text variant="h3" color="primary">Epoch Rewards</Text>
-            <EpochRewardCard rewards={rewards} />
-          </View>
-        )}
-
-        {/* Tasks - Horizontal Scroll */}
-        {tasks.length > 0 && (
-          <View style={{ gap: 8 }}>
-            <Text variant="h3" color="primary">Tasks</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 10 }}
-            >
-              {tasks.map((task) => (
-                <TaskCard key={task.taskId} task={task} />
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
         {/* Conversations */}
         {conversations.length > 0 && (
           <View style={{ gap: 8 }}>
@@ -185,22 +137,6 @@ export default function ArenaTab() {
             {conversations.slice(0, 5).map((conv) => (
               <ConversationCard key={conv.conversationId} conversation={conv} />
             ))}
-          </View>
-        )}
-
-        {/* BSC Graduations - Horizontal Scroll */}
-        {graduations.length > 0 && (
-          <View style={{ gap: 8 }}>
-            <Text variant="h3" color="primary">BSC Graduations</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 10 }}
-            >
-              {graduations.map((g) => (
-                <BSCGraduationCard key={g.tokenAddress} graduation={g} />
-              ))}
-            </ScrollView>
           </View>
         )}
       </ScrollView>

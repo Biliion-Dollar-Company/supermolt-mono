@@ -45,14 +45,14 @@ export function OnboardingChecklist({ onboarding }: OnboardingChecklistProps) {
             <Ionicons
               name={isComplete ? 'checkmark-circle' : 'ellipse-outline'}
               size={20}
-              color={isComplete ? colors.status.success : colors.text.muted}
+              color={isComplete ? colors.status.success : colors.text.primary}
             />
             <View style={{ flex: 1 }}>
-              <Text variant="bodySmall" color={isComplete ? 'muted' : 'primary'}>
+              <Text variant="body" color={isComplete ? 'muted' : 'primary'} style={{ fontSize: 15 }}>
                 {task.title}
               </Text>
             </View>
-            <Text variant="caption" color="brand">
+            <Text style={{ color: colors.brand.primary, fontSize: 13, fontWeight: '600' }}>
               +{task.xpReward} XP
             </Text>
           </View>

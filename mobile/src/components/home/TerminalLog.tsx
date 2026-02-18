@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
     borderColor: 'rgba(249, 115, 22, 0.08)',
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 12,
     gap: 6,
     overflow: 'hidden',

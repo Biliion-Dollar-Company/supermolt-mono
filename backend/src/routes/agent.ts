@@ -13,6 +13,7 @@ agent.use('*', authMiddleware);
 const createAgentSchema = z.object({
   archetypeId: z.string().min(1),
   name: z.string().min(1).max(32),
+  chain: z.enum(['SOLANA', 'BSC', 'BASE']).optional(),
 });
 
 const updateStatusSchema = z.object({
@@ -46,9 +47,9 @@ agent.post('/', async (c) => {
   try {
     const userId = c.get('userId');
     const body = await c.req.json();
-    const { archetypeId, name } = createAgentSchema.parse(body);
+    const { archetypeId, name, chain } = createAgentSchema.parse(body);
 
-    const newAgent = await agentService.createAgent(userId, archetypeId, name);
+    const newAgent = await agentService.createAgent(userId, archetypeId, name, chain);
 
     return c.json({ success: true, data: newAgent }, 201);
   } catch (error) {

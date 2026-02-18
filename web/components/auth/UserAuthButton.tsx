@@ -3,12 +3,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronDown, Loader2, LogOut, User, Copy, Check, Key } from 'lucide-react';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import { useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { usePrivyAgentAuth } from '@/hooks/usePrivyAgentAuth';
 import { useAuthStore } from '@/store/authStore';
 
 function UserAuthButtonInner() {
   const { ready, authenticated, user, isSigningIn, error, signIn, signOut } = usePrivyAgentAuth();
   const { agent, isAuthenticated } = useAuthStore();
+  const { connection } = useConnection();
 
   const rawAvatarUrl = agent?.avatarUrl || user?.twitter?.profilePictureUrl || null;
   const avatarUrl = rawAvatarUrl?.replace('_normal.', '_400x400.') ?? null;
@@ -18,6 +21,7 @@ function UserAuthButtonInner() {
   const { wallets: solanaWallets, exportWallet } = useSolanaWallets();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [solBalance, setSolBalance] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const displayAddress = agent?.walletAddress || solanaWallets[0]?.address || null;
@@ -29,6 +33,20 @@ function UserAuthButtonInner() {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [displayAddress]);
+
+  useEffect(() => {
+    if (!displayAddress) {
+      setSolBalance(null);
+      return;
+    }
+    let cancelled = false;
+    connection.getBalance(new PublicKey(displayAddress)).then((lamports) => {
+      if (!cancelled) setSolBalance(lamports / LAMPORTS_PER_SOL);
+    }).catch(() => {
+      if (!cancelled) setSolBalance(null);
+    });
+    return () => { cancelled = true; };
+  }, [connection, displayAddress]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -125,6 +143,9 @@ function UserAuthButtonInner() {
                   <Copy className="w-3 h-3 flex-shrink-0" />
                 )}
               </button>
+              <p className="text-xs font-mono text-accent-primary mt-1">
+                {solBalance !== null ? `${solBalance.toFixed(4)} SOL` : '—'}
+              </p>
             </div>
           )}
           {hasEmbeddedWallet && (

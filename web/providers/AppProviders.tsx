@@ -5,7 +5,7 @@ import { PrivyProvider } from '@privy-io/react-auth';
 import { toSolanaWalletConnectors } from '@privy-io/react-auth/solana';
 import WalletProvider from './WalletProvider';
 
-const solanaConnectors = toSolanaWalletConnectors();
+const solanaConnectors = toSolanaWalletConnectors({ shouldAutoConnect: false });
 
 export default function AppProviders({ children }: { children: ReactNode }) {
   const privyAppId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';

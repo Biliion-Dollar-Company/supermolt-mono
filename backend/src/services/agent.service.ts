@@ -2,6 +2,7 @@ import { prisma } from '../lib/db';
 import { getArchetype } from '../lib/archetypes';
 import type { AgentStatus } from '@prisma/client';
 import { ensureOnboardingForAgent, ensureScannerForAgent } from './agent-session.service';
+import * as surgeApi from './surge-api.service';
 
 // Dynamic import to avoid circular dependency issues
 let heliusMonitor: any = null;
@@ -17,7 +18,12 @@ async function getHeliusMonitor() {
   return heliusMonitor;
 }
 
-export async function createAgent(userId: string, archetypeId: string, name: string) {
+export async function createAgent(
+  userId: string,
+  archetypeId: string,
+  name: string,
+  chain: 'SOLANA' | 'BSC' | 'BASE' = 'SOLANA',
+) {
   const archetype = getArchetype(archetypeId);
   if (!archetype) {
     throw new Error(`Unknown archetype: ${archetypeId}`);
@@ -31,12 +37,37 @@ export async function createAgent(userId: string, archetypeId: string, name: str
     throw new Error('You already have an agent with this archetype');
   }
 
+  const config: Record<string, any> = JSON.parse(JSON.stringify(archetype.tradingParams));
+  let evmAddress: string | undefined;
+
+  // Create Surge wallet for BASE agents
+  if (chain === 'BASE' && process.env.SURGE_API_KEY) {
+    try {
+      const wallet = await surgeApi.createWallet();
+      config.surgeWalletId = wallet.walletId;
+      config.surgeWalletAddress = wallet.address;
+      evmAddress = wallet.address;
+
+      // Fund wallet with free gas (non-blocking)
+      surgeApi.fundWallet(wallet.walletId).catch((err) => {
+        console.warn(`[AgentService] Failed to fund Surge wallet for ${name}:`, err.message);
+      });
+
+      console.log(`[AgentService] Created Surge wallet for ${name}: ${wallet.address}`);
+    } catch (error: any) {
+      console.error(`[AgentService] Failed to create Surge wallet for ${name}:`, error.message);
+      throw new Error(`Failed to create Base wallet: ${error.message}`);
+    }
+  }
+
   const agent = await prisma.tradingAgent.create({
     data: {
       userId,
       archetypeId,
       name,
-      config: JSON.parse(JSON.stringify(archetype.tradingParams)),
+      chain,
+      config,
+      ...(evmAddress ? { evmAddress } : {}),
     },
   });
 

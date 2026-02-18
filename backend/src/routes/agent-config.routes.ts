@@ -41,7 +41,7 @@ const trackedWalletSchema = z.object({
 });
 
 const buyTriggerSchema = z.object({
-  type: z.enum(['consensus', 'volume', 'liquidity', 'godwallet']),
+  type: z.enum(['consensus', 'volume', 'liquidity', 'godwallet', 'trending']),
   enabled: z.boolean().default(true),
   config: z.record(z.any()),
 });

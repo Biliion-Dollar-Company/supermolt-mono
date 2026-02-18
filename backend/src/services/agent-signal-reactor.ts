@@ -97,12 +97,12 @@ export async function ensureObserverAgents(): Promise<void> {
 
 /** tokenMint → last reaction timestamp */
 const tokenCooldowns = new Map<string, number>();
-const TOKEN_COOLDOWN_MS = 5 * 60 * 1000; // 5 min per token
+const TOKEN_COOLDOWN_MS = 3 * 60 * 1000; // 3 min per token/author
 
 /** Global hourly cap */
 let hourlyCount = 0;
 let hourlyResetAt = Date.now() + 60 * 60 * 1000;
-const HOURLY_CAP = 20;
+const HOURLY_CAP = 60;
 
 function canReact(tokenMint: string): boolean {
   // Reset hourly counter

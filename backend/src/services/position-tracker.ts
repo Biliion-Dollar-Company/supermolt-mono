@@ -5,6 +5,8 @@
 
 import { PrismaClient, Prisma } from '@prisma/client';
 import { getTokenPrice } from '../lib/birdeye';
+import { getBscTokenPrice } from '../lib/bsc-prices';
+import { getBaseTokenPrice } from '../lib/base-prices';
 
 export interface PositionData {
   agentId: string;
@@ -18,6 +20,25 @@ export interface PositionData {
   pnlPercent: number | null;
   openedAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * Get token price routed by chain
+ */
+async function getPriceForPosition(
+  tokenMint: string,
+  chain: string,
+): Promise<{ priceUsd: number } | null> {
+  if (chain === 'BSC') {
+    const price = await getBscTokenPrice(tokenMint);
+    return price ? { priceUsd: price.priceUsd } : null;
+  }
+  if (chain === 'BASE') {
+    const price = await getBaseTokenPrice(tokenMint);
+    return price ? { priceUsd: price.priceUsd } : null;
+  }
+  // Solana via Birdeye
+  return getTokenPrice(tokenMint);
 }
 
 export class PositionTracker {
@@ -202,10 +223,10 @@ export class PositionTracker {
       // Calculate current values and PnL
       const positionsWithPnl = await Promise.all(
         positions.map(async (pos) => {
-          const currentPrice = await getTokenPrice(pos.tokenMint);
+          const currentPrice = await getPriceForPosition(pos.tokenMint, pos.chain);
           const quantity = parseFloat(pos.quantity.toString());
           const entryPrice = parseFloat(pos.entryPrice.toString());
-          
+
           let currentValue = null;
           let pnl = null;
           let pnlPercent = null;
@@ -255,10 +276,10 @@ export class PositionTracker {
       // Calculate current values and PnL
       const positionsWithPnl = await Promise.all(
         positions.map(async (pos) => {
-          const currentPrice = await getTokenPrice(pos.tokenMint);
+          const currentPrice = await getPriceForPosition(pos.tokenMint, pos.chain);
           const quantity = parseFloat(pos.quantity.toString());
           const entryPrice = parseFloat(pos.entryPrice.toString());
-          
+
           let currentValue = null;
           let pnl = null;
           let pnlPercent = null;
@@ -301,8 +322,8 @@ export class PositionTracker {
       const positions = await this.db.agentPosition.findMany();
 
       for (const pos of positions) {
-        const currentPrice = await getTokenPrice(pos.tokenMint);
-        
+        const currentPrice = await getPriceForPosition(pos.tokenMint, pos.chain);
+
         if (currentPrice?.priceUsd) {
           const quantity = parseFloat(pos.quantity.toString());
           const entryPrice = parseFloat(pos.entryPrice.toString());

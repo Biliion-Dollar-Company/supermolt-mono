@@ -39,6 +39,7 @@ import { docsRoutes } from './routes/docs';
 import { swaggerRoutes } from './routes/swagger';
 import { siweAuthRoutes } from './routes/auth.siwe';
 import { bscRoutes } from './routes/bsc.routes';
+import { surgeRoutes } from './routes/surge.routes';
 import { pumpfunRoutes } from './routes/pumpfun.routes';
 import { predictionRoutes } from './routes/prediction.routes';
 import { trading } from './routes/trading.routes';
@@ -112,12 +113,14 @@ app.use(
         }
       }
 
-      // Allow all Vercel deployment URLs
+      // Allow all Vercel deployment URLs (preview deployments)
       if (origin.match(/https:\/\/.*\.vercel\.app$/)) {
         return origin;
       }
 
-      return origin; // Allow all for now, can be restricted later
+      // Reject unknown origins in production
+      console.warn(`[CORS] Blocked origin: ${origin}`);
+      return null;
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -194,6 +197,9 @@ app.route('/api/calls', calls);
 // BSC routes (token factory, treasury, monitoring)
 app.route('/bsc', bscRoutes);
 
+// Base chain routes (Surge OpenClaw API — managed wallets, trading, treasury)
+app.route('/surge', surgeRoutes);
+
 // Solana routes (pump.fun token launcher)
 app.route('/pumpfun', pumpfunRoutes);
 
@@ -234,6 +240,12 @@ app.get('/', (c) => {
         tokens: '/bsc/tokens/*',
         factory: '/bsc/factory/info',
         treasury: '/bsc/treasury/*',
+      },
+      base: {
+        wallet: '/surge/wallet/*',
+        trading: '/surge/buy, /surge/sell, /surge/quote',
+        treasury: '/surge/treasury/*',
+        history: '/surge/history/*',
       },
       prediction: '/prediction/*'
     }
@@ -454,13 +466,11 @@ if (env.DEVPRINT_WS_URL) {
 const replicaId = getReplicaId();
 const enableBackgroundWorkers = envFlag('ENABLE_BACKGROUND_WORKERS', true);
 const enableHeliusMonitor = envFlag('ENABLE_HELIUS_MONITOR', enableBackgroundWorkers);
-const enableChainMonitors = envFlag('ENABLE_CHAIN_MONITORS', enableBackgroundWorkers);
 const enableSortinoCron = envFlag('ENABLE_SORTINO_CRON', enableBackgroundWorkers);
 
 console.log(`[Replica] id=${replicaId}`);
 console.log(`[Replica] ENABLE_BACKGROUND_WORKERS=${enableBackgroundWorkers}`);
 console.log(`[Replica] ENABLE_HELIUS_MONITOR=${enableHeliusMonitor}`);
-console.log(`[Replica] ENABLE_CHAIN_MONITORS=${enableChainMonitors}`);
 console.log(`[Replica] ENABLE_SORTINO_CRON=${enableSortinoCron}`);
 
 // Start WebSocket monitor in background
@@ -470,31 +480,40 @@ if (enableHeliusMonitor) {
   console.log('⏭️  Helius monitor disabled on this replica');
 }
 
-// Start BSC Trade Monitor (RPC-based, no API key needed)
-if (enableChainMonitors) {
-  const bscMonitor = createBSCMonitor();
-  bscMonitor.start().catch((err) => {
-    console.error('❌ BSC monitor failed to start:', err);
-  });
+// Start BSC Trade Monitor (always on — RPC-based, no API key needed)
+const bscMonitor = createBSCMonitor();
+bscMonitor.start().catch((err) => {
+  console.error('❌ BSC monitor failed to start:', err);
+});
 
-  // Start Four.Meme Migration Monitor (RPC-based, no API key needed)
-  const fourMemeMonitor = createFourMemeMonitor();
-  fourMemeMonitor.onMigration((event) => {
-    console.log(`🎉 [4meme] New token: ${event.tokenSymbol} (${event.tokenAddress.slice(0, 10)}...)`);
-  });
-  fourMemeMonitor.start().catch((err) => {
-    console.error('❌ 4meme monitor failed to start:', err);
-  });
-} else {
-  console.log('⏭️  Chain monitors disabled on this replica');
-}
+// Start Four.Meme Migration Monitor (always on — RPC-based, no API key needed)
+const fourMemeMonitor = createFourMemeMonitor();
+fourMemeMonitor.onMigration(async (event) => {
+  console.log(`🎉 [4meme] New token: ${event.tokenSymbol} (${event.tokenAddress.slice(0, 10)}...)`);
 
-// Start Auto-Buy Executor (processes trigger engine queue)
-if (enableChainMonitors) {
-  startAutoBuyExecutor();
-} else {
-  console.log('⏭️  Auto-buy executor disabled on this replica');
-}
+  // Generate agent conversation about the migration
+  try {
+    const { agentSignalReactor } = await import('./services/agent-signal-reactor.js');
+    await agentSignalReactor.react('new_token', {
+      mint: event.tokenAddress,
+      symbol: event.tokenSymbol,
+      name: event.tokenName,
+      marketCap: 0,
+      liquidity: 0,
+      chain: 'BSC',
+      source: 'four_meme_migration',
+      txHash: event.txHash,
+    });
+  } catch (err) {
+    console.error('[4meme] Failed to generate agent conversation:', err);
+  }
+});
+fourMemeMonitor.start().catch((err) => {
+  console.error('❌ 4meme monitor failed to start:', err);
+});
+
+// Start Auto-Buy Executor (always on — processes trigger engine queue)
+startAutoBuyExecutor();
 
 // Start Sortino cron job (hourly recalculation)
 const lockService = new DistributedLockService(db, replicaId);

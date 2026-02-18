@@ -1,4 +1,4 @@
-import { View, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Text } from '@/components/ui';
 import { colors } from '@/theme/colors';
@@ -12,9 +12,13 @@ interface LeaderboardRowProps {
 }
 
 const RANK_COLORS = ['#FFD700', '#C0C0C0', '#CD7F32']; // gold, silver, bronze
+const TROPHY_EMOJI = ['\u{1F3C6}', '\u{1F948}', '\u{1F949}']; // 1st, 2nd, 3rd
+
+const solanaIcon = require('../../../assets/icons/solana.png');
 
 export function LeaderboardRow({ agent, rank, mode = 'trades' }: LeaderboardRowProps) {
   const router = useRouter();
+  const isTop3 = rank <= 3;
 
   return (
     <TouchableOpacity
@@ -29,31 +33,35 @@ export function LeaderboardRow({ agent, rank, mode = 'trades' }: LeaderboardRowP
         gap: 12,
       }}
     >
-      {/* Rank Badge */}
+      {/* Rank Badge — trophy for top 3, number for rest */}
       <View
         style={{
           width: 32,
           height: 32,
           borderRadius: 16,
-          backgroundColor: rank <= 3
+          backgroundColor: isTop3
             ? RANK_COLORS[rank - 1] + '22'
             : colors.surface.tertiary,
-          borderWidth: rank <= 3 ? 1 : 0,
-          borderColor: rank <= 3 ? RANK_COLORS[rank - 1] : undefined,
+          borderWidth: isTop3 ? 1 : 0,
+          borderColor: isTop3 ? RANK_COLORS[rank - 1] : undefined,
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Text
-          variant="label"
-          style={{
-            fontSize: 13,
-            fontWeight: '700',
-            color: rank <= 3 ? RANK_COLORS[rank - 1] : colors.text.secondary,
-          }}
-        >
-          {rank}
-        </Text>
+        {isTop3 ? (
+          <Text style={{ fontSize: 16 }}>{TROPHY_EMOJI[rank - 1]}</Text>
+        ) : (
+          <Text
+            variant="label"
+            style={{
+              fontSize: 13,
+              fontWeight: '700',
+              color: colors.text.secondary,
+            }}
+          >
+            {rank}
+          </Text>
+        )}
       </View>
 
       {/* Agent Info */}
@@ -82,17 +90,21 @@ export function LeaderboardRow({ agent, rank, mode = 'trades' }: LeaderboardRowP
           </>
         ) : (
           <>
-            <Text
-              variant="body"
-              style={{
-                fontWeight: '700',
-                color: (agent.total_pnl ?? 0) >= 0 ? colors.status.success : colors.status.error,
-              }}
-            >
-              {(agent.total_pnl ?? 0) >= 0 ? '+' : ''}{(agent.total_pnl ?? 0).toFixed(2)}%
-            </Text>
+            {/* SOL PnL with Solana icon */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Image source={solanaIcon} style={{ width: 14, height: 14 }} />
+              <Text
+                variant="body"
+                style={{
+                  fontWeight: '700',
+                  color: (agent.total_pnl ?? 0) >= 0 ? colors.status.success : colors.status.error,
+                }}
+              >
+                {(agent.total_pnl ?? 0) >= 0 ? '+' : ''}{(agent.total_pnl ?? 0).toFixed(2)}
+              </Text>
+            </View>
             <Text variant="caption" color="muted">
-              {((agent.win_rate ?? 0) * 100).toFixed(0)}% win
+              {Math.round((agent.win_rate ?? 0) * 100)}% win
             </Text>
           </>
         )}

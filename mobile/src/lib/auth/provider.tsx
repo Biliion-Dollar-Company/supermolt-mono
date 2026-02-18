@@ -13,6 +13,7 @@ import {
   SRTokens,
 } from '@/lib/api/client';
 import { useAuthStore } from '@/store/auth';
+import { useOnboardingStore } from '@/store/onboarding';
 
 // Types
 interface User {
@@ -170,6 +171,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Redirect based on auth state (trench redirect logic)
   const agents = useAuthStore((s) => s.agents);
   const agentProfile = useAuthStore((s) => s.agentProfile);
+  const hasCompletedOnboarding = useOnboardingStore((s) => s.hasCompletedOnboarding);
 
   useEffect(() => {
     if (!isReady && !initTimeout) return;
@@ -179,19 +181,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const firstSegment = segments[0];
     const inAuthGroup = firstSegment === '(auth)';
     const onRootIndex = firstSegment === undefined;
-    const onCreateAgent = segments.join('/') === 'create-agent';
+    const onOnboarding = segments.join('/') === 'onboarding';
 
     if (!privyUser && !inAuthGroup && !onRootIndex) {
       router.replace('/');
     } else if (privyUser && (inAuthGroup || onRootIndex)) {
-      // If user has no agents yet, send to create-agent onboarding
-      if (srToken && agents.length === 0 && !agentProfile && !onCreateAgent) {
-        router.replace('/create-agent');
+      // First-time users go through the interactive onboarding flow
+      if (srToken && agents.length === 0 && !agentProfile && !hasCompletedOnboarding && !onOnboarding) {
+        router.replace('/onboarding');
       } else {
         router.replace('/(tabs)');
       }
     }
-  }, [privyUser, segments, isReady, initTimeout, router, srAuthLoading, srToken, agents.length, agentProfile]);
+  }, [privyUser, segments, isReady, initTimeout, router, srAuthLoading, srToken, agents.length, agentProfile, hasCompletedOnboarding]);
 
   // Only show loading if we're actively doing OAuth, not for Privy init (handled by timeout)
   const isLoading = oauthState.status === 'loading' || srAuthLoading;

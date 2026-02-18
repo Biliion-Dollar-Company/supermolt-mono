@@ -1,10 +1,13 @@
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '@/theme/colors';
 import { lightImpact } from '@/lib/haptics';
+import { TourOverlay } from '@/components/onboarding/TourOverlay';
 
 export default function TabLayout() {
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -54,10 +57,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="feed"
         options={{
-          title: 'Feed',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="list-outline" color={color} size={size} />
-          ),
+          href: null, // Hidden — activity is now inside the Agents tab
         }}
       />
       <Tabs.Screen
@@ -70,5 +70,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    <TourOverlay />
+    </View>
   );
 }

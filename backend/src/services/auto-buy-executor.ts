@@ -21,12 +21,15 @@ import {
 import { bsc } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 import { db } from '../lib/db';
-import { getPendingBuys, type AutoBuyRequest } from './trigger-engine';
+import { getPendingBuys, evaluateTrendingTriggers, type AutoBuyRequest } from './trigger-engine';
 import { createTradingExecutor, type TradingExecutor } from './trading-executor';
 import { PositionTracker } from './position-tracker';
 import { websocketEvents } from './websocket-events';
 import { getTokenPrice } from '../lib/birdeye';
 import { getBnbPrice, getBscTokenPrice } from '../lib/bsc-prices';
+import { getEthPrice, getBaseTokenPrice } from '../lib/base-prices';
+import * as surgeApi from './surge-api.service';
+import { privySignAndSendTransaction } from '../lib/privy';
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
@@ -93,6 +96,11 @@ export function stopAutoBuyExecutor() {
 // ── Queue Processor ──────────────────────────────────────
 
 async function processQueue() {
+  // Evaluate trending triggers — pushes results into the pending queue
+  await evaluateTrendingTriggers().catch((err) =>
+    console.error('[AutoBuyExecutor] Trending trigger error:', err),
+  );
+
   const pending = getPendingBuys(); // drains queue
   if (pending.length === 0) return;
 
@@ -108,6 +116,16 @@ async function processQueue() {
 }
 
 async function processRequest(request: AutoBuyRequest) {
+  // Base chain direct execution via Surge API
+  if (request.chain === 'BASE') {
+    const surgeWalletId = await getAgentSurgeWalletId(request.agentId);
+    if (surgeWalletId) {
+      await executeDirectBuyBase(request, surgeWalletId);
+      return;
+    }
+    // No Surge wallet → fall through to recommendation
+  }
+
   // BSC direct execution via PancakeSwap
   if (request.chain === 'BSC') {
     const account = getBSCAccount(request.agentId);
@@ -118,11 +136,20 @@ async function processRequest(request: AutoBuyRequest) {
     // No BSC key → fall through to recommendation
   }
 
-  // Solana direct execution via Jupiter
+  // Solana direct execution via Jupiter (local keypair)
   if (request.chain === 'SOLANA' && executor) {
     const keypair = getAgentKeypair(request.agentId);
     if (keypair) {
       await executeDirectBuy(request, keypair);
+      return;
+    }
+  }
+
+  // Solana execution via Privy server-side wallet
+  if (request.chain === 'SOLANA' && executor) {
+    const privyWalletId = await getAgentPrivyWalletId(request.agentId);
+    if (privyWalletId) {
+      await executeDirectBuyWithPrivy(request, privyWalletId);
       return;
     }
   }
@@ -374,6 +401,264 @@ async function executeDirectBuyBSC(
     console.log(`   BscScan: https://bscscan.com/tx/${txHash}`);
   } catch (error: any) {
     console.error(`[AutoBuyExecutor] BSC execution failed for ${request.agentName}:`, error.message);
+    // Fall back to recommendation
+    await broadcastRecommendation(request);
+  }
+}
+
+// ── Direct Execution (Privy Server-Side Wallet) ──────────
+
+async function getAgentPrivyWalletId(agentId: string): Promise<string | null> {
+  const agent = await db.tradingAgent.findUnique({
+    where: { id: agentId },
+    select: { privyWalletId: true },
+  });
+  return agent?.privyWalletId ?? null;
+}
+
+async function executeDirectBuyWithPrivy(request: AutoBuyRequest, privyWalletId: string) {
+  if (!executor) return;
+
+  console.log(`[AutoBuyExecutor] PRIVY BUY: ${request.agentName} → ${request.solAmount} SOL of ${request.tokenSymbol}`);
+
+  try {
+    const lamports = Math.floor(request.solAmount * 1e9);
+    const slippageBps = 100; // 1%
+
+    // 1. Get Jupiter quote
+    const quoteUrl = `https://lite-api.jup.ag/swap/v1/quote?inputMint=So11111111111111111111111111111111111111112&outputMint=${request.tokenMint}&amount=${lamports}&slippageBps=${slippageBps}&restrictIntermediateTokens=true`;
+    const quoteRes = await fetch(quoteUrl);
+    if (!quoteRes.ok) throw new Error(`Jupiter quote failed: ${await quoteRes.text()}`);
+    const quote = await quoteRes.json();
+
+    // Get the Privy wallet address for the swap transaction
+    const agent = await db.tradingAgent.findUnique({
+      where: { id: request.agentId },
+      select: { config: true },
+    });
+    const config = (agent?.config as Record<string, any>) || {};
+    const walletAddress = config.privyWalletAddress;
+    if (!walletAddress) throw new Error('Privy wallet address not found in agent config');
+
+    // 2. Build swap transaction (unsigned, for Privy to sign)
+    const swapRes = await fetch('https://lite-api.jup.ag/swap/v1/swap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        quoteResponse: quote,
+        userPublicKey: walletAddress,
+        wrapUnwrapSOL: true,
+        dynamicComputeUnitLimit: true,
+        dynamicSlippage: true,
+        prioritizationFeeLamports: {
+          priorityLevelWithMaxLamports: {
+            maxLamports: 100_000,
+            priorityLevel: 'low',
+          },
+        },
+      }),
+    });
+    if (!swapRes.ok) throw new Error(`Jupiter swap build failed: ${await swapRes.text()}`);
+    const swapData = await swapRes.json();
+
+    // 3. Send to Privy for signing and broadcasting
+    const startTime = Date.now();
+    const signature = await privySignAndSendTransaction(privyWalletId, swapData.swapTransaction);
+    const executionMs = Date.now() - startTime;
+
+    const tokensReceived = parseFloat(quote.outAmount);
+
+    // Record as AgentTrade
+    await db.agentTrade.create({
+      data: {
+        agentId: request.agentId,
+        tokenMint: request.tokenMint,
+        tokenSymbol: request.tokenSymbol,
+        tokenName: request.tokenSymbol,
+        action: 'BUY',
+        chain: 'SOLANA',
+        tokenAmount: tokensReceived,
+        solAmount: request.solAmount,
+        signature,
+      },
+    });
+
+    // Record PaperTrade
+    const solPriceData = await getTokenPrice(SOL_MINT).catch(() => null);
+    const solPrice = solPriceData?.priceUsd ?? 0;
+    await db.paperTrade.create({
+      data: {
+        agentId: request.agentId,
+        tokenMint: request.tokenMint,
+        tokenSymbol: request.tokenSymbol,
+        tokenName: request.tokenSymbol,
+        action: 'BUY',
+        chain: 'SOLANA',
+        entryPrice: solPrice,
+        amount: request.solAmount,
+        tokenAmount: tokensReceived,
+        signalSource: request.triggeredBy,
+        confidence: 100,
+        metadata: {
+          source: 'auto-buy-executor-privy',
+          trigger: request.triggeredBy,
+          sourceWallet: request.sourceWallet,
+          reason: request.reason,
+        } as Record<string, string | number | boolean>,
+      },
+    });
+
+    // Update position
+    await positionTracker.onBuy(
+      request.agentId,
+      request.tokenMint,
+      request.tokenSymbol,
+      request.tokenSymbol,
+      tokensReceived,
+      0,
+    );
+
+    // Increment trade count
+    await db.tradingAgent.update({
+      where: { id: request.agentId },
+      data: { totalTrades: { increment: 1 } },
+    });
+
+    // Broadcast to agent's subscribers
+    websocketEvents.broadcastAgentActivity(request.agentId, {
+      agentId: request.agentId,
+      action: 'TRADE',
+      data: {
+        type: 'auto_buy_executed',
+        tokenMint: request.tokenMint,
+        tokenSymbol: request.tokenSymbol,
+        solAmount: request.solAmount,
+        signature,
+        trigger: request.triggeredBy,
+        sourceWallet: request.sourceWallet,
+        reason: request.reason,
+        executionMs,
+        signingMethod: 'privy',
+      },
+    });
+
+    console.log(`[AutoBuyExecutor] PRIVY EXECUTED: ${request.agentName} bought ${tokensReceived} ${request.tokenSymbol} for ${request.solAmount} SOL (${executionMs}ms)`);
+  } catch (error: any) {
+    console.error(`[AutoBuyExecutor] Privy execution failed for ${request.agentName}:`, error.message);
+    // Fall back to recommendation
+    await broadcastRecommendation(request);
+  }
+}
+
+// ── Direct Execution (Base / Surge API) ──────────────────
+
+async function getAgentSurgeWalletId(agentId: string): Promise<string | null> {
+  const agent = await db.tradingAgent.findUnique({
+    where: { id: agentId },
+    select: { config: true },
+  });
+  const config = (agent?.config as Record<string, any>) || {};
+  return config.surgeWalletId ?? null;
+}
+
+async function executeDirectBuyBase(request: AutoBuyRequest, surgeWalletId: string) {
+  const startTime = Date.now();
+
+  console.log(`[AutoBuyExecutor] BASE BUY: ${request.agentName} → ${request.solAmount} ETH of ${request.tokenSymbol}`);
+
+  try {
+    const result = await surgeApi.buyToken(surgeApi.SURGE_CHAIN_ID_BASE, surgeWalletId, request.tokenMint, request.solAmount.toString());
+    const executionMs = Date.now() - startTime;
+
+    // Estimate tokens received
+    let tokensReceived = 0;
+    const tokenPrice = await getBaseTokenPrice(request.tokenMint).catch(() => null);
+    if (tokenPrice && tokenPrice.priceEth > 0) {
+      tokensReceived = request.solAmount / tokenPrice.priceEth;
+    }
+
+    // Get ETH price in USD for PaperTrade entryPrice
+    const ethPriceUsd = await getEthPrice().catch(() => 0);
+
+    // Record as AgentTrade
+    await db.agentTrade.create({
+      data: {
+        agentId: request.agentId,
+        tokenMint: request.tokenMint,
+        tokenSymbol: request.tokenSymbol,
+        tokenName: request.tokenSymbol,
+        action: 'BUY',
+        chain: 'BASE',
+        tokenAmount: tokensReceived,
+        solAmount: request.solAmount, // ETH amount
+        signature: result.txHash,
+        executionMs,
+      },
+    });
+
+    // Record PaperTrade
+    await db.paperTrade.create({
+      data: {
+        agentId: request.agentId,
+        tokenMint: request.tokenMint,
+        tokenSymbol: request.tokenSymbol,
+        tokenName: request.tokenSymbol,
+        action: 'BUY',
+        chain: 'BASE',
+        entryPrice: ethPriceUsd, // ETH price in USD
+        amount: request.solAmount,
+        tokenAmount: tokensReceived,
+        tokenPrice: tokenPrice?.priceUsd ?? null,
+        signalSource: request.triggeredBy,
+        confidence: 100,
+        metadata: {
+          source: 'auto-buy-executor-base',
+          trigger: request.triggeredBy,
+          sourceWallet: request.sourceWallet,
+          reason: request.reason,
+          txHash: result.txHash,
+        } as Record<string, string | number | boolean>,
+      },
+    });
+
+    // Update position
+    await positionTracker.onBuy(
+      request.agentId,
+      request.tokenMint,
+      request.tokenSymbol,
+      request.tokenSymbol,
+      tokensReceived,
+      tokenPrice?.priceUsd ?? 0,
+    );
+
+    // Increment trade count
+    await db.tradingAgent.update({
+      where: { id: request.agentId },
+      data: { totalTrades: { increment: 1 } },
+    });
+
+    // Broadcast
+    websocketEvents.broadcastAgentActivity(request.agentId, {
+      agentId: request.agentId,
+      action: 'TRADE',
+      data: {
+        type: 'auto_buy_executed',
+        tokenMint: request.tokenMint,
+        tokenSymbol: request.tokenSymbol,
+        ethAmount: request.solAmount,
+        chain: 'BASE',
+        txHash: result.txHash,
+        trigger: request.triggeredBy,
+        sourceWallet: request.sourceWallet,
+        reason: request.reason,
+        executionMs,
+      },
+    });
+
+    console.log(`[AutoBuyExecutor] BASE EXECUTED: ${request.agentName} bought ~${tokensReceived.toFixed(2)} ${request.tokenSymbol} for ${request.solAmount} ETH (${executionMs}ms)`);
+    console.log(`   BaseScan: https://basescan.org/tx/${result.txHash}`);
+  } catch (error: any) {
+    console.error(`[AutoBuyExecutor] BASE execution failed for ${request.agentName}:`, error.message);
     // Fall back to recommendation
     await broadcastRecommendation(request);
   }

@@ -1,9 +1,10 @@
 /**
- * AgentCard - Futuristic Agent HUD Identity Bar
- * Animated avatar ring, glowing status, cinematic XP bar
+ * AgentCard - SuperRouter-style Agent HUD Panel
+ * Animated avatar ring, identity row, reasoning line
  */
 
-import { View, Text, Image, StyleSheet } from 'react-native';
+// eslint-disable-next-line react-native/no-deprecated-api
+import { View, Text, Image, StyleSheet, TouchableOpacity, Clipboard } from 'react-native';
 import { useState } from 'react';
 import Animated, {
   useAnimatedStyle,
@@ -13,37 +14,43 @@ import Animated, {
   withTiming,
   Easing,
   interpolate,
-  FadeIn,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { colors } from '@/theme/colors';
+
+const defaultPfp = require('../../../assets/images/pfp.png');
 
 interface AgentCardProps {
   name: string;
   handle?: string;
   avatarUrl?: string;
+  walletAddress?: string;
   isActive: boolean;
   level?: number;
   levelName?: string;
-  xp?: number;
-  xpForNextLevel?: number;
+  reasoningLine?: string;
+  onSettingsPress?: () => void;
+  onCreatePress?: () => void;
 }
+
 
 export function AgentCard({
   name,
   handle,
   avatarUrl,
+  walletAddress,
   isActive,
   level,
   levelName,
-  xp = 0,
-  xpForNextLevel = 100,
+  reasoningLine,
+  onSettingsPress,
+  onCreatePress,
 }: AgentCardProps) {
   const [imgError, setImgError] = useState(false);
-  const initials = name.slice(0, 2).toUpperCase();
+  const [copied, setCopied] = useState(false);
   const showFallback = !avatarUrl || imgError;
-  const xpProgress = xpForNextLevel > 0 ? Math.min(xp / xpForNextLevel, 1) : 0;
+  const pfpSource = showFallback ? defaultPfp : { uri: avatarUrl };
 
   // Breathing ring animation
   const ringPulse = useSharedValue(0);
@@ -52,16 +59,16 @@ export function AgentCard({
   useEffect(() => {
     ringPulse.value = withRepeat(
       withSequence(
-        withTiming(1, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 2500, easing: Easing.inOut(Easing.ease) }),
       ),
       -1, false,
     );
     if (isActive) {
       statusGlow.value = withRepeat(
         withSequence(
-          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.3, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+          withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+          withTiming(0.3, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
         ),
         -1, false,
       );
@@ -69,8 +76,8 @@ export function AgentCard({
   }, [isActive]);
 
   const ringStyle = useAnimatedStyle(() => ({
-    borderColor: `rgba(249, 115, 22, ${interpolate(ringPulse.value, [0, 1], [0.2, 0.6])})`,
-    shadowOpacity: interpolate(ringPulse.value, [0, 1], [0, 0.5]),
+    borderColor: `rgba(249, 115, 22, ${interpolate(ringPulse.value, [0, 1], [0.25, 0.7])})`,
+    shadowOpacity: interpolate(ringPulse.value, [0, 1], [0.1, 0.6]),
   }));
 
   const statusDotStyle = useAnimatedStyle(() => ({
@@ -78,113 +85,133 @@ export function AgentCard({
     opacity: interpolate(statusGlow.value, [0, 1], [0.6, 1]),
   }));
 
-  return (
-    <Animated.View entering={FadeIn.duration(600)} style={styles.container}>
-      {/* Gradient border effect */}
-      <LinearGradient
-        colors={['rgba(249, 115, 22, 0.08)', 'rgba(255, 255, 255, 0.02)', 'rgba(249, 115, 22, 0.04)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
+  const handleCopy = () => {
+    if (!walletAddress) return;
+    Clipboard.setString(walletAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-      {/* Avatar with animated ring */}
-      <View style={styles.avatarSection}>
-        <Animated.View style={[styles.avatarRing, ringStyle]}>
-          {showFallback ? (
-            <View style={styles.fallbackAvatar}>
-              <LinearGradient
-                colors={[colors.brand.primary, '#c2590f']}
-                style={[StyleSheet.absoluteFill, { borderRadius: 22 }]}
-              />
-              <Text style={styles.initials}>{initials}</Text>
-            </View>
-          ) : (
+  return (
+    <View style={styles.container}>
+      {/* Top glow line */}
+      <View style={styles.topGlow} />
+
+      {/* ── Row 1: Avatar + Identity + Settings ── */}
+      <View style={styles.topRow}>
+        {/* Avatar with animated ring */}
+        <View style={styles.avatarSection}>
+          <Animated.View style={[styles.avatarRing, ringStyle]}>
             <Image
-              source={{ uri: avatarUrl }}
+              source={pfpSource}
               style={styles.avatarImage}
               onError={() => setImgError(true)}
             />
-          )}
-        </Animated.View>
-
-        {/* Status indicator */}
-        {isActive && (
-          <Animated.View style={[styles.statusDot, statusDotStyle]}>
-            <View style={styles.statusDotInner} />
           </Animated.View>
+          {isActive && (
+            <Animated.View style={[styles.statusDot, statusDotStyle]}>
+              <View style={styles.statusDotInner} />
+            </Animated.View>
+          )}
+        </View>
+
+        {/* Name + level + copy wallet */}
+        <View style={styles.identity}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>{name}</Text>
+            {level != null && (
+              <View style={styles.levelBadge}>
+                <Text style={styles.levelNum}>Lv.{level}</Text>
+                {levelName && <Text style={styles.levelName}>{levelName}</Text>}
+              </View>
+            )}
+            {isActive && (
+              <View style={styles.liveBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.liveText}>LIVE</Text>
+              </View>
+            )}
+            <View style={{ flex: 1 }} />
+            {walletAddress && (
+              <TouchableOpacity onPress={handleCopy} style={styles.copyBtn}>
+                <Ionicons
+                  name={copied ? 'checkmark' : 'copy-outline'}
+                  size={12}
+                  color={copied ? colors.status.success : colors.text.muted}
+                />
+                <Text style={[styles.copyText, copied && { color: colors.status.success }]}>
+                  {copied ? 'Copied' : `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Reasoning line */}
+          <View style={styles.reasoningRow}>
+            <View style={styles.reasoningDot} />
+            <Text style={styles.reasoningText} numberOfLines={1}>
+              {reasoningLine || 'Scanning for alpha...'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Right action: Settings or Create */}
+        {onSettingsPress && (
+          <TouchableOpacity
+            onPress={onSettingsPress}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="settings-outline" size={18} color={colors.text.muted} />
+          </TouchableOpacity>
+        )}
+        {onCreatePress && (
+          <TouchableOpacity onPress={onCreatePress} style={styles.createBtn} activeOpacity={0.8}>
+            <Ionicons name="add" size={14} color="#000" />
+            <Text style={styles.createText}>Create</Text>
+          </TouchableOpacity>
         )}
       </View>
 
-      {/* Info section */}
-      <View style={styles.info}>
-        {/* Name + Status row */}
-        <View style={styles.nameRow}>
-          <Text style={styles.name} numberOfLines={1}>{name}</Text>
-          {isActive ? (
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE</Text>
-            </View>
-          ) : (
-            <View style={styles.offlineBadge}>
-              <Text style={styles.offlineText}>IDLE</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Level + XP bar */}
-        <View style={styles.metaRow}>
-          {level != null && (
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelNum}>Lv.{level}</Text>
-              {levelName && <Text style={styles.levelName}>{levelName}</Text>}
-            </View>
-          )}
-
-          {/* XP progress bar */}
-          <View style={styles.xpContainer}>
-            <View style={styles.xpTrack}>
-              <LinearGradient
-                colors={[colors.brand.primary, colors.brand.accent]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[
-                  styles.xpFill,
-                  { width: `${Math.round(xpProgress * 100)}%` as `${number}%` },
-                ]}
-              />
-              {/* Glow point at end */}
-              {xpProgress > 0.05 && (
-                <View
-                  style={[
-                    styles.xpGlowDot,
-                    { left: `${Math.round(xpProgress * 100)}%` as `${number}%` },
-                  ]}
-                />
-              )}
-            </View>
-            <Text style={styles.xpLabel}>{xp}<Text style={styles.xpSuffix}>xp</Text></Text>
+      {/* Twitter sub-bar */}
+      {handle && (
+        <View style={styles.subBar}>
+          <View style={styles.subBarItem}>
+            <Ionicons name="logo-twitter" size={10} color="rgba(29,161,242,0.7)" />
+            <Text style={styles.subBarText}>@{handle}</Text>
           </View>
         </View>
-      </View>
-    </Animated.View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 10,
+    padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(249, 115, 22, 0.12)',
+    borderColor: 'rgba(249, 115, 22, 0.15)',
+    backgroundColor: colors.surface.secondary,
     overflow: 'hidden',
+    gap: 16,
+  },
+  topGlow: {
+    position: 'absolute',
+    top: 0,
+    left: '15%',
+    right: '15%',
+    height: 1,
+    backgroundColor: colors.brand.primary,
+    opacity: 0.3,
+    borderRadius: 1,
   },
 
-  // Avatar
+  // Row 1: Top
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 12,
+  },
   avatarSection: {
     position: 'relative',
   },
@@ -204,20 +231,6 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
   },
-  fallbackAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  initials: {
-    color: '#ffffff',
-    fontWeight: '800',
-    fontSize: 16,
-    zIndex: 10,
-  },
   statusDot: {
     position: 'absolute',
     bottom: -1,
@@ -235,67 +248,21 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.status.success,
   },
-
-  // Info
-  info: {
+  identity: {
     flex: 1,
-    gap: 8,
+    gap: 6,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
   },
   name: {
     color: colors.text.primary,
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '700',
     letterSpacing: -0.3,
-    flex: 1,
-  },
-  liveBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(34, 197, 94, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  liveDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: colors.status.success,
-  },
-  liveText: {
-    color: colors.status.success,
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-  },
-  offlineBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  offlineText: {
-    color: colors.text.muted,
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-  },
-
-  // Meta
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    flexShrink: 1,
   },
   levelBadge: {
     flexDirection: 'row',
@@ -318,46 +285,100 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
-  xpContainer: {
-    flex: 1,
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  liveDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: colors.status.success,
+  },
+  liveText: {
+    color: colors.status.success,
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+  },
+  copyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  copyText: {
+    color: colors.text.muted,
+    fontSize: 10,
+    fontWeight: '600',
+    fontFamily: 'Courier',
+  },
+
+  // Reasoning line
+  reasoningRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    minWidth: 160,
   },
-  xpTrack: {
-    flex: 1,
-    height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    borderRadius: 2,
-    overflow: 'visible',
-    position: 'relative',
-  },
-  xpFill: {
-    height: 4,
-    borderRadius: 2,
-  },
-  xpGlowDot: {
-    position: 'absolute',
-    top: -2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  reasoningDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
     backgroundColor: colors.brand.primary,
-    marginLeft: -4,
-    shadowColor: colors.brand.primary,
-    shadowRadius: 6,
-    shadowOpacity: 0.8,
-    shadowOffset: { width: 0, height: 0 },
+    opacity: 0.7,
   },
-  xpLabel: {
-    color: colors.text.secondary,
-    fontSize: 11,
-    fontWeight: '700',
-    fontVariant: ['tabular-nums'],
-  },
-  xpSuffix: {
+  reasoningText: {
+    flex: 1,
     color: colors.text.muted,
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: '600',
+    fontStyle: 'italic',
+  },
+
+  // Create CTA (right side of top row)
+  createBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.brand.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  createText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // Twitter sub-bar
+  subBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    alignSelf: 'center',
+  },
+  subBarItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  subBarText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 10,
+    fontWeight: '600',
+    fontFamily: 'Courier',
   },
 });

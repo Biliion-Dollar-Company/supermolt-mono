@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 16,
+    borderRadius: 10,
     padding: 16,
     overflow: 'hidden',
   },
@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.04)',
-    borderRadius: 8,
+    borderRadius: 6,
     padding: 2,
   },
   timeframeButton: {

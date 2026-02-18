@@ -29,6 +29,7 @@ const DEFAULT_TRIGGERS: BuyTriggerConfig[] = [
   { type: 'consensus', enabled: false, config: { walletCount: 2, timeWindowMinutes: 60 } },
   { type: 'volume', enabled: false, config: { volumeThreshold: 100000, autoBuyAmount: 0.05 } },
   { type: 'liquidity', enabled: false, config: { minLiquidity: 50000, autoBuyAmount: 0.05 } },
+  { type: 'trending', enabled: false, config: { minActivityScore: 20, autoBuyAmount: 0.05 } },
 ];
 
 function truncateAddress(addr: string) {
@@ -403,6 +404,32 @@ export default function ConfigureAgentScreen() {
               <TextInput
                 value={String(triggers.find((t) => t.type === 'liquidity')?.config.autoBuyAmount ?? 0.05)}
                 onChangeText={(v) => updateTriggerConfig('liquidity', { autoBuyAmount: parseFloat(v) || 0.05 })}
+                keyboardType="decimal-pad"
+                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
+              />
+              <Text variant="caption" color="muted">SOL</Text>
+            </View>
+          </TriggerRow>
+
+          {/* Trending Tokens */}
+          <TriggerRow
+            title="Trending Tokens"
+            subtitle="Auto-buy tokens with high arena activity"
+            enabled={triggers.find((t) => t.type === 'trending')?.enabled ?? false}
+            onToggle={() => toggleTrigger('trending')}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <Text variant="caption" color="muted">Min score:</Text>
+              <TextInput
+                value={String(triggers.find((t) => t.type === 'trending')?.config.minActivityScore ?? 20)}
+                onChangeText={(v) => updateTriggerConfig('trending', { minActivityScore: parseInt(v) || 20 })}
+                keyboardType="number-pad"
+                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 50, fontSize: 12, textAlign: 'center' }}
+              />
+              <Text variant="caption" color="muted">| Buy:</Text>
+              <TextInput
+                value={String(triggers.find((t) => t.type === 'trending')?.config.autoBuyAmount ?? 0.05)}
+                onChangeText={(v) => updateTriggerConfig('trending', { autoBuyAmount: parseFloat(v) || 0.05 })}
                 keyboardType="decimal-pad"
                 style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
               />

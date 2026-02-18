@@ -3,6 +3,7 @@ import { db } from '../lib/db';
 import { getArchetype } from '../lib/archetypes';
 import { generateUniqueName } from '../lib/name-generator';
 import { createOnboardingTasks } from './onboarding.service';
+import { createPrivySolanaWallet } from '../lib/privy';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
@@ -59,6 +60,29 @@ export async function issueAgentTokens(agentId: string, subject: string) {
     refreshToken,
     expiresIn: parseExpiry(JWT_EXPIRES_IN),
   };
+}
+
+export async function ensurePrivyWallet(agentId: string, privyUserId: string) {
+  const agent = await db.tradingAgent.findUnique({ where: { id: agentId } });
+  if (!agent || agent.privyWalletId) return;
+
+  // Only create Privy wallets for Privy-authenticated users (did:privy:*)
+  if (!privyUserId.startsWith('did:privy:')) return;
+
+  try {
+    const wallet = await createPrivySolanaWallet(privyUserId);
+    const existingConfig = (agent.config as Record<string, unknown>) || {};
+    await db.tradingAgent.update({
+      where: { id: agentId },
+      data: {
+        privyWalletId: wallet.id,
+        config: { ...existingConfig, privyWalletAddress: wallet.address },
+      },
+    });
+    console.log(`[AgentSession] Created Privy wallet for agent ${agentId}: ${wallet.address}`);
+  } catch (error) {
+    console.error(`[AgentSession] Failed to create Privy wallet for agent ${agentId}:`, error);
+  }
 }
 
 export async function ensureOnboardingForAgent(agentId: string) {
@@ -156,6 +180,7 @@ export async function getOrCreateQuickstartAgent(options: {
     }
 
     await ensureOnboardingForAgent(existing.id);
+    await ensurePrivyWallet(existing.id, options.userId);
     await ensureScannerForAgent({
       agentId: existing.id,
       agentName: existing.name,
@@ -201,6 +226,7 @@ export async function getOrCreateQuickstartAgent(options: {
   });
 
   await ensureOnboardingForAgent(agent.id);
+  await ensurePrivyWallet(agent.id, options.userId);
   await ensureScannerForAgent({
     agentId: agent.id,
     agentName: agent.name,

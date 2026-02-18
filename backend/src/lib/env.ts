@@ -27,6 +27,9 @@ const envSchema = z.object({
   KALSHI_API_KEY: z.string().optional(),
   KALSHI_PRIVATE_KEY_PEM: z.string().optional(), // RSA-PSS PEM (base64 or inline)
   KALSHI_MODE: z.enum(['demo', 'production']).optional(), // defaults to 'demo'
+  // Surge OpenClaw API (Base chain trading via managed wallets)
+  SURGE_API_KEY: z.string().optional(),
+  SURGE_TREASURY_WALLET_ID: z.string().optional(),
 });
 
 function loadEnv() {
