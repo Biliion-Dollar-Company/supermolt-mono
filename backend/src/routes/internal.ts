@@ -575,18 +575,45 @@ internal.post('/seed-arena', async (c) => {
       return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'No observer agents found. Run /internal/agents/create-observers first.' } }, 404);
     }
 
-    console.log(`  Found ${agents.length} observer agents`);
+    console.log(`  Found ${agents.length} observer agent records`);
+
+    // Deduplication: if we have >5 agents (duplicates), keep the first-created per name
+    // (the ones created by ensureObserverAgents at startup) and delete the later duplicates.
+    const dedupedByName = new Map<string, typeof agents[0]>();
+    const duplicateIds: string[] = [];
+    for (const agent of agents) {
+      if (!dedupedByName.has(agent.name)) {
+        dedupedByName.set(agent.name, agent);
+      } else {
+        duplicateIds.push(agent.id);
+      }
+    }
+
+    if (duplicateIds.length > 0) {
+      console.log(`  🗑️  Removing ${duplicateIds.length} duplicate agent records: ${duplicateIds.join(', ')}`);
+      // Must delete related data first (cascade isn't guaranteed for all relations)
+      await db.agentStats.deleteMany({ where: { agentId: { in: duplicateIds } } });
+      await db.agentTrade.deleteMany({ where: { agentId: { in: duplicateIds } } });
+      await db.paperTrade.deleteMany({ where: { agentId: { in: duplicateIds } } });
+      await db.agentPosition.deleteMany({ where: { agentId: { in: duplicateIds } } });
+      await db.tradingAgent.deleteMany({ where: { id: { in: duplicateIds } } });
+      console.log(`  ✅ Removed ${duplicateIds.length} duplicate agents`);
+    }
+
+    // Work only with the canonical (first-created) set
+    const canonicalAgents = Array.from(dedupedByName.values());
+    console.log(`  Working with ${canonicalAgents.length} canonical agents`);
 
     // 2. Update wallet addresses to real devnet pubkeys
     const walletUpdates: string[] = [];
-    for (const agent of agents) {
+    for (const agent of canonicalAgents) {
       const realWallet = AGENT_WALLET_MAP[agent.name];
       if (realWallet && agent.userId !== realWallet) {
         await db.tradingAgent.update({
           where: { id: agent.id },
           data: { userId: realWallet },
         });
-        walletUpdates.push(`${agent.name}: system-placeholder → ${realWallet}`);
+        walletUpdates.push(`${agent.name}: ${agent.userId.slice(0, 12)} → ${realWallet}`);
         console.log(`  ✅ Updated wallet for ${agent.name}: ${realWallet.slice(0, 8)}...`);
       } else if (realWallet) {
         console.log(`  ⏭️  ${agent.name} wallet already set: ${agent.userId.slice(0, 8)}...`);
@@ -594,8 +621,8 @@ internal.post('/seed-arena', async (c) => {
     }
 
     // Build a name→id map for conversations
-    const agentMap = new Map(agents.map((a) => [a.name, a]));
-    const getAgent = (name: string) => agentMap.get(name) ?? agents[0];
+    const agentMap = new Map(canonicalAgents.map((a) => [a.name, a]));
+    const getAgent = (name: string) => agentMap.get(name) ?? canonicalAgents[0];
 
     // ── POPULAR SOLANA TOKENS ───────────────────────────────
     const TOKENS = [
@@ -837,7 +864,7 @@ internal.post('/seed-arena', async (c) => {
     };
 
     const agentStatsCreated: string[] = [];
-    for (const agent of agents) {
+    for (const agent of canonicalAgents) {
       const td = TRADE_DATA[agent.name];
       if (!td) continue;
 
