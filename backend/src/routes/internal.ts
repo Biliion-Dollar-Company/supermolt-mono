@@ -985,26 +985,73 @@ internal.post('/seed-arena', async (c) => {
  * POST /internal/test-agent-reactor
  * Manually fire the agent signal reactor with a test event.
  * Useful for verifying the LLM pipeline is working.
+ *
+ * Body:
+ *   eventType  — e.g. "god_wallet_buy_detected", "signal_detected", "new_tweet"
+ *   data       — event payload (passed directly to reactor; must include tokenMint)
+ *
+ * Legacy flat fields (tokenMint, tokenSymbol, etc.) are still accepted for backwards compat.
  */
 internal.post('/test-agent-reactor', async (c) => {
   try {
     const body = await c.req.json().catch(() => ({}));
     const eventType = body.eventType || 'signal_detected';
-    const testData = {
-      tokenMint: body.tokenMint || 'So11111111111111111111111111111111111111112',
-      tokenSymbol: body.tokenSymbol || 'TEST',
-      liquidity: body.liquidity || 500000,
-      volume24h: body.volume24h || 2000000,
-      priceChange24h: body.priceChange24h || 12.5,
-      marketCap: body.marketCap || 5000000,
-      reason: body.reason || 'Manual test trigger',
-      type: eventType,
-    };
+
+    // Support nested `data` object (new style) OR flat fields (legacy style)
+    const eventData = body.data && typeof body.data === 'object'
+      ? { ...body.data, type: eventType }
+      : {
+          tokenMint: body.tokenMint || 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263',
+          tokenSymbol: body.tokenSymbol || 'BONK',
+          liquidity: body.liquidity || 500000,
+          volume24h: body.volume24h || 2000000,
+          priceChange24h: body.priceChange24h || 12.5,
+          marketCap: body.marketCap || 5000000,
+          reason: body.reason || 'Manual test trigger',
+          type: eventType,
+        };
+
+    console.log(`🧪 [TestReactor] Firing ${eventType} with:`, JSON.stringify(eventData).slice(0, 200));
 
     const { agentSignalReactor } = await import('../services/agent-signal-reactor.js');
-    await agentSignalReactor.react(eventType, testData);
 
-    return c.json({ success: true, data: { message: 'Reactor triggered', eventType, tokenMint: testData.tokenMint } });
+    // Bypass rate limiter for test calls so we always get a result
+    await agentSignalReactor.reactForce(eventType, eventData);
+
+    // Fetch resulting conversation to return in response
+    const tokenMint = eventData.tokenMint;
+    let conversation = null;
+    let messages: any[] = [];
+    if (tokenMint) {
+      conversation = await db.agentConversation.findFirst({
+        where: { tokenMint, createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) } },
+        orderBy: { createdAt: 'desc' },
+        include: { messages: { orderBy: { timestamp: 'asc' } } },
+      });
+      messages = (conversation as any)?.messages ?? [];
+    }
+
+    // Enrich messages with agent names for preview
+    const preview = [];
+    for (const m of messages) {
+      const agent = await db.tradingAgent.findFirst({ where: { id: m.agentId }, select: { name: true, displayName: true } }).catch(() => null);
+      preview.push({
+        agent: agent?.displayName ?? agent?.name ?? m.agentId,
+        text: m.message.slice(0, 80) + (m.message.length > 80 ? '…' : ''),
+      });
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        message: 'Reactor triggered',
+        eventType,
+        tokenMint,
+        conversationId: (conversation as any)?.id ?? null,
+        agentMessages: messages.length,
+        preview,
+      },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to trigger reactor';
     console.error('Test reactor error:', error);

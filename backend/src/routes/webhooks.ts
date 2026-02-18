@@ -8,8 +8,52 @@ import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-o
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
 import { evaluateTriggers, type DetectedTrade } from '../services/trigger-engine';
 import { webhookQueue } from '../services/webhook-queue.service';
+import { agentSignalReactor } from '../services/agent-signal-reactor';
 import { db } from '../lib/db';
 const positionTracker = new PositionTracker(db);
+
+// ── God wallet cache (refreshed every 5 min) ─────────────
+/**
+ * God wallets are stored in the DevPrint database (not in our tracked_wallets table).
+ * We cache the list from the DevPrint API and use it to detect god wallet swaps.
+ */
+interface GodWalletEntry {
+  address: string;
+  label: string | null;
+}
+let godWalletCache: GodWalletEntry[] = [];
+let godWalletCacheExpiry = 0;
+const DEVPRINT_BASE_URL = process.env.DEVPRINT_API_URL || 'https://devprint-v2-production.up.railway.app';
+
+async function refreshGodWalletCache(): Promise<void> {
+  try {
+    const res = await fetch(`${DEVPRINT_BASE_URL}/api/wallets`, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return;
+    const json = await res.json() as any;
+    const wallets: any[] = Array.isArray(json) ? json : (json.data?.wallets ?? json.wallets ?? []);
+    godWalletCache = wallets
+      .filter((w) => w.is_god_wallet || w.isGodWallet)
+      .map((w) => ({ address: w.address, label: w.label ?? null }));
+    godWalletCacheExpiry = Date.now() + 5 * 60 * 1000; // 5 min TTL
+    console.log(`[GodWalletCache] Refreshed: ${godWalletCache.length} god wallets from DevPrint`);
+  } catch (err) {
+    console.warn('[GodWalletCache] Failed to refresh from DevPrint:', err);
+  }
+}
+
+async function isGodWallet(address: string): Promise<boolean> {
+  if (Date.now() > godWalletCacheExpiry) {
+    await refreshGodWalletCache();
+  }
+  return godWalletCache.some((w) => w.address === address);
+}
+
+async function getGodWalletLabel(address: string): Promise<string | null> {
+  if (Date.now() > godWalletCacheExpiry) {
+    await refreshGodWalletCache();
+  }
+  return godWalletCache.find((w) => w.address === address)?.label ?? null;
+}
 
 export const webhooks = new Hono();
 
@@ -615,6 +659,34 @@ async function processSolanaWebhookPayload(rawBody: string, heliusSignature: str
         handleSuperRouterTrade(tradeEvent).catch((err) => {
           console.error('❌ Observer analysis failed:', err);
         });
+      }
+
+      // ── God wallet agent reactor ──────────────────────────
+      // If the signer is a tracked god wallet, fire agent reactions so the
+      // arena comes alive with real-time commentary on every god wallet move.
+      const godWallet = await isGodWallet(signerWallet).catch(() => false);
+      if (godWallet) {
+        const isBuySwap = isBaseCurrency(swap.inputMint);
+        const isSellSwap = isBaseCurrency(swap.outputMint);
+        const godEventType = isBuySwap ? 'god_wallet_buy_detected' : (isSellSwap ? 'god_wallet_sell_detected' : null);
+
+        if (godEventType) {
+          const walletLabel = await getGodWalletLabel(signerWallet);
+          const tokenMint = isBuySwap ? swap.outputMint : swap.inputMint;
+          const solAmount = isBuySwap ? swap.inputAmount : swap.outputAmount;
+
+          console.log(`🐋 [WEBHOOK] God wallet ${signerWallet.slice(0, 8)}… ${isBuySwap ? 'BUY' : 'SELL'} → firing agent reactor`);
+
+          agentSignalReactor.react(godEventType, {
+            walletAddress: signerWallet,
+            walletLabel: walletLabel ?? signerWallet.slice(0, 8),
+            tokenMint,
+            amount: solAmount,
+            action: isBuySwap ? 'BUY' : 'SELL',
+            type: godEventType,
+            signature: swap.signature,
+          }).catch((err) => console.error('[WEBHOOK] God wallet reactor failed:', err));
+        }
       }
     } catch (error) {
       console.error('❌ [WEBHOOK] Failed to process swap:', error instanceof Error ? error.message : error);

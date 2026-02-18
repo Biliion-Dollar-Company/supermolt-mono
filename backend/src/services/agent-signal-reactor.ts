@@ -236,103 +236,234 @@ export class AgentSignalReactor {
     return AgentSignalReactor.instance;
   }
 
+  /**
+   * React to an event, respecting rate limits.
+   * Main entry-point called by DevPrintFeedService and the webhook handler.
+   */
   async react(eventType: string, data: any): Promise<void> {
     if (!llmService.isConfigured) return;
 
     try {
-      let formatted: { summary: string; context: string; tokenMint: string } | null = null;
-
-      // Normalise camelCase → snake_case so both formats hit same handler
-      const normalised = eventType
-        .replace('newTweet', 'new_tweet')
-        .replace('newToken', 'new_token')
-        .replace('godWalletBuy', 'god_wallet_buy_detected')
-        .replace('godWalletSell', 'god_wallet_sell_detected')
-        .replace('signalDetected', 'signal_detected')
-        .replace('buySignal', 'buy_signal');
-
-      // DevPrint wraps payload in a nested `data` field for some events — unwrap it
-      const payload = data.data && typeof data.data === 'object' ? { ...data, ...data.data } : data;
-
-      switch (normalised) {
-        case 'signal_detected':
-        case 'buy_signal':
-          formatted = formatSignalEvent(payload);
-          break;
-        case 'god_wallet_buy_detected':
-        case 'god_wallet_sell_detected':
-          formatted = formatGodWalletEvent(payload);
-          break;
-        case 'new_token':
-          formatted = formatNewTokenEvent(payload);
-          break;
-        case 'new_tweet':
-          formatted = formatTweetEvent(payload);
-          break;
-        default:
-          return;
-      }
-
-      if (!formatted) return;
-      const { summary, context, tokenMint } = formatted;
+      const { summary, context, tokenMint } = this.prepare(eventType, data) ?? {};
+      if (!summary || !tokenMint) return;
 
       // Rate limit check
       if (!canReact(tokenMint)) return;
       markReacted(tokenMint);
 
-      console.log(`🤖 [AgentReactor] Generating commentary for ${eventType}: ${tokenMint.substring(0, 8)}...`);
-
-      // Generate LLM commentary
-      const prompt = SIGNAL_SYSTEM_PROMPT(summary, context);
-      const response = await llmService.generate(prompt, `Generate 5 agent reactions to this ${eventType} event. JSON only.`);
-      if (!response) return;
-
-      const jsonStr = response.replace(/```json/gi, '').replace(/```/g, '').trim();
-      const analyses = JSON.parse(jsonStr);
-      if (!Array.isArray(analyses) || analyses.length !== 5) return;
-
-      // Find or create conversation for this token
-      let conversation = await db.agentConversation.findFirst({
-        where: {
-          tokenMint,
-          createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }, // within 24h
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      if (!conversation) {
-        const symbol = data.tokenSymbol || data.symbol || tokenMint.substring(0, 8);
-        conversation = await db.agentConversation.create({
-          data: {
-            topic: `Signal: ${symbol}`,
-            tokenMint,
-          },
-        });
-      }
-
-      // Post each agent's message
-      for (const analysis of analyses) {
-        const agent = await db.tradingAgent.findFirst({
-          where: { name: analysis.agentName },
-        });
-        if (!agent) continue;
-
-        await db.agentMessage.create({
-          data: {
-            conversationId: conversation.id,
-            agentId: agent.id,
-            message: `${analysis.emoji} ${analysis.message}`,
-          },
-        });
-
-        console.log(`  ✅ ${analysis.emoji} ${analysis.agentName}: "${analysis.message.substring(0, 60)}..."`);
-      }
-
-      console.log(`🎉 [AgentReactor] Posted ${analyses.length} agent messages for ${tokenMint.substring(0, 8)}`);
-
+      await this.generateAndStore(eventType, data, summary, context!, tokenMint);
     } catch (error) {
-      console.error('[AgentReactor] Error generating signal commentary:', error);
+      console.error('[AgentReactor] Error in react():', error);
     }
+  }
+
+  /**
+   * Same as react() but bypasses rate limits.
+   * Use only for test endpoints or manual triggers.
+   */
+  async reactForce(eventType: string, data: any): Promise<void> {
+    if (!llmService.isConfigured) {
+      console.warn('[AgentReactor] LLM not configured — cannot generate commentary');
+      return;
+    }
+
+    try {
+      const prepared = this.prepare(eventType, data);
+      if (!prepared) {
+        console.warn(`[AgentReactor] Could not format event ${eventType} — missing tokenMint?`);
+        return;
+      }
+      const { summary, context, tokenMint } = prepared;
+      // Skip rate limiter but still count toward hourly cap
+      markReacted(tokenMint);
+      await this.generateAndStore(eventType, data, summary, context, tokenMint);
+    } catch (error) {
+      console.error('[AgentReactor] Error in reactForce():', error);
+    }
+  }
+
+  // ── Private helpers ──────────────────────────────────────
+
+  private prepare(eventType: string, data: any): { summary: string; context: string; tokenMint: string } | null {
+    // Normalise camelCase → snake_case so both formats hit the same handler
+    const normalised = eventType
+      .replace('newTweet', 'new_tweet')
+      .replace('newToken', 'new_token')
+      .replace('godWalletBuy', 'god_wallet_buy_detected')
+      .replace('godWalletSell', 'god_wallet_sell_detected')
+      .replace('signalDetected', 'signal_detected')
+      .replace('buySignal', 'buy_signal');
+
+    // DevPrint wraps payload in a nested `data` field for some events — unwrap it
+    const payload = data.data && typeof data.data === 'object' ? { ...data, ...data.data } : data;
+
+    switch (normalised) {
+      case 'signal_detected':
+      case 'buy_signal':
+        return formatSignalEvent(payload);
+      case 'god_wallet_buy_detected':
+      case 'god_wallet_sell_detected':
+        return formatGodWalletEvent(payload);
+      case 'new_token':
+        return formatNewTokenEvent(payload);
+      case 'new_tweet':
+        return formatTweetEvent(payload);
+      default:
+        return null;
+    }
+  }
+
+  private async generateAndStore(
+    eventType: string,
+    rawData: any,
+    summary: string,
+    context: string,
+    tokenMint: string,
+  ): Promise<void> {
+    console.log(`🤖 [AgentReactor] Generating commentary for ${eventType}: ${tokenMint.substring(0, 8)}...`);
+
+    // Generate LLM commentary
+    const prompt = SIGNAL_SYSTEM_PROMPT(summary, context);
+    const response = await llmService.generate(
+      prompt,
+      `Generate 5 agent reactions to this ${eventType} event. JSON array only, no markdown.`,
+    );
+    if (!response) {
+      console.warn('[AgentReactor] LLM returned empty response');
+      return;
+    }
+
+    let analyses: any[];
+    try {
+      const jsonStr = response.replace(/```json/gi, '').replace(/```/g, '').trim();
+      analyses = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      console.error('[AgentReactor] Failed to parse LLM JSON:', parseErr, '\nRaw:', response.slice(0, 300));
+      return;
+    }
+
+    if (!Array.isArray(analyses) || analyses.length === 0) {
+      console.warn('[AgentReactor] LLM returned invalid analyses array');
+      return;
+    }
+
+    // Find or create conversation for this token
+    let conversation = await db.agentConversation.findFirst({
+      where: {
+        tokenMint,
+        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }, // within 24h
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!conversation) {
+      const symbol = rawData.tokenSymbol || rawData.symbol || tokenMint.substring(0, 8);
+      conversation = await db.agentConversation.create({
+        data: {
+          topic: `Signal: ${symbol}`,
+          tokenMint,
+        },
+      });
+    }
+
+    // Post each agent's message + optionally initiate paper trade
+    let messagesPosted = 0;
+    for (const analysis of analyses) {
+      const agent = await db.tradingAgent.findFirst({
+        where: { name: analysis.agentName },
+      });
+      if (!agent) {
+        console.warn(`[AgentReactor] Agent not found: ${analysis.agentName}`);
+        continue;
+      }
+
+      await db.agentMessage.create({
+        data: {
+          conversationId: conversation.id,
+          agentId: agent.id,
+          message: `${analysis.emoji} ${analysis.message}`,
+        },
+      });
+      messagesPosted++;
+
+      console.log(`  ✅ ${analysis.emoji} ${analysis.agentName}: "${analysis.message.substring(0, 60)}${analysis.message.length > 60 ? '…' : ''}"`);
+
+      // ── Free-will paper trade initiation ─────────────────
+      // When an agent has BULLISH conviction >= 72 AND it's a buy signal,
+      // they initiate their own paper trade — simulating real free will.
+      const isBuySignal = eventType.toLowerCase().includes('buy') || eventType === 'signal_detected' || eventType === 'buy_signal';
+      const sentiment: string = (analysis.sentiment || '').toUpperCase();
+      const confidence: number = Number(analysis.confidence) || 0;
+
+      if (isBuySignal && sentiment === 'BULLISH' && confidence >= 72) {
+        await this.initiatePaperTrade(agent.id, tokenMint, rawData, confidence, eventType).catch((err) =>
+          console.error(`[AgentReactor] Paper trade initiation failed for ${agent.name}:`, err),
+        );
+      }
+    }
+
+    console.log(`🎉 [AgentReactor] Posted ${messagesPosted} agent messages for ${tokenMint.substring(0, 8)} (conv: ${conversation.id.slice(0, 8)})`);
+  }
+
+  /**
+   * When an agent has high BULLISH conviction, create an autonomous paper trade.
+   * This is the "free will" trade initiation — not driven by any human instruction.
+   */
+  private async initiatePaperTrade(
+    agentId: string,
+    tokenMint: string,
+    eventData: any,
+    confidence: number,
+    signalSource: string,
+  ): Promise<void> {
+    // Check if this agent already has an open position in this token
+    const existingTrade = await db.paperTrade.findFirst({
+      where: { agentId, tokenMint, status: 'OPEN' },
+    });
+    if (existingTrade) return; // Already in position — don't double-buy
+
+    const symbol = eventData.tokenSymbol || eventData.symbol || tokenMint.substring(0, 8);
+    const name = eventData.tokenName || symbol;
+    const marketCap = eventData.marketCap ? Number(eventData.marketCap) : null;
+    const liquidity = eventData.liquidity ? Number(eventData.liquidity) : null;
+
+    // Position size: 0.25–1.5 SOL scaled by confidence (72→100 maps to 0.25→1.5)
+    const solAmount = parseFloat((0.25 + ((confidence - 72) / 28) * 1.25).toFixed(3));
+
+    // Entry price estimate: use SOL price ~$82 as default (doesn't need to be exact for paper trades)
+    const entryPriceSol = 82;
+
+    await db.paperTrade.create({
+      data: {
+        agentId,
+        tokenMint,
+        tokenSymbol: symbol,
+        tokenName: name,
+        action: 'BUY',
+        chain: 'SOLANA',
+        entryPrice: entryPriceSol,
+        amount: solAmount,
+        tokenAmount: solAmount * 1000, // Placeholder token amount
+        marketCap,
+        liquidity,
+        status: 'OPEN',
+        signalSource,
+        confidence,
+        metadata: {
+          source: 'agent_free_will',
+          eventType: signalSource,
+          triggeredAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    // Update agent trade counter
+    await db.tradingAgent.update({
+      where: { id: agentId },
+      data: { totalTrades: { increment: 1 } },
+    }).catch(() => {});
+
+    console.log(`  💰 [AgentReactor] Paper trade initiated: agent ${agentId.slice(0, 8)} → ${symbol} (${solAmount} SOL, confidence: ${confidence}%)`);
   }
 }
 
