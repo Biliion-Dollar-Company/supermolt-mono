@@ -1,6 +1,7 @@
 import { prisma } from '../lib/db';
 import type { TradeAction, TradeStatus } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { agentTradeReactor } from './agent-trade-reactor';
 
 // ─── User-facing queries ─────────────────────────────────
 
@@ -94,7 +95,7 @@ export async function createPaperTrade(input: CreateTradeInput) {
     throw new Error('Agent not found');
   }
 
-  return prisma.paperTrade.create({
+  const trade = await prisma.paperTrade.create({
     data: {
       agentId: input.agentId,
       tokenMint: input.tokenMint,
@@ -111,6 +112,13 @@ export async function createPaperTrade(input: CreateTradeInput) {
       metadata: (input.metadata ?? {}) as Record<string, string | number | boolean | null>,
     },
   });
+
+  // 🔥 NEW: Trigger agent conversation for this trade
+  agentTradeReactor.reactToTrade(trade.id).catch((err) => {
+    console.error('[TradeService] Failed to trigger trade reactor:', err);
+  });
+
+  return trade;
 }
 
 export interface CloseTradeInput {
@@ -134,8 +142,8 @@ export async function closePaperTrade(input: CloseTradeInput) {
   }
 
   // Update trade and agent stats in a transaction
-  return prisma.$transaction(async (tx) => {
-    const closedTrade = await tx.paperTrade.update({
+  const closedTrade = await prisma.$transaction(async (tx) => {
+    const updatedTrade = await tx.paperTrade.update({
       where: { id: input.tradeId },
       data: {
         exitPrice: input.exitPrice,
@@ -148,8 +156,15 @@ export async function closePaperTrade(input: CloseTradeInput) {
 
     await recalculateAgentStatsInTx(trade.agentId, tx, input.pnl);
 
-    return closedTrade;
+    return updatedTrade;
   });
+
+  // 🔥 NEW: Trigger agent conversation for closed trade (especially big wins/losses)
+  agentTradeReactor.reactToTrade(closedTrade.id).catch((err) => {
+    console.error('[TradeService] Failed to trigger trade reactor on close:', err);
+  });
+
+  return closedTrade;
 }
 
 /**

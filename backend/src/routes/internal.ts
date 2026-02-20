@@ -8,6 +8,7 @@ import { db } from '../lib/db';
 import { analyzeSuperRouterTrade } from '../services/agent-analyzer';
 import { fetchTokenMetrics, analyzeSmartMoneyFlow } from '../services/token-data.service';
 import { getTwitterAPI } from '../services/twitter-api.service';
+import { agentTradeReactor } from '../services/agent-trade-reactor';
 
 const internal = new Hono();
 const sortinoService = createSortinoService(db);
@@ -1055,6 +1056,63 @@ internal.post('/test-agent-reactor', async (c) => {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to trigger reactor';
     console.error('Test reactor error:', error);
+    return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message } }, 500);
+  }
+});
+
+// POST /internal/test/trade-reactor — Test trade conversation generator
+internal.post('/test/trade-reactor', async (c) => {
+  try {
+    const body = await c.req.json();
+    const { tradeId } = body;
+
+    if (!tradeId) {
+      return c.json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'tradeId required' } }, 400);
+    }
+
+    // Trigger trade reactor (force mode bypasses rate limits)
+    await agentTradeReactor.reactForce(tradeId);
+
+    // Fetch the conversation that was created
+    const trade = await db.paperTrade.findUnique({
+      where: { id: tradeId },
+      include: { agent: true },
+    });
+
+    if (!trade) {
+      return c.json({ success: false, error: { code: 'NOT_FOUND', message: 'Trade not found' } }, 404);
+    }
+
+    const conversation = await db.agentConversation.findFirst({
+      where: { tokenMint: trade.tokenMint },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        messages: {
+          orderBy: { timestamp: 'desc' },
+          take: 10,
+          include: { conversation: false },
+        },
+      },
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        tradeId,
+        tokenMint: trade.tokenMint,
+        tokenSymbol: trade.tokenSymbol,
+        conversationId: conversation?.id ?? null,
+        messagesGenerated: conversation?.messages?.length ?? 0,
+        preview: conversation?.messages?.map((m: any) => ({
+          agentId: m.agentId,
+          message: m.message,
+          timestamp: m.timestamp,
+        })) ?? [],
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to test trade reactor';
+    console.error('Test trade reactor error:', error);
     return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message } }, 500);
   }
 });

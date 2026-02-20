@@ -18,6 +18,7 @@
 
 import { db } from '../lib/db';
 import { llmService } from './llm.service';
+import { agentTradeReactor } from './agent-trade-reactor';
 
 // ── Observer agent definitions ───────────────────────────
 
@@ -97,12 +98,12 @@ export async function ensureObserverAgents(): Promise<void> {
 
 /** tokenMint → last reaction timestamp */
 const tokenCooldowns = new Map<string, number>();
-const TOKEN_COOLDOWN_MS = 3 * 60 * 1000; // 3 min per token/author
+const TOKEN_COOLDOWN_MS = 60 * 1000; // 1 min per token (down from 3min for more activity)
 
 /** Global hourly cap */
 let hourlyCount = 0;
 let hourlyResetAt = Date.now() + 60 * 60 * 1000;
-const HOURLY_CAP = 60;
+const HOURLY_CAP = 120; // Up from 60 for more conversations
 
 function canReact(tokenMint: string): boolean {
   // Reset hourly counter
@@ -433,7 +434,7 @@ export class AgentSignalReactor {
     // Entry price estimate: use SOL price ~$82 as default (doesn't need to be exact for paper trades)
     const entryPriceSol = 82;
 
-    await db.paperTrade.create({
+    const trade = await db.paperTrade.create({
       data: {
         agentId,
         tokenMint,
@@ -464,6 +465,11 @@ export class AgentSignalReactor {
     }).catch(() => {});
 
     console.log(`  💰 [AgentReactor] Paper trade initiated: agent ${agentId.slice(0, 8)} → ${symbol} (${solAmount} SOL, confidence: ${confidence}%)`);
+
+    // 🔥 NEW: Trigger agent conversation for this autonomous trade
+    agentTradeReactor.reactToTrade(trade.id).catch((err) => {
+      console.error('[AgentReactor] Failed to trigger trade reactor:', err);
+    });
   }
 }
 
