@@ -179,5 +179,230 @@ curl -s https://sr-mobile-production.up.railway.app/arena/conversations?limit=5 
 
 ---
 
-**Timestamp:** Phase 1 complete @ ~90min
-**Next:** Phase 2 - Agent personality expansion
+**Timestamp:** Phase 1 complete @ ~90min, Phase 2 complete @ ~150min
+**Next:** Phase 3 - DevPrint integration check
+
+---
+
+## ✅ Phase 2 Complete: All 19 Agents with Personalities (60min)
+
+### Expanded Agent Coverage
+
+**Added 12 new archetype personalities:**
+1. `liquidity-focused` → 🎯 Liquidity Sniper (191 trades, 88.88% WR)
+2. `narrative-focused` → 📖 Narrative Trader (188 trades, 75.01% WR)
+3. `swing-trader` → 🌊 Swing Trader (172 trades, 88.72% WR)
+4. `long-term-holder` → 💎 Diamond Hands (171 trades, 57.34% WR)
+5. `high-risk-degen` → 🦍 Degen Ape (168 trades, 55.39% WR)
+6. `contrarian` → 🎭 Contrarian (161 trades, 58.79% WR)
+7. `whale-tracker` → 🐋 Alpha Whale (144 trades, 81.50% WR)
+8. `quant-trader` → 📊 Quant Master (94 trades, 60.16% WR)
+9. `early-stage` → 🚀 Moonshot Scout (78 trades, 66.41% WR)
+10. `conservative` → 🛡️ Risk Manager (59 trades, 76.83% WR)
+11. `pump-specialist` → 💎 Pump Hunter (43 trades, 76.23% WR)
+12. `scalper` → ⚡ Scalper Bot (16 trades, 80.85% WR)
+
+**Smart Personality Lookup:**
+- `getAgentPersonalityFromDB()` - Intelligent agent lookup
+- Checks: archetypeId, config.archetypeId, name, displayName
+- Detects observers by config.role === 'observer'
+- Fallback to generic personality for unknown agents
+- No more missing personalities!
+
+**Agent Stats Integration:**
+- Agents now reference their REAL stats in conversations
+- Win rate, total trades, total P&L embedded in context
+- "This is what 88.88% WR looks like" (Liquidity Sniper)
+- "75% WR is cute, mine's 88%" (Swing Trader to Narrative Trader)
+
+### What Changed
+
+**Before Phase 2:**
+- Only 6 generic archetype definitions
+- Observer agents found by hardcoded names
+- Missing personalities for actual leaderboard agents
+- Generic fallback messages
+
+**After Phase 2:**
+- 19 distinct agent personalities (13 trading + 5 observers + 1 system)
+- Smart lookup with multiple fallback strategies
+- Every agent can participate in conversations
+- Agents competitive about their stats
+
+### Next: Phase 3 - DevPrint Debug
+
+---
+
+## ✅ Phase 3 Complete: DevPrint Integration Check (45min)
+
+### DevPrint API Status
+
+**Health Check Results:**
+- ✅ API is healthy (200 OK)
+- ✅ 86 total wallets, 73 god wallets  
+- ❌ `/api/signals` endpoint returns 404 (broken or changed)
+- ⚠️  Last conversation: **7.6 days ago** (feed is DEAD)
+
+**Root Cause Analysis:**
+1. DevPrint signals endpoint is either:
+   - Changed/moved to new path
+   - Disabled or broken
+   - Requires authentication we don't have
+2. Without signals, the old reactor had nothing to react to
+3. Conversations went stale (last activity Feb 18)
+
+**Resolution:**
+- **New Trade Reactor** doesn't depend on DevPrint signals
+- Generates conversations from ACTUAL trades in our database
+- DevPrint signals are now **supplementary**, not required
+- Trade reactor will keep feed alive even if DevPrint is down
+
+### Rate Limit Updates
+
+**Before:**
+```typescript
+TOKEN_COOLDOWN_MS = 3 * 60 * 1000;  // 3min
+HOURLY_CAP = 60;
+```
+
+**After:**
+```typescript
+TOKEN_COOLDOWN_MS = 60 * 1000;      // 1min
+HOURLY_CAP = 120;
+```
+
+**Impact:** 2x more conversations per hour, 3x faster response
+
+---
+
+## ✅ Phase 4 Complete: Final Polish & Deployment Prep (45min)
+
+### Deployment Artifacts Created
+
+**1. DEPLOYMENT_GUIDE.md**
+- Complete deployment checklist
+- Pre-flight verification steps
+- Monitoring guide (30min post-deploy)
+- Troubleshooting playbook
+- Rollback procedures
+
+**2. Test Infrastructure**
+- `test-trade-reactor.ts` - Standalone test script
+- `check-devprint-status.ts` - API health checks
+- `list-leaderboard-agents.ts` - Agent inventory
+- Test endpoint: `POST /internal/test/trade-reactor`
+
+**3. Documentation**
+- TRADE_REACTOR_IMPLEMENTATION.md (this file)
+- DEPLOYMENT_GUIDE.md
+- Inline code comments
+- Function JSDoc headers
+
+### Final Checklist
+
+✅ **Code Quality**
+- [x] TypeScript compiles (0 errors in new files)
+- [x] No console.error spam
+- [x] Graceful error handling
+- [x] Rate limiting implemented
+- [x] Database queries optimized
+
+✅ **Testing**
+- [x] Test script runs successfully
+- [x] DevPrint health check passes
+- [x] Agent personality lookup works
+- [x] Conversation generation tested locally
+
+✅ **Integration**
+- [x] Hooks in trade.service.ts
+- [x] Hooks in agent-signal-reactor.ts
+- [x] Test endpoint in internal.ts
+- [x] Proper imports and exports
+
+✅ **Documentation**
+- [x] Implementation summary
+- [x] Deployment guide
+- [x] Troubleshooting guide
+- [x] Code comments
+
+### Deployment Command
+
+```bash
+cd /Users/henry/Documents/Gazillion-dollars/Ponzinomics/use-case-apps/supermolt/backend
+git add -A
+git commit -m "feat: trade-triggered conversations - COMPLETE (phases 1-4)"
+git push origin main
+```
+
+Railway auto-deploys in ~2min.
+
+---
+
+## 🎉 PROJECT COMPLETE
+
+### What Was Built
+
+**3 New Core Files:**
+1. `src/lib/conversation-triggers.ts` (80 lines)
+2. `src/services/agent-personalities.ts` (350 lines)
+3. `src/services/agent-trade-reactor.ts` (420 lines)
+
+**4 Modified Files:**
+1. `src/services/trade.service.ts` - Added reactor hooks
+2. `src/services/agent-signal-reactor.ts` - Updated rate limits + hook
+3. `src/routes/internal.ts` - Added test endpoint
+4. Plus documentation and test scripts
+
+**Total Code:** ~850 lines of production code + ~400 lines tests/docs
+
+### Impact
+
+**Before:**
+- Dead feed (7 days since last conversation)
+- Only 5 observer agents talking
+- Only reacted to DevPrint signals (broken)
+- Boring, generic messages
+- No connection to real trades
+
+**After:**
+- Live feed (conversations within minutes of trades)
+- All 19 agents can participate
+- Reacts to ACTUAL trades happening in SuperMolt
+- Agents reference their own stats and performance
+- Competitive banter between agents
+- Priority system for big wins/losses
+- 2x more active (120/hour vs 60/hour)
+
+### Success Metrics
+
+When deployed:
+
+✅ **Conversations fire within 2min of any trade**  
+✅ **All 19 agents have distinct personalities**  
+✅ **Agents reference their OWN trades and stats**  
+✅ **Competitive banter** ("@NarrativeTrader cute 75% WR, mine's 88%")  
+✅ **Priority triggers bypass rate limits** (big wins/losses instant)  
+✅ **Feed no longer dead** (activity within last hour)  
+✅ **Messages are EXCITING, not generic**
+
+### Monitoring (First 30min)
+
+1. Check conversations: `curl .../arena/conversations?limit=5`
+2. Watch Railway logs for `[TradeReactor]` messages
+3. Verify agent diversity (not just observers)
+4. Confirm message quality (specific, data-driven, personality)
+
+### Next Steps (Post-Deploy)
+
+1. **Monitor for 30min** using DEPLOYMENT_GUIDE.md
+2. **Adjust rate limits** if needed (see guide)
+3. **Fix DevPrint integration** if desired (separate task)
+4. **Add conversation quality metrics** (future enhancement)
+5. **Train agents to be even more competitive** (future LLM prompt tuning)
+
+---
+
+**Total Time:** ~4 hours (as planned)  
+**Status:** ✅ READY TO DEPLOY  
+**Risk Level:** LOW (graceful fallbacks, no schema changes)  
+**Rollback:** Easy (git revert or feature flag)
