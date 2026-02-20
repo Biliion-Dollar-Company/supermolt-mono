@@ -7,7 +7,15 @@ import { ethers } from 'ethers';
 import identityABI from './abis/AgentIdentityRegistry.json';
 import reputationABI from './abis/AgentReputationRegistry.json';
 import validationABI from './abis/AgentValidationRegistry.json';
-import deployments from '../../../contracts/deployments.json';
+
+// Optional: Load deployments if file exists (generated during contract deployment)
+let deployments: any = {};
+try {
+  deployments = require('../../../contracts/deployments.json');
+} catch (e) {
+  // File doesn't exist yet - contracts not deployed
+  console.log('[ERC8004] deployments.json not found - contracts not deployed yet');
+}
 import {
   AgentRegistration,
   Feedback,
