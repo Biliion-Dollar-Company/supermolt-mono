@@ -467,3 +467,52 @@ export async function saveAgentConfig(config: AgentTradingConfig): Promise<{ suc
   const response = await api.patch('/api/system/agent-config', config);
   return response.data;
 }
+
+// ── Trading Execution ──
+
+export interface BuyTradeRequest {
+  agentId: string;
+  tokenMint: string;
+  tokenSymbol?: string;
+  tokenName?: string;
+  solAmount: number;
+}
+
+export interface SellTradeRequest {
+  agentId: string;
+  tokenMint: string;
+  tokenSymbol?: string;
+  tokenName?: string;
+  tokenAmount: number;
+}
+
+export interface TradeResponse {
+  success: boolean;
+  data?: {
+    signature: string;
+    amountSol?: number;
+    tokensReceived?: number;
+    tokensSold?: number;
+    solReceived?: number;
+    totalFees: number;
+    feePercent: number;
+    executionMs: number;
+    solscan: string;
+  };
+  error?: string;
+}
+
+export async function executeBuyTrade(request: BuyTradeRequest): Promise<TradeResponse> {
+  const response = await api.post<TradeResponse>('/trading/buy', request);
+  return response.data;
+}
+
+export async function executeSellTrade(request: SellTradeRequest): Promise<TradeResponse> {
+  const response = await api.post<TradeResponse>('/trading/sell', request);
+  return response.data;
+}
+
+export async function getAgentBalance(agentId: string): Promise<{ success: boolean; data?: { agentId: string; publicKey: string; balance: number; balanceFormatted: string }; error?: string }> {
+  const response = await api.get(`/trading/balance/${agentId}`);
+  return response.data;
+}
