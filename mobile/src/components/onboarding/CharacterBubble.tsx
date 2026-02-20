@@ -67,7 +67,6 @@ export function CharacterBubble({ message, isTyping = false }: CharacterBubblePr
           style={styles.avatarImg}
           resizeMode="cover"
         />
-        <View style={styles.onlineDot} />
       </View>
 
       {/* Speech bubble */}
@@ -102,26 +101,12 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: 'hidden',
     flexShrink: 0,
-    position: 'relative',
   },
   avatarImg: {
     width: 84,
     height: 58,
     borderRadius: 14,
   },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.status.success,
-    borderWidth: 2,
-    borderColor: colors.surface.primary,
-    zIndex: 1,
-  },
-
   // Speech bubble — no border, full radius
   bubble: {
     flex: 1,

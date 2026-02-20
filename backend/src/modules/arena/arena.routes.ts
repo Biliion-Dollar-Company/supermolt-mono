@@ -5,6 +5,7 @@
  * Mounted at /arena in index.ts.
  *
  * GET /arena/leaderboard
+ * GET /arena/agents (NEW: all agents with current state)
  * GET /arena/trades?limit=N
  * GET /arena/positions
  * GET /arena/conversations
@@ -32,6 +33,7 @@ import {
   getAgentTradesById,
   getAgentPositionsById,
   getActiveTokens,
+  getAllAgents,
 } from './arena.service';
 import { db } from '../../lib/db';
 import { cachedFetch } from '../../lib/redis';
@@ -84,6 +86,18 @@ app.get('/leaderboard/xp', async (c) => {
   } catch (error: any) {
     console.error('Arena XP leaderboard error:', error);
     return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to load XP leaderboard' } }, 500);
+  }
+});
+
+// ── All Agents (War Room) ─────────────────────────────────
+
+app.get('/agents', async (c) => {
+  try {
+    const data = await cachedFetch('arena:agents', 30, getAllAgents);
+    return c.json(data);
+  } catch (error: any) {
+    console.error('Arena agents error:', error);
+    return c.json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to load agents' } }, 500);
   }
 });
 

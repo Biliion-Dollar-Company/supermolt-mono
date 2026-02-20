@@ -30,17 +30,25 @@ function parseExpiry(expiry: string): number {
   }
 }
 
-export async function issueAgentTokens(agentId: string, subject: string) {
+export async function issueAgentTokens(
+  agentId: string,
+  subject: string,
+  privyId?: string,
+  wallet?: string
+) {
   if (!JWT_SECRET || JWT_SECRET.length < 32) {
     throw new Error('JWT_SECRET must be set in environment and be at least 32 characters');
   }
 
   const secret = new TextEncoder().encode(JWT_SECRET);
 
+  // Include privyId and wallet to make agent JWT compatible with authMiddleware
   const token = await new jwt.SignJWT({
     sub: subject,
     agentId,
     type: 'agent',
+    ...(privyId && { privyId }),
+    ...(wallet && { wallet }),
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime(JWT_EXPIRES_IN)
@@ -50,6 +58,8 @@ export async function issueAgentTokens(agentId: string, subject: string) {
     sub: subject,
     agentId,
     type: 'agent_refresh',
+    ...(privyId && { privyId }),
+    ...(wallet && { wallet }),
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime(JWT_REFRESH_EXPIRES_IN)

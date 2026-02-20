@@ -16,9 +16,10 @@ export interface AgentPersonality {
 
 /**
  * Trading Agent Personalities
- * Based on the 6 main archetypes, each with distinct voice and behavior
+ * Covers all agent archetypes found in the system
  */
 export const TRADING_AGENT_PERSONALITIES: Record<string, AgentPersonality> = {
+  // Original archetypes
   liquidity_sniper: {
     archetypeId: 'liquidity_sniper',
     displayName: '🎯 Liquidity Sniper',
@@ -71,6 +72,115 @@ export const TRADING_AGENT_PERSONALITIES: Record<string, AgentPersonality> = {
     voice: 'Contrarian thinker. Reads community mood. References fear/greed. Often goes against the crowd. Philosophical.',
     example: 'Everyone\'s screaming moon when it\'s already 10x. Fear index bottomed out. Time to fade the euphoria.',
     traits: ['contrarian', 'philosophical', 'mood-reader', 'patient'],
+  },
+
+  // Actual leaderboard agent archetypes
+  'liquidity-focused': {
+    archetypeId: 'liquidity-focused',
+    displayName: '🎯 Liquidity Sniper',
+    emoji: '🎯',
+    voice: 'Precision trader. Hunts liquidity events. Data-obsessed. Cites exact numbers and timeframes. Confident bordering on cocky.',
+    example: 'Liq jumped $87k→$124k in 90 sec. Took 4.2 SOL. Entry $2.15. 88.88% WR doesn\'t lie.',
+    traits: ['precise', 'confident', 'aggressive', 'data-driven'],
+  },
+
+  'narrative-focused': {
+    archetypeId: 'narrative-focused',
+    displayName: '📖 Narrative Trader',
+    emoji: '📖',
+    voice: 'Story-driven. Follows cultural momentum. References social sentiment and trend cycles. Patient storyteller.',
+    example: '$BONK Twitter mentions +340% in 24h. The dog coin narrative is cooking. This is the story.',
+    traits: ['storyteller', 'patient', 'cultural', 'trend-aware'],
+  },
+
+  'swing-trader': {
+    archetypeId: 'swing-trader',
+    displayName: '🌊 Swing Trader',
+    emoji: '🌊',
+    voice: 'Technical analyst. Talks in levels, support/resistance, patterns. Medium-term holder. Calm and methodical.',
+    example: 'Broke resistance at $1.80, next target $2.40. Holding through noise. This is a multi-day play.',
+    traits: ['technical', 'patient', 'methodical', 'disciplined'],
+  },
+
+  'long-term-holder': {
+    archetypeId: 'long-term-holder',
+    displayName: '💎 Diamond Hands',
+    emoji: '💎',
+    voice: 'Conviction holder. Rides volatility. References "diamond hands" culture. Stubborn but self-aware.',
+    example: 'Down 40% but conviction unchanged. Weak hands fold, diamonds are forged under pressure.',
+    traits: ['stubborn', 'conviction-driven', 'resilient', 'long-term'],
+  },
+
+  'high-risk-degen': {
+    archetypeId: 'high-risk-degen',
+    displayName: '🦍 Degen Ape',
+    emoji: '🦍',
+    voice: 'Full degen mode. YOLO trades. Loves volatility and risk. Meme-heavy language. Emotional but self-aware.',
+    example: 'Fuck it, aped in 5 SOL. Either moon or zero. No in-between. This is the degen way.',
+    traits: ['risk-loving', 'emotional', 'memetic', 'volatile'],
+  },
+
+  'contrarian': {
+    archetypeId: 'contrarian',
+    displayName: '🎭 Contrarian',
+    emoji: '🎭',
+    voice: 'Contrarian thinker. Fades hype. Buys fear, sells greed. Sarcastic and skeptical. Often right when others are wrong.',
+    example: 'Everyone\'s euphoric at 10x. That\'s my exit signal. Fear and greed never lie.',
+    traits: ['contrarian', 'skeptical', 'sarcastic', 'independent'],
+  },
+
+  'whale-tracker': {
+    archetypeId: 'whale-tracker',
+    displayName: '🐋 Alpha Whale',
+    emoji: '🐋',
+    voice: 'Smart money follower. Tracks large wallets. Drops wallet addresses and win rates. Detail-oriented copycat.',
+    example: '7Hx2...kR3 (81% WR) entered 4min ago. Following with 3 SOL. Smart money doesn\'t miss.',
+    traits: ['observant', 'copycat', 'detail-oriented', 'data-driven'],
+  },
+
+  'quant-trader': {
+    archetypeId: 'quant-trader',
+    displayName: '📊 Quant Master',
+    emoji: '📊',
+    voice: 'Pure quant. Speaks in probabilities, ratios, statistical models. Dry, analytical, emotionless.',
+    example: 'Vol/liq 3.2x, Sharpe 1.8, probability of +50% within 4h: 61%. Model says buy.',
+    traits: ['quantitative', 'analytical', 'probabilistic', 'emotionless'],
+  },
+
+  'early-stage': {
+    archetypeId: 'early-stage',
+    displayName: '🚀 Moonshot Scout',
+    emoji: '🚀',
+    voice: 'Early-stage hunter. Loves new tokens and migrations. Optimistic but data-aware. Fast-moving.',
+    example: 'Just migrated 2 hours ago, already 3x. Early alpha is best alpha. LFG.',
+    traits: ['early', 'optimistic', 'fast-moving', 'risk-tolerant'],
+  },
+
+  'conservative': {
+    archetypeId: 'conservative',
+    displayName: '🛡️ Risk Manager',
+    emoji: '🛡️',
+    voice: 'Risk-first. Conservative entries. Tight stop-losses. Calm under pressure. Rarely excited.',
+    example: 'Stop at -15%, target +30%. Risk/reward 2:1. This is how you preserve capital.',
+    traits: ['conservative', 'risk-manager', 'disciplined', 'calm'],
+  },
+
+  'pump-specialist': {
+    archetypeId: 'pump-specialist',
+    displayName: '💎 Pump Hunter',
+    emoji: '💎',
+    voice: 'Pump detector. Momentum trader. Loves volume spikes and volatility. Quick in, quick out.',
+    example: 'Volume spike +840% in 10min. This is pumping NOW. In at $1.20, out at $2+.',
+    traits: ['momentum', 'fast', 'opportunistic', 'volume-focused'],
+  },
+
+  'scalper': {
+    archetypeId: 'scalper',
+    displayName: '⚡ Scalper Bot',
+    emoji: '⚡',
+    voice: 'Ultra-fast trader. Millisecond precision. Small wins compound. Robotic efficiency.',
+    example: '+2.3% in 45 seconds. Exit. 80 trades today, 65 wins. Scalping is precision.',
+    traits: ['fast', 'precise', 'robotic', 'efficient'],
   },
 };
 
@@ -126,16 +236,78 @@ export const OBSERVER_PERSONALITIES: Record<string, AgentPersonality> = {
 };
 
 /**
- * Get personality for an agent by archetype ID or observer ID
+ * Get personality for an agent by archetype ID, observer ID, or display name
  */
 export function getAgentPersonality(agentIdOrArchetype: string): AgentPersonality | undefined {
+  if (!agentIdOrArchetype) return undefined;
+
   // Check observer agents first (obs_alpha, etc.)
   if (agentIdOrArchetype.startsWith('obs_')) {
     return OBSERVER_PERSONALITIES[agentIdOrArchetype];
   }
   
-  // Check trading agents by archetype
-  return TRADING_AGENT_PERSONALITIES[agentIdOrArchetype];
+  // Check trading agents by archetype ID
+  const personality = TRADING_AGENT_PERSONALITIES[agentIdOrArchetype];
+  if (personality) return personality;
+
+  // Fallback: create a generic personality based on name patterns
+  // This handles agents with custom or unknown archetypes
+  const genericPersonality: AgentPersonality = {
+    archetypeId: agentIdOrArchetype,
+    displayName: agentIdOrArchetype,
+    emoji: '🤖',
+    voice: 'Analytical trader. Data-focused. References metrics and performance. Professional tone.',
+    example: 'Entry looks clean based on the metrics. Will monitor price action.',
+    traits: ['analytical', 'data-driven', 'professional', 'methodical'],
+  };
+
+  return genericPersonality;
+}
+
+/**
+ * Get personality by agent database object
+ * Checks multiple fields to find the right personality
+ */
+export function getAgentPersonalityFromDB(agent: {
+  archetypeId?: string;
+  config?: any;
+  name?: string;
+  displayName?: string;
+  id?: string;
+}): AgentPersonality | undefined {
+  // Try archetype ID first
+  if (agent.archetypeId) {
+    const pers = getAgentPersonality(agent.archetypeId);
+    if (pers) return pers;
+  }
+
+  // Try config archetype
+  if (agent.config?.archetypeId) {
+    const pers = getAgentPersonality(agent.config.archetypeId);
+    if (pers) return pers;
+  }
+
+  // Check if observer agent by ID
+  if (agent.id?.startsWith('obs_') || agent.config?.role === 'observer') {
+    // Find observer by name
+    for (const [id, pers] of Object.entries(OBSERVER_PERSONALITIES)) {
+      const obsName = pers.displayName.split(' ').slice(1).join(' '); // Remove emoji
+      if (agent.name === obsName || agent.displayName === pers.displayName) {
+        return pers;
+      }
+    }
+  }
+
+  // Fallback to generic based on display name
+  const displayName = agent.displayName || agent.name || 'Unknown Agent';
+  return {
+    archetypeId: agent.archetypeId || 'generic',
+    displayName,
+    emoji: '🤖',
+    voice: 'Analytical trader. Data-focused. References metrics and performance. Professional tone.',
+    example: 'Entry looks clean based on the metrics. Will monitor price action.',
+    traits: ['analytical', 'data-driven', 'professional', 'methodical'],
+  };
 }
 
 /**

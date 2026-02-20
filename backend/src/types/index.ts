@@ -3,6 +3,8 @@ export interface JwtPayload {
   sub: string;
   privyId: string;
   wallet?: string;
+  agentId?: string; // Present in agent JWTs
+  type?: 'agent' | 'agent_refresh'; // Present in agent JWTs
   iat: number;
   exp: number;
 }

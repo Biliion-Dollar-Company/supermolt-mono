@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderWidth: 1,
     borderColor: 'rgba(249, 115, 22, 0.15)',
-    backgroundColor: colors.surface.secondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     overflow: 'hidden',
     gap: 16,
   },

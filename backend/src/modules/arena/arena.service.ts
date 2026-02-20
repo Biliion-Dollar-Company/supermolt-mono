@@ -1221,6 +1221,152 @@ export async function getActiveTokens(hours = 24) {
   return { tokens: tokens.slice(0, 50) };
 }
 
+// ── All Agents (for War Room visualization) ──────────────
+
+export async function getAllAgents() {
+  // Get all trading agents
+  const agents = await db.tradingAgent.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (agents.length === 0) {
+    return { agents: [] };
+  }
+
+  const agentIds = agents.map((a) => a.id);
+
+  // Get stats, positions, and recent trades in parallel
+  const [stats, positions, recentTrades, predictionStats] = await Promise.all([
+    db.agentStats.findMany({
+      where: { agentId: { in: agentIds } },
+    }),
+    db.agentPosition.findMany({
+      where: {
+        agentId: { in: agentIds },
+        quantity: { gt: 0 },
+      },
+    }),
+    db.agentTrade.findMany({
+      where: { agentId: { in: agentIds } },
+      orderBy: { createdAt: 'desc' },
+      take: 1000, // Get recent trades for all agents
+    }),
+    db.predictionStats.findMany({
+      where: { agentId: { in: agentIds } },
+    }),
+  ]);
+
+  const statsMap = new Map(stats.map((s) => [s.agentId, s]));
+  const predictionStatsMap = new Map(predictionStats.map((p) => [p.agentId, p]));
+
+  // Group positions by agent
+  const positionsByAgent = new Map<string, typeof positions>();
+  for (const pos of positions) {
+    if (!positionsByAgent.has(pos.agentId)) {
+      positionsByAgent.set(pos.agentId, []);
+    }
+    positionsByAgent.get(pos.agentId)!.push(pos);
+  }
+
+  // Group recent trades by agent
+  const tradesByAgent = new Map<string, typeof recentTrades>();
+  for (const trade of recentTrades) {
+    if (!tradesByAgent.has(trade.agentId)) {
+      tradesByAgent.set(trade.agentId, []);
+    }
+    tradesByAgent.get(trade.agentId)!.push(trade);
+  }
+
+  const { getLevelName } = await import('../../services/onboarding.service');
+
+  const agentList = agents.map((agent) => {
+    const agentStats = statsMap.get(agent.id);
+    const agentPositions = positionsByAgent.get(agent.id) || [];
+    const agentTrades = tradesByAgent.get(agent.id) || [];
+    const agentPredictionStats = predictionStatsMap.get(agent.id);
+
+    // Determine current token (most recent open position)
+    const currentToken = agentPositions.length > 0 ? {
+      tokenMint: agentPositions[0].tokenMint,
+      tokenSymbol: agentPositions[0].tokenSymbol,
+      quantity: parseFloat(agentPositions[0].quantity.toString()),
+      entryPrice: parseFloat(agentPositions[0].entryPrice.toString()),
+      openedAt: agentPositions[0].openedAt.toISOString(),
+    } : null;
+
+    // Recent activity: last 5 trades
+    const recentActivity = agentTrades.slice(0, 5).map((trade) => ({
+      action: trade.action,
+      tokenSymbol: trade.tokenSymbol || trade.tokenMint.slice(0, 6),
+      tokenMint: trade.tokenMint,
+      amount: parseFloat(trade.solAmount.toString()),
+      timestamp: trade.createdAt.toISOString(),
+    }));
+
+    // Activity status: determine if active based on recent trades
+    const lastTradeTime = agentTrades.length > 0 ? new Date(agentTrades[0].createdAt).getTime() : 0;
+    const now = Date.now();
+    const hoursSinceLastTrade = (now - lastTradeTime) / (1000 * 60 * 60);
+    
+    let activityStatus: 'active' | 'idle' | 'inactive';
+    if (agent.status === 'PAUSED') {
+      activityStatus = 'inactive';
+    } else if (hoursSinceLastTrade < 1) {
+      activityStatus = 'active';
+    } else if (hoursSinceLastTrade < 24) {
+      activityStatus = 'idle';
+    } else {
+      activityStatus = 'inactive';
+    }
+
+    return {
+      agentId: agent.id,
+      agentName: agent.displayName || agent.name,
+      walletAddress: agent.userId,
+      chain: agent.chain,
+      evmAddress: agent.evmAddress || undefined,
+      archetypeId: agent.archetypeId,
+      status: agent.status,
+      activityStatus,
+      
+      // XP & Level
+      xp: agent.xp,
+      level: agent.level,
+      levelName: getLevelName(agent.level),
+      
+      // Stats
+      sortino_ratio: agentStats ? parseFloat(agentStats.sortinoRatio.toString()) : 0,
+      win_rate: parseFloat(agent.winRate.toString()),
+      total_pnl: parseFloat(agent.totalPnl.toString()),
+      trade_count: agent.totalTrades,
+      
+      // Profile
+      bio: agent.bio,
+      avatarUrl: agent.avatarUrl,
+      twitterHandle: agent.twitterHandle,
+      
+      // Current state
+      currentToken,
+      openPositionsCount: agentPositions.length,
+      recentActivity,
+      
+      // Prediction stats (if available)
+      predictionStats: agentPredictionStats ? {
+        totalPredictions: agentPredictionStats.totalPredictions,
+        correctPredictions: agentPredictionStats.correctPredictions,
+        accuracy: parseFloat(agentPredictionStats.accuracy.toString()),
+        streak: agentPredictionStats.streak,
+      } : null,
+      
+      // Timestamps
+      createdAt: agent.createdAt.toISOString(),
+      updatedAt: agent.updatedAt.toISOString(),
+    };
+  });
+
+  return { agents: agentList };
+}
+
 // Re-export RANK_MULTIPLIERS for use in getEpochRewards
 const RANK_MULTIPLIERS: { [key: number]: number } = {
   1: 2.0,

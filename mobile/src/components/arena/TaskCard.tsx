@@ -24,11 +24,13 @@ export function TaskCard({ task, style }: TaskCardProps) {
   return (
     <View
       style={[{
-        backgroundColor: colors.surface.secondary,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 12,
         padding: 12,
         width: 160,
         gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
       }, style]}
     >
       {/* Icon + XP */}

@@ -26,6 +26,7 @@ import {
 } from '../lib/conversation-triggers';
 import {
   getAgentPersonality,
+  getAgentPersonalityFromDB,
   buildAgentContext,
   TRADING_AGENT_PERSONALITIES,
   OBSERVER_PERSONALITIES,
@@ -84,7 +85,7 @@ function buildTradeConversationPrompt(
 ): string {
   const symbol = trade.tokenSymbol || 'UNKNOWN';
   const agentName = tradingAgent.displayName || tradingAgent.name;
-  const personality = getAgentPersonality(tradingAgent.config?.archetypeId || tradingAgent.archetypeId);
+  const personality = getAgentPersonalityFromDB(tradingAgent);
 
   let eventSummary = '';
   
@@ -131,7 +132,7 @@ function buildTradeConversationPrompt(
 
   // Build agent contexts
   const agentContexts = participatingAgents.map((agent) => {
-    const pers = getAgentPersonality(agent.config?.archetypeId || agent.archetypeId || agent.id);
+    const pers = getAgentPersonalityFromDB(agent);
     if (!pers) return null;
 
     const stats = {
@@ -274,14 +275,15 @@ export class AgentTradeReactor {
   ): Promise<void> {
     try {
       // Select participating agents (mix of observers + related trading agents)
+      // Find observer agents by checking config.role === 'observer'
       const observerAgents = await db.tradingAgent.findMany({
         where: {
-          name: { in: Object.keys(OBSERVER_PERSONALITIES).map(id => {
-            const pers = OBSERVER_PERSONALITIES[id];
-            // Extract name from displayName (e.g., "🛡️ Agent Alpha" -> "Agent Alpha")
-            return pers.displayName.split(' ').slice(1).join(' ');
-          }) },
+          OR: [
+            { config: { path: ['role'], equals: 'observer' } },
+            { name: { in: ['Agent Alpha', 'Agent Beta', 'Agent Gamma', 'Agent Delta', 'Agent Epsilon'] } },
+          ],
         },
+        take: 10, // Limit to avoid too many queries
       });
 
       // Get trading agents involved in this token

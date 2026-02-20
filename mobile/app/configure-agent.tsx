@@ -154,7 +154,7 @@ export default function ConfigureAgentScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary, justifyContent: 'center', alignItems: 'center' }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' }} edges={['top']}>
         <ActivityIndicator size="large" color={colors.brand.primary} />
       </SafeAreaView>
     );
@@ -163,9 +163,9 @@ export default function ConfigureAgentScreen() {
   const wallets = config?.trackedWallets ?? [];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
       {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: colors.surface.tertiary }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: 'rgba(255, 255, 255, 0.07)' }}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
         </TouchableOpacity>
@@ -195,7 +195,7 @@ export default function ConfigureAgentScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.brand.primary} />}
       >
         {/* ── Tracked Wallets ── */}
-        <View style={{ backgroundColor: colors.surface.secondary, borderRadius: 12, padding: 14, gap: 10 }}>
+        <View style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 12, padding: 14, gap: 10, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View>
               <Text variant="body" color="primary" style={{ fontWeight: '700' }}>Tracked Wallets</Text>
@@ -213,7 +213,7 @@ export default function ConfigureAgentScreen() {
 
           {/* Add wallet form */}
           {showAddWallet && (
-            <View style={{ gap: 8, padding: 10, backgroundColor: colors.surface.tertiary, borderRadius: 8 }}>
+            <View style={{ gap: 8, padding: 10, backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: 8 }}>
               {/* Chain selector */}
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {(['SOLANA', 'BSC'] as const).map((chain) => (
@@ -227,7 +227,7 @@ export default function ConfigureAgentScreen() {
                       alignItems: 'center',
                       backgroundColor: newChain === chain ? colors.brand.primary + '25' : 'transparent',
                       borderWidth: 1,
-                      borderColor: newChain === chain ? colors.brand.primary + '50' : colors.surface.tertiary,
+                      borderColor: newChain === chain ? colors.brand.primary + '50' : 'rgba(255, 255, 255, 0.08)',
                     }}
                   >
                     <Text variant="caption" color={newChain === chain ? 'brand' : 'muted'} style={{ fontWeight: '600' }}>
@@ -241,7 +241,7 @@ export default function ConfigureAgentScreen() {
                 placeholderTextColor={colors.text.muted}
                 value={newAddress}
                 onChangeText={setNewAddress}
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, fontFamily: 'monospace', fontSize: 12 }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, fontFamily: 'monospace', fontSize: 12 }}
                 autoCapitalize="none"
               />
               <TextInput
@@ -249,13 +249,13 @@ export default function ConfigureAgentScreen() {
                 placeholderTextColor={colors.text.muted}
                 value={newLabel}
                 onChangeText={setNewLabel}
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, fontSize: 13 }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, fontSize: 13 }}
               />
               <TouchableOpacity
                 onPress={handleAddWallet}
                 disabled={!newAddress.trim()}
                 style={{
-                  backgroundColor: newAddress.trim() ? colors.brand.primary : colors.surface.tertiary,
+                  backgroundColor: newAddress.trim() ? colors.brand.primary : 'rgba(255, 255, 255, 0.08)',
                   paddingVertical: 8,
                   borderRadius: 6,
                   alignItems: 'center',
@@ -280,7 +280,7 @@ export default function ConfigureAgentScreen() {
                     gap: 8,
                     paddingHorizontal: 10,
                     paddingVertical: 8,
-                    backgroundColor: colors.surface.tertiary,
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
                     borderRadius: 8,
                   }}
                 >
@@ -306,7 +306,7 @@ export default function ConfigureAgentScreen() {
         </View>
 
         {/* ── Buy Triggers ── */}
-        <View style={{ backgroundColor: colors.surface.secondary, borderRadius: 12, padding: 14, gap: 10 }}>
+        <View style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 12, padding: 14, gap: 10, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' }}>
           <View>
             <Text variant="body" color="primary" style={{ fontWeight: '700' }}>Buy Triggers</Text>
             <Text variant="caption" color="muted" style={{ marginTop: 2 }}>
@@ -327,7 +327,7 @@ export default function ConfigureAgentScreen() {
                 value={String(triggers.find((t) => t.type === 'godwallet')?.config.autoBuyAmount ?? 0.1)}
                 onChangeText={(v) => updateTriggerConfig('godwallet', { autoBuyAmount: parseFloat(v) || 0.1 })}
                 keyboardType="decimal-pad"
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
               />
               <Text variant="caption" color="muted">SOL</Text>
             </View>
@@ -346,14 +346,14 @@ export default function ConfigureAgentScreen() {
                 value={String(triggers.find((t) => t.type === 'consensus')?.config.walletCount ?? 2)}
                 onChangeText={(v) => updateTriggerConfig('consensus', { walletCount: parseInt(v) || 2 })}
                 keyboardType="number-pad"
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 36, fontSize: 12, textAlign: 'center' }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 36, fontSize: 12, textAlign: 'center' }}
               />
               <Text variant="caption" color="muted">wallets buy within</Text>
               <TextInput
                 value={String(triggers.find((t) => t.type === 'consensus')?.config.timeWindowMinutes ?? 60)}
                 onChangeText={(v) => updateTriggerConfig('consensus', { timeWindowMinutes: parseInt(v) || 60 })}
                 keyboardType="number-pad"
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 50, fontSize: 12, textAlign: 'center' }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 50, fontSize: 12, textAlign: 'center' }}
               />
               <Text variant="caption" color="muted">min</Text>
             </View>
@@ -372,14 +372,14 @@ export default function ConfigureAgentScreen() {
                 value={String(triggers.find((t) => t.type === 'volume')?.config.volumeThreshold ?? 100000)}
                 onChangeText={(v) => updateTriggerConfig('volume', { volumeThreshold: parseInt(v) || 100000 })}
                 keyboardType="number-pad"
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 80, fontSize: 12, textAlign: 'center' }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 80, fontSize: 12, textAlign: 'center' }}
               />
               <Text variant="caption" color="muted">| Buy:</Text>
               <TextInput
                 value={String(triggers.find((t) => t.type === 'volume')?.config.autoBuyAmount ?? 0.05)}
                 onChangeText={(v) => updateTriggerConfig('volume', { autoBuyAmount: parseFloat(v) || 0.05 })}
                 keyboardType="decimal-pad"
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
               />
               <Text variant="caption" color="muted">SOL</Text>
             </View>
@@ -398,14 +398,14 @@ export default function ConfigureAgentScreen() {
                 value={String(triggers.find((t) => t.type === 'liquidity')?.config.minLiquidity ?? 50000)}
                 onChangeText={(v) => updateTriggerConfig('liquidity', { minLiquidity: parseInt(v) || 50000 })}
                 keyboardType="number-pad"
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 80, fontSize: 12, textAlign: 'center' }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 80, fontSize: 12, textAlign: 'center' }}
               />
               <Text variant="caption" color="muted">| Buy:</Text>
               <TextInput
                 value={String(triggers.find((t) => t.type === 'liquidity')?.config.autoBuyAmount ?? 0.05)}
                 onChangeText={(v) => updateTriggerConfig('liquidity', { autoBuyAmount: parseFloat(v) || 0.05 })}
                 keyboardType="decimal-pad"
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
               />
               <Text variant="caption" color="muted">SOL</Text>
             </View>
@@ -424,14 +424,14 @@ export default function ConfigureAgentScreen() {
                 value={String(triggers.find((t) => t.type === 'trending')?.config.minActivityScore ?? 20)}
                 onChangeText={(v) => updateTriggerConfig('trending', { minActivityScore: parseInt(v) || 20 })}
                 keyboardType="number-pad"
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 50, fontSize: 12, textAlign: 'center' }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 50, fontSize: 12, textAlign: 'center' }}
               />
               <Text variant="caption" color="muted">| Buy:</Text>
               <TextInput
                 value={String(triggers.find((t) => t.type === 'trending')?.config.autoBuyAmount ?? 0.05)}
                 onChangeText={(v) => updateTriggerConfig('trending', { autoBuyAmount: parseFloat(v) || 0.05 })}
                 keyboardType="decimal-pad"
-                style={{ backgroundColor: colors.surface.primary, color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
+                style={{ backgroundColor: 'transparent', color: colors.text.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, width: 60, fontSize: 12, textAlign: 'center' }}
               />
               <Text variant="caption" color="muted">SOL</Text>
             </View>
@@ -439,7 +439,7 @@ export default function ConfigureAgentScreen() {
         </View>
 
         {/* Safety info */}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, backgroundColor: colors.surface.secondary, borderRadius: 8 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, backgroundColor: 'rgba(255, 255, 255, 0.04)', borderRadius: 8 }}>
           <Ionicons name="shield-checkmark-outline" size={16} color={colors.brand.primary} style={{ marginTop: 1 }} />
           <View style={{ flex: 1 }}>
             <Text variant="caption" color="secondary" style={{ fontWeight: '600' }}>Safety Limits</Text>
@@ -472,7 +472,7 @@ function TriggerRow({
       padding: 10,
       backgroundColor: enabled ? colors.brand.primary + '08' : 'transparent',
       borderWidth: 1,
-      borderColor: enabled ? colors.brand.primary + '30' : colors.surface.tertiary,
+      borderColor: enabled ? colors.brand.primary + '30' : 'rgba(255, 255, 255, 0.08)',
       gap: 6,
     }}>
       <TouchableOpacity onPress={onToggle} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>

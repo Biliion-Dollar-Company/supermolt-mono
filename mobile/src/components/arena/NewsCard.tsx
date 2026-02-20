@@ -31,11 +31,13 @@ export function NewsCard({ item }: NewsCardProps) {
       activeOpacity={0.7}
       onPress={handlePress}
       style={{
-        backgroundColor: colors.surface.secondary,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 12,
         padding: 12,
         width: 260,
         gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
       }}
     >
       {/* Category Badge */}

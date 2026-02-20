@@ -1,7 +1,6 @@
-import { ScrollView, View, RefreshControl, StyleSheet, Dimensions } from 'react-native';
+import { ScrollView, View, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Line } from 'react-native-svg';
 import Animated, {
   FadeInDown,
 } from 'react-native-reanimated';
@@ -19,8 +18,8 @@ import { useState, useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
+import { useTourTarget } from '@/hooks/useTourTarget';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
 
 function SectionHeader({ label, count, icon }: { label: string; count?: number; icon?: string }) {
   return (
@@ -72,6 +71,7 @@ export default function HomeTab() {
   const agentProfile = useAuthStore((s) => s.agentProfile);
   const stats = useAuthStore((s) => s.stats);
 
+  const tourRef = useTourTarget('home');
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -92,29 +92,10 @@ export default function HomeTab() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.void[900] }}
+      style={{ flex: 1, backgroundColor: 'transparent' }}
       edges={['top']}
     >
-      {/* Multi-layer background */}
-      <LinearGradient
-        colors={['rgba(249, 115, 22, 0.06)', 'transparent', 'rgba(249, 115, 22, 0.02)']}
-        locations={[0, 0.4, 1]}
-        style={StyleSheet.absoluteFill}
-      />
 
-
-      {/* Subtle grid overlay */}
-      <View style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Svg width={SCREEN_WIDTH} height="100%" style={{ opacity: 0.4 }}>
-          {Array.from({ length: 20 }).map((_, i) => (
-            <Line
-              key={`hg${i}`}
-              x1="0" y1={i * 60} x2={SCREEN_WIDTH} y2={i * 60}
-              stroke="rgba(255,255,255,0.01)" strokeWidth="0.5"
-            />
-          ))}
-        </Svg>
-      </View>
 
       <ScrollView
         style={{ flex: 1 }}
@@ -156,8 +137,8 @@ export default function HomeTab() {
           todayTrades={agentLive.stats.todayTrades}
         />
 
-        {/* Stat Cards with staggered entry */}
-        <View style={cardStyles.row}>
+        {/* Stat Cards — tour spotlight target */}
+        <View ref={tourRef} collapsable={false} style={cardStyles.row}>
           <StatCard
             label="TRADES"
             value={String(totalTrades)}
@@ -211,8 +192,9 @@ const cardStyles = StyleSheet.create({
   },
   card: {
     flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 12,

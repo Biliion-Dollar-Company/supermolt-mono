@@ -148,7 +148,8 @@ auth.post('/agent/quickstart', authMiddleware, quickstartLimiter, async (c) => {
     });
 
     const subject = user.wallet || userId;
-    const tokens = await issueAgentTokens(agent.id, subject);
+    // Include privyId and wallet in agent JWT to make it compatible with authMiddleware
+    const tokens = await issueAgentTokens(agent.id, subject, user.privyId, user.wallet ?? undefined);
     const onboarding = await getOnboardingProgress(agent.id);
 
     return c.json({

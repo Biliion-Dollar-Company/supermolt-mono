@@ -57,7 +57,15 @@ const configUpdateSchema = z.object({
 
 agentConfigRoutes.get('/config', jwtAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const userId = c.get('userId');
+    const agentRecord = await db.tradingAgent.findFirst({
+      where: { userId },
+      select: { id: true, archetypeId: true, config: true },
+    });
+    if (!agentRecord) {
+      return c.json({ success: false, error: 'Agent not found' }, 404);
+    }
+    const agentId = agentRecord.id;
 
     // Get tracked wallets
     const trackedWallets = await db.trackedWallet.findMany({
@@ -86,17 +94,11 @@ agentConfigRoutes.get('/config', jwtAuth, async (c) => {
       orderBy: { createdAt: 'asc' },
     });
 
-    // Get agent config (archetype, etc.)
-    const agent = await db.tradingAgent.findUnique({
-      where: { id: agentId },
-      select: { archetypeId: true, config: true },
-    });
-
     return c.json({
       success: true,
       data: {
-        archetypeId: agent?.archetypeId,
-        config: agent?.config || {},
+        archetypeId: agentRecord.archetypeId,
+        config: agentRecord.config || {},
         trackedWallets,
         buyTriggers,
       },
@@ -115,7 +117,10 @@ agentConfigRoutes.get('/config', jwtAuth, async (c) => {
 
 agentConfigRoutes.put('/config', jwtAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const userId = c.get('userId');
+    const agentRecord = await db.tradingAgent.findFirst({ where: { userId }, select: { id: true } });
+    if (!agentRecord) return c.json({ success: false, error: 'Agent not found' }, 404);
+    const agentId = agentRecord.id;
     const body = await c.req.json();
 
     // Validate input
@@ -215,7 +220,10 @@ agentConfigRoutes.put('/config', jwtAuth, async (c) => {
 
 agentConfigRoutes.post('/wallets', jwtAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const userId = c.get('userId');
+    const agentRecord = await db.tradingAgent.findFirst({ where: { userId }, select: { id: true } });
+    if (!agentRecord) return c.json({ success: false, error: 'Agent not found' }, 404);
+    const agentId = agentRecord.id;
     const body = await c.req.json();
 
     const parsed = trackedWalletSchema.safeParse(body);
@@ -263,7 +271,10 @@ agentConfigRoutes.post('/wallets', jwtAuth, async (c) => {
 
 agentConfigRoutes.delete('/wallets/:id', jwtAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const userId = c.get('userId');
+    const agentRecord = await db.tradingAgent.findFirst({ where: { userId }, select: { id: true } });
+    if (!agentRecord) return c.json({ success: false, error: 'Agent not found' }, 404);
+    const agentId = agentRecord.id;
     const walletId = c.req.param('id');
 
     // Verify wallet belongs to agent

@@ -21,7 +21,7 @@ const ACTION_LABELS: Record<FeedEvent['action'], string> = {
   ANALYZING: 'SCAN',
 };
 
-export default function EventFeed({ events }: EventFeedProps) {
+export default function EventFeed({ events, hideHeader = false }: EventFeedProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new events
@@ -31,43 +31,50 @@ export default function EventFeed({ events }: EventFeedProps) {
     }
   }, [events]);
 
-  return (
-    <div
-      className="flex flex-col h-full"
-      style={{
+  // When hideHeader=true we're embedded in a parent panel (no own border/width)
+  const wrapperStyle: React.CSSProperties = hideHeader
+    ? { display: 'flex', flexDirection: 'column', height: '100%' }
+    : {
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
         width: '280px',
         minWidth: '280px',
         background: '#0A0A0A',
         borderLeft: '1px solid rgba(232, 180, 94, 0.3)',
-      }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center gap-2 px-4 py-3 flex-shrink-0"
-        style={{ borderBottom: '1px solid rgba(232, 180, 94, 0.2)' }}
-      >
-        {/* Pulsing dot */}
-        <span
-          className="inline-block w-2 h-2 rounded-full"
-          style={{
-            background: '#00ff41',
-            boxShadow: '0 0 6px #00ff41',
-            animation: 'pulse 1.5s ease-in-out infinite',
-          }}
-        />
-        <h2
-          className="text-xs font-bold uppercase tracking-widest"
-          style={{ color: '#E8B45E', fontFamily: 'JetBrains Mono, monospace' }}
+      };
+
+  return (
+    <div style={wrapperStyle}>
+      {/* Header — only shown when not embedded */}
+      {!hideHeader && (
+        <div
+          className="flex items-center gap-2 px-4 py-3 flex-shrink-0"
+          style={{ borderBottom: '1px solid rgba(232, 180, 94, 0.2)' }}
         >
-          Live Feed
-        </h2>
-        <span
-          className="ml-auto text-xs"
-          style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'JetBrains Mono, monospace' }}
-        >
-          {events.length} events
-        </span>
-      </div>
+          {/* Pulsing dot */}
+          <span
+            className="inline-block w-2 h-2 rounded-full"
+            style={{
+              background: '#00ff41',
+              boxShadow: '0 0 6px #00ff41',
+              animation: 'pulse 1.5s ease-in-out infinite',
+            }}
+          />
+          <h2
+            className="text-xs font-bold uppercase tracking-widest"
+            style={{ color: '#E8B45E', fontFamily: 'JetBrains Mono, monospace' }}
+          >
+            Live Feed
+          </h2>
+          <span
+            className="ml-auto text-xs"
+            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'JetBrains Mono, monospace' }}
+          >
+            {events.length} events
+          </span>
+        </div>
+      )}
 
       {/* Event list */}
       <div

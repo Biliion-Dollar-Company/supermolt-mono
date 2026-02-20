@@ -1,6 +1,5 @@
-import { View, ViewProps, ViewStyle } from 'react-native';
+import { View, ViewProps, ViewStyle, StyleSheet } from 'react-native';
 import { ReactNode } from 'react';
-import { colors } from '@/theme/colors';
 
 type CardVariant = 'default' | 'outlined' | 'glass';
 
@@ -12,18 +11,19 @@ interface CardProps extends ViewProps {
 
 const variantStyles: Record<CardVariant, ViewStyle> = {
   default: {
-    backgroundColor: colors.surface.secondary,
-    borderWidth: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   outlined: {
-    backgroundColor: colors.surface.secondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderWidth: 1,
-    borderColor: colors.void[600],
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   glass: {
-    backgroundColor: colors.glass.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.07)',
     borderWidth: 1,
-    borderColor: colors.void[600],
+    borderColor: 'rgba(255, 255, 255, 0.13)',
   },
 };
 
@@ -41,21 +41,36 @@ export function Card({
   style,
   ...props
 }: CardProps) {
-  const variantStyle = variantStyles[variant];
-
   return (
     <View
       style={[
-        variantStyle,
-        {
-          borderRadius: 16,
-          padding: paddingStyles[padding],
-        },
+        variantStyles[variant],
+        styles.base,
+        { padding: paddingStyles[padding] },
         style,
       ]}
       {...props}
     >
+      {/* Top highlight line — glass sheen */}
+      <View style={styles.highlight} />
       {children}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  base: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  highlight: {
+    position: 'absolute',
+    top: 0,
+    left: '12%',
+    right: '12%',
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderRadius: 1,
+  },
+});

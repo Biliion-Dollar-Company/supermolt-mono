@@ -43,6 +43,7 @@ import { surgeRoutes } from './routes/surge.routes';
 import { pumpfunRoutes } from './routes/pumpfun.routes';
 import { predictionRoutes } from './routes/prediction.routes';
 import { trading } from './routes/trading.routes';
+import { erc8004Routes } from './routes/erc8004.routes';
 import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
 
 // TEMPORARY: Admin fix for Epic Reward scanner
@@ -196,6 +197,9 @@ app.route('/api/calls', calls);
 
 // BSC routes (token factory, treasury, monitoring)
 app.route('/bsc', bscRoutes);
+
+// ERC-8004 routes (Agent Identity, Reputation, Validation)
+app.route('/erc8004', erc8004Routes);
 
 // Base chain routes (Surge OpenClaw API — managed wallets, trading, treasury)
 app.route('/surge', surgeRoutes);

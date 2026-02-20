@@ -189,7 +189,9 @@ export interface EpochReward {
   epoch: EpochInfo | null;
   allocations: AgentAllocation[];
   treasury: { balance: number; distributed: number; available: number };
+  bscTreasury?: { balance: number; distributed: number; available: number };
   distributions: { agentName: string; amount: number; txSignature: string; completedAt: string }[];
+  bscDistributions?: { agentName: string; amount: number; txSignature: string; completedAt: string }[];
 }
 
 // BSC

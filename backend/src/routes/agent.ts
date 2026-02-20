@@ -131,16 +131,19 @@ agent.delete('/:id', async (c) => {
 // POST /agents/:id/switch — switch active agent, issue new JWT
 agent.post('/:id/switch', async (c) => {
   try {
+    const user = c.get('user');
     const userId = c.get('userId');
     const agentId = c.req.param('id');
 
     // Validate agent belongs to user
     const targetAgent = await agentService.getAgent(agentId, userId);
 
-    // Issue new JWT for the target agent
+    // Issue new JWT for the target agent (include privyId and wallet for compatibility)
     const { token, refreshToken, expiresIn } = await issueAgentTokens(
       targetAgent.id,
       userId,
+      user.privyId,
+      user.wallet ?? undefined,
     );
 
     return c.json({

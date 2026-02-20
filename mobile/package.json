@@ -16,6 +16,9 @@
     "postinstall": "node scripts/patch-worklets-compat.js"
   },
   "dependencies": {
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
+    "@expo-google-fonts/orbitron": "^0.4.2",
     "@expo/vector-icons": "^14.0.0",
     "@privy-io/expo": "^0.25.0",
     "@privy-io/react-auth": "^1.80.0",

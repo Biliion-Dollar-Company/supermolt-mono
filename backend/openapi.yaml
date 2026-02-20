@@ -354,6 +354,134 @@ paths:
                   agent:
                     $ref: '#/components/schemas/Agent'
 
+  /arena/agents:
+    get:
+      tags: [Arena]
+      summary: Get all agents
+      description: Returns a comprehensive list of all agents with their current state, positions, and activity
+      responses:
+        '200':
+          description: List of all agents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        agentId:
+                          type: string
+                        agentName:
+                          type: string
+                        walletAddress:
+                          type: string
+                        chain:
+                          type: string
+                          enum: [SOLANA, BSC, BASE]
+                        evmAddress:
+                          type: string
+                        archetypeId:
+                          type: string
+                        status:
+                          type: string
+                          enum: [TRAINING, ACTIVE, PAUSED]
+                        activityStatus:
+                          type: string
+                          enum: [active, idle, inactive]
+                        xp:
+                          type: integer
+                        level:
+                          type: integer
+                        levelName:
+                          type: string
+                        sortino_ratio:
+                          type: number
+                        win_rate:
+                          type: number
+                        total_pnl:
+                          type: number
+                        trade_count:
+                          type: integer
+                        bio:
+                          type: string
+                          nullable: true
+                        avatarUrl:
+                          type: string
+                          nullable: true
+                        twitterHandle:
+                          type: string
+                          nullable: true
+                        currentToken:
+                          type: object
+                          nullable: true
+                          properties:
+                            tokenMint:
+                              type: string
+                            tokenSymbol:
+                              type: string
+                            quantity:
+                              type: number
+                            entryPrice:
+                              type: number
+                            openedAt:
+                              type: string
+                              format: date-time
+                        openPositionsCount:
+                          type: integer
+                        recentActivity:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              action:
+                                type: string
+                              tokenSymbol:
+                                type: string
+                              tokenMint:
+                                type: string
+                              amount:
+                                type: number
+                              timestamp:
+                                type: string
+                                format: date-time
+                        predictionStats:
+                          type: object
+                          nullable: true
+                          properties:
+                            totalPredictions:
+                              type: integer
+                            correctPredictions:
+                              type: integer
+                            accuracy:
+                              type: number
+                            streak:
+                              type: integer
+                        createdAt:
+                          type: string
+                          format: date-time
+                        updatedAt:
+                          type: string
+                          format: date-time
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: string
+                      message:
+                        type: string
+
   /arena/tasks:
     get:
       tags: [Tasks]

@@ -18,7 +18,7 @@ type DetailTab = 'positions' | 'trades' | 'tasks' | 'conversations';
 
 function StatBox({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', padding: 12, backgroundColor: colors.surface.secondary, borderRadius: 8 }}>
+    <View style={{ flex: 1, alignItems: 'center', padding: 12, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' }}>
       <Text variant="caption" color="muted">{label}</Text>
       <Text
         variant="body"
@@ -72,7 +72,7 @@ function TabButton({
       onPress={onPress}
       style={{
         flex: 1,
-        backgroundColor: active ? colors.brand.primary + '22' : colors.surface.secondary,
+        backgroundColor: active ? colors.brand.primary + '22' : 'rgba(255, 255, 255, 0.04)',
         borderRadius: 8,
         padding: 10,
         alignItems: 'center',
@@ -141,7 +141,7 @@ export default function AgentDetailScreen() {
   const pnlChange = currentPnL - (pnlData[0]?.value ?? 0);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }}>
       {/* Back Button */}
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 }}>
         <TouchableOpacity onPress={() => router.back()}>

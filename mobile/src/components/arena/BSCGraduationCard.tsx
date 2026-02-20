@@ -20,11 +20,13 @@ export function BSCGraduationCard({ graduation }: BSCGraduationCardProps) {
         if (url) Linking.openURL(url);
       }}
       style={{
-        backgroundColor: colors.surface.secondary,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 12,
         padding: 12,
         width: 200,
         gap: 6,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
       }}
     >
       {/* Header */}
@@ -43,11 +45,11 @@ export function BSCGraduationCard({ graduation }: BSCGraduationCardProps) {
       {/* Platform + Chain */}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         {graduation.platform && (
-          <View style={{ backgroundColor: colors.surface.tertiary, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+          <View style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
             <Text variant="caption" color="secondary" style={{ fontSize: 10 }}>{graduation.platform}</Text>
           </View>
         )}
-        <View style={{ backgroundColor: colors.surface.tertiary, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+        <View style={{ backgroundColor: 'rgba(255, 255, 255, 0.06)', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
           <Text variant="caption" color="secondary" style={{ fontSize: 10 }}>{graduation.chain}</Text>
         </View>
         <Text variant="caption" color="muted" style={{ fontSize: 10, marginLeft: 'auto' }}>{timeAgo}</Text>

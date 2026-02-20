@@ -1,0 +1,26 @@
+{
+  "sepolia": {
+    "chainId": 11155111,
+    "identityRegistry": "",
+    "reputationRegistry": "",
+    "validationRegistry": "",
+    "deployedAt": "",
+    "deployer": ""
+  },
+  "arbitrumSepolia": {
+    "chainId": 421614,
+    "identityRegistry": "",
+    "reputationRegistry": "",
+    "validationRegistry": "",
+    "deployedAt": "",
+    "deployer": ""
+  },
+  "arbitrum": {
+    "chainId": 42161,
+    "identityRegistry": "",
+    "reputationRegistry": "",
+    "validationRegistry": "",
+    "deployedAt": "",
+    "deployer": ""
+  }
+}

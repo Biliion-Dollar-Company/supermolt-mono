@@ -54,18 +54,18 @@ const TRADING_STYLES = [
 ];
 
 const STYLE_MESSAGES: Record<string, string> = {
-  degen_hunter: 'Degen mode! High risk, high reward. We\'re going full send on memecoins. I like it 🔥',
-  smart_money: 'Smart money vibes. We\'ll copy the whales and ride their alpha. Solid choice 🐋',
-  sniper: 'Sniper style — early entries, quick exits. Precision over volume. Respect 🎯',
-  conservative: 'Low risk, steady gains. Let the degens gamble while we accumulate. Smart 🛡️',
+  degen_hunter: 'Degen mode. High risk, high reward. Full send on memecoins.',
+  smart_money: 'Smart money. Copy the whales, ride their alpha. Solid play.',
+  sniper: 'Sniper style — early entries, quick exits. Precision over volume.',
+  conservative: 'Low risk, steady gains. Let the degens gamble while we accumulate.',
 };
 
 const STEP_MESSAGES: Record<Step, string> = {
-  welcome: 'Yo! I\'m Molt — your AI trading guide on Solana. I\'ll help you set up your first agent and show you around. Ready?',
-  pick_style: 'First things first — what\'s your trading vibe? Pick the style that matches how you want to play the market.',
-  enter_name: 'Now give your agent a name. This is how the arena will know you. Make it legendary.',
-  launching: 'Deploying your agent to the Solana battlefield...',
-  success: 'Agent deployed! You\'re officially in the arena. Let me show you around real quick.',
+  welcome: 'Yo! I\'m Molt. Let\'s get your first agent live — takes under a minute.',
+  pick_style: 'What\'s your trading vibe? Pick a style and I\'ll shape the strategy around it.',
+  enter_name: 'Give your agent a name. Make it legendary.',
+  launching: 'Deploying to the Solana battlefield...',
+  success: 'Agent live! Let me show you around real quick.',
 };
 
 export default function OnboardingScreen() {
@@ -185,8 +185,11 @@ export default function OnboardingScreen() {
                   </Text>
                 </View>
 
+                {/* Character bubble — right below the pfp */}
+                <CharacterBubble key="welcome" message={characterMessage} />
+
                 {/* Steps preview */}
-                <View style={styles.stepsPreview}>
+                <View style={[styles.stepsPreview, { marginTop: 24 }]}>
                   {['Pick your style', 'Name your agent', 'Enter the arena'].map(
                     (label, i) => (
                       <View key={i} style={styles.stepHint}>
@@ -204,9 +207,8 @@ export default function OnboardingScreen() {
                 </View>
               </View>
 
-              {/* Character + CTA */}
+              {/* CTA */}
               <View style={styles.bottomSection}>
-                <CharacterBubble key="welcome" message={characterMessage} />
                 <View style={styles.ctaRow}>
                   <Button
                     variant="primary"
@@ -214,8 +216,8 @@ export default function OnboardingScreen() {
                     onPress={() => setStep('pick_style')}
                     style={styles.ctaBtn}
                   >
-                    <Text variant="body" color="primary" style={{ fontWeight: '700', fontSize: 16 }}>
-                      Let's go →
+                    <Text variant="body" style={{ fontWeight: '800', fontSize: 18, color: '#000000' }}>
+                      Let's go
                     </Text>
                   </Button>
                 </View>
@@ -274,7 +276,7 @@ export default function OnboardingScreen() {
               </View>
 
               <View style={styles.bottomSection}>
-                <CharacterBubble key={selectedStyle} message={characterMessage} />
+                <CharacterBubble key="pick_style" message={characterMessage} />
                 <View style={styles.ctaRow}>
                   <Button
                     variant="primary"
@@ -282,8 +284,8 @@ export default function OnboardingScreen() {
                     onPress={() => setStep('enter_name')}
                     style={styles.ctaBtn}
                   >
-                    <Text variant="body" color="primary" style={{ fontWeight: '700', fontSize: 16 }}>
-                      Next →
+                    <Text variant="body" style={{ fontWeight: '800', fontSize: 18, color: '#000000' }}>
+                      Next
                     </Text>
                   </Button>
                 </View>
@@ -353,8 +355,8 @@ export default function OnboardingScreen() {
                     disabled={!agentName.trim()}
                     style={styles.ctaBtn}
                   >
-                    <Text variant="body" color="primary" style={{ fontWeight: '700', fontSize: 16 }}>
-                      Deploy Agent 🚀
+                    <Text variant="body" style={{ fontWeight: '800', fontSize: 18, color: '#000000' }}>
+                      Deploy Agent
                     </Text>
                   </Button>
                 </View>
@@ -452,8 +454,8 @@ export default function OnboardingScreen() {
                     onPress={handleShowMeAround}
                     style={styles.ctaBtn}
                   >
-                    <Text variant="body" color="primary" style={{ fontWeight: '700', fontSize: 16 }}>
-                      Show me around 👀
+                    <Text variant="body" style={{ fontWeight: '800', fontSize: 18, color: '#000000' }}>
+                      Show me around
                     </Text>
                   </Button>
                 </View>
@@ -482,7 +484,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: 20,
+    gap: 0,
   },
   bottomSection: {
     paddingBottom: 20,
@@ -498,18 +501,18 @@ const styles = StyleSheet.create({
   // Welcome
   logoWrap: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 20,
   },
   logoBg: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 148,
+    height: 148,
+    borderRadius: 74,
     backgroundColor: colors.brand.primary + '15',
     borderWidth: 2,
     borderColor: colors.brand.primary + '40',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 32,
     shadowColor: colors.brand.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
@@ -517,9 +520,9 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   logoImg: {
-    width: 82,
-    height: 82,
-    borderRadius: 41,
+    width: 116,
+    height: 116,
+    borderRadius: 58,
   },
   logoText: {
     fontSize: 38,

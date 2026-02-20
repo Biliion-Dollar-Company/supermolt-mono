@@ -125,7 +125,7 @@ export default function SettingsTab() {
 
   return (
     <SafeAreaView
-      style={{ flex: 1, backgroundColor: colors.surface.primary }}
+      style={{ flex: 1, backgroundColor: 'transparent' }}
       edges={['top']}
     >
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 32 }}>
@@ -158,7 +158,7 @@ export default function SettingsTab() {
                     placeholderTextColor={colors.text.muted}
                     maxLength={32}
                     style={{
-                      backgroundColor: colors.surface.tertiary,
+                      backgroundColor: 'rgba(255, 255, 255, 0.06)',
                       borderRadius: 8,
                       padding: 10,
                       color: colors.text.primary,
@@ -177,7 +177,7 @@ export default function SettingsTab() {
                     numberOfLines={3}
                     maxLength={160}
                     style={{
-                      backgroundColor: colors.surface.tertiary,
+                      backgroundColor: 'rgba(255, 255, 255, 0.06)',
                       borderRadius: 8,
                       padding: 10,
                       color: colors.text.primary,
@@ -240,7 +240,7 @@ export default function SettingsTab() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                  backgroundColor: colors.surface.tertiary,
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
                   borderRadius: 6,
                   paddingVertical: 8,
                 }}
@@ -259,7 +259,7 @@ export default function SettingsTab() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
-                  backgroundColor: colors.surface.tertiary,
+                  backgroundColor: 'rgba(255, 255, 255, 0.06)',
                   borderRadius: 6,
                   paddingVertical: 8,
                 }}
@@ -284,21 +284,21 @@ export default function SettingsTab() {
             value={settings.autoSign}
             onValueChange={(v) => updateSetting('autoSign', v)}
           />
-          <View style={{ height: 1, backgroundColor: colors.surface.tertiary }} />
+          <View style={{ height: 1, backgroundColor: 'rgba(255, 255, 255, 0.06)' }} />
           <SettingRow
             label="Haptic Feedback"
             description="Vibration on interactions"
             value={settings.haptics}
             onValueChange={(v) => updateSetting('haptics', v)}
           />
-          <View style={{ height: 1, backgroundColor: colors.surface.tertiary }} />
+          <View style={{ height: 1, backgroundColor: 'rgba(255, 255, 255, 0.06)' }} />
           <SettingRow
             label="Push Notifications"
             description="Trade alerts and updates"
             value={settings.pushNotifications}
             onValueChange={(v) => updateSetting('pushNotifications', v)}
           />
-          <View style={{ height: 1, backgroundColor: colors.surface.tertiary }} />
+          <View style={{ height: 1, backgroundColor: 'rgba(255, 255, 255, 0.06)' }} />
           <SettingRow
             label="Sound Effects"
             description="Audio feedback on events"
@@ -315,7 +315,7 @@ export default function SettingsTab() {
               Alert.alert('Dev', 'Onboarding reset — sign out and back in to trigger it.');
             }}
             style={{
-              backgroundColor: colors.surface.secondary,
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
               borderRadius: 12,
               padding: 16,
               alignItems: 'center',
@@ -334,7 +334,7 @@ export default function SettingsTab() {
           <TouchableOpacity
             onPress={handleLogout}
             style={{
-              backgroundColor: colors.surface.secondary,
+              backgroundColor: 'rgba(255, 255, 255, 0.04)',
               borderRadius: 12,
               padding: 16,
               alignItems: 'center',

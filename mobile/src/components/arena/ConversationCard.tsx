@@ -41,10 +41,12 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
       activeOpacity={0.7}
       onPress={toggleExpand}
       style={{
-        backgroundColor: colors.surface.secondary,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 12,
         padding: 12,
         gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
       }}
     >
       {/* Header */}
@@ -80,7 +82,7 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
 
       {/* Expanded Messages */}
       {expanded && (
-        <View style={{ gap: 8, marginTop: 4, borderTopWidth: 1, borderTopColor: colors.surface.tertiary, paddingTop: 8 }}>
+        <View style={{ gap: 8, marginTop: 4, borderTopWidth: 1, borderTopColor: 'rgba(255, 255, 255, 0.06)', paddingTop: 8 }}>
           {loading ? (
             <ActivityIndicator size="small" color={colors.brand.primary} />
           ) : messages && messages.length > 0 ? (

@@ -68,6 +68,11 @@ model TradingAgent {
   discord       String?
   telegram      String?
 
+  // ERC-8004 Integration
+  onChainAgentId  String?
+  registrationURI String?
+  evmWalletAddress String?
+
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -107,6 +112,10 @@ model PaperTrade {
   metadata    Json        @default("{}")
   openedAt    DateTime    @default(now())
   closedAt    DateTime?
+
+  // ERC-8004 Integration
+  feedbackTxHash    String?
+  validationTxHash  String?
 
   agent     TradingAgent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
   feedbacks TradeFeedback[]

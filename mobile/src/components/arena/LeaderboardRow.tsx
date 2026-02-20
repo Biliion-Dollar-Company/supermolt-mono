@@ -27,10 +27,12 @@ export function LeaderboardRow({ agent, rank, mode = 'trades' }: LeaderboardRowP
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.surface.secondary,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 12,
         padding: 12,
         gap: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
       }}
     >
       {/* Rank Badge — trophy for top 3, number for rest */}
@@ -41,7 +43,7 @@ export function LeaderboardRow({ agent, rank, mode = 'trades' }: LeaderboardRowP
           borderRadius: 16,
           backgroundColor: isTop3
             ? RANK_COLORS[rank - 1] + '22'
-            : colors.surface.tertiary,
+            : 'rgba(255, 255, 255, 0.08)',
           borderWidth: isTop3 ? 1 : 0,
           borderColor: isTop3 ? RANK_COLORS[rank - 1] : undefined,
           alignItems: 'center',

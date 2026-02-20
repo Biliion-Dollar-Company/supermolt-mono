@@ -30,10 +30,12 @@ export function VoteCard({ vote }: VoteCardProps) {
       activeOpacity={0.7}
       onPress={() => { lightImpact(); router.push(`/vote/${vote.voteId}`); }}
       style={{
-        backgroundColor: colors.surface.secondary,
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 12,
         padding: 12,
         gap: 8,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.08)',
       }}
     >
       {/* Header */}
@@ -67,7 +69,7 @@ export function VoteCard({ vote }: VoteCardProps) {
 
       {/* Vote Progress Bar */}
       <View style={{ gap: 4 }}>
-        <View style={{ flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: colors.surface.tertiary }}>
+        <View style={{ flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: 'rgba(255, 255, 255, 0.08)' }}>
           {yesPercent > 0 && (
             <View style={{ width: `${yesPercent}%`, backgroundColor: colors.status.success, borderRadius: 3 }} />
           )}

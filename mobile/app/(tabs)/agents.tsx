@@ -14,6 +14,7 @@ import { useAuthStore } from '@/store/auth';
 import { useAgentLiveStore } from '@/store/agentLive';
 import { mediumImpact, errorNotification, selectionFeedback } from '@/lib/haptics';
 import { useState, useCallback, useMemo } from 'react';
+import { useTourTarget } from '@/hooks/useTourTarget';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import type { UserAgent } from '@/types/arena';
 
@@ -145,6 +146,7 @@ export default function AgentsTab() {
   const removeAgent = useAuthStore((s) => s.removeAgent);
   const latestDecision = useAgentLiveStore((s) => s.decisions[0]);
 
+  const tourRef = useTourTarget('agents');
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
@@ -218,7 +220,7 @@ export default function AgentsTab() {
 
   if (!isAuthenticated) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary, alignItems: 'center', justifyContent: 'center', padding: 32 }} edges={['top']}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent', alignItems: 'center', justifyContent: 'center', padding: 32 }} edges={['top']}>
         <Ionicons name="people-outline" size={48} color={colors.text.muted} />
         <Text variant="body" color="muted" style={{ marginTop: 12, textAlign: 'center' }}>
           Sign in to manage your agents
@@ -234,7 +236,7 @@ export default function AgentsTab() {
 
   // Build the FlatList header
   const ListHeader = (
-    <View style={{ gap: 12 }}>
+    <View ref={tourRef} collapsable={false} style={{ gap: 12 }}>
       {/* ── My Agents Section ── */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text variant="h2" color="primary">My Agents</Text>
@@ -337,7 +339,7 @@ export default function AgentsTab() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface.primary }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
       <FlatList
         data={filteredFeed}
         keyExtractor={(item) => item.id}
@@ -376,12 +378,12 @@ export default function AgentsTab() {
 
 const cardStyles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface.secondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     padding: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: 'rgba(255, 255, 255, 0.10)',
   },
   topRow: {
     flexDirection: 'row',
@@ -457,7 +459,7 @@ const cardStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   createBtn: {
-    backgroundColor: colors.surface.secondary,
+    backgroundColor: 'rgba(249, 115, 22, 0.06)',
     borderRadius: 6,
     padding: 12,
     flexDirection: 'row',
@@ -465,7 +467,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     borderWidth: 1,
-    borderColor: colors.brand.primary + '33',
+    borderColor: colors.brand.primary + '40',
     borderStyle: 'dashed',
   },
   activityHeader: {
@@ -510,9 +512,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: colors.surface.secondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: 'rgba(255, 255, 255, 0.07)',
   },
   typeChipActive: {
     backgroundColor: colors.brand.primary + '15',
