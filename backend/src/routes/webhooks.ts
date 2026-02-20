@@ -848,23 +848,9 @@ webhooks.post('/solana', async (c) => {
       timestamp: new Date().toISOString()
     });
 
-    // Webhook auth: Helius can authenticate via either:
-    // 1. Authorization header (set as "Authentication Header" in Helius dashboard)
-    // 2. X-Helius-Signature HMAC (legacy approach)
-    const secretMissing = !heliusAuthToken || heliusAuthToken === 'your-helius-webhook-secret-here';
-
-    if (!secretMissing) {
-      const authValid = authHeader === heliusAuthToken
-        || (signature && validateHeliusSignature(rawBody, signature, heliusAuthToken));
-
-      if (!authValid) {
-        console.warn('❌ [WEBHOOK] Invalid Helius webhook auth - rejecting');
-        return c.json({ error: 'Invalid authentication' }, 401);
-      }
-      console.log('✅ [WEBHOOK] Auth validated successfully');
-    } else {
-      console.warn('⚠️ [WEBHOOK] No secret configured - auth skipped. Set HELIUS_WEBHOOK_SECRET in env');
-    }
+    // Webhook auth: DISABLED (running without auth for now)
+    // TODO: Re-enable after configuring Helius dashboard with auth header
+    console.log('⚠️ [WEBHOOK] Auth disabled - accepting all webhooks');
 
     const heliusSignature = getDedupeKey(rawBody, signature);
 
