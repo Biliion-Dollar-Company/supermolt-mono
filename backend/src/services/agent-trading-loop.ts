@@ -234,8 +234,7 @@ async function selectRandomAgents(count: number): Promise<any[]> {
     const allAgents = await db.tradingAgent.findMany({
       where: {
         status: 'ACTIVE',
-        config: {
-          path: ['role'],
+        archetypeId: {
           not: 'observer',
         },
       },
