@@ -1,6 +1,6 @@
 'use client';
 
-import type { AgentData } from './WarRoomCanvas';
+import type { AgentData } from './types';
 
 interface Props {
   agent: AgentData;

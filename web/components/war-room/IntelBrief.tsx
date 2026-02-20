@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import type { AgentData, FeedEvent } from './WarRoomCanvas';
+import type { AgentData, FeedEvent } from './types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import type { FeedEvent } from './WarRoomCanvas';
+import type { FeedEvent } from './types';
 
 interface EventFeedProps {
   events: FeedEvent[];

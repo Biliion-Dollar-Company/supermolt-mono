@@ -536,6 +536,30 @@ if (enableSortinoCron) {
   console.log('⏭️  Sortino cron disabled on this replica');
 }
 
+// Start Autonomous Trading Loop (agent activity generator)
+const enableTradingLoop = envFlag('ENABLE_TRADING_LOOP', enableBackgroundWorkers);
+if (enableTradingLoop) {
+  import('./services/agent-trading-loop.js').then(({ startTradingLoop }) => {
+    const intervalMinutes = parseInt(process.env.TRADING_LOOP_INTERVAL || '20', 10);
+    const agentsPerCycle = parseInt(process.env.AGENTS_PER_CYCLE || '3', 10);
+    const minConfidence = parseInt(process.env.TRADING_MIN_CONFIDENCE || '70', 10);
+    
+    startTradingLoop({
+      intervalMinutes,
+      agentsPerCycle,
+      minConfidence,
+      maxTradesPerCycle: 5,
+      positionSizeSOL: 1.5,
+    });
+    
+    console.log(`✅ Autonomous trading loop started (every ${intervalMinutes}min, ${agentsPerCycle} agents/cycle)`);
+  }).catch((err) => {
+    console.error('❌ Failed to start trading loop:', err);
+  });
+} else {
+  console.log('⏭️  Trading loop disabled on this replica');
+}
+
 // Update Prometheus metrics every 30 seconds
 setInterval(async () => {
   await updateAgentMetrics(db);
@@ -549,6 +573,12 @@ process.on('SIGTERM', async () => {
   if (predictionCron) predictionCron.stop();
   stopAutoBuyExecutor();
   if (devprintFeed) await devprintFeed.stop();
+  // Stop trading loop if running
+  if (enableTradingLoop) {
+    import('./services/agent-trading-loop.js').then(({ stopTradingLoop }) => {
+      stopTradingLoop();
+    });
+  }
   server.close(() => {
     console.log('✅ Server closed');
     process.exit(0);
@@ -561,6 +591,12 @@ process.on('SIGINT', async () => {
   if (predictionCron) predictionCron.stop();
   stopAutoBuyExecutor();
   if (devprintFeed) await devprintFeed.stop();
+  // Stop trading loop if running
+  if (enableTradingLoop) {
+    import('./services/agent-trading-loop.js').then(({ stopTradingLoop }) => {
+      stopTradingLoop();
+    });
+  }
   server.close(() => {
     console.log('✅ Server closed');
     process.exit(0);

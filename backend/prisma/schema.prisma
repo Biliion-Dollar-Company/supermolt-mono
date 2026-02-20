@@ -113,9 +113,9 @@ model PaperTrade {
   openedAt    DateTime    @default(now())
   closedAt    DateTime?
 
-  // ERC-8004 Integration
-  feedbackTxHash    String?
-  validationTxHash  String?
+  // ERC-8004 Integration (fields not yet in database - migration pending)
+  // feedbackTxHash    String?
+  // validationTxHash  String?
 
   agent     TradingAgent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
   feedbacks TradeFeedback[]
