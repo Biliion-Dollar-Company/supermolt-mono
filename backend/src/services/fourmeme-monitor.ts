@@ -579,7 +579,13 @@ export class FourMemeMonitor {
         where: { tokenAddress },
       });
 
+      let tokenSymbol = 'UNKNOWN';
+      let tokenName = 'Unknown';
+
       if (existing) {
+        tokenSymbol = existing.tokenSymbol;
+        tokenName = existing.tokenName;
+        
         // Update existing record with graduation info
         if (!existing.bondingCurveGraduated) {
           await db.tokenDeployment.update({
@@ -593,7 +599,7 @@ export class FourMemeMonitor {
               platform: existing.platform || platform,
             },
           });
-          console.log(`[graduation] Marked ${existing.tokenSymbol} (${platform}) as graduated → ${quoteLabel}`);
+          console.log(`[graduation] Marked ${tokenSymbol} (${platform}) as graduated → ${quoteLabel}`);
         }
       } else {
         // New token we haven't seen (e.g. Flap token, or old Four.Meme token)
@@ -601,8 +607,8 @@ export class FourMemeMonitor {
           data: {
             agentId: `system-${platform.replace('.', '')}`, // system-fourmeme or system-flap
             tokenAddress,
-            tokenName: 'Unknown',
-            tokenSymbol: 'UNKNOWN',
+            tokenName,
+            tokenSymbol,
             totalSupply: '0',
             factoryTxHash: txHash,
             chain: 'BSC',
@@ -616,6 +622,9 @@ export class FourMemeMonitor {
         });
         console.log(`[graduation] Recorded new ${platform} graduation: ${tokenAddress.slice(0, 14)}... → ${quoteLabel}`);
       }
+
+      // Auto-create conversation for graduated tokens
+      await this.createGraduationConversation(tokenAddress, tokenSymbol, platform, quoteLabel);
 
       // Notify listeners
       const migration: MigrationEvent = {
@@ -632,6 +641,57 @@ export class FourMemeMonitor {
       if (error.code !== 'P2002') {
         console.error('[graduation] Failed to record graduation:', error.message);
       }
+    }
+  }
+
+  /**
+   * Create a conversation thread for a graduated token
+   */
+  private async createGraduationConversation(
+    tokenAddress: string,
+    tokenSymbol: string,
+    platform: string,
+    quoteLabel: string
+  ) {
+    try {
+      // Check if conversation already exists for this token
+      const existingConv = await db.agentConversation.findFirst({
+        where: { tokenMint: tokenAddress },
+      });
+
+      if (existingConv) {
+        console.log(`[graduation] Conversation already exists for ${tokenSymbol}`);
+        return;
+      }
+
+      // Create new conversation
+      const conversation = await db.agentConversation.create({
+        data: {
+          topic: `Signal: ${tokenSymbol} 🎯`,
+          tokenMint: tokenAddress,
+        },
+      });
+
+      console.log(`[graduation] Created conversation for ${tokenSymbol}: ${conversation.id}`);
+
+      // Post first system message
+      const systemMessage = `🎉 ${tokenSymbol} graduated to PancakeSwap!\n\n` +
+        `Platform: ${platform}\n` +
+        `Pair: ${tokenSymbol}/${quoteLabel}\n` +
+        `Token: ${tokenAddress}\n\n` +
+        `Discuss trading strategy here.`;
+
+      await db.agentMessage.create({
+        data: {
+          conversationId: conversation.id,
+          agentId: 'system', // System agent
+          message: systemMessage,
+        },
+      });
+
+      console.log(`[graduation] Posted welcome message to ${tokenSymbol} conversation`);
+    } catch (error: any) {
+      console.error(`[graduation] Failed to create conversation for ${tokenSymbol}:`, error.message);
     }
   }
 

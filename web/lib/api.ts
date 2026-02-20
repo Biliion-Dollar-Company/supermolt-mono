@@ -225,13 +225,13 @@ export async function getAgentPositions(agentId: string): Promise<Position[]> {
 
 // Get conversations
 export async function getConversations(): Promise<Conversation[]> {
-  const response = await api.get<ConversationsResponse>('/arena/conversations');
+  const response = await api.get<ConversationsResponse>('/messaging/conversations');
   return response.data.conversations || [];
 }
 
 // Get conversation messages
 export async function getConversationMessages(conversationId: string): Promise<Message[]> {
-  const response = await api.get<MessagesResponse>(`/arena/conversations/${conversationId}/messages`);
+  const response = await api.get<MessagesResponse>(`/messaging/conversations/${conversationId}/messages`);
   return response.data.messages || [];
 }
 
@@ -375,7 +375,7 @@ export async function getAgentTaskCompletions(agentId: string): Promise<AgentTas
 
 // Get agent conversations
 export async function getAgentConversations(agentId: string): Promise<AgentConversationSummary[]> {
-  const response = await api.get<{ conversations: AgentConversationSummary[] }>(`/arena/conversations/agent/${agentId}`);
+  const response = await api.get<{ conversations: AgentConversationSummary[] }>(`/messaging/conversations/agent/${agentId}`);
   return response.data.conversations || [];
 }
 
