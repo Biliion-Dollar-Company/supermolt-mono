@@ -24,14 +24,17 @@ import { ScreenFlash } from './systems/screen-flash';
 
 export type { AgentData, FeedEvent, HoveredAgentInfo, LiveTxNotification };
 
+type LoadingStage = 'wallets' | 'pixi' | 'tokens' | 'agents' | 'feeds';
+
 interface Props {
   agents: AgentData[];
   onEvent: (evt: FeedEvent) => void;
   onAgentHover?: (info: HoveredAgentInfo | null) => void;
   onLiveTx?: (notif: LiveTxNotification) => void;
+  onLoadingStage?: (stage: LoadingStage) => void;
 }
 
-export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx }: Props) {
+export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx, onLoadingStage }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<PixiApplication | null>(null);
   const onEventRef = useRef(onEvent);
@@ -44,12 +47,15 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
   const pendingTxsRef = useRef<DevPrintTransaction[]>([]);
   const [liveTxNotifs, setLiveTxNotifs] = useState<LiveTxNotification[]>([]);
 
+  const onLoadingStageRef = useRef(onLoadingStage);
+
   // Keep refs in sync
   const stationMgrRef = useRef<StationManager | null>(null);
 
   useEffect(() => { onEventRef.current = onEvent; }, [onEvent]);
   useEffect(() => { onHoverRef.current = onAgentHover; }, [onAgentHover]);
   useEffect(() => { onLiveTxRef.current = onLiveTx; }, [onLiveTx]);
+  useEffect(() => { onLoadingStageRef.current = onLoadingStage; }, [onLoadingStage]);
   useEffect(() => { agentsRef.current = agents; }, [agents]);
 
   // ── Token polling ──────────────────────────────────────────────────────────
@@ -207,6 +213,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
     });
     containerRef.current.appendChild(app.canvas as HTMLCanvasElement);
     appRef.current = app;
+    onLoadingStageRef.current?.('pixi');
 
     const W = () => app.screen.width;
     const H = () => app.screen.height;
@@ -247,6 +254,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
     // Fetch real tokens BEFORE building stations so we don't show placeholders
     await fetchTokens();
     stationMgr.buildStations(tokenDefsRef.current);
+    onLoadingStageRef.current?.('tokens');
 
     // ── Bloom layer (additive blend — behind agents, above stations) ─────────
     const bloomLayer = new BloomLayer(pixiModules, app.stage);
@@ -263,6 +271,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
 
     const agentMgr = new AgentManager(pixiModules, agentsLayer);
     await agentMgr.createAgentStates(agentsRef.current, stationMgr.stations);
+    onLoadingStageRef.current?.('agents');
 
     // ── Mouse hover ──────────────────────────────────────────────────────────
     const HOVER_RADIUS = 20;
@@ -437,6 +446,9 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
       // ── Popups ─────────────────────────────────────────────────────────────
       popupMgr.update(dt);
     });
+
+    // Signal that all systems are live
+    onLoadingStageRef.current?.('feeds');
 
     // ── Resize ───────────────────────────────────────────────────────────────
     const handleResize = () => {

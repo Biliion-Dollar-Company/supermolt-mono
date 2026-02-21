@@ -15,19 +15,7 @@ const WarpTwister = dynamic(() => import('@/components/react-bits/warp-twister')
 // Dynamic import for PixiJS component (no SSR)
 const WarRoomCanvas = dynamic(() => import('@/components/war-room/WarRoomCanvas'), {
   ssr: false,
-  loading: () => (
-    <div className="flex-1 flex items-center justify-center bg-black">
-      <div className="flex flex-col items-center gap-4">
-        <div
-          className="text-xs uppercase tracking-widest animate-pulse"
-          style={{ color: 'rgba(232,180,94,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
-        >
-          Initializing War Room...
-        </div>
-        <div className="w-12 h-1 bg-gradient-to-r from-transparent via-[#E8B45E] to-transparent animate-pulse" />
-      </div>
-    </div>
-  ),
+  loading: () => null,
 });
 
 // ─── DevPrint Wallet shape ────────────────────────────────────────────────────
@@ -149,12 +137,43 @@ function walletsToAgents(wallets: DevPrintWallet[]): AgentData[] {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+// ─── Loading stages ─────────────────────────────────────────────────────────
+
+const LOADING_STAGES = [
+  { key: 'wallets',  label: 'Fetching intel on tracked wallets' },
+  { key: 'pixi',     label: 'Initializing render engine' },
+  { key: 'tokens',   label: 'Loading token stations' },
+  { key: 'agents',   label: 'Deploying agents' },
+  { key: 'feeds',    label: 'Connecting live feeds' },
+] as const;
+
+type StageKey = typeof LOADING_STAGES[number]['key'];
+
 export default function ArenaPage() {
   const isMobile = useIsMobile();
   const [agents,  setAgents]  = useState<AgentData[]>(FALLBACK_AGENTS);
   const [events,  setEvents]  = useState<FeedEvent[]>([]);
   const [hovered, setHovered] = useState<HoveredAgentInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [completedStages, setCompletedStages] = useState<Set<StageKey>>(new Set());
+  const [activeStage, setActiveStage] = useState<StageKey>('wallets');
+
+  const markStageComplete = useCallback((stage: StageKey) => {
+    setCompletedStages((prev) => {
+      const next = new Set(prev);
+      next.add(stage);
+      // Auto-advance active stage to next incomplete
+      const nextStageIdx = LOADING_STAGES.findIndex((s) => s.key === stage) + 1;
+      if (nextStageIdx < LOADING_STAGES.length) {
+        setActiveStage(LOADING_STAGES[nextStageIdx].key);
+      }
+      // All done? Hide loading screen
+      if (next.size >= LOADING_STAGES.length) {
+        setTimeout(() => setIsLoading(false), 400);
+      }
+      return next;
+    });
+  }, []);
 
   // ── Fetch whale wallets from DevPrint every 60s ───────────────────────────
   useEffect(() => {
@@ -170,14 +189,14 @@ export default function ArenaPage() {
       } catch {
         // silently keep fallback data on failure
       } finally {
-        setIsLoading(false);
+        markStageComplete('wallets');
       }
     };
 
     fetchWallets();
     const interval = setInterval(fetchWallets, 60_000);
     return () => clearInterval(interval);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEvent = useCallback((evt: FeedEvent) => {
     setEvents((prev) => {
@@ -277,6 +296,7 @@ export default function ArenaPage() {
             agents={agents}
             onEvent={handleEvent}
             onAgentHover={handleAgentHover}
+            onLoadingStage={markStageComplete}
           />
 
           {/* Agent hover card HTML overlay */}
@@ -348,6 +368,94 @@ export default function ArenaPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Loading overlay ─────────────────────────────────────────────────── */}
+      {isLoading && (
+        <div
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center"
+          style={{
+            background: 'rgba(0,0,0,0.95)',
+            backdropFilter: 'blur(8px)',
+            transition: 'opacity 0.4s ease-out',
+          }}
+        >
+          <Swords className="w-8 h-8 mb-6" style={{ color: '#E8B45E', opacity: 0.8 }} />
+          <h2
+            className="text-sm font-bold uppercase tracking-[0.25em] mb-8"
+            style={{ color: '#E8B45E', fontFamily: 'JetBrains Mono, monospace' }}
+          >
+            War Room
+          </h2>
+
+          {/* Progress bar */}
+          <div className="w-64 sm:w-80 mb-6">
+            <div
+              className="w-full h-1 rounded-full overflow-hidden"
+              style={{ background: 'rgba(232,180,94,0.15)' }}
+            >
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.max(8, (completedStages.size / LOADING_STAGES.length) * 100)}%`,
+                  background: 'linear-gradient(90deg, #E8B45E, #f0c96e)',
+                  boxShadow: '0 0 12px rgba(232,180,94,0.4)',
+                  transition: 'width 0.5s ease-out',
+                }}
+              />
+            </div>
+            <div className="flex justify-between mt-2">
+              <span
+                className="text-[10px] uppercase tracking-wider"
+                style={{ color: 'rgba(232,180,94,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
+              >
+                {completedStages.size}/{LOADING_STAGES.length}
+              </span>
+              <span
+                className="text-[10px] uppercase tracking-wider"
+                style={{ color: 'rgba(232,180,94,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
+              >
+                {Math.round((completedStages.size / LOADING_STAGES.length) * 100)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Stage list */}
+          <div className="flex flex-col gap-2 w-64 sm:w-80">
+            {LOADING_STAGES.map((stage) => {
+              const isDone = completedStages.has(stage.key);
+              const isActive = activeStage === stage.key && !isDone;
+              return (
+                <div
+                  key={stage.key}
+                  className="flex items-center gap-3 text-xs"
+                  style={{
+                    fontFamily: 'JetBrains Mono, monospace',
+                    opacity: isDone ? 0.4 : isActive ? 1 : 0.2,
+                    transition: 'opacity 0.3s ease',
+                  }}
+                >
+                  {/* Status indicator */}
+                  <span className="w-4 flex justify-center shrink-0">
+                    {isDone ? (
+                      <span style={{ color: '#00ff41' }}>&#10003;</span>
+                    ) : isActive ? (
+                      <span
+                        className="inline-block w-2 h-2 rounded-full animate-pulse"
+                        style={{ background: '#E8B45E', boxShadow: '0 0 8px #E8B45E' }}
+                      />
+                    ) : (
+                      <span style={{ color: 'rgba(255,255,255,0.2)' }}>&#8226;</span>
+                    )}
+                  </span>
+                  <span style={{ color: isDone ? '#00ff41' : isActive ? '#E8B45E' : 'rgba(255,255,255,0.3)' }}>
+                    {stage.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Mobile event feed — bottom strip */}
       {isMobile && (
