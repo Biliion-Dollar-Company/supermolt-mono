@@ -8,6 +8,7 @@ import type {
   HoveredAgentInfo,
   LiveTxNotification,
   TokenDef,
+  TokenMetrics,
   DevPrintToken,
   DevPrintTransaction,
   Conversation,
@@ -72,6 +73,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
           ticker: `$${t.symbol}`,
           name: t.name,
           mint: t.mint,
+          imageUrl: t.image_url ?? undefined,
           rx: STATION_POSITIONS[i % STATION_POSITIONS.length].rx,
           ry: STATION_POSITIONS[i % STATION_POSITIONS.length].ry,
           detectedAt,
@@ -140,6 +142,54 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Token metrics polling (DexScreener — free, no API key) ───────────────
+  // OPTIMIZED: Parallel fetching with Promise.allSettled instead of sequential
+  const fetchMetrics = useCallback(async () => {
+    if (!stationMgrRef.current) return;
+    const stations = stationMgrRef.current.stations;
+    const mints = stations.map((s) => s.mint).filter(Boolean) as string[];
+    if (mints.length === 0) return;
+
+    // Fetch all metrics in parallel (DexScreener allows this)
+    const fetchPromises = mints.map(async (mint) => {
+      try {
+        const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`);
+        if (!res.ok) return null;
+        const json = await res.json() as { pairs?: Array<{
+          marketCap?: number;
+          txns?: { h24?: { buys?: number; sells?: number } };
+        }> };
+        const pair = json.pairs?.[0];
+        if (!pair) return null;
+
+        // DexScreener doesn't provide holder count — use 24h unique txns as proxy
+        const holders = (pair.txns?.h24?.buys ?? 0) + (pair.txns?.h24?.sells ?? 0);
+
+        return {
+          mint,
+          metrics: {
+            marketCap: pair.marketCap ?? 0,
+            holders,
+          } as TokenMetrics,
+        };
+      } catch {
+        return null;
+      }
+    });
+
+    const results = await Promise.allSettled(fetchPromises);
+    
+    results.forEach((result) => {
+      if (result.status === 'fulfilled' && result.value) {
+        const { mint, metrics } = result.value;
+        const stIdx = stations.findIndex((s) => s.mint === mint);
+        if (stIdx !== -1 && stationMgrRef.current) {
+          stationMgrRef.current.updateStationMetrics(stIdx, metrics);
+        }
+      }
+    });
+  }, []);
+
   // ── PixiJS initialization ──────────────────────────────────────────────────
   const initPixi = useCallback(async () => {
     if (!containerRef.current) return;
@@ -149,7 +199,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
 
     const app = new Application();
     await app.init({
-      background: 0x000000,
+      backgroundAlpha: 0,
       resizeTo: containerRef.current,
       antialias: true,
       resolution: window.devicePixelRatio || 1,
@@ -186,23 +236,29 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
 
     // ── Stations ─────────────────────────────────────────────────────────────
     const stationsLayer = new Container();
+    stationsLayer.eventMode = 'static';
     app.stage.addChild(stationsLayer);
     const coordinationLayer = new Container();
+    coordinationLayer.eventMode = 'none';
     app.stage.addChild(coordinationLayer);
 
     const stationMgr = new StationManager(pixiModules, stationsLayer, coordinationLayer, W, H);
-    stationMgr.buildStations(tokenDefsRef.current);
     stationMgrRef.current = stationMgr;
+    // Fetch real tokens BEFORE building stations so we don't show placeholders
+    await fetchTokens();
+    stationMgr.buildStations(tokenDefsRef.current);
 
     // ── Bloom layer (additive blend — behind agents, above stations) ─────────
     const bloomLayer = new BloomLayer(pixiModules, app.stage);
     bloomLayer.buildStationGlows(stationMgr.stations);
+    bloomLayer.getContainer().eventMode = 'none';
 
     // ── Particle system (lives inside bloom for additive glow) ───────────────
     const particlePool = new ParticlePool(bloomLayer.getContainer(), new Container(), Graphics);
 
     // ── Agents ───────────────────────────────────────────────────────────────
     const agentsLayer = new Container();
+    agentsLayer.eventMode = 'none';
     app.stage.addChild(agentsLayer);
 
     const agentMgr = new AgentManager(pixiModules, agentsLayer);
@@ -242,13 +298,16 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
 
     // ── Popups ───────────────────────────────────────────────────────────────
     const popupLayer = new Container();
+    popupLayer.eventMode = 'none';
     app.stage.addChild(popupLayer);
     const liveTxLayer = new Container();
+    liveTxLayer.eventMode = 'none';
     app.stage.addChild(liveTxLayer);
     const popupMgr = new PopupManager(pixiModules, popupLayer, liveTxLayer);
 
     // ── Coordination lines ───────────────────────────────────────────────────
     const coordLinesLayer = new Container();
+    coordLinesLayer.eventMode = 'none';
     app.stage.addChild(coordLinesLayer);
 
     // ── Screen flash ─────────────────────────────────────────────────────────
@@ -307,8 +366,9 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
           });
           onEventRef.current({ timestamp: ts, agentName: tx.wallet_label, action: tx.action, token: txTicker });
 
-          const popX = agIdx !== -1 ? agentMgr.agentStates[agIdx].container.x : w / 2 + (Math.random() - 0.5) * 100;
-          const popY = agIdx !== -1 ? agentMgr.agentStates[agIdx].container.y : h / 2;
+          // Position popup above the TOKEN STATION (not the agent)
+          const popX = stIdx !== -1 ? stationMgr.stations[stIdx].container.x : w / 2 + (Math.random() - 0.5) * 100;
+          const popY = stIdx !== -1 ? stationMgr.stations[stIdx].container.y : h / 2;
           popupMgr.spawnLiveTxPopup(
             popX, popY,
             `LIVE TX — ${tx.wallet_label} ${tx.action === 'BUY' ? 'BOUGHT' : 'SOLD'} ${txTicker} | ${amount}`,
@@ -334,11 +394,12 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
         stationMgr.updateTimeLabels();
       }
 
-      // ── Decay visit counts every 10s ───────────────────────────────────────
+      // ── Decay visit counts every 10s + auto-expand most active ────────────
       visitDecayMs += dt;
       if (visitDecayMs >= 10_000) {
         visitDecayMs = 0;
         stationMgr.resetVisitCounts();
+        stationMgr.autoExpandMostActive();
       }
 
       // ── Station glow pulse ─────────────────────────────────────────────────
@@ -346,6 +407,9 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
 
       // ── Coordination visuals ───────────────────────────────────────────────
       stationMgr.updateCoordination(now, agentMgr.agentStates, coordLinesLayer, conversationsRef.current);
+
+      // ── Station expand/collapse animation ──────────────────────────────────
+      stationMgr.updateExpandAnimation(dt);
 
       // ── Station volume scaling ─────────────────────────────────────────────
       stationMgr.updateVolumeScaling(dt);
@@ -357,7 +421,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
           ag,
           station,
           (evt) => onEventRef.current(evt),
-          (x, y, txt, color) => popupMgr.spawnPopup(x, y, txt, color),
+          (x, y, txt, color, action) => popupMgr.spawnPopup(x, y, txt, color, action),
         );
       });
 
@@ -387,24 +451,43 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Start polling
+  // Start polling (OPTIMIZED: staggered start to reduce initial load spike)
   useEffect(() => {
+    // Tokens: immediate (needed for stations)
     fetchTokens();
     const interval = setInterval(fetchTokens, 60_000);
     return () => clearInterval(interval);
   }, [fetchTokens]);
 
   useEffect(() => {
-    fetchConversations();
-    const interval = setInterval(fetchConversations, 30_000);
-    return () => clearInterval(interval);
+    // Conversations: start after 1s
+    const initialDelay = setTimeout(() => {
+      fetchConversations();
+      const interval = setInterval(fetchConversations, 30_000);
+      return () => clearInterval(interval);
+    }, 1000);
+    return () => clearTimeout(initialDelay);
   }, [fetchConversations]);
 
   useEffect(() => {
-    fetchTransactions();
-    const interval = setInterval(fetchTransactions, 30_000);
-    return () => clearInterval(interval);
+    // Transactions: start after 2s
+    const initialDelay = setTimeout(() => {
+      fetchTransactions();
+      const interval = setInterval(fetchTransactions, 30_000);
+      return () => clearInterval(interval);
+    }, 2000);
+    return () => clearTimeout(initialDelay);
   }, [fetchTransactions]);
+
+  // Metrics: first fetch after 5s (wait for stations + all initial data), then every 45s (less frequent)
+  useEffect(() => {
+    const initialDelay = setTimeout(() => {
+      fetchMetrics();
+      const interval = setInterval(fetchMetrics, 45_000);
+      return () => clearInterval(interval);
+    }, 5000);
+    return () => clearTimeout(initialDelay);
+  }, [fetchMetrics]);
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
@@ -430,7 +513,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
         {liveTxNotifs.map((notif) => (
           <div
             key={notif.id}
-            className="flex items-center gap-3 px-4 py-3 rounded text-xs font-mono font-bold animate-fade-in"
+            className="flex items-center gap-3 px-4 py-3 text-xs font-mono font-bold animate-fade-in"
             style={{
               background: 'rgba(5,5,5,0.97)',
               border: `2px solid ${notif.action === 'BUY' ? '#00ff41' : '#ff0033'}`,
@@ -441,7 +524,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx 
             }}
           >
             <span
-              className="shrink-0 px-2 py-0.5 rounded text-black text-[10px] font-black"
+              className="shrink-0 px-2 py-0.5 text-black text-[10px] font-black"
               style={{ background: notif.action === 'BUY' ? '#00ff41' : '#ff0033' }}
             >
               {notif.action}

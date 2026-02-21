@@ -7,7 +7,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { EventFeed, AgentHoverCard, IntelBrief } from '@/components/war-room';
 import type { AgentData, FeedEvent, HoveredAgentInfo } from '@/components/war-room';
 
-const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), {
+const WarpTwister = dynamic(() => import('@/components/react-bits/warp-twister'), {
   ssr: false,
   loading: () => <div className="absolute inset-0 bg-black" />,
 });
@@ -17,11 +17,14 @@ const WarRoomCanvas = dynamic(() => import('@/components/war-room/WarRoomCanvas'
   ssr: false,
   loading: () => (
     <div className="flex-1 flex items-center justify-center bg-black">
-      <div
-        className="text-xs uppercase tracking-widest"
-        style={{ color: 'rgba(232,180,94,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
-      >
-        Initializing War Room...
+      <div className="flex flex-col items-center gap-4">
+        <div
+          className="text-xs uppercase tracking-widest animate-pulse"
+          style={{ color: 'rgba(232,180,94,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
+        >
+          Initializing War Room...
+        </div>
+        <div className="w-12 h-1 bg-gradient-to-r from-transparent via-[#E8B45E] to-transparent animate-pulse" />
       </div>
     </div>
   ),
@@ -56,11 +59,12 @@ const FALLBACK_AGENTS: AgentData[] = [
     trustScore: 0.994,
     bestTradePct: 38153,
     color: 0xe8b45e,
+    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=alpha-whale&backgroundColor=0a0a0a&radius=50',
     notes: '$210k profit, 1619 SOL balance ($261k portfolio). Selective whale.',
   },
   {
     id: 'beta',
-    name: 'GH7x...3kR2',
+    name: 'Silent Orca',
     rank: 2,
     winRate: 0.981,
     pnl: 568,
@@ -68,37 +72,47 @@ const FALLBACK_AGENTS: AgentData[] = [
     trustScore: 0.992,
     bestTradePct: 987,
     color: 0xffffff,
+    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=silent-orca&backgroundColor=0a0a0a&radius=50',
   },
   {
     id: 'gamma',
-    name: 'SmartMoney-3',
+    name: 'Deep Lurker',
     rank: 3,
     winRate: 0.72,
     pnl: 320,
     totalTrades: 25,
     trustScore: 0.80,
     color: 0xffffff,
+    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=deep-lurker&backgroundColor=0a0a0a&radius=50',
   },
   {
     id: 'delta',
-    name: 'SolTracker-X',
+    name: 'Shadow Fund',
     rank: 4,
     winRate: 0.60,
     pnl: 180,
     totalTrades: 20,
     trustScore: 0.65,
     color: 0xffffff,
+    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=shadow-fund&backgroundColor=0a0a0a&radius=50',
   },
   {
     id: 'epsilon',
-    name: 'DegenAlpha',
+    name: 'Apex Hunter',
     rank: 5,
     winRate: 0.50,
     pnl: 90,
     totalTrades: 14,
     trustScore: 0.50,
     color: 0xffffff,
+    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=apex-hunter&backgroundColor=0a0a0a&radius=50',
   },
+];
+
+const WHALE_NAMES = [
+  'Ghost Whale', 'Silent Orca', 'Deep Lurker', 'Shadow Fund',
+  'Apex Hunter', 'Iron Hands', 'Night Shark', 'Void Walker',
+  'Storm Rider', 'Neon Whale', 'Titan Alpha', 'Frost Giant',
 ];
 
 function walletsToAgents(wallets: DevPrintWallet[]): AgentData[] {
@@ -107,10 +121,14 @@ function walletsToAgents(wallets: DevPrintWallet[]): AgentData[] {
     .slice(0, 5);
 
   return top5.map((w, i) => {
-    const shortAddr = w.address.slice(0, 6) + '…' + w.address.slice(-4);
-    const name = w.label ?? shortAddr;
+    // Use label if available, otherwise assign a memorable codename
+    const name = w.label ?? WHALE_NAMES[i % WHALE_NAMES.length];
     const winRate = w.total_trades > 0 ? w.winning_trades / w.total_trades : 0;
     const isGold  = w.trust_score > 0.95;
+
+    // Always generate a pfp — use dicebear with the wallet address as seed
+    const pfp = w.pfp_url
+      ?? `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${w.address}&backgroundColor=0a0a0a&radius=50`;
 
     return {
       id:             w.id || w.address,
@@ -121,7 +139,7 @@ function walletsToAgents(wallets: DevPrintWallet[]): AgentData[] {
       totalTrades:    w.total_trades,
       trustScore:     w.trust_score,
       color:          isGold ? 0xe8b45e : 0xffffff,
-      pfpUrl:         w.pfp_url ?? undefined,
+      pfpUrl:         pfp,
       twitterHandle:  w.twitter_handle ?? undefined,
       notes:          w.notes ?? undefined,
       bestTradePct:   w.best_trade_pct ?? undefined,
@@ -136,6 +154,7 @@ export default function ArenaPage() {
   const [agents,  setAgents]  = useState<AgentData[]>(FALLBACK_AGENTS);
   const [events,  setEvents]  = useState<FeedEvent[]>([]);
   const [hovered, setHovered] = useState<HoveredAgentInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // ── Fetch whale wallets from DevPrint every 60s ───────────────────────────
   useEffect(() => {
@@ -150,6 +169,8 @@ export default function ArenaPage() {
         }
       } catch {
         // silently keep fallback data on failure
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -171,35 +192,36 @@ export default function ArenaPage() {
 
   return (
     <div className="fixed inset-0 flex flex-col" style={{ background: '#000000' }}>
-      {/* Animated background */}
+      {/* Animated background — WarpTwister tunnel */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.60) 15%, rgba(0,0,0,0.85) 55%, rgba(0,0,0,0.95) 100%)',
-          }}
-        />
-        {!isMobile && (
-          <div className="absolute inset-0 opacity-20">
-            <RisingLines
-              color="#E8B45E"
-              horizonColor="#E8B45E"
-              haloColor="#F5D78E"
-              riseSpeed={0.05}
-              riseScale={8.0}
-              riseIntensity={1.0}
-              flowSpeed={0.1}
-              flowDensity={3.5}
-              flowIntensity={0.5}
-              horizonIntensity={0.7}
-              haloIntensity={5.0}
-              horizonHeight={-0.85}
-              circleScale={-0.5}
-              scale={6.5}
-              brightness={0.9}
+        {!isMobile && !isLoading && (
+          <div className="absolute inset-0 opacity-40">
+            <WarpTwister
+              radius={1.3}
+              narrow={1.2}
+              length={10}
+              hazeSpeed={1.5}
+              dustSpeed={0.55}
+              hazeStrength={0.22}
+              hazeFrequency={165}
+              dustDensity={100}
+              dustSize={70}
+              dustOpacity={0.5}
+              edgeFade={2}
+              spiralTight={0.45}
+              rotSpeed={0}
+              baseColor={[0.91, 0.71, 0.37]}
+              baseColorLight={[0.91, 0.71, 0.37]}
+              cameraDistance={7.5}
             />
           </div>
         )}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.40) 15%, rgba(0,0,0,0.75) 55%, rgba(0,0,0,0.92) 100%)',
+          }}
+        />
       </div>
 
       {/* Header bar */}
@@ -247,10 +269,10 @@ export default function ArenaPage() {
         </div>
       </div>
 
-      {/* Main content: canvas + sidebar */}
-      <div className="relative z-10 flex flex-1 overflow-hidden">
+      {/* Main content: canvas + sidebar (constrained max-width for ultrawide) */}
+      <div className="relative z-10 flex flex-1 overflow-hidden mx-auto w-full" style={{ maxWidth: '2400px' }}>
         {/* PixiJS War Room Canvas */}
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative overflow-hidden min-w-0">
           <WarRoomCanvas
             agents={agents}
             onEvent={handleEvent}
@@ -268,12 +290,11 @@ export default function ArenaPage() {
           )}
         </div>
 
-        {/* Right panel (300px): Intel Brief + Live Feed — hidden on mobile */}
+        {/* Right panel (responsive width): Intel Brief + Live Feed — hidden on mobile */}
         <div
-          className="hidden sm:flex flex-col flex-shrink-0 h-full"
+          className="hidden lg:flex flex-col flex-shrink-0 h-full"
           style={{
-            width: '300px',
-            minWidth: '300px',
+            width: 'clamp(320px, 22vw, 420px)',
             background: '#0A0A0A',
             borderLeft: '1px solid rgba(232, 180, 94, 0.3)',
           }}
@@ -370,4 +391,3 @@ export default function ArenaPage() {
     </div>
   );
 }
-
