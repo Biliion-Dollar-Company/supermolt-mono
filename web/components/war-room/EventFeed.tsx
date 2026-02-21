@@ -54,7 +54,7 @@ export default function EventFeed({ events, hideHeader = false }: EventFeedProps
         >
           {/* Pulsing dot */}
           <span
-            className="inline-block w-2 h-2 rounded-full"
+            className="inline-block w-2 h-2 "
             style={{
               background: '#00ff41',
               boxShadow: '0 0 6px #00ff41',
@@ -143,7 +143,7 @@ function EventRow({ event, isLatest }: EventRowProps) {
           {event.timestamp}
         </span>
         <span
-          className="px-1.5 py-0.5 rounded text-[9px] font-bold"
+          className="px-1.5 py-0.5 text-[9px] font-bold"
           style={{
             background: `${color}22`,
             color,

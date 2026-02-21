@@ -12,6 +12,16 @@ interface PixiModules {
   TextStyle: new (opts: Record<string, unknown>) => unknown;
 }
 
+const ACTION_ICONS: Record<string, string> = {
+  BUY: '\u25B2',       // ▲
+  SELL: '\u25BC',       // ▼
+  ANALYZING: '\u25C6',  // ◆
+  BOUGHT: '\u25B2',
+  SOLD: '\u25BC',
+};
+
+const BRAND = 0xe8b45e;
+
 export class PopupManager {
   private pixi: PixiModules;
   private popupLayer: PixiContainer;
@@ -28,87 +38,116 @@ export class PopupManager {
     this.liveTxLayer = liveTxLayer;
   }
 
-  spawnPopup(x: number, y: number, txt: string, color: number) {
+  /** Agent activity popup — tiny, positioned well above station. */
+  spawnPopup(
+    stationX: number,
+    stationY: number,
+    txt: string,
+    _color: number,
+    action?: string,
+  ) {
     const { Container, Graphics, Text, TextStyle } = this.pixi;
-    const container = new Container();
+    const c = new Container();
 
-    const textObj = new Text({
-      text: txt,
-      style: new TextStyle({
-        fontFamily: 'JetBrains Mono, monospace',
-        fontSize: 10,
-        fontWeight: '700',
-        fill: color,
-      }),
+    const icon = action ? (ACTION_ICONS[action] ?? '\u25C6') : '\u25C6';
+    const short = txt.length > 20 ? txt.slice(0, 19) + '..' : txt;
+
+    const iconT = new Text({
+      text: icon,
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '900', fill: BRAND }),
     });
-    textObj.anchor.set(0.5, 0.5);
+    iconT.anchor.set(0.5, 0.5);
 
-    const tw = textObj.width + 16;
-    const th = textObj.height + 8;
+    const label = new Text({
+      text: short,
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '700', fill: 0x999999 }),
+    });
+    label.anchor.set(0, 0.5);
+
+    const iconW = 8;
+    const pad = 4;
+    const w = iconW + label.width + pad * 2 + 2;
+    const h = 11;
+
+    iconT.x = -w / 2 + pad + 3;
+    label.x = -w / 2 + pad + iconW + 1;
+
     const bg = new Graphics();
-    bg.roundRect(-tw / 2, -th / 2, tw, th, 3);
-    bg.fill({ color: 0x050505, alpha: 0.95 });
-    bg.setStrokeStyle({ width: 1, color, alpha: 0.9 });
-    bg.roundRect(-tw / 2, -th / 2, tw, th, 3);
+    bg.rect(-w / 2, -h / 2, w, h);
+    bg.fill({ color: 0x0a0a0a, alpha: 0.88 });
+    bg.setStrokeStyle({ width: 0.5, color: BRAND, alpha: 0.3 });
+    bg.rect(-w / 2, -h / 2, w, h);
     bg.stroke();
 
-    container.addChild(bg, textObj);
-    container.x = x;
-    container.y = y - 60;
-    this.popupLayer.addChild(container);
-    this.popups.push({ container, elapsed: 0, duration: 2800, startY: y - 60 });
+    c.addChild(bg, iconT, label);
+
+    // Well above the station — offset right so it clears the card
+    const startY = stationY - 46;
+    c.x = stationX + 34;
+    c.y = startY;
+
+    this.popupLayer.addChild(c);
+    this.popups.push({ container: c, elapsed: 0, duration: 2200, startY });
   }
 
-  spawnLiveTxPopup(x: number, y: number, txt: string, action: 'BUY' | 'SELL') {
+  /** Live TX popup — slightly bigger but still compact. */
+  spawnLiveTxPopup(
+    stationX: number,
+    stationY: number,
+    txt: string,
+    action: 'BUY' | 'SELL',
+  ) {
     const { Container, Graphics, Text, TextStyle } = this.pixi;
-    const borderColor = action === 'BUY' ? 0x00ff41 : 0xff0033;
-    const container = new Container();
+    const c = new Container();
 
-    const textObj = new Text({
-      text: txt,
-      style: new TextStyle({
-        fontFamily: 'JetBrains Mono, monospace',
-        fontSize: 12,
-        fontWeight: '800',
-        fill: borderColor,
-      }),
+    const icon = ACTION_ICONS[action] ?? '\u25C6';
+    const short = txt.length > 26 ? txt.slice(0, 25) + '..' : txt;
+
+    const iconT = new Text({
+      text: icon,
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 6, fontWeight: '900', fill: BRAND }),
     });
-    textObj.anchor.set(0.5, 0.5);
+    iconT.anchor.set(0.5, 0.5);
 
-    const tw = textObj.width + 24;
-    const th = textObj.height + 14;
+    const label = new Text({
+      text: short,
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5.5, fontWeight: '800', fill: 0xcccccc }),
+    });
+    label.anchor.set(0, 0.5);
+
+    const iconW = 10;
+    const pad = 5;
+    const w = iconW + label.width + pad * 2 + 2;
+    const h = 13;
+
+    iconT.x = -w / 2 + pad + 4;
+    label.x = -w / 2 + pad + iconW + 1;
+
     const bg = new Graphics();
-    bg.roundRect(-tw / 2 - 3, -th / 2 - 3, tw + 6, th + 6, 6);
-    bg.fill({ color: borderColor, alpha: 0.12 });
-    bg.roundRect(-tw / 2, -th / 2, tw, th, 4);
-    bg.fill({ color: 0x050505, alpha: 0.97 });
-    bg.setStrokeStyle({ width: 2, color: borderColor, alpha: 1.0 });
-    bg.roundRect(-tw / 2, -th / 2, tw, th, 4);
+    bg.rect(-w / 2, -h / 2, w, h);
+    bg.fill({ color: 0x080808, alpha: 0.94 });
+    bg.setStrokeStyle({ width: 0.6, color: BRAND, alpha: 0.5 });
+    bg.rect(-w / 2, -h / 2, w, h);
     bg.stroke();
 
-    const badge = new Text({
+    // Action label — plain white text, no box
+    const badgeT = new Text({
       text: action,
-      style: new TextStyle({
-        fontFamily: 'JetBrains Mono, monospace',
-        fontSize: 9,
-        fontWeight: '900',
-        fill: 0x000000,
-      }),
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 4, fontWeight: '800', fill: 0xffffff }),
     });
-    badge.anchor.set(0.5, 0.5);
-    const badgeBg = new Graphics();
-    badgeBg.roundRect(-18, -8, 36, 16, 3);
-    badgeBg.fill({ color: borderColor });
-    badgeBg.x = tw / 2 - 22;
-    badgeBg.y = -th / 2 + 10;
-    badge.x = badgeBg.x;
-    badge.y = badgeBg.y;
+    badgeT.anchor.set(0.5, 0.5);
+    badgeT.x = w / 2 + 10;
+    badgeT.y = 0;
 
-    container.addChild(bg, textObj, badgeBg, badge);
-    container.x = x;
-    container.y = y - 80;
-    this.liveTxLayer.addChild(container);
-    this.popups.push({ container, elapsed: 0, duration: 5000, startY: y - 80 });
+    c.addChild(bg, iconT, label, badgeT);
+
+    // Above-left of station, well clear of the card
+    const startY = stationY - 48;
+    c.x = stationX - 20;
+    c.y = startY;
+
+    this.liveTxLayer.addChild(c);
+    this.popups.push({ container: c, elapsed: 0, duration: 3500, startY });
   }
 
   update(dt: number) {
@@ -116,8 +155,8 @@ export class PopupManager {
       const p = this.popups[i];
       p.elapsed += dt;
       const progress = p.elapsed / p.duration;
-      p.container.alpha = progress < 0.75 ? 1 : 1 - (progress - 0.75) / 0.25;
-      p.container.y = p.startY - progress * 30;
+      p.container.alpha = progress < 0.65 ? 1 : 1 - (progress - 0.65) / 0.35;
+      p.container.y = p.startY - progress * 14;
       if (p.elapsed >= p.duration) {
         p.container.parent?.removeChild(p.container);
         this.popups.splice(i, 1);

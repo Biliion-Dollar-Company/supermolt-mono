@@ -39,9 +39,8 @@ export class BloomLayer {
 
     stations.forEach((st) => {
       const g = new Graphics();
-      const BW = 76;
-      const BH = 50;
-      g.roundRect(-BW, -BH, BW * 2, BH * 2, 10);
+      const S = 36; // slightly larger than collapsed card (52/2 = 26)
+      g.rect(-S, -S, S * 2, S * 2);
       g.fill({ color: st.isNew ? 0xffcc00 : 0xe8b45e, alpha: 0.15 });
       g.x = st.container.x;
       g.y = st.container.y;

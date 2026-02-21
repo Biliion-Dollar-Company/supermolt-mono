@@ -59,9 +59,10 @@ export class AgentManager {
         });
         ring.stroke();
 
+        // Semi-transparent background circle — avatar shows on top
         const circle = new Graphics();
         circle.circle(0, 0, 14);
-        circle.fill({ color });
+        circle.fill({ color, alpha: 0.15 });
 
         let avatarSprite: PixiSprite | null = null;
         try {
@@ -78,16 +79,18 @@ export class AgentManager {
           avatarSprite.mask = avatarMask;
           container.addChild(avatarMask);
         } catch {
-          // fall through to colored circle
+          // fall through — show first letter
         }
 
+        // Fallback: first letter of name (not rank number)
+        const initial = ag.name.charAt(0).toUpperCase();
         const rankText = new Text({
-          text: String(ag.rank),
+          text: initial,
           style: new TextStyle({
             fontFamily: 'JetBrains Mono, monospace',
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: '900',
-            fill: 0x000000,
+            fill: trustScore > 0.95 ? 0xe8b45e : 0xffffff,
           }),
         });
         rankText.anchor.set(0.5, 0.5);
@@ -112,13 +115,13 @@ export class AgentManager {
           text: '',
           style: new TextStyle({
             fontFamily: 'JetBrains Mono, monospace',
-            fontSize: 9,
+            fontSize: 5,
             fontWeight: '700',
             fill: 0xffffff,
           }),
         });
         bubbleText.anchor.set(0.5, 1);
-        bubbleText.y = -22;
+        bubbleText.y = -38;
         bubbleText.visible = false;
 
         container.addChild(outerRing, ring, circle);
@@ -272,7 +275,7 @@ export class AgentManager {
     ag: AgentState,
     station: TokenStation,
     onEvent: (evt: FeedEvent) => void,
-    spawnPopup: (x: number, y: number, txt: string, color: number) => void,
+    spawnPopup: (x: number, y: number, txt: string, color: number, action?: string) => void,
   ) {
     const bubbleMsg = getBubbleText(ag.trustScore);
     const token = station.ticker;
@@ -285,21 +288,15 @@ export class AgentManager {
     const aColor = ACTION_COLORS[action];
 
     ag.bubbleText.text = bubbleMsg;
-    (ag.bubbleText.style as { fill: number }).fill = aColor;
+    (ag.bubbleText.style as { fill: number }).fill = 0xffffff;
     ag.bubbleText.visible = true;
     ag.bubbleTimer = 2500;
 
-    const bw = ag.bubbleText.width + 12;
-    const bh = ag.bubbleText.height + 6;
+    // No background — just plain white text
     ag.bubbleBg.clear();
-    ag.bubbleBg.roundRect(-bw / 2, -(bh + 24), bw, bh, 3);
-    ag.bubbleBg.fill({ color: 0x050505, alpha: 0.9 });
-    ag.bubbleBg.setStrokeStyle({ width: 1, color: aColor, alpha: 0.8 });
-    ag.bubbleBg.roundRect(-bw / 2, -(bh + 24), bw, bh, 3);
-    ag.bubbleBg.stroke();
-    ag.bubbleBg.visible = true;
+    ag.bubbleBg.visible = false;
 
-    spawnPopup(ag.x, ag.y, `${ag.data.name} spotted ${token}`, aColor);
+    spawnPopup(station.container.x, station.container.y, `${ag.data.name} spotted ${token}`, aColor, action);
 
     const ts = new Date().toLocaleTimeString('en-US', {
       hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit',

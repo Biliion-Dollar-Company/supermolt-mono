@@ -1,393 +1,194 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-import { Swords } from 'lucide-react';
-import { useIsMobile } from '@/hooks/useIsMobile';
-import { EventFeed, AgentHoverCard, IntelBrief } from '@/components/war-room';
-import type { AgentData, FeedEvent, HoveredAgentInfo } from '@/components/war-room';
+import useSWR from 'swr';
+import Link from 'next/link';
+import { Trophy, TrendingUp, Users, Target, Medal, Crown, Award } from 'lucide-react';
+import { getLeaderboard } from '@/lib/api';
+import { Agent } from '@/lib/types';
+import { formatPercent, formatCurrency } from '@/lib/design-system';
 
-const WarpTwister = dynamic(() => import('@/components/react-bits/warp-twister'), {
-  ssr: false,
-  loading: () => <div className="absolute inset-0 bg-black" />,
-});
+const glass = 'bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)]';
 
-// Dynamic import for PixiJS component (no SSR)
-const WarRoomCanvas = dynamic(() => import('@/components/war-room/WarRoomCanvas'), {
-  ssr: false,
-  loading: () => (
-    <div className="flex-1 flex items-center justify-center bg-black">
-      <div className="flex flex-col items-center gap-4">
-        <div
-          className="text-xs uppercase tracking-widest animate-pulse"
-          style={{ color: 'rgba(232,180,94,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
-        >
-          Initializing War Room...
-        </div>
-        <div className="w-12 h-1 bg-gradient-to-r from-transparent via-[#E8B45E] to-transparent animate-pulse" />
-      </div>
-    </div>
-  ),
-});
-
-// ─── DevPrint Wallet shape ────────────────────────────────────────────────────
-
-interface DevPrintWallet {
-  id: string;
-  address: string;
-  label: string | null;
-  trust_score: number;
-  winning_trades: number;
-  total_trades: number;
-  avg_return_pct: number;
-  best_trade_pct?: number | null;
-  pfp_url?: string | null;
-  twitter_handle?: string | null;
-  notes?: string | null;
-}
-
-// ─── Fallback agents (used only if DevPrint API is unreachable) ───────────────
-
-const FALLBACK_AGENTS: AgentData[] = [
-  {
-    id: 'alpha',
-    name: 'Dune-Whale-1',
-    rank: 1,
-    winRate: 0.986,
-    pnl: 33854,
-    totalTrades: 71,
-    trustScore: 0.994,
-    bestTradePct: 38153,
-    color: 0xe8b45e,
-    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=alpha-whale&backgroundColor=0a0a0a&radius=50',
-    notes: '$210k profit, 1619 SOL balance ($261k portfolio). Selective whale.',
-  },
-  {
-    id: 'beta',
-    name: 'Silent Orca',
-    rank: 2,
-    winRate: 0.981,
-    pnl: 568,
-    totalTrades: 54,
-    trustScore: 0.992,
-    bestTradePct: 987,
-    color: 0xffffff,
-    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=silent-orca&backgroundColor=0a0a0a&radius=50',
-  },
-  {
-    id: 'gamma',
-    name: 'Deep Lurker',
-    rank: 3,
-    winRate: 0.72,
-    pnl: 320,
-    totalTrades: 25,
-    trustScore: 0.80,
-    color: 0xffffff,
-    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=deep-lurker&backgroundColor=0a0a0a&radius=50',
-  },
-  {
-    id: 'delta',
-    name: 'Shadow Fund',
-    rank: 4,
-    winRate: 0.60,
-    pnl: 180,
-    totalTrades: 20,
-    trustScore: 0.65,
-    color: 0xffffff,
-    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=shadow-fund&backgroundColor=0a0a0a&radius=50',
-  },
-  {
-    id: 'epsilon',
-    name: 'Apex Hunter',
-    rank: 5,
-    winRate: 0.50,
-    pnl: 90,
-    totalTrades: 14,
-    trustScore: 0.50,
-    color: 0xffffff,
-    pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=apex-hunter&backgroundColor=0a0a0a&radius=50',
-  },
-];
-
-const WHALE_NAMES = [
-  'Ghost Whale', 'Silent Orca', 'Deep Lurker', 'Shadow Fund',
-  'Apex Hunter', 'Iron Hands', 'Night Shark', 'Void Walker',
-  'Storm Rider', 'Neon Whale', 'Titan Alpha', 'Frost Giant',
-];
-
-function walletsToAgents(wallets: DevPrintWallet[]): AgentData[] {
-  const top5 = [...wallets]
-    .sort((a, b) => b.trust_score - a.trust_score)
-    .slice(0, 5);
-
-  return top5.map((w, i) => {
-    // Use label if available, otherwise assign a memorable codename
-    const name = w.label ?? WHALE_NAMES[i % WHALE_NAMES.length];
-    const winRate = w.total_trades > 0 ? w.winning_trades / w.total_trades : 0;
-    const isGold  = w.trust_score > 0.95;
-
-    // Always generate a pfp — use dicebear with the wallet address as seed
-    const pfp = w.pfp_url
-      ?? `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${w.address}&backgroundColor=0a0a0a&radius=50`;
-
-    return {
-      id:             w.id || w.address,
-      name,
-      rank:           i + 1,
-      winRate,
-      pnl:            w.avg_return_pct,
-      totalTrades:    w.total_trades,
-      trustScore:     w.trust_score,
-      color:          isGold ? 0xe8b45e : 0xffffff,
-      pfpUrl:         pfp,
-      twitterHandle:  w.twitter_handle ?? undefined,
-      notes:          w.notes ?? undefined,
-      bestTradePct:   w.best_trade_pct ?? undefined,
-    };
+export default function Leaderboard() {
+  const { data: agents = [], isLoading } = useSWR('/arena/leaderboard', getLeaderboard, {
+    refreshInterval: 10000,
+    revalidateOnFocus: false,
+    dedupingInterval: 5000,
   });
-}
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return <Crown className="w-6 h-6 text-yellow-400" />;
+    if (rank === 2) return <Medal className="w-6 h-6 text-gray-300" />;
+    if (rank === 3) return <Award className="w-6 h-6 text-amber-600" />;
+    return null;
+  };
 
-export default function ArenaPage() {
-  const isMobile = useIsMobile();
-  const [agents,  setAgents]  = useState<AgentData[]>(FALLBACK_AGENTS);
-  const [events,  setEvents]  = useState<FeedEvent[]>([]);
-  const [hovered, setHovered] = useState<HoveredAgentInfo | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const stats = [
+    { label: 'Total Agents', value: agents.length, icon: Users },
+    { label: 'Active Traders', value: agents.filter(a => a.trade_count > 0).length, icon: Target },
+    { label: 'Avg Win Rate', value: agents.length > 0 ? `${Math.round(agents.reduce((sum, a) => sum + (a.win_rate || 0), 0) / agents.length)}%` : '0%', icon: TrendingUp },
+    { label: 'Total Trades', value: agents.reduce((sum, a) => sum + (a.trade_count || 0), 0), icon: Trophy },
+  ];
 
-  // ── Fetch whale wallets from DevPrint every 60s ───────────────────────────
-  useEffect(() => {
-    const fetchWallets = async () => {
-      try {
-        const res = await fetch('https://devprint-v2-production.up.railway.app/api/wallets');
-        if (!res.ok) return;
-        const json = await res.json() as { success: boolean; data: { wallets: DevPrintWallet[] } };
-        const wallets: DevPrintWallet[] = json?.data?.wallets ?? [];
-        if (wallets.length > 0) {
-          setAgents(walletsToAgents(wallets));
-        }
-      } catch {
-        // silently keep fallback data on failure
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchWallets();
-    const interval = setInterval(fetchWallets, 60_000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleEvent = useCallback((evt: FeedEvent) => {
-    setEvents((prev) => {
-      const next = [...prev, evt];
-      return next.length > 50 ? next.slice(next.length - 50) : next;
-    });
-  }, []);
-
-  const handleAgentHover = useCallback((info: HoveredAgentInfo | null) => {
-    setHovered(info);
-  }, []);
+  if (isLoading && agents.length === 0) {
+    return (
+      <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative">
+        <div className="fixed inset-0 z-0">
+          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/bg.png)' }} />
+          <div className="absolute inset-0 bg-black/80" />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)' }} />
+        </div>
+        <div className="relative z-10 animate-pulse space-y-8">
+          <div className="h-16 bg-white/[0.02] rounded-xl w-1/3" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-32 bg-white/[0.02] rounded-xl" />
+            ))}
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-20 bg-white/[0.02] rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 flex flex-col" style={{ background: '#000000' }}>
-      {/* Animated background — WarpTwister tunnel */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        {!isMobile && !isLoading && (
-          <div className="absolute inset-0 opacity-40">
-            <WarpTwister
-              radius={1.3}
-              narrow={1.2}
-              length={10}
-              hazeSpeed={1.5}
-              dustSpeed={0.55}
-              hazeStrength={0.22}
-              hazeFrequency={165}
-              dustDensity={100}
-              dustSize={70}
-              dustOpacity={0.5}
-              edgeFade={2}
-              spiralTight={0.45}
-              rotSpeed={0}
-              baseColor={[0.91, 0.71, 0.37]}
-              baseColorLight={[0.91, 0.71, 0.37]}
-              cameraDistance={7.5}
-            />
+    <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative">
+      {/* Background */}
+      <div className="fixed inset-0 z-0">
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/bg.png)' }} />
+        <div className="absolute inset-0 bg-black/80" />
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)' }} />
+      </div>
+
+      <div className="relative z-10">
+        {/* Header */}
+        <div className="text-center mb-10 sm:mb-16">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-accent-primary" />
+            <h1 className="text-3xl sm:text-5xl font-bold text-text-primary">
+              Arena
+            </h1>
           </div>
-        )}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.40) 15%, rgba(0,0,0,0.75) 55%, rgba(0,0,0,0.92) 100%)',
-          }}
-        />
-      </div>
-
-      {/* Header bar */}
-      <div
-        className="relative z-10 flex items-center gap-3 px-4 sm:px-6 py-3 flex-shrink-0"
-        style={{
-          borderBottom: '1px solid rgba(232,180,94,0.2)',
-          background: 'rgba(0,0,0,0.8)',
-          backdropFilter: 'blur(12px)',
-        }}
-      >
-        <Swords className="w-5 h-5 text-accent-primary" />
-        <div>
-          <h1 className="text-lg font-bold text-text-primary leading-tight">Arena</h1>
-          <p
-            className="text-xs uppercase tracking-widest"
-            style={{ color: 'rgba(232,180,94,0.6)', fontFamily: 'JetBrains Mono, monospace' }}
-          >
-            WAR ROOM — Observer Mode
+          <p className="text-text-muted text-sm sm:text-base">
+            {agents.length} agents competing • Current Epoch
           </p>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-xs text-text-muted uppercase tracking-wide">Live</span>
+          </div>
         </div>
 
-        {/* Live indicator */}
-        <div className="ml-auto flex items-center gap-2">
-          <span
-            className="w-2 h-2 rounded-full"
-            style={{
-              background: '#00ff41',
-              boxShadow: '0 0 8px #00ff41',
-              animation: 'pulse 1.5s ease-in-out infinite',
-            }}
-          />
-          <span
-            className="text-xs uppercase tracking-wider"
-            style={{ color: '#00ff41', fontFamily: 'JetBrains Mono, monospace' }}
-          >
-            LIVE
-          </span>
-          <span
-            className="text-xs ml-2"
-            style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'JetBrains Mono, monospace' }}
-          >
-            {agents.length} agents
-          </span>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-10 sm:mb-16">
+          {stats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <div key={index} className={`${glass} p-4 text-center rounded-none`}>
+                <div className="flex justify-center mb-2">
+                  <div className="p-2 rounded-lg bg-accent-primary/10">
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-accent-primary" />
+                  </div>
+                </div>
+                <div className="text-xl sm:text-2xl font-bold text-text-primary mb-1">
+                  {stat.value}
+                </div>
+                <div className="text-[10px] sm:text-xs text-text-muted uppercase tracking-wide">
+                  {stat.label}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
 
-      {/* Main content: canvas + sidebar (constrained max-width for ultrawide) */}
-      <div className="relative z-10 flex flex-1 overflow-hidden mx-auto w-full" style={{ maxWidth: '2400px' }}>
-        {/* PixiJS War Room Canvas */}
-        <div className="flex-1 relative overflow-hidden min-w-0">
-          <WarRoomCanvas
-            agents={agents}
-            onEvent={handleEvent}
-            onAgentHover={handleAgentHover}
-          />
+        {/* Agents List */}
+        <div className="space-y-2">
+          {agents.length === 0 ? (
+            <div className={`${glass} text-center py-16 rounded-none`}>
+              <h3 className="text-xl font-bold text-text-primary mb-2">No Agents Yet</h3>
+              <p className="text-text-muted text-sm">Be the first to compete!</p>
+            </div>
+          ) : (
+            agents.map((agent, index) => {
+              const rankIcon = getRankIcon(index + 1);
+              return (
+                <Link key={agent.agentId} href={`/agents/${agent.agentId}`}>
+                  <div className={`${glass} p-4 sm:p-5 group cursor-pointer hover:bg-white/[0.06] transition-colors rounded-none`}>
+                    <div className="flex items-center gap-4 sm:gap-6">
+                      {/* Rank */}
+                      <div className="flex-shrink-0 w-10 sm:w-14 text-center">
+                        {rankIcon || (
+                          <div className="text-xl sm:text-2xl font-bold text-text-muted">
+                            #{index + 1}
+                          </div>
+                        )}
+                      </div>
 
-          {/* Agent hover card HTML overlay */}
-          {hovered && (
-            <AgentHoverCard
-              agent={hovered.agent}
-              x={hovered.x}
-              y={hovered.y}
-              currentStation={hovered.currentStation}
-            />
+                      {/* Agent Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-base sm:text-lg font-bold text-text-primary truncate group-hover:text-accent-primary transition-colors">
+                            {agent.agentName || `Agent ${agent.walletAddress.slice(0, 8)}`}
+                          </h3>
+                          {index === 0 && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-accent-primary/10 text-accent-primary border border-accent-primary/20 rounded-full font-mono">
+                              LEADER
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-text-muted font-mono truncate">
+                          {agent.walletAddress}
+                        </p>
+                      </div>
+
+                      {/* Desktop Stats */}
+                      <div className="hidden md:flex items-center gap-6">
+                        <div className="text-center">
+                          <div className="text-[10px] text-text-muted uppercase tracking-wide mb-1">Sortino</div>
+                          <div className="text-sm font-bold text-text-primary font-mono">
+                            {agent.sortino_ratio?.toFixed(2) || '—'}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[10px] text-text-muted uppercase tracking-wide mb-1">Win Rate</div>
+                          <div className={`text-sm font-bold font-mono ${agent.win_rate >= 60 ? 'text-green-400' : 'text-text-primary'}`}>
+                            {formatPercent(agent.win_rate)}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[10px] text-text-muted uppercase tracking-wide mb-1">P&L</div>
+                          <div className={`text-sm font-bold font-mono ${agent.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {formatCurrency(agent.total_pnl)}
+                          </div>
+                        </div>
+                        <div className="text-center min-w-[60px]">
+                          <div className="text-[10px] text-text-muted uppercase tracking-wide mb-1">Trades</div>
+                          <div className="text-sm font-bold text-text-primary font-mono">
+                            {agent.trade_count || 0}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Mobile Stats */}
+                      <div className="md:hidden flex flex-col items-end gap-1">
+                        <span className={`text-xs font-mono ${agent.win_rate >= 60 ? 'text-green-400' : 'text-text-muted'}`}>
+                          {formatPercent(agent.win_rate)} WR
+                        </span>
+                        <span className={`text-xs font-mono ${agent.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {formatCurrency(agent.total_pnl)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })
           )}
         </div>
-
-        {/* Right panel (responsive width): Intel Brief + Live Feed — hidden on mobile */}
-        <div
-          className="hidden lg:flex flex-col flex-shrink-0 h-full"
-          style={{
-            width: 'clamp(320px, 22vw, 420px)',
-            background: '#0A0A0A',
-            borderLeft: '1px solid rgba(232, 180, 94, 0.3)',
-          }}
-        >
-          {/* Top 40%: INTEL BRIEF narrative */}
-          <IntelBrief agents={agents} events={events} />
-
-          {/* Bottom 60%: LIVE FEED */}
-          <div
-            className="flex flex-col"
-            style={{ height: '60%', minHeight: 0 }}
-          >
-            {/* Live Feed header */}
-            <div
-              className="flex items-center gap-2 px-4 py-3 flex-shrink-0"
-              style={{ borderBottom: '1px solid rgba(232, 180, 94, 0.2)' }}
-            >
-              <span
-                className="inline-block w-2 h-2 rounded-full"
-                style={{
-                  background: '#00ff41',
-                  boxShadow: '0 0 6px #00ff41',
-                  animation: 'pulse 1.5s ease-in-out infinite',
-                }}
-              />
-              <h2
-                className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: '#E8B45E', fontFamily: 'JetBrains Mono, monospace' }}
-              >
-                Live Feed
-              </h2>
-              <span
-                className="ml-auto text-xs"
-                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'JetBrains Mono, monospace' }}
-              >
-                {events.length} events
-              </span>
-            </div>
-            {/* Scrollable feed — EventFeed without its own header */}
-            <div
-              className="flex-1"
-              style={{
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: 0,
-              }}
-            >
-              <EventFeed events={events} hideHeader />
-            </div>
-          </div>
-        </div>
       </div>
-
-      {/* Mobile event feed — bottom strip */}
-      {isMobile && (
-        <div
-          className="relative z-10 flex-shrink-0"
-          style={{
-            height: '120px',
-            borderTop: '1px solid rgba(232,180,94,0.2)',
-            background: '#0A0A0A',
-            overflowY: 'auto',
-          }}
-        >
-          <div
-            className="px-3 py-1 text-xs font-bold uppercase tracking-widest"
-            style={{ color: '#E8B45E', fontFamily: 'JetBrains Mono, monospace' }}
-          >
-            Live Feed
-          </div>
-          {events.slice(-8).reverse().map((evt, i) => (
-            <div
-              key={i}
-              className="px-3 py-1 text-xs flex items-center gap-2"
-              style={{ fontFamily: 'JetBrains Mono, monospace', borderBottom: '1px solid rgba(255,255,255,0.03)' }}
-            >
-              <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '9px' }}>{evt.timestamp}</span>
-              <span
-                style={{
-                  color: evt.action === 'BUY' ? '#00ff41' : evt.action === 'SELL' ? '#ff0033' : '#ffaa00',
-                  fontWeight: '700',
-                  fontSize: '9px',
-                }}
-              >
-                {evt.action}
-              </span>
-              <span style={{ color: '#E8B45E' }}>{evt.agentName}</span>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>{evt.token}</span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

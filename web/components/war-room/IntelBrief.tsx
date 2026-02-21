@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import type { AgentData, FeedEvent } from './types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -277,19 +277,28 @@ export default function IntelBrief({ agents, events, stations = [] }: IntelBrief
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const { displayed, done } = useTypewriter(narrative, 16);
 
-  // Generate initial narrative and refresh every 15s
-  useEffect(() => {
-    const generate = () => {
-      const text = buildNarrative(agents, events, stations);
-      setNarrative(text);
-      setLastUpdated(new Date());
-      setUpdateCount((n) => n + 1);
-    };
+  // Store latest props in refs so the interval always reads current data
+  // without causing the useEffect to re-fire on every prop change
+  const agentsRef = useRef(agents);
+  const eventsRef = useRef(events);
+  const stationsRef = useRef(stations);
+  agentsRef.current = agents;
+  eventsRef.current = events;
+  stationsRef.current = stations;
 
+  const generate = useCallback(() => {
+    const text = buildNarrative(agentsRef.current, eventsRef.current, stationsRef.current);
+    setNarrative(text);
+    setLastUpdated(new Date());
+    setUpdateCount((n) => n + 1);
+  }, []);
+
+  // Generate initial narrative and refresh every 15s (stable deps — no infinite loop)
+  useEffect(() => {
     generate();
     const interval = setInterval(generate, 15_000);
     return () => clearInterval(interval);
-  }, [agents, events, stations]);
+  }, [generate]);
 
   // Determine signal level for color coding
   const signalLevel = (() => {
@@ -369,7 +378,7 @@ export default function IntelBrief({ agents, events, stations = [] }: IntelBrief
               display: 'inline-block',
               width: '8px',
               height: '8px',
-              borderRadius: '50%',
+              borderRadius: 0,
               background: signalColor,
               boxShadow: `0 0 6px ${signalColor}`,
               flexShrink: 0,

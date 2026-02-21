@@ -78,6 +78,7 @@ export interface TokenDef {
   ticker: string;
   name: string;
   mint?: string;
+  imageUrl?: string;
   rx: number;
   ry: number;
   detectedAt: Date;
@@ -89,6 +90,7 @@ export interface TokenStation {
   ticker: string;
   name: string;
   mint?: string;
+  imageUrl?: string;
   rx: number;
   ry: number;
   detectedAt: Date;
@@ -102,6 +104,21 @@ export interface TokenStation {
   timeText: PixiText;
   coordinationRing: PixiGraphics;
   chatIcon: PixiText;
+  imageSprite: PixiSprite | null;
+  // Collapsed state elements
+  collapsedGroup: PixiContainer;
+  collapsedBox: PixiGraphics;
+  collapsedBorder: PixiGraphics;
+  // Expanded state elements
+  expandedGroup: PixiContainer;
+  expandedBox: PixiGraphics;
+  expandedBorder: PixiGraphics;
+  metricPriceText: PixiText;
+  metricHoldersText: PixiText;
+  metrics: TokenMetrics | null;
+  expanded: boolean;
+  expandProgress: number;   // 0 = collapsed, 1 = expanded (animated)
+  expandTarget: number;     // 0 or 1
   visitCount: number;
   scaleTarget: number;
   scaleCurrent: number;
@@ -135,6 +152,11 @@ export interface AgentState {
   bubbleBg: PixiGraphics;
   bubbleTimer: number;
   avatarSprite: PixiSprite | null;
+}
+
+export interface TokenMetrics {
+  marketCap: number;
+  holders: number;
 }
 
 export interface Popup {

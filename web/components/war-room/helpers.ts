@@ -24,7 +24,7 @@ export function getBubbleText(trustScore: number): string {
 
 export function getAvatarUrl(agent: AgentData): string {
   if (agent.pfpUrl) return agent.pfpUrl;
-  return `https://api.dicebear.com/7.x/identicon/svg?seed=${agent.id}&backgroundColor=0a0a0a&radius=50`;
+  return `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${agent.id}&backgroundColor=0a0a0a&radius=50`;
 }
 
 export function generateHeadlines(
@@ -77,6 +77,22 @@ export function generateHeadlines(
   return headlines.length > 0
     ? headlines
     : [`MONITORING — ${agents.length} whale wallets active | Season 1 live`];
+}
+
+/** Format a number compactly: 1234567 → "$1.23M", 45600 → "$45.6K" */
+export function fmtCompact(n: number, prefix = '$'): string {
+  if (n >= 1_000_000_000) return `${prefix}${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `${prefix}${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${prefix}${(n / 1_000).toFixed(1)}K`;
+  if (n >= 1) return `${prefix}${n.toFixed(2)}`;
+  if (n >= 0.001) return `${prefix}${n.toFixed(4)}`;
+  return `${prefix}${n.toFixed(6)}`;
+}
+
+/** Format price change: +12.5% or -3.2% */
+export function fmtChange(pct: number): string {
+  const sign = pct >= 0 ? '+' : '';
+  return `${sign}${pct.toFixed(1)}%`;
 }
 
 export function clamp(val: number, min: number, max: number): number {
