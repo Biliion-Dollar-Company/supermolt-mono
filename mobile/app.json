@@ -1,17 +1,22 @@
 {
   "expo": {
-    "name": "SuperRouter",
-    "slug": "sr-mobile",
+    "name": "SuperMolt",
+    "slug": "supermolt",
     "owner": "henry6262",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "sr-mobile",
+    "scheme": "supermolt",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#080808"
+    },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.superrouter.mobile",
+      "bundleIdentifier": "com.supermolt.app",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -19,9 +24,10 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#0f0f0f"
       },
-      "package": "com.superrouter.mobile"
+      "package": "com.supermolt.app"
     },
     "plugins": [
       "expo-router",

@@ -12,6 +12,7 @@ import { usePortfolioStore } from '@/store/portfolio';
 import { useAgentLiveStore } from '@/store/agentLive';
 import { useFeedStore } from '@/store/feed';
 import { useTradeRecommendationStore } from '@/store/tradeRecommendations';
+import { getAccessToken } from '@/lib/api/client';
 import { successNotification, mediumImpact } from '@/lib/haptics';
 
 // Types
@@ -37,10 +38,11 @@ interface WebSocketProviderProps {
 }
 
 // Derive WS URL from API URL: https://foo.bar → wss://foo.bar/ws
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001';
-const WS_URL = process.env.EXPO_PUBLIC_WS_URL || API_URL.replace(/^http/, 'ws') + '/ws';
+const API_URL = process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? 'http://localhost:3001' : '');
+const BASE_WS_URL = process.env.EXPO_PUBLIC_WS_URL || (API_URL ? API_URL.replace(/^http/, 'ws') + '/ws' : '');
 const RECONNECT_DELAY = 5000;
 const MAX_RECONNECT_ATTEMPTS = 5;
+const PING_INTERVAL = 30000; // Keep connection alive through Railway proxy
 
 export function WebSocketProvider({ children }: WebSocketProviderProps) {
   const [isConnected, setIsConnected] = useState(false);
@@ -211,23 +213,46 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     [updatePositions, updatePosition, addDecision, pushFeedItem, pushRecommendation]
   );
 
+  const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Connect to WebSocket (ref-based, no stale closures)
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!mountedRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) return;
+    if (!BASE_WS_URL) return;
+
+    // Build URL with auth token if available
+    let wsUrl = BASE_WS_URL;
+    try {
+      const token = await getAccessToken();
+      if (token) {
+        wsUrl = `${BASE_WS_URL}?token=${encodeURIComponent(token)}`;
+      }
+    } catch {
+      // Connect without token — server accepts anonymous
+    }
 
     console.log(`[WS] Connecting (attempt ${attemptsRef.current + 1}/${MAX_RECONNECT_ATTEMPTS})`);
-    const socket = new WebSocket(WS_URL);
+    const socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
       console.log('[WS] Connected');
       attemptsRef.current = 0;
       if (mountedRef.current) setIsConnected(true);
+
+      // Keep alive — Railway proxy closes idle connections after ~60s
+      if (pingRef.current) clearInterval(pingRef.current);
+      pingRef.current = setInterval(() => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, PING_INTERVAL);
     };
 
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        if (data.type === 'pong') return; // Ignore keepalive responses
         if (mountedRef.current) setLastMessage(data);
         handleMessage(data);
       } catch {
@@ -240,6 +265,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
     };
 
     socket.onclose = () => {
+      if (pingRef.current) { clearInterval(pingRef.current); pingRef.current = null; }
       if (!mountedRef.current) return;
       setIsConnected(false);
       wsRef.current = null;
@@ -280,6 +306,7 @@ export function WebSocketProvider({ children }: WebSocketProviderProps) {
 
     return () => {
       mountedRef.current = false;
+      if (pingRef.current) clearInterval(pingRef.current);
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       if (wsRef.current) wsRef.current.close();
       wsRef.current = null;

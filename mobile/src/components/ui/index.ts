@@ -1,7 +1,7 @@
 /**
  * UI Component Library
  *
- * Reusable UI components following SuperRouter design system.
+ * Reusable UI components following SuperMolt design system.
  */
 
 export { Button } from './Button';

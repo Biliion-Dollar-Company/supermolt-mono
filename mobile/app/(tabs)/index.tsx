@@ -80,7 +80,7 @@ export default function HomeTab() {
     setRefreshing(false);
   }, [refreshAgent, refreshPositions]);
 
-  const topPositions = positions.slice(0, 3);
+  const topPositions = positions.slice(0, 5);
   const latestDecision = agentLive.decisions[0];
   const agentName = agentProfile?.name || agent?.name || 'SuperMolt';
   const isActive = agentLive.status === 'active';

@@ -179,13 +179,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (srAuthLoading) return;
 
     const firstSegment = segments[0];
-    const inAuthGroup = firstSegment === '(auth)';
     const onRootIndex = firstSegment === undefined;
     const onOnboarding = segments.join('/') === 'onboarding';
 
-    if (!privyUser && !inAuthGroup && !onRootIndex) {
+    if (!privyUser && !onRootIndex) {
       router.replace('/');
-    } else if (privyUser && (inAuthGroup || onRootIndex)) {
+    } else if (privyUser && onRootIndex) {
       // First-time users go through the interactive onboarding flow
       if (srToken && agents.length === 0 && !agentProfile && !hasCompletedOnboarding && !onOnboarding) {
         router.replace('/onboarding');

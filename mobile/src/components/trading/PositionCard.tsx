@@ -1,5 +1,5 @@
 /**
- * PositionCard - Matching superRouter PositionProgressCard design
+ * PositionCard - Matching SuperMolt PositionProgressCard design
  *
  * Features:
  * - Token avatar with gradient fallback

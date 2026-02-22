@@ -1,5 +1,6 @@
-// eslint-disable-next-line react-native/no-deprecated-api
-import { ScrollView, View, Switch, TouchableOpacity, Alert, TextInput, Image, Linking, Clipboard } from 'react-native';
+import { ScrollView, View, Switch, TouchableOpacity, Alert, TextInput, Image, Linking } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, Card, Button } from '@/components/ui';
@@ -78,7 +79,7 @@ export default function SettingsTab() {
 
   const handleCopyAddress = () => {
     if (!walletAddress) return;
-    Clipboard.setString(walletAddress);
+    Clipboard.setStringAsync(walletAddress);
     lightImpact();
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -284,21 +285,36 @@ export default function SettingsTab() {
             value={settings.autoSign}
             onValueChange={(v) => updateSetting('autoSign', v)}
           />
-          <View style={{ height: 1, backgroundColor: 'rgba(255, 255, 255, 0.06)' }} />
+          <LinearGradient
+            colors={['transparent', 'rgba(255, 255, 255, 0.08)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: 1 }}
+          />
           <SettingRow
             label="Haptic Feedback"
             description="Vibration on interactions"
             value={settings.haptics}
             onValueChange={(v) => updateSetting('haptics', v)}
           />
-          <View style={{ height: 1, backgroundColor: 'rgba(255, 255, 255, 0.06)' }} />
+          <LinearGradient
+            colors={['transparent', 'rgba(255, 255, 255, 0.08)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: 1 }}
+          />
           <SettingRow
             label="Push Notifications"
             description="Trade alerts and updates"
             value={settings.pushNotifications}
             onValueChange={(v) => updateSetting('pushNotifications', v)}
           />
-          <View style={{ height: 1, backgroundColor: 'rgba(255, 255, 255, 0.06)' }} />
+          <LinearGradient
+            colors={['transparent', 'rgba(255, 255, 255, 0.08)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: 1 }}
+          />
           <SettingRow
             label="Sound Effects"
             description="Audio feedback on events"
@@ -350,7 +366,7 @@ export default function SettingsTab() {
 
         {/* App Info */}
         <View style={{ alignItems: 'center', marginTop: 16 }}>
-          <Text variant="caption" color="muted">SR-Mobile v0.1.0</Text>
+          <Text variant="caption" color="muted">SuperMolt v0.1.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

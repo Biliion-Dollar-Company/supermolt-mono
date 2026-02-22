@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Vote, Bot, ClipboardCheck, Zap, CheckCircle2, Circle, Clock } from 'lucide-react';
+import { X, Vote, Bot, ClipboardCheck, Zap, CheckCircle2, Circle, Clock, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trade, Position, Vote as VoteType, Conversation, Message, AgentTaskType } from '@/lib/types';
 import { getConversations, getConversationMessages, getAllVotes, getAllPositions, getRecentTrades, getArenaTasks } from '@/lib/api';
@@ -52,6 +52,9 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
   const [messages, setMessages] = useState<Message[]>([]);
   const [tasks, setTasks] = useState<AgentTaskType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [positionsOpen, setPositionsOpen] = useState(true);
+  const [activityOpen, setActivityOpen] = useState(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
 
   useEffect(() => {
     let isFirst = true;
@@ -107,7 +110,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
             </div>
           </div>
         </div>
-        <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'h-[500px]' : 'h-[60vh]'}`}>
+        <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'max-h-[320px]' : 'h-[60vh]'}`}>
           <div className="border-r border-white/[0.06] p-6 space-y-4">
             <div className="h-3 w-20 bg-white/[0.02] animate-pulse rounded" />
             {Array.from({ length: 3 }).map((_, i) => (
@@ -191,112 +194,133 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
       </div>
 
       {/* Main Content: Two Columns */}
-      <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'h-[500px]' : 'h-[60vh]'}`}>
-        {/* Left: Wallet Positions + Activity */}
+      <div className={`grid grid-cols-1 lg:grid-cols-2 ${compact ? 'max-h-[320px]' : 'h-[60vh]'}`}>
+        {/* Left: Wallet Positions + Activity + Tasks (collapsible) */}
         <div className="border-r border-white/[0.06] flex flex-col overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-custom">
-            <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-b border-white/[0.06] z-10 flex items-center gap-2">
+            {/* Positions — collapsible */}
+            <button
+              onClick={() => setPositionsOpen(!positionsOpen)}
+              className="w-full sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-b border-white/[0.06] z-10 flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
+            >
               <Bot className="w-3.5 h-3.5 text-text-secondary" />
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Positions</span>
               {positions.length > 0 && (
-                <span className="text-[10px] text-text-muted ml-auto">{positions.length}</span>
+                <span className="text-[10px] text-text-muted ml-auto mr-1">{positions.length}</span>
               )}
-            </div>
-            <div className="px-6 py-2">
-              {positions.length === 0 ? (
-                <div className="py-10 text-center text-sm text-text-muted">No positions yet</div>
-              ) : (
-                <div className="space-y-3">
-                  {positions.map((pos) => (
-                    <div key={pos.positionId} className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm font-medium text-text-primary">{pos.agentName}</div>
-                        <div className="text-[11px] text-text-muted font-mono mt-0.5">
-                          {fmtNum(pos.quantity)} tokens &middot; {fmt(pos.currentValue)}
+              <ChevronDown className={`w-3 h-3 text-text-muted transition-transform ${positionsOpen ? '' : '-rotate-90'}`} />
+            </button>
+            {positionsOpen && (
+              <div className="px-6 py-2">
+                {positions.length === 0 ? (
+                  <div className="py-4 text-center text-[11px] text-text-muted">No positions yet</div>
+                ) : (
+                  <div className="space-y-3">
+                    {positions.map((pos) => (
+                      <div key={pos.positionId} className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium text-text-primary">{pos.agentName}</div>
+                          <div className="text-[11px] text-text-muted font-mono mt-0.5">
+                            {fmtNum(pos.quantity)} tokens &middot; {fmt(pos.currentValue)}
+                          </div>
                         </div>
-                      </div>
-                      <span className={`text-sm font-mono font-bold ${pos.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {pos.pnl >= 0 ? '+' : ''}{Math.round(pos.pnlPercent)}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {trades.length > 0 && (
-              <>
-                <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10">
-                  <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Activity</span>
-                </div>
-                <div className="px-6 py-2">
-                  <div className="space-y-1.5">
-                    {trades.slice(0, compact ? 5 : 10).map((trade) => (
-                      <div key={trade.tradeId} className="flex items-center gap-3 text-[11px]">
-                        <span className={`font-bold uppercase ${
-                          trade.action === 'BUY' ? 'text-green-400' : 'text-red-400'
-                        }`}>
-                          {trade.action}
-                        </span>
-                        <span className="text-text-muted font-mono">{fmtNum(trade.quantity)}</span>
-                        {trade.pnl !== 0 && (
-                          <span className={`font-mono ${trade.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {trade.pnl > 0 ? '+' : ''}{Math.round(trade.pnlPercent)}%
-                          </span>
-                        )}
-                        <span className="text-text-muted ml-auto">
-                          {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <span className={`text-sm font-mono font-bold ${pos.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {pos.pnl >= 0 ? '+' : ''}{Math.round(pos.pnlPercent)}%
                         </span>
                       </div>
                     ))}
                   </div>
-                </div>
+                )}
+              </div>
+            )}
+
+            {/* Activity — collapsible */}
+            {trades.length > 0 && (
+              <>
+                <button
+                  onClick={() => setActivityOpen(!activityOpen)}
+                  className="w-full sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                >
+                  <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Activity</span>
+                  <span className="text-[10px] text-text-muted ml-auto mr-1">{trades.length}</span>
+                  <ChevronDown className={`w-3 h-3 text-text-muted transition-transform ${activityOpen ? '' : '-rotate-90'}`} />
+                </button>
+                {activityOpen && (
+                  <div className="px-6 py-2">
+                    <div className="space-y-1.5">
+                      {trades.slice(0, compact ? 5 : 10).map((trade) => (
+                        <div key={trade.tradeId} className="flex items-center gap-3 text-[11px]">
+                          <span className={`font-bold uppercase ${
+                            trade.action === 'BUY' ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {trade.action}
+                          </span>
+                          <span className="text-text-muted font-mono">{fmtNum(trade.quantity)}</span>
+                          {trade.pnl !== 0 && (
+                            <span className={`font-mono ${trade.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {trade.pnl > 0 ? '+' : ''}{Math.round(trade.pnlPercent)}%
+                            </span>
+                          )}
+                          <span className="text-text-muted ml-auto">
+                            {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
 
-            {/* Tasks */}
-            <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2">
+            {/* Tasks — collapsible */}
+            <button
+              onClick={() => setTasksOpen(!tasksOpen)}
+              className="w-full sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
+            >
               <ClipboardCheck className="w-3.5 h-3.5 text-text-secondary" />
               <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Tasks</span>
               {tasks.length > 0 && (
-                <span className="text-[10px] text-text-muted ml-auto">{tasks.length}</span>
+                <span className="text-[10px] text-text-muted ml-auto mr-1">{tasks.length}</span>
               )}
-            </div>
-            <div className="px-6 py-2">
-              {tasks.length === 0 ? (
-                <div className="py-6 text-center text-[11px] text-text-muted">No tasks for this token</div>
-              ) : (
-                <div className="space-y-1.5">
-                  {tasks.slice(0, compact ? 5 : 10).map((task) => (
-                    <div
-                      key={task.taskId}
-                      className="flex items-center gap-2 py-1.5"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <span className="text-[11px] text-text-primary truncate block">{task.title}</span>
-                        {task.completions.filter(c => c.status === 'VALIDATED').length > 0 && (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            {task.completions
-                              .filter(c => c.status === 'VALIDATED')
-                              .slice(0, 3)
-                              .map((c) => (
-                                <span key={c.agentId} className="text-[10px] text-green-400 bg-green-400/10 px-1 rounded">
-                                  {c.agentName}
-                                </span>
-                              ))}
-                          </div>
-                        )}
+              <ChevronDown className={`w-3 h-3 text-text-muted transition-transform ${tasksOpen ? '' : '-rotate-90'}`} />
+            </button>
+            {tasksOpen && (
+              <div className="px-6 py-2">
+                {tasks.length === 0 ? (
+                  <div className="py-4 text-center text-[11px] text-text-muted">No tasks for this token</div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {tasks.slice(0, compact ? 5 : 10).map((task) => (
+                      <div
+                        key={task.taskId}
+                        className="flex items-center gap-2 py-1.5"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[11px] text-text-primary truncate block">{task.title}</span>
+                          {task.completions.filter(c => c.status === 'VALIDATED').length > 0 && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {task.completions
+                                .filter(c => c.status === 'VALIDATED')
+                                .slice(0, 3)
+                                .map((c) => (
+                                  <span key={c.agentId} className="text-[10px] text-green-400 bg-green-400/10 px-1 rounded">
+                                    {c.agentName}
+                                  </span>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                        <span className="flex items-center gap-0.5 text-[10px] font-mono text-yellow-400 flex-shrink-0">
+                          <Zap className="w-2.5 h-2.5" />
+                          {task.xpReward}
+                        </span>
+                        <TaskStatusBadge status={task.status} />
                       </div>
-                      <span className="flex items-center gap-0.5 text-[10px] font-mono text-yellow-400 flex-shrink-0">
-                        <Zap className="w-2.5 h-2.5" />
-                        {task.xpReward}
-                      </span>
-                      <TaskStatusBadge status={task.status} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

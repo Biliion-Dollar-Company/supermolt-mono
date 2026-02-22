@@ -152,8 +152,8 @@ export default function ApproveTxModal() {
         const authResult = await wallet.authorize({
           cluster: 'mainnet-beta',
           identity: {
-            name: 'SuperRouter',
-            uri: 'https://superrouter.app',
+            name: 'SuperMolt',
+            uri: 'https://supermolt.app',
             icon: 'favicon.ico',
           },
         });

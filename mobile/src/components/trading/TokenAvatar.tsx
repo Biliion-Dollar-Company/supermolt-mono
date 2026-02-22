@@ -1,5 +1,5 @@
 /**
- * TokenAvatar - Matching superRouter Next.js design
+ * TokenAvatar - Matching SuperMolt Next.js design
  * Displays token image with gradient fallback
  */
 

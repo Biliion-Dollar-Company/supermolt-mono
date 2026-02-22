@@ -34,18 +34,10 @@ function TaskCard({ task, onClick }: { task: AgentTaskType; onClick: () => void 
   return (
     <button
       onClick={onClick}
-      className={`group relative text-left w-full p-3 border cursor-pointer transition-all hover:bg-white/[0.04] hover:border-white/[0.12] ${
-        isDone
-          ? 'border-green-500/20 bg-green-500/[0.03]'
-          : 'border-white/[0.06] bg-white/[0.02]'
-      }`}
+      className="group text-left w-full py-2 cursor-pointer transition-all hover:bg-white/[0.03] px-1 -mx-1"
     >
       <div className="flex items-center gap-3">
-        <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 border ${
-          isDone ? 'border-green-500/20 bg-green-500/[0.06]' : 'border-white/[0.08] bg-white/[0.03]'
-        }`}>
-          <Icon className={`w-4 h-4 ${isDone ? 'text-green-400' : 'text-accent-primary'}`} />
-        </div>
+        <Icon className={`w-6 h-6 flex-shrink-0 ${isDone ? 'text-green-400' : 'text-accent-primary'}`} />
         <div className="flex-1 min-w-0">
           <span className="text-sm font-semibold text-text-primary truncate block">
             {task.taskType.replace(/_/g, ' ')}
@@ -253,6 +245,7 @@ export function TasksPanel() {
   const [loading, setLoading] = useState(true);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [tab, setTab] = useState<'active' | 'completed'>('active');
+  const [expanded, setExpanded] = useState(false);
 
   const selectedTask = selectedTaskId ? tasks.find(t => t.taskId === selectedTaskId) ?? null : null;
 
@@ -306,39 +299,32 @@ export function TasksPanel() {
 
   const activeTasks = tasks.filter(t => t.status !== 'COMPLETED');
   const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
-  const displayTasks = (tab === 'active' ? activeTasks : completedTasks).slice(0, 12);
+  const allTasks = tab === 'active' ? activeTasks : completedTasks;
+  const displayTasks = expanded ? allTasks : allTasks.slice(0, 3);
+  const hasMore = allTasks.length > 3;
 
   return (
     <>
       <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
-        <div className="text-sm font-bold text-text-primary uppercase tracking-wider mb-3">Tasks</div>
-        {/* Toggle tabs */}
-        <div className="flex items-center gap-1 mb-4">
-          <button
-            onClick={() => setTab('active')}
-            className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
-              tab === 'active'
-                ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
+        {/* Title + tabs on same row */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold text-text-primary uppercase tracking-wider">Tasks</span>
+            {stats && (
+              <span className="flex items-center gap-1 text-[11px] text-yellow-400 font-mono">
+                <Trophy className="w-3 h-3" />{stats.totalXPAwarded} XP
+              </span>
+            )}
+          </div>
+          <select
+            value={tab}
+            onChange={(e) => { setTab(e.target.value as 'active' | 'completed'); setExpanded(false); }}
+            className="text-xs font-semibold uppercase tracking-wider px-2 py-1.5 bg-white/[0.04] border border-white/[0.1] text-text-primary cursor-pointer outline-none hover:bg-white/[0.06] transition-colors appearance-none pr-6"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}
           >
-            Active{stats ? ` (${stats.active})` : ''}
-          </button>
-          <button
-            onClick={() => setTab('completed')}
-            className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors ${
-              tab === 'completed'
-                ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                : 'text-text-muted hover:text-text-secondary'
-            }`}
-          >
-            Completed{stats ? ` (${stats.completed})` : ''}
-          </button>
-          {stats && (
-            <span className="ml-auto flex items-center gap-1 text-[11px] text-yellow-400 font-mono">
-              <Trophy className="w-3 h-3" />{stats.totalXPAwarded} XP
-            </span>
-          )}
+            <option value="active">Active{stats ? ` (${stats.active})` : ''}</option>
+            <option value="completed">Completed{stats ? ` (${stats.completed})` : ''}</option>
+          </select>
         </div>
 
         {/* Task list */}
@@ -347,7 +333,7 @@ export function TasksPanel() {
             {tab === 'active' ? 'No active tasks' : 'No completed tasks yet'}
           </div>
         ) : (
-          <div className="space-y-2 max-h-[480px] overflow-y-auto scrollbar-custom">
+          <div className="space-y-2">
             {displayTasks.map((task) => (
               <TaskCard
                 key={task.taskId}
@@ -356,6 +342,16 @@ export function TasksPanel() {
               />
             ))}
           </div>
+        )}
+
+        {/* Expand / Collapse toggle */}
+        {hasMore && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full mt-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted hover:text-text-secondary transition-colors cursor-pointer border-t border-white/[0.06] pt-3"
+          >
+            {expanded ? 'Show less' : `Show all (${allTasks.length})`}
+          </button>
         )}
       </div>
 

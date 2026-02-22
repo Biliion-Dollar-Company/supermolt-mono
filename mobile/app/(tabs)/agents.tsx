@@ -20,7 +20,7 @@ import type { UserAgent } from '@/types/arena';
 
 const DEFAULT_PFPS = [
   require('../../assets/images/pfp.png'),
-  require('../../assets/images/pfp-superrouter.png'),
+  require('../../assets/images/pfp-supermolt.png'),
 ];
 
 function getDefaultPfp(index: number) {

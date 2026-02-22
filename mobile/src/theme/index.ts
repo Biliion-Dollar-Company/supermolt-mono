@@ -1,5 +1,5 @@
 /**
- * SuperRouter Design System Theme
+ * SuperMolt Design System Theme
  *
  * Central export for all theme constants.
  */

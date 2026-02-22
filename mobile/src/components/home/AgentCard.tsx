@@ -1,10 +1,10 @@
 /**
- * AgentCard - SuperRouter-style Agent HUD Panel
+ * AgentCard - SuperMolt-style Agent HUD Panel
  * Animated avatar ring, identity row, reasoning line
  */
 
-// eslint-disable-next-line react-native/no-deprecated-api
-import { View, Text, Image, StyleSheet, TouchableOpacity, Clipboard } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import Animated, {
   useAnimatedStyle,
@@ -87,7 +87,7 @@ export function AgentCard({
 
   const handleCopy = () => {
     if (!walletAddress) return;
-    Clipboard.setString(walletAddress);
+    Clipboard.setStringAsync(walletAddress);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

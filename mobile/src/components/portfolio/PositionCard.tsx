@@ -1,5 +1,4 @@
-import { View, Text, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Position } from '@/store/portfolio';
 import { MilestoneProgress } from './MilestoneProgress';
@@ -9,20 +8,10 @@ interface PositionCardProps {
 }
 
 export function PositionCard({ position }: PositionCardProps) {
-  const router = useRouter();
   const isPositive = position.unrealizedPnlPct >= 0;
 
-  const handlePress = () => {
-    // Navigate to position detail modal
-    // TODO: Create the position detail route
-    router.push(`/(modals)/approve-tx` as const);
-  };
-
   return (
-    <Pressable
-      onPress={handlePress}
-      className="bg-card rounded-xl p-4 active:bg-card-hover"
-    >
+    <View className="bg-card rounded-xl p-4">
       {/* Header row */}
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-3">
@@ -83,6 +72,6 @@ export function PositionCard({ position }: PositionCardProps) {
         nextTarget={position.nextTargetMultiplier}
         progress={position.targetProgress}
       />
-    </Pressable>
+    </View>
   );
 }
