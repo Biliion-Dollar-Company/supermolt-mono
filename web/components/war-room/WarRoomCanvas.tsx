@@ -61,7 +61,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
   // ── Token polling ──────────────────────────────────────────────────────────
   const fetchTokens = useCallback(async () => {
     try {
-      const res = await fetch('https://devprint-v2-production.up.railway.app/api/tokens');
+      const res = await fetch('/api/proxy/devprint/tokens');
       if (!res.ok) return;
       const json = await res.json() as { success: boolean; data: DevPrintToken[] };
       const data: DevPrintToken[] = json.data ?? [];
@@ -100,7 +100,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
   // ── Conversation polling ───────────────────────────────────────────────────
   const fetchConversations = useCallback(async () => {
     try {
-      const res = await fetch('https://sr-mobile-production.up.railway.app/arena/conversations');
+      const res = await fetch('/api/proxy/mobile/arena/conversations');
       if (!res.ok) return;
       const json = await res.json() as { conversations: Conversation[] };
       conversationsRef.current = json.conversations ?? [];
@@ -112,7 +112,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
   // ── Transaction polling ────────────────────────────────────────────────────
   const fetchTransactions = useCallback(async () => {
     try {
-      const res = await fetch('https://devprint-v2-production.up.railway.app/api/transactions');
+      const res = await fetch('/api/proxy/devprint/transactions');
       if (!res.ok) return;
       const raw = await res.json() as DevPrintTransaction[] | { data: DevPrintTransaction[] };
       const txs: DevPrintTransaction[] = Array.isArray(raw)
@@ -161,10 +161,12 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
       try {
         const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`);
         if (!res.ok) return null;
-        const json = await res.json() as { pairs?: Array<{
-          marketCap?: number;
-          txns?: { h24?: { buys?: number; sells?: number } };
-        }> };
+        const json = await res.json() as {
+          pairs?: Array<{
+            marketCap?: number;
+            txns?: { h24?: { buys?: number; sells?: number } };
+          }>
+        };
         const pair = json.pairs?.[0];
         if (!pair) return null;
 
@@ -184,7 +186,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
     });
 
     const results = await Promise.allSettled(fetchPromises);
-    
+
     results.forEach((result) => {
       if (result.status === 'fulfilled' && result.value) {
         const { mint, metrics } = result.value;

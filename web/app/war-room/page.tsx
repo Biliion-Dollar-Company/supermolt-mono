@@ -112,25 +112,25 @@ function walletsToAgents(wallets: DevPrintWallet[]): AgentData[] {
     // Use label if available, otherwise assign a memorable codename
     const name = w.label ?? WHALE_NAMES[i % WHALE_NAMES.length];
     const winRate = w.total_trades > 0 ? w.winning_trades / w.total_trades : 0;
-    const isGold  = w.trust_score > 0.95;
+    const isGold = w.trust_score > 0.95;
 
     // Always generate a pfp — use dicebear with the wallet address as seed
     const pfp = w.pfp_url
       ?? `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${w.address}&backgroundColor=0a0a0a&radius=50`;
 
     return {
-      id:             w.id || w.address,
+      id: w.id || w.address,
       name,
-      rank:           i + 1,
+      rank: i + 1,
       winRate,
-      pnl:            w.avg_return_pct,
-      totalTrades:    w.total_trades,
-      trustScore:     w.trust_score,
-      color:          isGold ? 0xe8b45e : 0xffffff,
-      pfpUrl:         pfp,
-      twitterHandle:  w.twitter_handle ?? undefined,
-      notes:          w.notes ?? undefined,
-      bestTradePct:   w.best_trade_pct ?? undefined,
+      pnl: w.avg_return_pct,
+      totalTrades: w.total_trades,
+      trustScore: w.trust_score,
+      color: isGold ? 0xe8b45e : 0xffffff,
+      pfpUrl: pfp,
+      twitterHandle: w.twitter_handle ?? undefined,
+      notes: w.notes ?? undefined,
+      bestTradePct: w.best_trade_pct ?? undefined,
     };
   });
 }
@@ -140,19 +140,19 @@ function walletsToAgents(wallets: DevPrintWallet[]): AgentData[] {
 // ─── Loading stages ─────────────────────────────────────────────────────────
 
 const LOADING_STAGES = [
-  { key: 'wallets',  label: 'Fetching intel on tracked wallets' },
-  { key: 'pixi',     label: 'Initializing render engine' },
-  { key: 'tokens',   label: 'Loading token stations' },
-  { key: 'agents',   label: 'Deploying agents' },
-  { key: 'feeds',    label: 'Connecting live feeds' },
+  { key: 'wallets', label: 'Fetching intel on tracked wallets' },
+  { key: 'pixi', label: 'Initializing render engine' },
+  { key: 'tokens', label: 'Loading token stations' },
+  { key: 'agents', label: 'Deploying agents' },
+  { key: 'feeds', label: 'Connecting live feeds' },
 ] as const;
 
 type StageKey = typeof LOADING_STAGES[number]['key'];
 
 export default function ArenaPage() {
   const isMobile = useIsMobile();
-  const [agents,  setAgents]  = useState<AgentData[]>(FALLBACK_AGENTS);
-  const [events,  setEvents]  = useState<FeedEvent[]>([]);
+  const [agents, setAgents] = useState<AgentData[]>(FALLBACK_AGENTS);
+  const [events, setEvents] = useState<FeedEvent[]>([]);
   const [hovered, setHovered] = useState<HoveredAgentInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [completedStages, setCompletedStages] = useState<Set<StageKey>>(new Set());
@@ -179,7 +179,7 @@ export default function ArenaPage() {
   useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const res = await fetch('https://devprint-v2-production.up.railway.app/api/wallets');
+        const res = await fetch('/api/proxy/devprint/wallets');
         if (!res.ok) return;
         const json = await res.json() as { success: boolean; data: { wallets: DevPrintWallet[] } };
         const wallets: DevPrintWallet[] = json?.data?.wallets ?? [];
