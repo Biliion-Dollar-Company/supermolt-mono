@@ -34,6 +34,8 @@ export interface HoveredAgentInfo {
   y: number;
 }
 
+export type Chain = 'SOL' | 'BASE' | 'BSC';
+
 export interface DevPrintToken {
   symbol: string;
   name: string;
@@ -42,6 +44,7 @@ export interface DevPrintToken {
   detected_at: string;
   twitter_url: string | null;
   image_url: string | null;
+  chain?: Chain;
 }
 
 export interface DevPrintTransaction {
@@ -79,6 +82,7 @@ export interface TokenDef {
   name: string;
   mint?: string;
   imageUrl?: string;
+  chain: Chain;
   rx: number;
   ry: number;
   detectedAt: Date;
@@ -91,6 +95,7 @@ export interface TokenStation {
   name: string;
   mint?: string;
   imageUrl?: string;
+  chain: Chain;
   rx: number;
   ry: number;
   detectedAt: Date;

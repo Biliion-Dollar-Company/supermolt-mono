@@ -4,9 +4,16 @@ import type {
   Text as PixiText,
   Sprite as PixiSprite,
 } from 'pixi.js';
-import type { TokenDef, TokenStation, TokenMetrics, AgentState, Conversation } from '../types';
+import type { Chain, TokenDef, TokenStation, TokenMetrics, AgentState, Conversation } from '../types';
 import { STATION_POSITIONS } from '../constants';
 import { fmtMinsAgo, fmtCompact, clamp } from '../helpers';
+
+// Chain badge colors
+const CHAIN_COLORS: Record<Chain, number> = {
+  SOL: 0x9945ff,   // Solana purple
+  BASE: 0x0052ff,  // Base blue
+  BSC: 0xf0b90b,   // Binance yellow
+};
 
 interface PixiModules {
   Container: new () => PixiContainer;
@@ -117,6 +124,7 @@ export class StationManager {
           name: 'Loading...',
           mint: undefined as string | undefined,
           imageUrl: undefined as string | undefined,
+          chain: 'SOL' as Chain,
           rx: pos.rx,
           ry: pos.ry,
           detectedAt: new Date(),
@@ -191,7 +199,23 @@ export class StationManager {
         collapsedGroup.addChild(cNewBg, cNewText);
       }
 
-      collapsedGroup.addChild(cBox, cBorder, cImgPlaceholder, cTicker);
+      // ── Chain badge (collapsed) ──────────────────────────────────────────────
+      const chainColor = CHAIN_COLORS[def.chain] ?? 0x9945ff;
+      const cChainBadge = new Graphics();
+      cChainBadge.circle(-C_HALF + 6, C_HALF - 6, 5);
+      cChainBadge.fill({ color: chainColor });
+      cChainBadge.setStrokeStyle({ width: 1, color: 0x000000, alpha: 0.6 });
+      cChainBadge.circle(-C_HALF + 6, C_HALF - 6, 5);
+      cChainBadge.stroke();
+      const cChainLabel = new Text({
+        text: def.chain === 'SOL' ? 'S' : def.chain === 'BASE' ? 'B' : 'B',
+        style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '900', fill: 0xffffff }),
+      });
+      cChainLabel.anchor.set(0.5, 0.5);
+      cChainLabel.x = -C_HALF + 6;
+      cChainLabel.y = C_HALF - 6;
+
+      collapsedGroup.addChild(cBox, cBorder, cImgPlaceholder, cTicker, cChainBadge, cChainLabel);
 
       // ═════════════════════════════════════════════════════════════════════════
       // EXPANDED STATE — full panel that slides out
@@ -285,10 +309,26 @@ export class StationManager {
         expandedGroup.addChild(eNewBg, eNewText);
       }
 
+      // ── Chain badge (expanded) ───────────────────────────────────────────────
+      const eChainBadge = new Graphics();
+      eChainBadge.circle(-E_BW + 8, E_BH - 8, 6);
+      eChainBadge.fill({ color: chainColor });
+      eChainBadge.setStrokeStyle({ width: 1, color: 0x000000, alpha: 0.6 });
+      eChainBadge.circle(-E_BW + 8, E_BH - 8, 6);
+      eChainBadge.stroke();
+      const eChainText = new Text({
+        text: def.chain,
+        style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '900', fill: 0xffffff }),
+      });
+      eChainText.anchor.set(0.5, 0.5);
+      eChainText.x = -E_BW + 8;
+      eChainText.y = E_BH - 8;
+
       expandedGroup.addChild(
         eBox, eBorder, eDivider, eImgPlaceholder,
         eTickerText, eNameText, eTimeText,
         mcapLabel, metricPriceText, holdersLabel, metricHoldersText,
+        eChainBadge, eChainText,
       );
 
       // ═════════════════════════════════════════════════════════════════════════
@@ -320,6 +360,7 @@ export class StationManager {
         name: def.name,
         mint: def.mint,
         imageUrl: def.imageUrl,
+        chain: def.chain,
         rx: def.rx, ry: def.ry,
         detectedAt: def.detectedAt,
         isNew: def.isNew, isOld: def.isOld,
@@ -486,8 +527,8 @@ export class StationManager {
       sprite.mask = mask;
       parent.addChild(sprite);
       if (!station.imageSprite) station.imageSprite = sprite;
-    } catch {
-      // Keep placeholder
+    } catch (err) {
+      console.warn(`[StationManager] Failed to load image for ${station.ticker}: ${url}`, err);
     }
   }
 
