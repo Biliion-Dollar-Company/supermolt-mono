@@ -14,6 +14,31 @@
 import { Connection, Keypair, VersionedTransaction, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 
+// ============================================================================
+// Token Decimals Helper
+// ============================================================================
+
+/**
+ * Fetch token decimals from the mint account on-chain.
+ * Returns 9 as a safe fallback if the call fails.
+ */
+async function fetchTokenDecimals(connection: Connection, tokenMint: string): Promise<number> {
+  try {
+    const mintPubkey = new PublicKey(tokenMint);
+    const accountInfo = await connection.getParsedAccountInfo(mintPubkey);
+    if (
+      accountInfo.value &&
+      'parsed' in accountInfo.value.data &&
+      accountInfo.value.data.parsed?.info?.decimals !== undefined
+    ) {
+      return accountInfo.value.data.parsed.info.decimals as number;
+    }
+    return 9;
+  } catch {
+    return 9;
+  }
+}
+
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 const JUPITER_API_URL = 'https://lite-api.jup.ag/swap/v1';
 
@@ -194,7 +219,9 @@ export class TradingExecutor {
         console.log(`  ✅ Transaction confirmed (${txMs}ms)`);
 
         // 5. Calculate results
-        const tokensReceived = parseFloat(quote.outAmount);
+        // Fetch actual token decimals from on-chain mint account
+        const tokenDecimals = await fetchTokenDecimals(this.connection, tokenMint);
+        const tokensReceived = parseFloat(quote.outAmount) / Math.pow(10, tokenDecimals);
         const swapFeeSol = this.estimateSwapFee(solAmount);
         const totalFeesSol = (priorityFeeLamports / 1e9) + swapFeeSol;
 
@@ -203,7 +230,7 @@ export class TradingExecutor {
           amountSol: solAmount,
           tokensReceived,
           tokensReceivedRaw: quote.outAmount,
-          tokenDecimals: 0, // TODO: Fetch from token metadata
+          tokenDecimals,
           priorityFeeLamports,
           swapFeeSol,
           totalFeesSol,

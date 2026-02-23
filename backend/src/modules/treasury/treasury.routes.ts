@@ -51,9 +51,25 @@ app.get('/status', async (c) => {
   try {
     const status = await getTreasuryService().getTreasuryStatus();
     
+    // Fetch the active Solana epoch from the database
+    const activeEpoch = await db.scannerEpoch.findFirst({
+      where: { status: 'ACTIVE', chain: 'solana' },
+      orderBy: { startAt: 'desc' },
+    });
+
     const response: TreasuryStatusDto = {
       ...status,
-      currentEpoch: null, // TODO: query active epoch
+      currentEpoch: activeEpoch
+        ? {
+            id: activeEpoch.id,
+            name: activeEpoch.name,
+            epochNumber: activeEpoch.epochNumber,
+            startAt: activeEpoch.startAt.toISOString(),
+            endAt: activeEpoch.endAt.toISOString(),
+            status: activeEpoch.status,
+            usdcPool: parseFloat(activeEpoch.usdcPool.toString()),
+          }
+        : null,
       treasuryWallet: getTreasuryService().getTreasuryPublicKey() || 'unknown',
       lastUpdated: new Date().toISOString()
     };
@@ -77,14 +93,16 @@ app.get('/status', async (c) => {
 app.get('/allocations/:epochId', async (c) => {
   try {
     const { epochId } = c.req.param();
-    const allocations = await getTreasuryService().calculateAllocations(epochId);
-    
+    const [allocations, epoch] = await Promise.all([
+      getTreasuryService().calculateAllocations(epochId),
+      db.scannerEpoch.findUnique({ where: { id: epochId } }),
+    ]);
+
     const totalAmount = allocations.reduce((sum, a) => sum + a.usdcAmount, 0);
-    
-    // Epoch name is embedded in allocations context (can extract from error if needed)
+
     const response: AllocationCalculationDto = {
       epochId,
-      epochName: 'USDC Hackathon Week 1', // TODO: Get from epoch query
+      epochName: epoch?.name ?? 'Unknown Epoch',
       allocations,
       totalAmount: Math.round(totalAmount * 100) / 100,
       scannerCount: allocations.length

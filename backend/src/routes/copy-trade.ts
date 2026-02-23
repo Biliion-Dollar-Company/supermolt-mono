@@ -64,12 +64,84 @@ copyTrade.post('/copy', async (c) => {
         agentId: sourceAgentPubkey,
         sourceFeedId: sourceActivityId,
         userAmount: parseFloat(userAmount),
-        status: 'PENDING', // Will transition to EXECUTED after onchain confirmation
+        status: 'PENDING',
       },
     });
 
-    // TODO: Build Jupiter swap instruction, get user to sign, execute onchain
-    // For now, return the copy-trade ID for client to handle
+    // Build Jupiter swap transaction for the client to sign
+    // Uses the same Jupiter Lite API flow as the auto-buy executor
+    const solAmountFloat = parseFloat(userAmount);
+    const lamports = Math.floor(solAmountFloat * 1e9);
+    const slippageBps = 100; // 1%
+    const tokenMint = sourceActivity.tokenMint;
+    const SOL_MINT = 'So11111111111111111111111111111111111111112';
+
+    let jupiterQuote: Record<string, unknown> | null = null;
+    let swapTransaction: string | null = null;
+    let jupiterError: string | null = null;
+
+    try {
+      // 1. Get Jupiter quote
+      const quoteUrl =
+        `https://lite-api.jup.ag/swap/v1/quote` +
+        `?inputMint=${SOL_MINT}` +
+        `&outputMint=${tokenMint}` +
+        `&amount=${lamports}` +
+        `&slippageBps=${slippageBps}` +
+        `&restrictIntermediateTokens=true`;
+
+      const quoteRes = await fetch(quoteUrl, { signal: AbortSignal.timeout(10_000) });
+      if (!quoteRes.ok) {
+        throw new Error(`Jupiter quote failed (${quoteRes.status}): ${await quoteRes.text()}`);
+      }
+      jupiterQuote = await quoteRes.json() as Record<string, unknown>;
+
+      // 2. Build swap transaction (unsigned — user signs on client)
+      const swapRes = await fetch('https://lite-api.jup.ag/swap/v1/swap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quoteResponse: jupiterQuote,
+          userPublicKey: userPubkey,
+          wrapUnwrapSOL: true,
+          dynamicComputeUnitLimit: true,
+          dynamicSlippage: true,
+          prioritizationFeeLamports: {
+            priorityLevelWithMaxLamports: {
+              maxLamports: 100_000,
+              priorityLevel: 'low',
+            },
+          },
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!swapRes.ok) {
+        throw new Error(`Jupiter swap build failed (${swapRes.status}): ${await swapRes.text()}`);
+      }
+      const swapData = await swapRes.json() as Record<string, unknown>;
+      swapTransaction = swapData.swapTransaction as string;
+    } catch (err: any) {
+      jupiterError = err.message;
+      console.error('[CopyTrade] Jupiter build error:', err.message);
+      // Mark record as failed if we cannot build the swap
+      await db.copyTrade.update({
+        where: { id: copyTradeRecord.id },
+        data: { status: 'FAILED', errorMessage: jupiterError },
+      });
+    }
+
+    if (jupiterError || !swapTransaction) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'JUPITER_ERROR',
+            message: jupiterError || 'Failed to build swap transaction',
+          },
+        },
+        502
+      );
+    }
 
     return c.json(
       {
@@ -77,11 +149,17 @@ copyTrade.post('/copy', async (c) => {
         data: {
           copyTradeId: copyTradeRecord.id,
           status: 'PENDING',
-          userAmount: parseFloat(userAmount),
+          userAmount: solAmountFloat,
           sourceAgentPubkey,
           sourceToken: sourceActivity.tokenSymbol,
-          // Next step: client signs + executes Jupiter swap
-          message: 'Copy-trade created. Ready for Jupiter swap execution.',
+          tokenMint,
+          // Base64-encoded VersionedTransaction for the client to sign and broadcast
+          swapTransaction,
+          // Estimated output from Jupiter quote
+          estimatedOutput: jupiterQuote
+            ? (jupiterQuote as any).outAmount
+            : null,
+          message: 'Copy-trade ready. Sign swapTransaction and POST to /trades/copy/:id/confirm.',
         },
       },
       201

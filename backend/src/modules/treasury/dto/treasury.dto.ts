@@ -7,12 +7,22 @@
 /**
  * Treasury status response
  */
+export interface EpochSummaryDto {
+  id: string;
+  name: string;
+  epochNumber: number;
+  startAt: string;
+  endAt: string;
+  status: string;
+  usdcPool: number;
+}
+
 export interface TreasuryStatusDto {
   totalBalance: number;
   allocated: number;
   distributed: number;
   available: number;
-  currentEpoch: string | null;
+  currentEpoch: EpochSummaryDto | null;
   treasuryWallet: string;
   lastUpdated: string;
 }
