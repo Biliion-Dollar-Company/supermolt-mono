@@ -11,6 +11,7 @@
 
 import { Connection, Keypair, PublicKey, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
+import { keyManager } from './key-manager.service';
 import { prisma } from '../lib/db';
 import { 
   ALL_AGENTS, 
@@ -37,44 +38,7 @@ export interface AgentKeypair {
  * - Use .env.example for setup instructions
  */
 export function loadAlphaWallet(): Keypair {
-  const privateKeyBase58 = process.env.AGENT_ALPHA_PRIVATE_KEY;
-  
-  if (!privateKeyBase58) {
-    throw new Error(
-      '❌ AGENT_ALPHA_PRIVATE_KEY not found in environment.\n\n' +
-      'To integrate Henry\'s DR wallet:\n' +
-      '1. Add to .env: AGENT_ALPHA_PRIVATE_KEY=<base58_private_key>\n' +
-      '2. Restart the server\n' +
-      '3. Run: bun scripts/test-agent.ts\n\n' +
-      'Expected wallet: DRhKVNHRwkh59puYfFekZxTNdaEqUGTzf692zoGtAoSy'
-    );
-  }
-
-  try {
-    const privateKeyBytes = bs58.decode(privateKeyBase58);
-    const keypair = Keypair.fromSecretKey(privateKeyBytes);
-    
-    // Verify this is the correct wallet
-    const expectedAddress = 'DRhKVNHRwkh59puYfFekZxTNdaEqUGTzf692zoGtAoSy';
-    const actualAddress = keypair.publicKey.toBase58();
-    
-    if (actualAddress !== expectedAddress) {
-      throw new Error(
-        `❌ Wallet mismatch!\n` +
-        `Expected: ${expectedAddress}\n` +
-        `Got: ${actualAddress}\n\n` +
-        `Please check AGENT_ALPHA_PRIVATE_KEY is correct.`
-      );
-    }
-    
-    console.log('✅ Agent Alpha wallet loaded:', actualAddress);
-    return keypair;
-  } catch (error) {
-    throw new Error(
-      `❌ Failed to load Agent Alpha private key: ${error instanceof Error ? error.message : 'Unknown error'}\n` +
-      'Make sure the private key is in base58 format.'
-    );
-  }
+  return keyManager.requireSolanaKeypair('AGENT_ALPHA_PRIVATE_KEY', 'agent-simulator');
 }
 
 /**

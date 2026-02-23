@@ -323,28 +323,6 @@ export default function SettingsTab() {
           />
         </Card>
 
-        {/* DEV: Reset onboarding */}
-        {__DEV__ && (
-          <TouchableOpacity
-            onPress={() => {
-              resetOnboarding();
-              Alert.alert('Dev', 'Onboarding reset — sign out and back in to trigger it.');
-            }}
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.04)',
-              borderRadius: 12,
-              padding: 16,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: colors.brand.secondary + '50',
-            }}
-          >
-            <Text variant="body" style={{ fontWeight: '600', color: colors.brand.secondary }}>
-              🛠 Reset Onboarding (Dev)
-            </Text>
-          </TouchableOpacity>
-        )}
-
         {/* Sign Out */}
         {isAuthenticated && (
           <TouchableOpacity
@@ -366,7 +344,7 @@ export default function SettingsTab() {
 
         {/* App Info */}
         <View style={{ alignItems: 'center', marginTop: 16 }}>
-          <Text variant="caption" color="muted">SuperMolt v0.1.0</Text>
+          <Text variant="caption" color="muted">SuperMolt v1.0.0</Text>
         </View>
       </ScrollView>
     </SafeAreaView>

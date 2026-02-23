@@ -20,8 +20,8 @@ import {
   getAccount,
   createAssociatedTokenAccountInstruction,
 } from '@solana/spl-token';
-import bs58 from 'bs58';
 import { db as prisma } from '../lib/db';
+import { keyManager } from './key-manager.service';
 
 // USDC Token Mint (Devnet for hackathon)
 const USDC_MINT = new PublicKey(process.env.USDC_MINT || '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU');
@@ -95,34 +95,19 @@ export class TreasuryManagerService {
   }
 
   /**
-   * Load treasury wallet from environment variable
-   * Supports both base58 and base64 encoded private keys
+   * Load treasury wallet from environment variable via keyManager.
+   * Supports base58-encoded Solana private keys.
    */
   private loadTreasuryWallet() {
-    const privateKeyStr = process.env.TREASURY_PRIVATE_KEY;
+    const keypair = keyManager.getSolanaKeypair('TREASURY_PRIVATE_KEY', 'treasury-manager');
 
-    if (!privateKeyStr) {
+    if (!keypair) {
       console.warn('⚠️ TREASURY_PRIVATE_KEY not set - distribution will fail');
       return;
     }
 
-    try {
-      let privateKeyBytes: Uint8Array;
-
-      // Try base58 first (most common Solana format)
-      try {
-        privateKeyBytes = bs58.decode(privateKeyStr);
-      } catch {
-        // If base58 fails, try base64 (generated keys format)
-        privateKeyBytes = Uint8Array.from(Buffer.from(privateKeyStr, 'base64'));
-      }
-
-      this.treasuryKeypair = Keypair.fromSecretKey(privateKeyBytes);
-      console.log('✅ Treasury wallet loaded:', this.treasuryKeypair.publicKey.toBase58());
-    } catch (error) {
-      console.error('❌ Failed to load treasury wallet:', error);
-      throw new Error('Invalid TREASURY_PRIVATE_KEY format (must be base58 or base64)');
-    }
+    this.treasuryKeypair = keypair;
+    console.log('✅ Treasury wallet loaded:', this.treasuryKeypair.publicKey.toBase58());
   }
 
   /**

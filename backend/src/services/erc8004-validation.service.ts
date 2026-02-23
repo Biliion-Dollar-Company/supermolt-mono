@@ -7,13 +7,13 @@ import { db } from '../lib/db';
 import { uploadToIPFS } from '../lib/ipfs';
 import { createERC8004Client } from '../contracts/client';
 import { ethers } from 'ethers';
+import { keyManager } from './key-manager.service';
 
 const RPC_URL = process.env.ETHEREUM_RPC_URL || 'https://sepolia.infura.io/v3/YOUR_KEY';
-const PRIVATE_KEY = process.env.ETHEREUM_PRIVATE_KEY;
 const VALIDATOR_ADDRESS = process.env.VALIDATOR_ADDRESS || '0x0000000000000000000000000000000000000000';
-const NETWORK = (process.env.ETHEREUM_NETWORK || 'sepolia') as 'sepolia' | 'arbitrumSepolia' | 'arbitrum';
+const NETWORK = (process.env.ETHEREUM_NETWORK || 'sepolia') as 'sepolia' | 'arbitrumSepolia' | 'arbitrum' | 'baseSepolia' | 'base';
 
-if (!PRIVATE_KEY) {
+if (!keyManager.getKey('ETHEREUM_PRIVATE_KEY', 'erc8004-validation')) {
   console.warn('[ERC-8004 Validation] ETHEREUM_PRIVATE_KEY not set — contract writes will fail');
 }
 
@@ -196,7 +196,11 @@ export async function proveTradeIntent(tradeId: string): Promise<ValidationResul
   const nonce = parseInt(proofHash.slice(2, 18), 16); // Use first 64 bits as nonce
 
   // 5. Create validation request on-chain
-  const client = createERC8004Client(RPC_URL, NETWORK, PRIVATE_KEY);
+  const client = createERC8004Client(
+    RPC_URL,
+    NETWORK,
+    keyManager.getKey('ETHEREUM_PRIVATE_KEY', 'erc8004-validation') ?? undefined,
+  );
 
   const requestHash = await client.createValidationRequest(
     VALIDATOR_ADDRESS,

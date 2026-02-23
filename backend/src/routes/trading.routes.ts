@@ -14,11 +14,11 @@
 
 import { Hono } from 'hono';
 import { Keypair } from '@solana/web3.js';
-import bs58 from 'bs58';
 import { createTradingExecutor } from '../services/trading-executor';
 import { createPositionManager } from '../services/position-manager';
 import { getPriceFetcher } from '../services/price-fetcher';
 import { db as prisma } from '../lib/db';
+import { keyManager } from '../services/key-manager.service';
 
 const trading = new Hono();
 
@@ -34,32 +34,25 @@ const priceFetcher = getPriceFetcher();
 // ============================================================================
 
 /**
- * Get agent's Solana keypair from database or env
- * 
- * TODO: Implement secure key storage (KMS, encrypted DB, etc.)
- * For now, expects private keys in environment variables
+ * Get agent's Solana keypair from keyManager (env-backed, supports encryption).
  */
 async function getAgentKeypair(agentId: string): Promise<Keypair> {
-  // Strategy 1: Check env var for specific agent
-  const envKey = process.env[`AGENT_PRIVATE_KEY_${agentId.toUpperCase()}`];
-  if (envKey) {
-    return Keypair.fromSecretKey(bs58.decode(envKey));
-  }
+  // Try AGENT_PRIVATE_KEY_<AGENTID> via keyManager
+  const keypair = keyManager.getAgentSolanaKeypair(agentId, undefined, 'trading-routes');
+  if (keypair) return keypair;
 
-  // Strategy 2: Query database (if private keys stored there)
+  // Verify agent exists before throwing a key-not-found error
   const agent = await prisma.tradingAgent.findUnique({
-    where: { id: agentId }
+    where: { id: agentId },
   });
 
   if (!agent) {
     throw new Error(`Agent ${agentId} not found`);
   }
 
-  // TODO: Decrypt private key from database
-  // For now, throw error if not in env
   throw new Error(
     `Private key for agent ${agentId} not found. ` +
-    `Set AGENT_PRIVATE_KEY_${agentId.toUpperCase()}=<base58_key> in environment.`
+    `Set AGENT_PRIVATE_KEY_${agentId.toUpperCase()}=<base58_key> in environment.`,
   );
 }
 

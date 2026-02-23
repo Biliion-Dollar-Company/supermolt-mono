@@ -15,6 +15,7 @@ import {
 } from 'viem';
 import { bsc } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
+import { keyManager } from './key-manager.service';
 import { ERC20_ABI } from '../lib/token-factory-abi';
 import { db } from '../lib/db';
 
@@ -38,10 +39,7 @@ function getPublicClient() {
 }
 
 function getWalletClient() {
-  const privateKey = process.env.BSC_TREASURY_PRIVATE_KEY;
-  if (!privateKey) throw new Error('BSC_TREASURY_PRIVATE_KEY not set');
-
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  const account = keyManager.requireEvmAccount('BSC_TREASURY_PRIVATE_KEY', 'bsc-treasury');
   return createWalletClient({
     account,
     chain: bsc,
@@ -74,12 +72,10 @@ export async function getTreasuryBalance(): Promise<{
     return { balance: '0', balanceFormatted: 0, tokenAddress: null, treasuryAddress: null };
   }
 
-  const privateKey = process.env.BSC_TREASURY_PRIVATE_KEY;
-  if (!privateKey) {
+  const account = keyManager.getEvmAccount('BSC_TREASURY_PRIVATE_KEY', 'bsc-treasury');
+  if (!account) {
     return { balance: '0', balanceFormatted: 0, tokenAddress: REWARD_TOKEN_ADDRESS, treasuryAddress: null };
   }
-
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
   const client = getPublicClient();
 
   try {

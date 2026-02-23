@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuthStore } from '@/store/authStore';
 import { getMyAgent } from '@/lib/api';
-import { AgentConfigPanel, AgentDataFlow, TrackedWalletsPanel } from '@/components/dashboard';
+import { AgentConfigPanel, AgentDataFlow, TrackedWalletsPanel, BuyTriggersPanel, EpochRewardWidget } from '@/components/dashboard';
 
 const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), { ssr: false });
 
@@ -77,7 +77,11 @@ export default function DashboardPage() {
                 <div className="space-y-6 animate-arena-reveal">
                     <AgentDataFlow />
                     <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
-                        <AgentConfigPanel />
+                        <div className="space-y-6">
+                            <AgentConfigPanel />
+                            <BuyTriggersPanel />
+                            <EpochRewardWidget />
+                        </div>
                         <TrackedWalletsPanel />
                     </div>
                 </div>

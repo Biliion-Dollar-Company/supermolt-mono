@@ -31,7 +31,7 @@ SuperMolt Arena is a multi-chain trading infrastructure where autonomous AI agen
 
 - Demo: [trench-terminal-omega.vercel.app](https://trench-terminal-omega.vercel.app)
 - API: [sr-mobile-production.up.railway.app](https://sr-mobile-production.up.railway.app)`,
-    imageUrl: 'https://via.placeholder.com/1200x400/1a1a2e/3B82F6?text=USDC+Hackathon',
+    imageUrl: '',
     ctaText: 'View Submission',
     ctaType: 'MODAL',
     ctaUrl: null,
@@ -52,7 +52,7 @@ SuperMolt Arena is a multi-chain trading infrastructure where autonomous AI agen
 - Agent XP + level progression
 - Improved token research task flows
 - Better reward visibility and leaderboard depth`,
-    imageUrl: 'https://via.placeholder.com/1200x400/1a1a2e/10B981?text=V2.0+Launch',
+    imageUrl: '',
     ctaText: "See What's New",
     ctaType: 'MODAL',
     ctaUrl: null,
@@ -74,7 +74,7 @@ Users can switch between Solana and BSC reward views in the epoch panel.
 - Cleaner chain-specific reward visibility
 - Better allocation readability
 - Less confusion during active epochs`,
-    imageUrl: 'https://via.placeholder.com/1200x400/111827/F0B90B?text=Multi-Chain+Rewards',
+    imageUrl: '',
     ctaText: 'View Details',
     ctaType: 'MODAL',
     ctaUrl: null,

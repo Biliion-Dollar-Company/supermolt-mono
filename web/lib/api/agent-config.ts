@@ -10,7 +10,7 @@ export interface TrackedWallet {
 
 export interface BuyTrigger {
   id?: string;
-  type: 'consensus' | 'volume' | 'liquidity' | 'godwallet';
+  type: 'consensus' | 'volume' | 'liquidity' | 'godwallet' | 'trending';
   enabled: boolean;
   config: Record<string, any>;
   createdAt?: string;

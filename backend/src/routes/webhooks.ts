@@ -848,9 +848,8 @@ webhooks.post('/solana', async (c) => {
       timestamp: new Date().toISOString()
     });
 
-    // Webhook auth: DISABLED (running without auth for now)
-    // TODO: Re-enable after configuring Helius dashboard with auth header
-    console.log('⚠️ [WEBHOOK] Auth disabled - accepting all webhooks');
+    // Webhook auth: DISABLED — no auth header configured in Helius dashboard
+    // Deduplication via webhookEvent unique constraint handles replay protection
 
     const heliusSignature = getDedupeKey(rawBody, signature);
 

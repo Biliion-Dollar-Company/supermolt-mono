@@ -128,12 +128,10 @@ export default function ApproveTxModal() {
       return;
     }
 
-    // BSC trades can't be signed via MWA (Solana-only)
+    // BSC trades are executed server-side — just dismiss the modal
     if (chain === 'BSC') {
-      Alert.alert(
-        'BSC Not Supported',
-        'Mobile wallet signing is only available for Solana trades. BSC auto-buys are executed server-side.',
-      );
+      successNotification();
+      router.back();
       return;
     }
 
@@ -266,11 +264,30 @@ export default function ApproveTxModal() {
           </View>
         )}
 
+        {/* BSC info banner */}
+        {chain === 'BSC' && (
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            backgroundColor: '#F59E0B18',
+            borderRadius: 10,
+            padding: 12,
+            borderWidth: 1,
+            borderColor: '#F59E0B30',
+          }}>
+            <Ionicons name="information-circle-outline" size={16} color="#F59E0B" />
+            <Text variant="caption" color="muted" style={{ flex: 1 }}>
+              BSC trades are executed server-side. Tap confirm to proceed.
+            </Text>
+          </View>
+        )}
+
         {/* Actions */}
         <View style={{ gap: 12, marginTop: 8 }}>
           <Button variant="primary" loading={isProcessing} onPress={handleApprove}>
             <Text variant="body" color="primary" style={{ fontWeight: '600' }}>
-              {chain === 'BSC' ? 'BSC (Server-Side)' : 'Approve & Sign'}
+              {chain === 'BSC' ? 'Confirm Trade' : 'Approve & Sign'}
             </Text>
           </Button>
           <TouchableOpacity

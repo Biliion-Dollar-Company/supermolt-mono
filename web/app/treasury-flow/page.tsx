@@ -489,7 +489,7 @@ export default function TreasuryFlowPage() {
             viewport={{ once: true }}
             transition={{ delay: 0.5 }}
           >
-            Currently running on Solana devnet with Circle USDC faucet for testing.
+            Powered by Solana and BSC. Epoch rewards distributed in USDC.
           </motion.p>
         </div>
       </div>

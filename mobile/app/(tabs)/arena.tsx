@@ -133,10 +133,12 @@ export default function ArenaTab() {
             <Text style={styles.pageTitle}>ARENA</Text>
             <Text style={styles.pageSubtitle}>Compete · Earn · Dominate</Text>
           </View>
-          <View style={styles.liveChip}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveChipText}>LIVE</Text>
-          </View>
+          {agents.length > 0 && (
+            <View style={styles.liveChip}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveChipText}>LIVE</Text>
+            </View>
+          )}
         </View>
 
         {/* ── My Agent Stats ── */}

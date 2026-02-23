@@ -6,12 +6,13 @@
 import { db } from '../lib/db';
 import { uploadToIPFS } from '../lib/ipfs';
 import { createERC8004Client } from '../contracts/client';
+import { keyManager } from './key-manager.service';
 
 const RPC_URL = process.env.ETHEREUM_RPC_URL || 'https://sepolia.infura.io/v3/YOUR_KEY';
-const PRIVATE_KEY = process.env.ETHEREUM_PRIVATE_KEY;
-const NETWORK = (process.env.ETHEREUM_NETWORK || 'sepolia') as 'sepolia' | 'arbitrumSepolia' | 'arbitrum';
+const NETWORK = (process.env.ETHEREUM_NETWORK || 'sepolia') as 'sepolia' | 'arbitrumSepolia' | 'arbitrum' | 'baseSepolia' | 'base';
 
-if (!PRIVATE_KEY) {
+// Warn at startup if key is absent; actual reads go through keyManager at call time
+if (!keyManager.getKey('ETHEREUM_PRIVATE_KEY', 'erc8004-identity')) {
   console.warn('[ERC-8004 Identity] ETHEREUM_PRIVATE_KEY not set — contract writes will fail');
 }
 
@@ -67,7 +68,11 @@ export async function registerAgentOnChain(agentId: string): Promise<AgentRegist
   console.log(`[Identity] Uploaded registration for ${agent.name} to ${ipfsUri}`);
 
   // 4. Register on-chain
-  const client = createERC8004Client(RPC_URL, NETWORK, PRIVATE_KEY);
+  const client = createERC8004Client(
+    RPC_URL,
+    NETWORK,
+    keyManager.getKey('ETHEREUM_PRIVATE_KEY', 'erc8004-identity') ?? undefined,
+  );
   const onChainId = await client.registerAgent(ipfsUri);
 
   // 5. Update database
@@ -107,7 +112,11 @@ export async function updateAgentMetadata(
     throw new Error(`Agent ${agentId} not registered on-chain`);
   }
 
-  const client = createERC8004Client(RPC_URL, NETWORK, PRIVATE_KEY);
+  const client = createERC8004Client(
+    RPC_URL,
+    NETWORK,
+    keyManager.getKey('ETHEREUM_PRIVATE_KEY', 'erc8004-identity') ?? undefined,
+  );
   await client.setAgentMetadata(Number(agent.onChainAgentId), key, value);
 
   console.log(`[Identity] Updated metadata ${key}=${value} for agent ${agent.name}`);

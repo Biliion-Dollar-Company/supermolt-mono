@@ -28,13 +28,13 @@ import {
   TransactionMessage,
   sendAndConfirmRawTransaction,
 } from '@solana/web3.js';
-import bs58 from 'bs58';
 import {
   PUMP_IPFS_URL,
   PUMPPORTAL_LOCAL_TX_URL,
   PUMP_TOTAL_SUPPLY,
   PUMP_TOKEN_DECIMALS,
 } from '../lib/pumpfun-constants';
+import { keyManager } from './key-manager.service';
 
 // ── Types ────────────────────────────────────────────────
 
@@ -252,23 +252,17 @@ let pumpFunClient: PumpFunClient | null = null;
 
 /**
  * Get or create PumpFunClient singleton.
- * Uses SOLANA_DEPLOYER_PRIVATE_KEY (base58) or falls back to TREASURY_PRIVATE_KEY (base64).
+ * Uses SOLANA_DEPLOYER_PRIVATE_KEY (base58) or falls back to TREASURY_PRIVATE_KEY (base58).
  */
 export function getPumpFunClient(): PumpFunClient {
   if (!pumpFunClient) {
-    let keypair: Keypair;
+    // Try deployer key first, then treasury key as fallback
+    const keypair =
+      keyManager.getSolanaKeypair('SOLANA_DEPLOYER_PRIVATE_KEY', 'pumpfun-api') ||
+      keyManager.getSolanaKeypair('TREASURY_PRIVATE_KEY', 'pumpfun-api');
 
-    // Try base58 private key first (standard Solana format)
-    const b58Key = process.env.SOLANA_DEPLOYER_PRIVATE_KEY;
-    if (b58Key) {
-      keypair = Keypair.fromSecretKey(bs58.decode(b58Key));
-    } else {
-      // Fall back to base64 treasury key
-      const b64Key = process.env.TREASURY_PRIVATE_KEY;
-      if (!b64Key) {
-        throw new Error('SOLANA_DEPLOYER_PRIVATE_KEY or TREASURY_PRIVATE_KEY required for pump.fun');
-      }
-      keypair = Keypair.fromSecretKey(Buffer.from(b64Key, 'base64'));
+    if (!keypair) {
+      throw new Error('SOLANA_DEPLOYER_PRIVATE_KEY or TREASURY_PRIVATE_KEY required for pump.fun');
     }
 
     pumpFunClient = new PumpFunClient(keypair);

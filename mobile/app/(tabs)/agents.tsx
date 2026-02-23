@@ -77,7 +77,7 @@ function AgentRow({
         <Image source={pfpSource} style={cardStyles.pfp} />
         <View style={{ flex: 1 }}>
           <View style={cardStyles.nameRow}>
-            <Text variant="body" color="primary" style={{ fontWeight: '700' }}>
+            <Text variant="body" color="primary" style={{ fontWeight: '700' }} numberOfLines={1}>
               {agent.displayName || agent.name}
             </Text>
             {agent.twitterHandle && (

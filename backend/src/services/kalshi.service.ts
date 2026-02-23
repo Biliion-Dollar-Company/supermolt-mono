@@ -21,6 +21,7 @@ import type {
   OrderResult,
   PositionData,
 } from './prediction-provider.interface';
+import { keyManager } from './key-manager.service';
 
 const MARKET_CACHE_TTL_MS = 30_000; // 30s in-memory cache
 
@@ -95,16 +96,9 @@ export class KalshiService implements PredictionMarketProvider {
       ? 'https://trading-api.kalshi.com/trade-api/v2'
       : 'https://demo-api.kalshi.co/trade-api/v2';
 
-    const apiKey = process.env.KALSHI_API_KEY;
-    const privateKeyPem = process.env.KALSHI_PRIVATE_KEY_PEM;
-
-    // Decode PEM if base64-encoded
-    let pem: string | undefined;
-    if (privateKeyPem) {
-      pem = privateKeyPem.includes('BEGIN')
-        ? privateKeyPem
-        : Buffer.from(privateKeyPem, 'base64').toString('utf-8');
-    }
+    const apiKey = keyManager.getKey('KALSHI_API_KEY', 'kalshi') ?? undefined;
+    // getPemKey handles base64-encoded PEM automatically
+    const pem = keyManager.getPemKey('KALSHI_PRIVATE_KEY_PEM', 'kalshi') ?? undefined;
 
     try {
       const config = new sdk.Configuration({

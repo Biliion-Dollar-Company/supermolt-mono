@@ -6,12 +6,12 @@
 import { db } from '../lib/db';
 import { uploadToIPFS } from '../lib/ipfs';
 import { createERC8004Client } from '../contracts/client';
+import { keyManager } from './key-manager.service';
 
 const RPC_URL = process.env.ETHEREUM_RPC_URL || 'https://sepolia.infura.io/v3/YOUR_KEY';
-const PRIVATE_KEY = process.env.ETHEREUM_PRIVATE_KEY;
-const NETWORK = (process.env.ETHEREUM_NETWORK || 'sepolia') as 'sepolia' | 'arbitrumSepolia' | 'arbitrum';
+const NETWORK = (process.env.ETHEREUM_NETWORK || 'sepolia') as 'sepolia' | 'arbitrumSepolia' | 'arbitrum' | 'baseSepolia' | 'base';
 
-if (!PRIVATE_KEY) {
+if (!keyManager.getKey('ETHEREUM_PRIVATE_KEY', 'erc8004-reputation')) {
   console.warn('[ERC-8004 Reputation] ETHEREUM_PRIVATE_KEY not set — contract writes will fail');
 }
 
@@ -104,7 +104,11 @@ export async function submitTradeFeedback(tradeId: string): Promise<TradeFeedbac
   console.log(`[Reputation] Uploaded feedback for trade ${trade.id} to ${feedbackURI}`);
 
   // 5. Submit feedback on-chain
-  const client = createERC8004Client(RPC_URL, NETWORK, PRIVATE_KEY);
+  const client = createERC8004Client(
+    RPC_URL,
+    NETWORK,
+    keyManager.getKey('ETHEREUM_PRIVATE_KEY', 'erc8004-reputation') ?? undefined,
+  );
   
   const feedbackIndex = await client.giveFeedback(
     Number(trade.agent.onChainAgentId),
@@ -199,11 +203,12 @@ export async function getAgentReputation(agentId: string): Promise<{
     return null;
   }
 
-  const client = createERC8004Client(RPC_URL, NETWORK, PRIVATE_KEY);
-  
+  const ethereumPrivateKey = keyManager.getKey('ETHEREUM_PRIVATE_KEY', 'erc8004-reputation');
+  const client = createERC8004Client(RPC_URL, NETWORK, ethereumPrivateKey ?? undefined);
+
   // Get summary from all clients (use deployer address as default)
   let clients: string[] = [];
-  if (PRIVATE_KEY) {
+  if (ethereumPrivateKey) {
     const signer = client.identityRegistry.runner;
     if (signer && 'getAddress' in signer) {
       clients = [await (signer as any).getAddress()];

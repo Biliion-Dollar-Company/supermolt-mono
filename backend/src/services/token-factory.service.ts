@@ -16,10 +16,10 @@ import {
   type Address,
 } from 'viem';
 import { bsc } from 'viem/chains';
-import { privateKeyToAccount } from 'viem/accounts';
 import { FOUR_MEME_TOKEN_MANAGER_ABI, ERC20_ABI } from '../lib/token-factory-abi';
 import { getFourMemeClient, DEFAULT_IMAGE_URL } from './fourmeme-api.service';
 import { db } from '../lib/db';
+import { keyManager } from './key-manager.service';
 
 // Four.Meme TokenManager2 on BSC Mainnet
 const FOUR_MEME_CONTRACT = '0x5c952063c7fc8610FFDB798152D69F0B9550762b' as Address;
@@ -40,10 +40,7 @@ function getPublicClient() {
 }
 
 function getWalletClient() {
-  const privateKey = process.env.BSC_TREASURY_PRIVATE_KEY;
-  if (!privateKey) throw new Error('BSC_TREASURY_PRIVATE_KEY not set');
-
-  const account = privateKeyToAccount(privateKey as `0x${string}`);
+  const account = keyManager.requireEvmAccount('BSC_TREASURY_PRIVATE_KEY', 'token-factory');
   return createWalletClient({
     account,
     chain: bsc,

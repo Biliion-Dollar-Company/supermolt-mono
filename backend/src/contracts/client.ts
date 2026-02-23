@@ -28,7 +28,7 @@ import {
 export class ERC8004Client {
   private provider: ethers.Provider;
   private signer?: ethers.Signer;
-  private network: 'sepolia' | 'arbitrumSepolia' | 'arbitrum';
+  private network: 'sepolia' | 'arbitrumSepolia' | 'arbitrum' | 'baseSepolia' | 'base';
   
   public identityRegistry: ethers.Contract;
   public reputationRegistry: ethers.Contract;
@@ -36,7 +36,7 @@ export class ERC8004Client {
 
   constructor(
     providerOrUrl: ethers.Provider | string,
-    network: 'sepolia' | 'arbitrumSepolia' | 'arbitrum' = 'sepolia',
+    network: 'sepolia' | 'arbitrumSepolia' | 'arbitrum' | 'baseSepolia' | 'base' = 'sepolia',
     signer?: ethers.Signer
   ) {
     this.provider = typeof providerOrUrl === 'string' 
@@ -330,7 +330,7 @@ export class ERC8004Client {
 // Export a factory function for easy instantiation
 export function createERC8004Client(
   rpcUrl: string,
-  network: 'sepolia' | 'arbitrumSepolia' | 'arbitrum' = 'sepolia',
+  network: 'sepolia' | 'arbitrumSepolia' | 'arbitrum' | 'baseSepolia' | 'base' = 'sepolia',
   privateKey?: string
 ): ERC8004Client {
   const provider = new ethers.JsonRpcProvider(rpcUrl);

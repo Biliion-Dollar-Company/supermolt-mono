@@ -10,6 +10,7 @@
 
 import { Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';
+import { keyManager } from './key-manager.service';
 import {
   createPublicClient,
   createWalletClient,
@@ -688,49 +689,9 @@ async function broadcastRecommendation(request: AutoBuyRequest) {
 // ── Agent Key Lookup ─────────────────────────────────────
 
 function getBSCAccount(agentId: string): ReturnType<typeof privateKeyToAccount> | null {
-  // Check agent-specific BSC key first
-  const agentKey = process.env[`BSC_PRIVATE_KEY_${agentId.toUpperCase()}`];
-  if (agentKey) {
-    try {
-      return privateKeyToAccount(agentKey as `0x${string}`);
-    } catch {
-      return null;
-    }
-  }
-
-  // Fall back to treasury key (shared execution wallet)
-  const treasuryKey = process.env.BSC_TREASURY_PRIVATE_KEY;
-  if (treasuryKey) {
-    try {
-      return privateKeyToAccount(treasuryKey as `0x${string}`);
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
+  return keyManager.getAgentBscAccount(agentId, 'auto-buy-executor');
 }
 
 function getAgentKeypair(agentId: string): Keypair | null {
-  // Check env var for specific agent
-  const envKey = process.env[`AGENT_PRIVATE_KEY_${agentId.toUpperCase()}`];
-  if (envKey) {
-    try {
-      return Keypair.fromSecretKey(bs58.decode(envKey));
-    } catch {
-      return null;
-    }
-  }
-
-  // Check fallback deployer key (for system agents)
-  const deployerKey = process.env.SOLANA_DEPLOYER_PRIVATE_KEY;
-  if (deployerKey) {
-    try {
-      return Keypair.fromSecretKey(bs58.decode(deployerKey));
-    } catch {
-      return null;
-    }
-  }
-
-  return null;
+  return keyManager.getAgentSolanaKeypair(agentId, 'SOLANA_DEPLOYER_PRIVATE_KEY', 'auto-buy-executor');
 }

@@ -332,6 +332,7 @@ export async function updateAgentConfig(payload: {
   archetypeId?: string;
   trackedWallets?: TrackedWalletConfig[];
   triggers?: BuyTriggerConfig[];
+  config?: Record<string, any>;
 }): Promise<void> {
   await apiFetch('/arena/me/config', {
     method: 'PUT',

@@ -8,6 +8,10 @@
 const BIRDEYE_API_URL = process.env.BIRDEYE_API_URL || 'https://api.birdeye.so';
 const BIRDEYE_API_KEY = process.env.BIRDEYE_API_KEY || '';
 
+if (!BIRDEYE_API_KEY) {
+  console.warn('[Birdeye] ⚠️  BIRDEYE_API_KEY not set — token price lookups will fail');
+}
+
 export interface TokenPrice {
   mint: string;
   symbol?: string;

@@ -218,6 +218,19 @@ export default function ConfigureTab() {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Trading parameters
+  const [maxPositionSize, setMaxPositionSize] = useState(0.05);
+  const [takeProfitPercent, setTakeProfitPercent] = useState(25);
+  const [stopLossPercent, setStopLossPercent] = useState(15);
+
+  // Data feed toggles
+  const [dataFeeds, setDataFeeds] = useState({
+    helius: true,
+    devprint: true,
+    twitter: true,
+    dexscreener: true,
+  });
+
   // Wallet form
   const [showAddWallet, setShowAddWallet] = useState(false);
   const [newAddress, setNewAddress] = useState('');
@@ -235,6 +248,13 @@ export default function ConfigureTab() {
       setSelectedArchetype(configData.archetypeId ?? null);
       setTriggers(configData.buyTriggers?.length > 0 ? configData.buyTriggers : DEFAULT_TRIGGERS);
       if (archetypeData.length > 0) setArchetypes(archetypeData);
+
+      // Load trading params from config
+      const cfg = configData.config ?? {};
+      if (cfg.maxPositionSize != null) setMaxPositionSize(cfg.maxPositionSize);
+      if (cfg.takeProfitPercent != null) setTakeProfitPercent(cfg.takeProfitPercent);
+      if (cfg.stopLossPercent != null) setStopLossPercent(cfg.stopLossPercent);
+      if (cfg.enabledFeeds) setDataFeeds((prev) => ({ ...prev, ...cfg.enabledFeeds }));
     } catch (err) {
       console.error('[ConfigureTab] fetch failed:', err);
     } finally {
@@ -330,6 +350,12 @@ export default function ConfigureTab() {
       await updateAgentConfig({
         archetypeId: selectedArchetype ?? undefined,
         triggers,
+        config: {
+          maxPositionSize,
+          takeProfitPercent,
+          stopLossPercent,
+          enabledFeeds: dataFeeds,
+        },
       });
       successNotification();
       Alert.alert('Saved ✓', 'Agent configuration updated successfully.');
@@ -690,8 +716,113 @@ export default function ConfigureTab() {
           </View>
         </Animated.View>
 
-        {/* ── Safety Info Banner ── */}
+        {/* ── 4. Trading Parameters ── */}
         <Animated.View entering={FadeInDown.duration(400).delay(240).springify()}>
+          <View style={S.section}>
+            <SectionHeader
+              icon="options-outline"
+              title="Trading Parameters"
+              subtitle="Position sizing, take-profit & stop-loss"
+            />
+
+            <View style={S.tradingParamsWrap}>
+              {/* Max Position Size */}
+              <View style={S.paramRow}>
+                <View style={S.paramLabelWrap}>
+                  <Ionicons name="resize-outline" size={14} color={GOLD} />
+                  <Text style={S.paramLabel}>Max Position</Text>
+                </View>
+                <NumInput
+                  value={String(maxPositionSize)}
+                  onChangeText={(v) => {
+                    const n = parseFloat(v);
+                    if (!isNaN(n) && n >= 0.01 && n <= 10) setMaxPositionSize(n);
+                    else if (v === '' || v === '0' || v === '0.') setMaxPositionSize(0.01);
+                  }}
+                  suffix="SOL"
+                  width={60}
+                />
+              </View>
+
+              {/* Take Profit */}
+              <View style={S.paramRow}>
+                <View style={S.paramLabelWrap}>
+                  <Ionicons name="arrow-up-circle-outline" size={14} color={colors.status.success} />
+                  <Text style={S.paramLabel}>Take Profit</Text>
+                </View>
+                <NumInput
+                  value={String(takeProfitPercent)}
+                  onChangeText={(v) => {
+                    const n = parseInt(v);
+                    if (!isNaN(n) && n >= 5 && n <= 500) setTakeProfitPercent(n);
+                    else if (v === '') setTakeProfitPercent(5);
+                  }}
+                  suffix="%"
+                  width={52}
+                  keyboardType="number-pad"
+                />
+              </View>
+
+              {/* Stop Loss */}
+              <View style={S.paramRow}>
+                <View style={S.paramLabelWrap}>
+                  <Ionicons name="arrow-down-circle-outline" size={14} color={colors.status.error} />
+                  <Text style={S.paramLabel}>Stop Loss</Text>
+                </View>
+                <NumInput
+                  value={String(stopLossPercent)}
+                  onChangeText={(v) => {
+                    const n = parseInt(v);
+                    if (!isNaN(n) && n >= 5 && n <= 100) setStopLossPercent(n);
+                    else if (v === '') setStopLossPercent(5);
+                  }}
+                  suffix="%"
+                  width={52}
+                  keyboardType="number-pad"
+                />
+              </View>
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* ── 5. Data Feeds ── */}
+        <Animated.View entering={FadeInDown.duration(400).delay(320).springify()}>
+          <View style={S.section}>
+            <SectionHeader
+              icon="radio-outline"
+              title="Data Feeds"
+              subtitle="Toggle signal sources for your agent"
+            />
+
+            <View style={S.feedsWrap}>
+              {([
+                { key: 'helius' as const, label: 'Helius', icon: 'analytics-outline' as const, desc: 'On-chain transaction data' },
+                { key: 'devprint' as const, label: 'DevPrint', icon: 'code-slash-outline' as const, desc: 'Developer activity signals' },
+                { key: 'twitter' as const, label: 'Twitter/X', icon: 'logo-twitter' as const, desc: 'Social sentiment & mentions' },
+                { key: 'dexscreener' as const, label: 'DexScreener', icon: 'bar-chart-outline' as const, desc: 'DEX price & volume data' },
+              ]).map((feed) => (
+                <View key={feed.key} style={S.feedRow}>
+                  <View style={S.feedIconWrap}>
+                    <Ionicons name={feed.icon} size={14} color={dataFeeds[feed.key] ? GOLD : colors.text.muted} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={S.feedLabel}>{feed.label}</Text>
+                    <Text style={S.feedDesc}>{feed.desc}</Text>
+                  </View>
+                  <Switch
+                    value={dataFeeds[feed.key]}
+                    onValueChange={() => setDataFeeds((prev) => ({ ...prev, [feed.key]: !prev[feed.key] }))}
+                    trackColor={{ false: 'rgba(255,255,255,0.10)', true: GOLD + '50' }}
+                    thumbColor={dataFeeds[feed.key] ? GOLD : colors.text.muted}
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* ── Safety Info Banner ── */}
+        <Animated.View entering={FadeInDown.duration(400).delay(400).springify()}>
           <View style={S.safetyBanner}>
             <Ionicons name="shield-half-outline" size={18} color={GOLD} style={{ marginTop: 2 }} />
             <View style={{ flex: 1 }}>
@@ -1158,6 +1289,67 @@ const S = StyleSheet.create({
     color: colors.text.muted,
     fontSize: 11,
     fontWeight: '600',
+  },
+
+  // ── Trading params
+  tradingParamsWrap: {
+    gap: 10,
+  },
+  paramRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+  },
+  paramLabelWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  paramLabel: {
+    color: colors.text.secondary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+
+  // ── Data feeds
+  feedsWrap: {
+    gap: 6,
+  },
+  feedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+  },
+  feedIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 7,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedLabel: {
+    color: colors.text.secondary,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 1,
+  },
+  feedDesc: {
+    color: colors.text.muted,
+    fontSize: 10,
+    lineHeight: 13,
   },
 
   // ── Safety banner

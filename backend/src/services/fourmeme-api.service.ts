@@ -14,6 +14,7 @@
 
 import { privateKeyToAccount } from 'viem/accounts';
 import { parseEther } from 'viem';
+import { keyManager } from './key-manager.service';
 
 const FOURMEME_API_URL = process.env.FOURMEME_API_URL || 'https://four.meme/meme-api/v1';
 
@@ -311,9 +312,9 @@ let fourMemeClient: FourMemeClient | null = null;
 
 export function getFourMemeClient(): FourMemeClient {
   if (!fourMemeClient) {
-    const pk = process.env.BSC_TREASURY_PRIVATE_KEY;
-    if (!pk) throw new Error('BSC_TREASURY_PRIVATE_KEY not set — required for Four.Meme');
-    fourMemeClient = new FourMemeClient(pk as `0x${string}`);
+    const pk = keyManager.requireKey('BSC_TREASURY_PRIVATE_KEY', 'fourmeme-api');
+    const hex = pk.startsWith('0x') ? pk : `0x${pk}`;
+    fourMemeClient = new FourMemeClient(hex as `0x${string}`);
   }
   return fourMemeClient;
 }

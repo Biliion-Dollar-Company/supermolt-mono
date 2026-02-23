@@ -15,6 +15,7 @@
 
 import { ethers, Wallet, JsonRpcProvider } from 'ethers';
 import { db as prisma } from '../lib/db';
+import { keyManager } from './key-manager.service';
 
 // USDC Token Contract on BSC Mainnet
 const USDC_CONTRACT_ADDRESS = process.env.BSC_USDC_CONTRACT || '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d';
@@ -70,10 +71,10 @@ export class TreasuryManagerBSCService {
   }
 
   /**
-   * Load treasury wallet from environment variable
+   * Load treasury wallet from environment variable via keyManager.
    */
   private loadTreasuryWallet() {
-    const privateKey = process.env.BSC_TREASURY_PRIVATE_KEY;
+    const privateKey = keyManager.getKey('BSC_TREASURY_PRIVATE_KEY', 'treasury-manager-bsc');
 
     if (!privateKey) {
       console.warn('⚠️ BSC_TREASURY_PRIVATE_KEY not set - distribution will fail');

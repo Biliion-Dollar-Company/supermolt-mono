@@ -12,6 +12,7 @@
 import { db } from '../lib/db';
 import { getPumpFunClient, type PumpFunCreateParams } from './pumpfun-api.service';
 import { PUMP_TOTAL_SUPPLY, PUMP_GRADUATION_SOL } from '../lib/pumpfun-constants';
+import { keyManager } from './key-manager.service';
 
 export interface SolanaTokenDeploymentResult {
   tokenAddress: string;
@@ -139,7 +140,10 @@ export async function getAgentSolanaTokens(agentId: string) {
  * Get pump.fun platform info
  */
 export function getPumpFunInfo() {
-  const hasKey = !!(process.env.SOLANA_DEPLOYER_PRIVATE_KEY || process.env.TREASURY_PRIVATE_KEY);
+  const hasKey = !!(
+    keyManager.getKey('SOLANA_DEPLOYER_PRIVATE_KEY', 'pumpfun-token-factory') ||
+    keyManager.getKey('TREASURY_PRIVATE_KEY', 'pumpfun-token-factory')
+  );
 
   return {
     configured: hasKey,

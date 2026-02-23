@@ -9,7 +9,9 @@ import { HeliusWebSocketMonitor } from './services/helius-websocket.js';
 import { websocketEvents } from './services/websocket-events.js';
 import { DevPrintFeedService } from './services/devprint-feed.service.js';
 import { createBSCMonitor } from './services/bsc-monitor.js';
+import { createBaseMonitor } from './services/base-monitor.js';
 import { createFourMemeMonitor } from './services/fourmeme-monitor.js';
+import { createClankerMonitor } from './services/clanker-monitor.js';
 
 import { createSortinoCron } from './services/sortino-cron.js';
 import { createPredictionCron } from './services/prediction-cron.js';
@@ -39,6 +41,7 @@ import { docsRoutes } from './routes/docs';
 import { swaggerRoutes } from './routes/swagger';
 import { siweAuthRoutes } from './routes/auth.siwe';
 import { bscRoutes } from './routes/bsc.routes';
+import { baseRoutes } from './routes/base.routes';
 import { surgeRoutes } from './routes/surge.routes';
 import { pumpfunRoutes } from './routes/pumpfun.routes';
 import { predictionRoutes } from './routes/prediction.routes';
@@ -205,6 +208,9 @@ app.route('/api/calls', calls);
 // BSC routes (token factory, treasury, monitoring)
 app.route('/bsc', bscRoutes);
 
+// Base chain routes (Clanker token deployer, trade monitor)
+app.route('/base', baseRoutes);
+
 // ERC-8004 routes (Agent Identity, Reputation, Validation)
 app.route('/erc8004', erc8004Routes);
 
@@ -256,6 +262,8 @@ app.get('/', (c) => {
         treasury: '/bsc/treasury/*',
       },
       base: {
+        tokens: '/base/tokens/*',
+        monitor: '/base/monitor/status',
         wallet: '/surge/wallet/*',
         trading: '/surge/buy, /surge/sell, /surge/quote',
         treasury: '/surge/treasury/*',
@@ -500,6 +508,18 @@ bscMonitor.start().catch((err) => {
   console.error('❌ BSC monitor failed to start:', err);
 });
 
+// Start Base Trade Monitor (always on — RPC-based, no API key needed)
+const baseMonitor = createBaseMonitor();
+baseMonitor.start().catch((err) => {
+  console.error('❌ Base monitor failed to start:', err);
+});
+
+// Start Clanker Token Launch Monitor (always on — RPC-based)
+const clankerMonitor = createClankerMonitor();
+clankerMonitor.start().catch((err) => {
+  console.error('❌ Clanker monitor failed to start:', err);
+});
+
 // Start Four.Meme Migration Monitor (always on — RPC-based, no API key needed)
 const fourMemeMonitor = createFourMemeMonitor();
 fourMemeMonitor.onMigration(async (event) => {
@@ -553,7 +573,7 @@ if (enableTradingLoop) {
     const intervalMinutes = parseInt(process.env.TRADING_LOOP_INTERVAL || '20', 10);
     const agentsPerCycle = parseInt(process.env.AGENTS_PER_CYCLE || '3', 10);
     const minConfidence = parseInt(process.env.TRADING_MIN_CONFIDENCE || '70', 10);
-    
+
     startTradingLoop({
       intervalMinutes,
       agentsPerCycle,
@@ -561,7 +581,7 @@ if (enableTradingLoop) {
       maxTradesPerCycle: 5,
       positionSizeSOL: 1.5,
     });
-    
+
     console.log(`✅ Autonomous trading loop started (every ${intervalMinutes}min, ${agentsPerCycle} agents/cycle)`);
   }).catch((err) => {
     console.error('❌ Failed to start trading loop:', err);

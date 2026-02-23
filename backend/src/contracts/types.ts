@@ -72,4 +72,6 @@ export interface NetworkDeployments {
   sepolia: DeploymentConfig;
   arbitrumSepolia: DeploymentConfig;
   arbitrum: DeploymentConfig;
+  baseSepolia: DeploymentConfig;
+  base: DeploymentConfig;
 }
