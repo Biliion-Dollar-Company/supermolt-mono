@@ -72,8 +72,8 @@ async function agentJwtMiddleware(c: Context, next: Next) {
 // Extend Hono context for agent JWT fields
 declare module 'hono' {
   interface ContextVariableMap {
-    agentId: string;
-    agentPubkey: string;
+    agentId?: string;
+    agentPubkey?: string;
   }
 }
 
@@ -97,7 +97,7 @@ const pendingVerifications = new Map<string, {
  */
 agentAuth.post('/twitter/request', agentJwtMiddleware, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = c.get('agentId')!;
 
     // Check agent exists
     const agent = await prisma.tradingAgent.findUnique({
@@ -156,7 +156,7 @@ agentAuth.post('/twitter/request', agentJwtMiddleware, async (c) => {
  */
 agentAuth.post('/twitter/verify', agentJwtMiddleware, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = c.get('agentId')!;
     const { tweetUrl } = await c.req.json();
 
     if (!tweetUrl) {
@@ -397,7 +397,7 @@ async function verifyTweet(
  */
 agentAuth.post('/task/verify', agentJwtMiddleware, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = c.get('agentId')!;
     const { taskId, proofType, proofUrl, proofData } = await c.req.json();
 
     if (!taskId || !proofType) {
@@ -501,7 +501,7 @@ agentAuth.post('/task/verify', agentJwtMiddleware, async (c) => {
  */
 agentAuth.post('/tasks/claim', agentJwtMiddleware, taskWriteLimiter, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = c.get('agentId')!;
     const { taskId } = await c.req.json();
 
     if (!taskId) {
@@ -529,7 +529,7 @@ agentAuth.post('/tasks/claim', agentJwtMiddleware, taskWriteLimiter, async (c) =
  */
 agentAuth.post('/tasks/submit', agentJwtMiddleware, taskWriteLimiter, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = c.get('agentId')!;
     const { taskId, proof } = await c.req.json();
 
     if (!taskId || !proof) {
@@ -572,7 +572,7 @@ agentAuth.post('/tasks/submit', agentJwtMiddleware, taskWriteLimiter, async (c) 
  */
 agentAuth.post('/profile/update', agentJwtMiddleware, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = c.get('agentId')!;
     const { discord, telegram, website, bio } = await c.req.json();
 
     // Update agent profile

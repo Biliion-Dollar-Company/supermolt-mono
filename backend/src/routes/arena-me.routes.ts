@@ -43,7 +43,7 @@ async function agentJwtMiddleware(c: Context, next: Next) {
 
 arenaMeRoutes.get('/me', agentJwtMiddleware, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = c.get('agentId')!;
 
     const agent = await db.tradingAgent.findUnique({
       where: { id: agentId },

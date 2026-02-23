@@ -178,7 +178,8 @@ export async function proveTradeIntent(tradeId: string): Promise<ValidationResul
     throw new Error(`Agent ${trade.agent.name} not registered on-chain. Register first.`);
   }
 
-  if (trade.validationTxHash) {
+  const tradeMetadata = trade.metadata as Record<string, unknown> | null;
+  if (tradeMetadata?.validationTxHash) {
     throw new Error(`Validation already submitted for trade ${tradeId}`);
   }
 
@@ -209,11 +210,14 @@ export async function proveTradeIntent(tradeId: string): Promise<ValidationResul
     nonce
   );
 
-  // 6. Update database
+  // 6. Update database — store validationTxHash in metadata (field not yet migrated to schema)
   await db.paperTrade.update({
     where: { id: tradeId },
     data: {
-      validationTxHash: requestHash,
+      metadata: {
+        ...(typeof trade.metadata === 'object' && trade.metadata !== null ? trade.metadata as Record<string, unknown> : {}),
+        validationTxHash: requestHash,
+      },
     },
   });
 
@@ -234,9 +238,10 @@ export async function proveAllTradeIntents(agentId?: string): Promise<{
   failed: number;
   skipped: number;
 }> {
+  // validationTxHash is stored in metadata JSON — filter by status and agent only;
+  // proveTradeIntent will throw for already-validated trades (guarded via metadata).
   const where: any = {
     status: 'CLOSED',
-    validationTxHash: null,
     agent: {
       onChainAgentId: { not: null },
     },
@@ -286,14 +291,16 @@ export async function getTradeValidation(tradeId: string): Promise<any | null> {
     include: { agent: true },
   });
 
-  if (!trade?.validationTxHash) {
+  const tradeMetadata = trade?.metadata as Record<string, unknown> | null;
+  const validationTxHash = tradeMetadata?.validationTxHash as string | undefined;
+  if (!validationTxHash) {
     return null;
   }
 
   const client = createERC8004Client(RPC_URL, NETWORK);
 
   try {
-    const validation = await client.getValidation(trade.validationTxHash);
+    const validation = await client.getValidation(validationTxHash);
     return validation;
   } catch (error) {
     console.error('[Validation] Failed to fetch validation:', error);

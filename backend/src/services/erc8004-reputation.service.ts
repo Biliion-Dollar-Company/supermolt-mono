@@ -67,7 +67,8 @@ export async function submitTradeFeedback(tradeId: string): Promise<TradeFeedbac
     throw new Error(`Agent ${trade.agent.name} not registered on-chain. Register first.`);
   }
 
-  if (trade.feedbackTxHash) {
+  const tradeMetadata = trade.metadata as Record<string, unknown> | null;
+  if (tradeMetadata?.feedbackTxHash) {
     throw new Error(`Feedback already submitted for trade ${tradeId}`);
   }
 
@@ -119,11 +120,15 @@ export async function submitTradeFeedback(tradeId: string): Promise<TradeFeedbac
     feedbackURI
   );
 
-  // 6. Update database with feedback tx hash
+  // 6. Update database with feedback tx hash stored in metadata
   await db.paperTrade.update({
     where: { id: tradeId },
     data: {
-      feedbackTxHash: 'pending', // We don't have tx hash in current flow
+      metadata: {
+        ...(typeof trade.metadata === 'object' && trade.metadata !== null ? trade.metadata as Record<string, unknown> : {}),
+        feedbackTxHash: 'pending', // We don't have tx hash in current flow
+        feedbackIndex,
+      },
     },
   });
 
@@ -145,9 +150,10 @@ export async function submitAllTradeFeedback(agentId?: string): Promise<{
   failed: number;
   skipped: number;
 }> {
+  // feedbackTxHash is stored in metadata JSON — filter by status and agent only;
+  // submitTradeFeedback will throw for already-submitted trades (guarded via metadata).
   const where: any = {
     status: 'CLOSED',
-    feedbackTxHash: null,
     agent: {
       onChainAgentId: { not: null },
     },
@@ -240,7 +246,8 @@ export async function getTradeFeedback(tradeId: string): Promise<any | null> {
     include: { agent: true },
   });
 
-  if (!trade?.feedbackTxHash || !trade.agent.onChainAgentId) {
+  const tradeMetadata = trade?.metadata as Record<string, unknown> | null;
+  if (!tradeMetadata?.feedbackTxHash || !trade?.agent.onChainAgentId) {
     return null;
   }
 
