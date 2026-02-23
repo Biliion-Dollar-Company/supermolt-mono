@@ -68,6 +68,9 @@ model TradingAgent {
   discord       String?
   telegram      String?
 
+  // Push notifications
+  pushToken       String?
+
   // ERC-8004 Integration
   onChainAgentId  String?
   registrationURI String?

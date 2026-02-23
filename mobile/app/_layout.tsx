@@ -12,6 +12,7 @@ import { PrivyProvider } from '@privy-io/expo';
 import { ThemeProvider, DarkTheme } from '@react-navigation/native';
 import { AuthProvider } from '@/lib/auth/provider';
 import { WebSocketProvider } from '@/lib/websocket/provider';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { colors } from '@/theme/colors';
 
 // Custom dark theme — forces ALL React Navigation scene containers (Stack + Tabs)
@@ -29,6 +30,11 @@ SplashScreen.preventAutoHideAsync();
 
 const PRIVY_APP_ID = process.env.EXPO_PUBLIC_PRIVY_APP_ID || '';
 const PRIVY_CLIENT_ID = process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID || '';
+
+function PushNotificationManager() {
+  usePushNotifications();
+  return null;
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -55,6 +61,7 @@ export default function RootLayout() {
   return (
     <PrivyProvider appId={PRIVY_APP_ID} clientId={PRIVY_CLIENT_ID}>
       <AuthProvider>
+        <PushNotificationManager />
         <WebSocketProvider>
           <ThemeProvider value={AppTheme}>
           <StatusBar style="light" />

@@ -60,6 +60,7 @@ import agentConfigRoutes from './routes/agent-config.routes';
 import taskRoutes from './modules/tasks/tasks.routes';
 import newsRoutes from './modules/news/news.routes';
 import { systemRoutes, setDevPrintFeedGetter } from './routes/system.routes';
+import notificationRoutes from './routes/notifications.routes';
 
 const app = new Hono();
 
@@ -86,7 +87,8 @@ export function getDevPrintFeed(): DevPrintFeedService | null {
 }
 
 // CORS Configuration - Allow frontend origins
-const allowedOrigins = [
+// Extra origins can be added via ALLOWED_ORIGINS env var (comma-separated)
+const defaultOrigins = [
   'http://localhost:3000',
   'http://localhost:8081',
   'exp://localhost:8081',
@@ -96,6 +98,11 @@ const allowedOrigins = [
   'https://supermolt.app',
   'https://www.supermolt.app',
 ];
+const extraOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+const allowedOrigins = [...defaultOrigins, ...extraOrigins];
 
 // Middleware
 app.use('*', logger());
@@ -215,6 +222,9 @@ app.route('/arena', arenaMeRoutes); // /arena/me — must be before generic aren
 app.route('/arena/me', agentConfigRoutes); // Agent configuration endpoints
 app.route('/arena', arenaRoutes);
 app.route('/arena/tasks', taskRoutes);
+
+// Push notification routes
+app.route('/notifications', notificationRoutes);
 
 // News routes (platform announcements, updates, partnerships)
 app.route('/news', newsRoutes);

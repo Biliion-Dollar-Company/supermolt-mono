@@ -9,6 +9,7 @@ import { WebSocketServer, WebSocket as RawWebSocket } from 'ws';
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 import { verifyToken } from '../lib/jwt';
+import { notifyTradeRecommendation, notifyTradeExecuted, notifyConsensus } from './notification.service';
 
 type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets' | 'training';
 
@@ -280,6 +281,23 @@ class WebSocketEventsService {
     // Also send to raw WS clients (mobile)
     this.broadcastRaw({ type: 'agent:activity', ...payload });
 
+    // Push notification for trade recommendations (fire-and-forget)
+    if (event.data?.type === 'trade_recommendation') {
+      notifyTradeRecommendation(
+        agentId,
+        event.data.tokenSymbol || 'Unknown',
+        'BUY',
+        event.data.reason || 'AI trade recommendation',
+      ).catch(() => {});
+    } else if (event.data?.type === 'auto_buy_executed') {
+      notifyTradeExecuted(
+        agentId,
+        event.data.tokenSymbol || 'Unknown',
+        event.data.action || 'BUY',
+        event.data.amount || '?',
+      ).catch(() => {});
+    }
+
     console.log(`[WebSocket] Broadcast agent:activity to agent:${agentId}`);
   }
 
@@ -338,6 +356,9 @@ class WebSocketEventsService {
 
     // Raw WS — broadcast to mobile clients
     this.broadcastRaw({ type: 'consensus:reached', ...payload });
+
+    // Push notification for consensus (fire-and-forget)
+    notifyConsensus(event.agentId, event.tokenSymbol, event.walletCount).catch(() => {});
 
     console.log(`[WebSocket] Broadcast consensus:reached for ${event.tokenSymbol} (${event.walletCount} wallets)`);
   }
