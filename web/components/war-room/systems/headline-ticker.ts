@@ -40,7 +40,7 @@ export class HeadlineTicker {
     this.layer.addChild(this.tickerBg);
 
     this.tickerAccent = new Graphics();
-    this.tickerAccent.rect(0, 0, 3, 28);
+    this.tickerAccent.rect(0, 0, 4, 32);
     this.tickerAccent.fill({ color: 0xe8b45e, alpha: 0.8 });
     this.layer.addChild(this.tickerAccent);
 
@@ -48,13 +48,13 @@ export class HeadlineTicker {
       text: 'INITIALIZING WAR ROOM...',
       style: new TextStyle({
         fontFamily: 'JetBrains Mono, monospace',
-        fontSize: 10,
+        fontSize: 13,
         fontWeight: '700',
         fill: 0xffaa00,
         letterSpacing: 1.5,
       }),
     });
-    this.headlineText.y = 9;
+    this.headlineText.y = 8;
     this.headlineText.x = this.W(); // start off-screen right
     this.layer.addChild(this.headlineText);
 
@@ -64,10 +64,10 @@ export class HeadlineTicker {
   private drawBg() {
     const w = this.W();
     this.tickerBg.clear();
-    this.tickerBg.rect(0, 0, w, 28);
+    this.tickerBg.rect(0, 0, w, 32);
     this.tickerBg.fill({ color: 0x050505, alpha: 0.92 });
     this.tickerBg.setStrokeStyle({ width: 1, color: 0xe8b45e, alpha: 0.15 });
-    this.tickerBg.rect(0, 0, w, 28);
+    this.tickerBg.rect(0, 0, w, 32);
     this.tickerBg.stroke();
     this.lastWidth = w;
     this.needsBgRedraw = false;

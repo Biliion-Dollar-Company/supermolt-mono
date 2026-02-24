@@ -25,17 +25,17 @@ interface PixiModules {
 }
 
 // ── Collapsed card ───────────────────────────────────────────────────────────
-const C_SIZE = 60;
+const C_SIZE = 90;
 const C_HALF = C_SIZE / 2;
-const C_IMG  = 48;  // BIGGER: was 36
-const C_PAD  = 5;
+const C_IMG  = 72;
+const C_PAD  = 6;
 
 // ── Expanded card ────────────────────────────────────────────────────────────
-const E_BW   = 100;
-const E_BH   = 42;
-const E_PAD  = 8;
-const E_IMG  = 36;  // BIGGER: was 32
-const E_METRICS_W = 52;
+const E_BW   = 140;
+const E_BH   = 60;
+const E_PAD  = 10;
+const E_IMG  = 52;
+const E_METRICS_W = 65;
 
 // ── Animation ────────────────────────────────────────────────────────────────
 const EXPAND_SPEED = 0.006;  // progress per ms (~170ms full transition)
@@ -175,57 +175,57 @@ export class StationManager {
         text: def.ticker,
         style: new TextStyle({
           fontFamily: MONO_FONT,
-          fontSize: 9,  // Slightly bigger since no container
+          fontSize: 13,
           fontWeight: '800',
           fill: def.isNew ? 0xffcc00 : def.isOld ? 0x888888 : 0xe8b45e,
-          letterSpacing: 0.5,
+          letterSpacing: 0.8,
         }),
       });
       cTicker.anchor.set(0.5, 0);
       cTicker.x = 0;
-      cTicker.y = cImgY + C_IMG + 4;  // Position below image
+      cTicker.y = cImgY + C_IMG + 6;
 
       // Token name below ticker (truncated, grey)
-      const shortCollapsedName = def.name.length > 10 ? def.name.slice(0, 9) + '..' : def.name;
+      const shortCollapsedName = def.name.length > 14 ? def.name.slice(0, 13) + '..' : def.name;
       const cName = new Text({
         text: shortCollapsedName,
         style: new TextStyle({
           fontFamily: MONO_FONT,
-          fontSize: 7,
-          fill: 0x666666,
+          fontSize: 10,
+          fill: 0x777777,
         }),
       });
       cName.anchor.set(0.5, 0);
       cName.x = 0;
-      cName.y = cImgY + C_IMG + 15;
+      cName.y = cImgY + C_IMG + 22;
 
       if (def.isNew) {
         const cNewBg = new Graphics();
-        cNewBg.rect(cImgX + C_IMG - 22, cImgY - 12, 22, 11);  // Position above image
+        cNewBg.rect(cImgX + C_IMG - 30, cImgY - 16, 30, 14);
         cNewBg.fill({ color: 0xffcc00 });
         const cNewText = new Text({
           text: 'NEW',
-          style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fontWeight: '900', fill: 0x000000 }),
+          style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 8, fontWeight: '900', fill: 0x000000 }),
         });
         cNewText.anchor.set(1, 0);
-        cNewText.x = cImgX + C_IMG - 2;
-        cNewText.y = cImgY - 11;
+        cNewText.x = cImgX + C_IMG - 3;
+        cNewText.y = cImgY - 14;
         collapsedGroup.addChild(cNewBg, cNewText);
       }
 
       // ── Chain badge (collapsed) — OVERLAY ON IMAGE (top-right corner)
       const chainColor = CHAIN_COLORS[def.chain] ?? 0x9945ff;
       const cChainBadge = new Graphics();
-      const cBadgeX = cImgX + C_IMG - 7;  // Top-right of image
-      const cBadgeY = cImgY + 7;
-      cChainBadge.circle(cBadgeX, cBadgeY, 6);  // Slightly bigger (was 5)
+      const cBadgeX = cImgX + C_IMG - 9;
+      const cBadgeY = cImgY + 9;
+      cChainBadge.circle(cBadgeX, cBadgeY, 9);
       cChainBadge.fill({ color: chainColor });
-      cChainBadge.setStrokeStyle({ width: 1.2, color: 0x000000, alpha: 0.8 });
-      cChainBadge.circle(cBadgeX, cBadgeY, 6);
+      cChainBadge.setStrokeStyle({ width: 1.5, color: 0x000000, alpha: 0.8 });
+      cChainBadge.circle(cBadgeX, cBadgeY, 9);
       cChainBadge.stroke();
       const cChainLabel = new Text({
         text: def.chain,
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fontWeight: '900', fill: 0xffffff }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 8, fontWeight: '900', fill: 0xffffff }),
       });
       cChainLabel.anchor.set(0.5, 0.5);
       cChainLabel.x = cBadgeX;
@@ -270,55 +270,55 @@ export class StationManager {
 
       const eTickerText = new Text({
         text: def.ticker,
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 10, fontWeight: '800', fill: def.isNew ? 0xffcc00 : def.isOld ? 0x888888 : 0xe8b45e, letterSpacing: 1 }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 14, fontWeight: '800', fill: def.isNew ? 0xffcc00 : def.isOld ? 0x888888 : 0xe8b45e, letterSpacing: 1 }),
       });
       eTickerText.x = eTextX;
       eTickerText.y = eImgY + 2;
 
-      const shortName = def.name.length > 12 ? def.name.slice(0, 11) + '..' : def.name;
+      const shortName = def.name.length > 16 ? def.name.slice(0, 15) + '..' : def.name;
       const eNameText = new Text({
         text: shortName,
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 7, fill: def.isOld ? 0x555555 : 0x999999 }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 10, fill: def.isOld ? 0x555555 : 0x999999 }),
       });
       eNameText.x = eTextX;
-      eNameText.y = eImgY + 15;
+      eNameText.y = eImgY + 20;
 
       const eTimeText = new Text({
         text: fmtMinsAgo(def.detectedAt),
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fill: def.isNew ? 0xffcc00 : def.isOld ? 0x444444 : 0x555555 }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 9, fill: def.isNew ? 0xffcc00 : def.isOld ? 0x444444 : 0x555555 }),
       });
       eTimeText.x = leftX;
-      eTimeText.y = E_BH - E_PAD - 8;
+      eTimeText.y = E_BH - E_PAD - 12;
 
       // Right: metrics
-      const mX = divX + 8;
-      const labelStyle = new TextStyle({ fontFamily: MONO_FONT, fontSize: 5, fill: 0x444444, letterSpacing: 0.5 });
+      const mX = divX + 10;
+      const labelStyle = new TextStyle({ fontFamily: MONO_FONT, fontSize: 8, fill: 0x555555, letterSpacing: 0.5 });
 
       const mcapLabel = new Text({ text: 'MCAP', style: labelStyle });
       mcapLabel.x = mX; mcapLabel.y = -E_BH + E_PAD;
 
       const metricPriceText = new Text({
         text: '—',
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 8, fontWeight: '800', fill: 0xffffff }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 12, fontWeight: '800', fill: 0xffffff }),
       });
-      metricPriceText.x = mX; metricPriceText.y = -E_BH + E_PAD + 8;
+      metricPriceText.x = mX; metricPriceText.y = -E_BH + E_PAD + 12;
 
       const holdersLabel = new Text({ text: 'VOL 24H', style: labelStyle });
-      holdersLabel.x = mX; holdersLabel.y = -E_BH + E_PAD + 26;
+      holdersLabel.x = mX; holdersLabel.y = -E_BH + E_PAD + 36;
 
       const metricHoldersText = new Text({
         text: '—',
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 8, fontWeight: '800', fill: 0xe8b45e }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 12, fontWeight: '800', fill: 0xe8b45e }),
       });
-      metricHoldersText.x = mX; metricHoldersText.y = -E_BH + E_PAD + 34;
+      metricHoldersText.x = mX; metricHoldersText.y = -E_BH + E_PAD + 48;
 
       if (def.isNew) {
         const eNewBg = new Graphics();
-        eNewBg.rect(E_BW - E_PAD - 22, -E_BH + 2, 24, 12);
+        eNewBg.rect(E_BW - E_PAD - 30, -E_BH + 2, 32, 16);
         eNewBg.fill({ color: 0xffcc00 });
         const eNewText = new Text({
           text: 'NEW',
-          style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fontWeight: '900', fill: 0x000000 }),
+          style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 9, fontWeight: '900', fill: 0x000000 }),
         });
         eNewText.anchor.set(1, 0);
         eNewText.x = E_BW - E_PAD; eNewText.y = -E_BH + 4;
@@ -327,16 +327,16 @@ export class StationManager {
 
       // ── Chain badge (expanded) — OVERLAY ON IMAGE (top-right corner)
       const eChainBadge = new Graphics();
-      const eBadgeX = eImgX + E_IMG - 8;  // Top-right of image
-      const eBadgeY = eImgY + 8;
-      eChainBadge.circle(eBadgeX, eBadgeY, 7);  // Slightly bigger
+      const eBadgeX = eImgX + E_IMG - 10;
+      const eBadgeY = eImgY + 10;
+      eChainBadge.circle(eBadgeX, eBadgeY, 10);
       eChainBadge.fill({ color: chainColor });
-      eChainBadge.setStrokeStyle({ width: 1.2, color: 0x000000, alpha: 0.8 });
-      eChainBadge.circle(eBadgeX, eBadgeY, 7);
+      eChainBadge.setStrokeStyle({ width: 1.5, color: 0x000000, alpha: 0.8 });
+      eChainBadge.circle(eBadgeX, eBadgeY, 10);
       eChainBadge.stroke();
       const eChainText = new Text({
         text: def.chain,
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fontWeight: '900', fill: 0xffffff }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 8, fontWeight: '900', fill: 0xffffff }),
       });
       eChainText.anchor.set(0.5, 0.5);
       eChainText.x = eBadgeX;
@@ -541,7 +541,7 @@ export class StationManager {
     // If image failed to load and GeckoTerminal provided a CDN URL, retry
     if (!st.imageSprite && metrics.imageUrl) {
       const cImgX = -C_IMG / 2;
-      const cImgY = -C_HALF + C_PAD;
+      const cImgY = -C_IMG / 2;
       const leftX = -E_BW + E_PAD;
       this.loadTokenImage(st, metrics.imageUrl, cImgX, cImgY, C_IMG, st.collapsedGroup);
       this.loadTokenImage(st, metrics.imageUrl, leftX, -E_BH + E_PAD, E_IMG, st.expandedGroup);
@@ -652,8 +652,8 @@ export class StationManager {
       if (hasCoordination) {
         const ringScale = 1.0 + 0.08 * Math.sin(now / 500);
         st.coordinationRing.clear();
-        const rW = (st.expanded ? 106 : C_IMG / 2 + 6) * ringScale;
-        const rH = (st.expanded ? 48 : C_IMG / 2 + 6) * ringScale;
+        const rW = (st.expanded ? E_BW + 6 : C_IMG / 2 + 10) * ringScale;
+        const rH = (st.expanded ? E_BH + 6 : C_IMG / 2 + 10) * ringScale;
         drawFancyBorder(st.coordinationRing, -rW, -rH, rW * 2, rH * 2, 14, 6, 4, 0xe8b45e, 0.5 + 0.3 * Math.sin(now / 300), 2.0);
         st.coordinationRing.visible = true;
         st.glowGraphics.alpha = 0.25 + 0.1 * Math.sin(now / 400);
@@ -706,15 +706,15 @@ export class StationManager {
 
       if (calls.length === 0) return;
 
-      // Render a small colored dot per scanner
+      // Render a colored dot per scanner
       calls.forEach((call, i) => {
         const scannerKey = call.scannerName?.toLowerCase() ?? call.scannerId;
         const color = SCANNER_COLORS[scannerKey] ?? 0xffffff;
         const g = new Graphics();
-        g.circle(i * 10, 0, 3.5);
+        g.circle(i * 14, 0, 5);
         g.fill({ color, alpha: 0.9 });
         // Glow
-        g.circle(i * 10, 0, 6);
+        g.circle(i * 14, 0, 9);
         g.fill({ color, alpha: 0.15 });
         st.scannerDotsContainer.addChild(g);
 
@@ -724,13 +724,13 @@ export class StationManager {
             text: `${Math.round(call.convictionScore * 100)}%`,
             style: new TextStyle({
               fontFamily: MONO_FONT,
-              fontSize: 6,
+              fontSize: 9,
               fontWeight: '700',
               fill: color,
             }),
           });
-          convLabel.x = calls.length * 10 + 4;
-          convLabel.y = -4;
+          convLabel.x = calls.length * 14 + 6;
+          convLabel.y = -6;
           st.scannerDotsContainer.addChild(convLabel);
         }
       });

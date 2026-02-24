@@ -39,7 +39,7 @@ export class AgentManager {
 
         const homeStation = i % stations.length;
         const sx = stations[homeStation]?.container.x ?? 100 + i * 80;
-        const sy = (stations[homeStation]?.container.y ?? 100) - 60;
+        const sy = (stations[homeStation]?.container.y ?? 100) - 80;
 
         const container = new Container();
         container.x = sx;
@@ -48,11 +48,11 @@ export class AgentManager {
         container.cursor = 'pointer';
 
         const outerRing = new Graphics();
-        outerRing.circle(0, 0, 18);
+        outerRing.circle(0, 0, 26);
         outerRing.fill({ color, alpha: trustScore > 0.95 ? 0.18 : 0.08 });
 
         const ring = new Graphics();
-        ring.circle(0, 0, 16);
+        ring.circle(0, 0, 24);
         ring.setStrokeStyle({
           width: trustScore > 0.95 ? 2.5 : 1.5,
           color: trustScore > 0.95 ? 0xe8b45e : 0x444444,
@@ -61,7 +61,7 @@ export class AgentManager {
 
         // Semi-transparent background circle — avatar shows on top
         const circle = new Graphics();
-        circle.circle(0, 0, 14);
+        circle.circle(0, 0, 22);
         circle.fill({ color, alpha: 0.15 });
 
         let avatarSprite: PixiSprite | null = null;
@@ -69,12 +69,12 @@ export class AgentManager {
           const avatarUrl = getAvatarUrl(ag);
           const texture = await Assets.load(avatarUrl);
           avatarSprite = new Sprite(texture);
-          avatarSprite.width = 28;
-          avatarSprite.height = 28;
+          avatarSprite.width = 44;
+          avatarSprite.height = 44;
           avatarSprite.anchor.set(0.5);
 
           const avatarMask = new Graphics();
-          avatarMask.circle(0, 0, 14);
+          avatarMask.circle(0, 0, 22);
           avatarMask.fill(0xffffff);
           avatarSprite.mask = avatarMask;
           container.addChild(avatarMask);
@@ -88,7 +88,7 @@ export class AgentManager {
           text: initial,
           style: new TextStyle({
             fontFamily: 'JetBrains Mono, monospace',
-            fontSize: 11,
+            fontSize: 16,
             fontWeight: '900',
             fill: trustScore > 0.95 ? 0xe8b45e : 0xffffff,
           }),
@@ -99,7 +99,7 @@ export class AgentManager {
         // Name label with dark pill background for readability
         const labelBg = new Graphics();
         const label = new Text({
-          text: ag.name.length > 10 ? ag.name.slice(0, 9).toUpperCase() + '..' : ag.name.toUpperCase(),
+          text: ag.name.length > 12 ? ag.name.slice(0, 11).toUpperCase() + '..' : ag.name.toUpperCase(),
           style: new TextStyle({
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: 11,
@@ -108,11 +108,11 @@ export class AgentManager {
           }),
         });
         label.anchor.set(0.5, 0);
-        label.y = 20;
+        label.y = 28;
         // Draw pill background after measuring text
-        const lw = Math.max(label.width + 8, 40);
-        labelBg.rect(-lw / 2, 19, lw, 15);
-        labelBg.fill({ color: 0x000000, alpha: 0.7 });
+        const lw = Math.max(label.width + 10, 50);
+        labelBg.rect(-lw / 2, 26, lw, 16);
+        labelBg.fill({ color: 0x000000, alpha: 0.75 });
 
         const bubbleBg = new Graphics();
         bubbleBg.visible = false;
@@ -121,13 +121,13 @@ export class AgentManager {
           text: '',
           style: new TextStyle({
             fontFamily: 'JetBrains Mono, monospace',
-            fontSize: 5,
+            fontSize: 7,
             fontWeight: '700',
             fill: 0xffffff,
           }),
         });
         bubbleText.anchor.set(0.5, 1);
-        bubbleText.y = -38;
+        bubbleText.y = -46;
         bubbleText.visible = false;
 
         container.addChild(outerRing, ring, circle);
@@ -136,8 +136,8 @@ export class AgentManager {
         this.agentsLayer.addChild(container);
 
         const firstTarget = (homeStation + 1 + i) % stations.length;
-        const tx = (stations[firstTarget]?.container.x ?? 200) + (Math.random() - 0.5) * 20;
-        const ty = ((stations[firstTarget]?.container.y ?? 200) + 60) + (Math.random() - 0.5) * 20;
+        const tx = (stations[firstTarget]?.container.x ?? 200) + (Math.random() - 0.5) * 30;
+        const ty = ((stations[firstTarget]?.container.y ?? 200) + 80) + (Math.random() - 0.5) * 30;
         const dur = 4000 + Math.random() * 2000;
 
         return {
@@ -209,7 +209,7 @@ export class AgentManager {
           ag.startY = ag.container.y;
           ag.targetStationIdx = next;
           ag.targetX = stations[next].container.x + (Math.random() - 0.5) * 20;
-          ag.targetY = stations[next].container.y + 60 + (Math.random() - 0.5) * 20;
+          ag.targetY = stations[next].container.y + 80 + (Math.random() - 0.5) * 30;
           ag.travelDuration = 4000 + Math.random() * 2000;
           ag.travelElapsed = 0;
           ag.arrived = false;
@@ -319,7 +319,7 @@ export class AgentManager {
     ag.startY = ag.container.y;
     ag.targetStationIdx = stIdx;
     ag.targetX = st.container.x + (Math.random() - 0.5) * 12;
-    ag.targetY = st.container.y + 55 + (Math.random() - 0.5) * 12;
+    ag.targetY = st.container.y + 80 + (Math.random() - 0.5) * 15;
     ag.travelDuration = 1000 + Math.random() * 500; // urgent: 1000-1500ms
     ag.travelElapsed = 0;
     ag.arrived = false;

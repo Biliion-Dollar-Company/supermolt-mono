@@ -55,23 +55,23 @@ export class PopupManager {
 
     const iconT = new Text({
       text: icon,
-      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '900', fill: iconColor }),
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 8, fontWeight: '900', fill: iconColor }),
     });
     iconT.anchor.set(0.5, 0.5);
 
     const label = new Text({
       text: short,
-      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '700', fill: 0x999999 }),
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 8, fontWeight: '700', fill: 0x999999 }),
     });
     label.anchor.set(0, 0.5);
 
-    const iconW = 8;
-    const pad = 4;
+    const iconW = 12;
+    const pad = 6;
     const w = iconW + label.width + pad * 2 + 2;
-    const h = 11;
+    const h = 16;
 
-    iconT.x = -w / 2 + pad + 3;
-    label.x = -w / 2 + pad + iconW + 1;
+    iconT.x = -w / 2 + pad + 4;
+    label.x = -w / 2 + pad + iconW + 2;
 
     const bg = new Graphics();
     bg.rect(-w / 2, -h / 2, w, h);
@@ -83,8 +83,8 @@ export class PopupManager {
     c.addChild(bg, iconT, label);
 
     // Well above the station — offset right so it clears the card
-    const startY = stationY - 46;
-    c.x = stationX + 34;
+    const startY = stationY - 65;
+    c.x = stationX + 45;
     c.y = startY;
 
     this.popupLayer.addChild(c);
@@ -106,23 +106,23 @@ export class PopupManager {
 
     const iconT = new Text({
       text: icon,
-      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 6, fontWeight: '900', fill: BRAND }),
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 9, fontWeight: '900', fill: BRAND }),
     });
     iconT.anchor.set(0.5, 0.5);
 
     const label = new Text({
       text: short,
-      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5.5, fontWeight: '800', fill: 0xcccccc }),
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 8, fontWeight: '800', fill: 0xcccccc }),
     });
     label.anchor.set(0, 0.5);
 
-    const iconW = 10;
-    const pad = 5;
+    const iconW = 14;
+    const pad = 6;
     const w = iconW + label.width + pad * 2 + 2;
-    const h = 13;
+    const h = 18;
 
-    iconT.x = -w / 2 + pad + 4;
-    label.x = -w / 2 + pad + iconW + 1;
+    iconT.x = -w / 2 + pad + 5;
+    label.x = -w / 2 + pad + iconW + 2;
 
     const bg = new Graphics();
     bg.rect(-w / 2, -h / 2, w, h);
@@ -134,17 +134,17 @@ export class PopupManager {
     // Action label — plain white text, no box
     const badgeT = new Text({
       text: action,
-      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 4, fontWeight: '800', fill: 0xffffff }),
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 7, fontWeight: '800', fill: 0xffffff }),
     });
     badgeT.anchor.set(0.5, 0.5);
-    badgeT.x = w / 2 + 10;
+    badgeT.x = w / 2 + 14;
     badgeT.y = 0;
 
     c.addChild(bg, iconT, label, badgeT);
 
     // Above-left of station, well clear of the card
-    const startY = stationY - 48;
-    c.x = stationX - 20;
+    const startY = stationY - 68;
+    c.x = stationX - 25;
     c.y = startY;
 
     this.liveTxLayer.addChild(c);
@@ -157,7 +157,7 @@ export class PopupManager {
       p.elapsed += dt;
       const progress = p.elapsed / p.duration;
       p.container.alpha = progress < 0.65 ? 1 : 1 - (progress - 0.65) / 0.35;
-      p.container.y = p.startY - progress * 14;
+      p.container.y = p.startY - progress * 22;
       if (p.elapsed >= p.duration) {
         p.container.parent?.removeChild(p.container);
         this.popups.splice(i, 1);
