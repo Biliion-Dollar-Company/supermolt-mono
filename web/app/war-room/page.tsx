@@ -4,8 +4,9 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Swords } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
-import { EventFeed, AgentHoverCard, IntelBrief } from '@/components/war-room';
+import { EventFeed, AgentHoverCard } from '@/components/war-room';
 import type { AgentData, FeedEvent, HoveredAgentInfo, StationInfo, ScannerCallData, ScannerCallsMap } from '@/components/war-room';
+import { TokenDetailContent } from '@/components/arena/TokenDetailModal';
 import { SCANNER_IDS } from '@/components/war-room/constants';
 
 const WarpTwister = dynamic(() => import('@/components/react-bits/warp-twister'), {
@@ -163,6 +164,7 @@ export default function ArenaPage() {
   const [stations, setStations] = useState<StationInfo[]>([]);
   const [scannerCalls, setScannerCalls] = useState<ScannerCallsMap>({});
   const [viewMode, setViewMode] = useState<ViewMode>('war-room');
+  const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const prevScannerCallIdsRef = useRef<Set<string>>(new Set());
 
   const markStageComplete = useCallback((stage: StageKey) => {
@@ -208,6 +210,10 @@ export default function ArenaPage() {
   // ── Lift station data from canvas ───────────────────────────────────────────
   const handleStationsReady = useCallback((s: StationInfo[]) => {
     setStations(s);
+    // Auto-select first token if none selected
+    if (s.length > 0) {
+      setSelectedToken((prev) => prev ?? s[0].ticker.replace(/^\$/, ''));
+    }
   }, []);
 
   // ── Scanner calls polling (every 30s) ─────────────────────────────────────
@@ -405,6 +411,77 @@ export default function ArenaPage() {
             scannerCalls={scannerCalls}
           />
 
+          {/* ── Canvas HUD overlays (pointer-events: none) ────────────── */}
+
+          {/* Vignette — dark edges for depth */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,0.55) 100%)',
+            }}
+          />
+
+          {/* Scanline overlay — subtle CRT / ops-center feel */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backgroundImage:
+                'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px)',
+              backgroundSize: '100% 4px',
+            }}
+          />
+
+          {/* Edge glow — subtle gold border glow on the canvas */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              boxShadow: 'inset 0 0 60px rgba(232,180,94,0.04), inset 0 0 120px rgba(232,180,94,0.02)',
+            }}
+          />
+
+          {/* Corner brackets — military HUD frame (breathing glow) */}
+          {[
+            { pos: 'top-3 left-3', anchorH: { top: 0, left: 0 }, anchorV: { top: 0, left: 0 } },
+            { pos: 'top-3 right-3', anchorH: { top: 0, right: 0 }, anchorV: { top: 0, right: 0 } },
+            { pos: 'bottom-3 left-3', anchorH: { bottom: 0, left: 0 }, anchorV: { bottom: 0, left: 0 } },
+            { pos: 'bottom-3 right-3', anchorH: { bottom: 0, right: 0 }, anchorV: { bottom: 0, right: 0 } },
+          ].map((c, i) => (
+            <div
+              key={i}
+              className={`absolute ${c.pos} pointer-events-none`}
+              style={{ width: 32, height: 32, animation: 'hud-breathe 4s ease-in-out infinite', animationDelay: `${i * 0.5}s` }}
+            >
+              <div style={{ position: 'absolute', ...c.anchorH, width: 32, height: 2, background: 'rgba(232,180,94,0.35)', boxShadow: '0 0 6px rgba(232,180,94,0.15)' }} />
+              <div style={{ position: 'absolute', ...c.anchorV, width: 2, height: 32, background: 'rgba(232,180,94,0.35)', boxShadow: '0 0 6px rgba(232,180,94,0.15)' }} />
+            </div>
+          ))}
+
+          {/* Top-left HUD label */}
+          <div
+            className="absolute top-5 left-8 pointer-events-none"
+            style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: '8px',
+              letterSpacing: '2px',
+              color: 'rgba(232,180,94,0.25)',
+            }}
+          >
+            SECTOR MAP
+          </div>
+
+          {/* Bottom-right timestamp */}
+          <div
+            className="absolute bottom-5 right-8 pointer-events-none"
+            style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: '8px',
+              letterSpacing: '1px',
+              color: 'rgba(232,180,94,0.2)',
+            }}
+          >
+            {stations.length} STATIONS &middot; {agents.length} WALLETS
+          </div>
+
           {/* Agent hover card HTML overlay */}
           {hovered && (
             <AgentHoverCard
@@ -416,22 +493,69 @@ export default function ArenaPage() {
           )}
         </div>
 
-        {/* Right panel (responsive width): Intel Brief + Live Feed — hidden on mobile */}
+        {/* Right panel (responsive width): Token Detail + Live Feed — hidden on mobile */}
         <div
           className="hidden lg:flex flex-col flex-shrink-0 h-full"
           style={{
-            width: 'clamp(320px, 22vw, 420px)',
+            width: 'clamp(340px, 24vw, 480px)',
             background: '#0A0A0A',
             borderLeft: '1px solid rgba(232, 180, 94, 0.3)',
           }}
         >
-          {/* Top 40%: INTEL BRIEF narrative */}
-          <IntelBrief agents={agents} events={events} stations={stations} scannerCalls={scannerCalls} />
+          {/* Token selector tabs */}
+          <div
+            className="flex items-center gap-1 px-3 py-2 flex-shrink-0 overflow-x-auto"
+            style={{
+              borderBottom: '1px solid rgba(232,180,94,0.15)',
+              background: '#050505',
+              scrollbarWidth: 'none',
+            }}
+          >
+            {stations.map((st) => {
+              const symbol = st.ticker.replace(/^\$/, '');
+              const isActive = selectedToken === symbol;
+              return (
+                <button
+                  key={st.mint ?? st.ticker}
+                  onClick={() => setSelectedToken(symbol)}
+                  className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap flex-shrink-0"
+                  style={{
+                    fontFamily: 'JetBrains Mono, monospace',
+                    color: isActive ? '#E8B45E' : 'rgba(255,255,255,0.35)',
+                    background: isActive ? 'rgba(232,180,94,0.12)' : 'transparent',
+                    border: `1px solid ${isActive ? 'rgba(232,180,94,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ${symbol}
+                </button>
+              );
+            })}
+          </div>
 
-          {/* Bottom 60%: LIVE FEED */}
+          {/* Top ~65%: Token Detail (positions, activity, tasks, chat) */}
+          <div
+            className="flex flex-col overflow-hidden"
+            style={{ flex: '2 1 0%', minHeight: 0, borderBottom: '1px solid rgba(232,180,94,0.2)' }}
+          >
+            {selectedToken ? (
+              <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(232,180,94,0.2) transparent' }}>
+                <TokenDetailContent tokenSymbol={selectedToken} compact />
+              </div>
+            ) : (
+              <div
+                className="flex-1 flex items-center justify-center text-xs"
+                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'JetBrains Mono, monospace' }}
+              >
+                Select a token above
+              </div>
+            )}
+          </div>
+
+          {/* Bottom ~50%: LIVE FEED */}
           <div
             className="flex flex-col"
-            style={{ height: '60%', minHeight: 0 }}
+            style={{ flex: 1, minHeight: 0 }}
           >
             {/* Live Feed header */}
             <div

@@ -538,7 +538,7 @@ export class StationManager {
     st.metricPriceText.text = fmtCompact(metrics.marketCap);
     st.metricHoldersText.text = metrics.volume24h > 0 ? fmtCompact(metrics.volume24h) : '—';
 
-    // If image failed to load and GeckoTerminal provided a CDN URL, retry
+    // If image failed to load and backend provided a CDN URL, retry
     if (!st.imageSprite && metrics.imageUrl) {
       const cImgX = -C_IMG / 2;
       const cImgY = -C_IMG / 2;

@@ -400,6 +400,21 @@
     mask-composite: intersect;
   }
 
+  /* War Room HUD — pulsing glow for corners/indicators */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+  }
+
+  @keyframes hud-breathe {
+    0%, 100% { opacity: 0.25; }
+    50%      { opacity: 0.45; }
+  }
+
+  @keyframes fadeOut {
+    to { opacity: 0; }
+  }
+
   /* 🔲 Gold fading border variant */
   .border-fade-gold {
     position: relative;

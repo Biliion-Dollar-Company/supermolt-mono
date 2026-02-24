@@ -200,7 +200,7 @@ export interface AgentState {
 export interface TokenMetrics {
   marketCap: number;
   volume24h: number;
-  imageUrl?: string;  // CDN image from GeckoTerminal (fallback for failed IPFS)
+  imageUrl?: string;  // CDN image fallback (from backend metadata)
 }
 
 export interface Popup {

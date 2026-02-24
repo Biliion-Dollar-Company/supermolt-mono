@@ -175,76 +175,40 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Token metrics polling (GeckoTerminal — free, no API key) ─────────────
-  // GeckoTerminal supports multiple networks: solana, base, bsc
+  // ── Token metrics polling (via supermolt backend — DexScreener) ──────────
   const fetchMetrics = useCallback(async () => {
     if (!stationMgrRef.current) return;
     const stations = stationMgrRef.current.stations;
 
-    // Group station mints by chain for correct GeckoTerminal network
-    const chainToNetwork: Record<string, string> = {
-      SOL: 'solana',
-      BASE: 'base',
-      BSC: 'bsc',
-    };
-
-    const byChain: Record<string, { mint: string; stIdx: number }[]> = {};
-    stations.forEach((s, idx) => {
+    // Fetch each token's analytics via the supermolt backend proxy
+    const fetches = stations.map(async (s, stIdx) => {
       if (!s.mint) return;
-      const chain = s.chain || 'SOL';
-      if (!byChain[chain]) byChain[chain] = [];
-      byChain[chain].push({ mint: s.mint, stIdx: idx });
-    });
-
-    // Fetch each chain in parallel
-    const chainFetches = Object.entries(byChain).map(async ([chain, items]) => {
-      const network = chainToNetwork[chain] ?? 'solana';
-      const batchSize = 30;
-
-      for (let i = 0; i < items.length; i += batchSize) {
-        const batch = items.slice(i, i + batchSize);
-        try {
-          const addresses = batch.map((b) => b.mint).join(',');
-          const res = await fetch(
-            `https://api.geckoterminal.com/api/v2/networks/${network}/tokens/multi/${addresses}`,
-            { headers: { Accept: 'application/json' } },
-          );
-          if (!res.ok) continue;
-
-          const json = await res.json() as {
-            data: Array<{
-              attributes: {
-                address: string;
-                fdv_usd: string | null;
-                price_usd: string | null;
-                volume_usd?: { h24: string };
-                image_url?: string | null;
-              };
-            }>;
+      try {
+        const res = await fetch(`/api/proxy/mobile/ponzinomics/tokens/${s.mint}`);
+        if (!res.ok) return;
+        const json = await res.json() as {
+          success: boolean;
+          data: {
+            analytics?: { marketCap?: number; volume24h?: number };
+            metadata?: { image_url?: string };
           };
+        };
+        if (!json.success || !json.data) return;
 
-          for (const token of json.data ?? []) {
-            const addr = token.attributes.address;
-            const fdv = parseFloat(token.attributes.fdv_usd || '0');
-            const volume = parseFloat(token.attributes.volume_usd?.h24 || '0');
-            const geckoImage = token.attributes.image_url || undefined;
-
-            const item = batch.find((b) => b.mint.toLowerCase() === addr.toLowerCase());
-            if (item && stationMgrRef.current) {
-              stationMgrRef.current.updateStationMetrics(item.stIdx, {
-                marketCap: fdv,
-                volume24h: Math.round(volume),
-                imageUrl: geckoImage,
-              });
-            }
-          }
-        } catch {
-          // GeckoTerminal down for this chain — metrics stay as dashes
+        const { analytics, metadata } = json.data;
+        if (stationMgrRef.current) {
+          stationMgrRef.current.updateStationMetrics(stIdx, {
+            marketCap: analytics?.marketCap ?? 0,
+            volume24h: Math.round(analytics?.volume24h ?? 0),
+            imageUrl: metadata?.image_url || undefined,
+          });
         }
+      } catch {
+        // Backend unreachable for this token — metrics stay as dashes
       }
     });
 
-    await Promise.allSettled(chainFetches);
+    await Promise.allSettled(fetches);
   }, []);
 
   // ── PixiJS initialization ──────────────────────────────────────────────────
