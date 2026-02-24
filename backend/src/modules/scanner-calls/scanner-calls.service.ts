@@ -6,6 +6,7 @@
 
 import { Prisma } from '@prisma/client';
 import { db } from '../../lib/db';
+import { getTokenPrice } from '../../lib/birdeye'; // Uses existing lib for entryPrice (10 CU)
 import type {
   SubmitCallDto,
   ScannerCallDto,
@@ -58,6 +59,17 @@ export class ScannerCallsService {
       throw new Error('No active epoch');
     }
 
+    // Fetch current price for entryPrice (critical for PnL calculation)
+    let entryPrice: number | null = null;
+    try {
+      const priceData = await getTokenPrice(dto.tokenAddress);
+      if (priceData && priceData.priceUsd > 0) {
+        entryPrice = priceData.priceUsd;
+      }
+    } catch {
+      console.warn(`[ScannerCalls] Failed to fetch entry price for ${dto.tokenAddress}`);
+    }
+
     // Create call
     const call = await this.prisma.scannerCall.create({
       data: {
@@ -68,6 +80,7 @@ export class ScannerCallsService {
         tokenName: dto.tokenName || null,
         convictionScore: dto.convictionScore,
         reasoning: dto.reasoning,
+        entryPrice,
         status: 'open',
         takeProfitPct: dto.takeProfitPct || null,
         stopLossPct: dto.stopLossPct || null

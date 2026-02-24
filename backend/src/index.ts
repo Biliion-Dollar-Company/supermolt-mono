@@ -48,6 +48,7 @@ import { predictionRoutes } from './routes/prediction.routes';
 import { trading } from './routes/trading.routes';
 import { erc8004Routes } from './routes/erc8004.routes';
 import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
+import { getScannerScheduler } from './scanners/scheduler';
 
 // TEMPORARY: Admin fix for Epic Reward scanner
 import adminFix from './routes/admin-scanner-fix';
@@ -590,6 +591,16 @@ if (enableTradingLoop) {
   console.log('⏭️  Trading loop disabled on this replica');
 }
 
+// Start Scanner Scheduler (5 AI scanners on independent schedules)
+const enableScanners = envFlag('ENABLE_SCANNERS', enableBackgroundWorkers);
+const scannerScheduler = enableScanners ? getScannerScheduler() : null;
+if (scannerScheduler) {
+  scannerScheduler.start();
+  console.log('✅ Scanner scheduler started (Alpha/Beta/Gamma/Delta/Epsilon)');
+} else {
+  console.log('⏭️  Scanner scheduler disabled on this replica');
+}
+
 // Update Prometheus metrics every 30 seconds
 setInterval(async () => {
   await updateAgentMetrics(db);
@@ -601,6 +612,7 @@ process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down...');
   if (sortinoCron) sortinoCron.stop();
   if (predictionCron) predictionCron.stop();
+  if (scannerScheduler) scannerScheduler.stop();
   stopAutoBuyExecutor();
   if (devprintFeed) await devprintFeed.stop();
   // Stop trading loop if running
@@ -619,6 +631,7 @@ process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down...');
   if (sortinoCron) sortinoCron.stop();
   if (predictionCron) predictionCron.stop();
+  if (scannerScheduler) scannerScheduler.stop();
   stopAutoBuyExecutor();
   if (devprintFeed) await devprintFeed.stop();
   // Stop trading loop if running
