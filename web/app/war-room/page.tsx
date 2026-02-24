@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Swords } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { EventFeed, AgentHoverCard, IntelBrief } from '@/components/war-room';
-import type { AgentData, FeedEvent, HoveredAgentInfo } from '@/components/war-room';
+import type { AgentData, FeedEvent, HoveredAgentInfo, StationInfo, ScannerCallData, ScannerCallsMap } from '@/components/war-room';
+import { SCANNER_IDS } from '@/components/war-room/constants';
 
 const WarpTwister = dynamic(() => import('@/components/react-bits/warp-twister'), {
   ssr: false,
@@ -104,11 +105,11 @@ const WHALE_NAMES = [
 ];
 
 function walletsToAgents(wallets: DevPrintWallet[]): AgentData[] {
-  const top5 = [...wallets]
+  const top8 = [...wallets]
     .sort((a, b) => b.trust_score - a.trust_score)
-    .slice(0, 5);
+    .slice(0, 8); // Match STATION_POSITIONS count for fuller canvas
 
-  return top5.map((w, i) => {
+  return top8.map((w, i) => {
     // Use label if available, otherwise assign a memorable codename
     const name = w.label ?? WHALE_NAMES[i % WHALE_NAMES.length];
     const winRate = w.total_trades > 0 ? w.winning_trades / w.total_trades : 0;
@@ -149,6 +150,8 @@ const LOADING_STAGES = [
 
 type StageKey = typeof LOADING_STAGES[number]['key'];
 
+type ViewMode = 'war-room' | 'scanner-grid' | 'heat-map';
+
 export default function ArenaPage() {
   const isMobile = useIsMobile();
   const [agents, setAgents] = useState<AgentData[]>(FALLBACK_AGENTS);
@@ -157,6 +160,10 @@ export default function ArenaPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [completedStages, setCompletedStages] = useState<Set<StageKey>>(new Set());
   const [activeStage, setActiveStage] = useState<StageKey>('wallets');
+  const [stations, setStations] = useState<StationInfo[]>([]);
+  const [scannerCalls, setScannerCalls] = useState<ScannerCallsMap>({});
+  const [viewMode, setViewMode] = useState<ViewMode>('war-room');
+  const prevScannerCallIdsRef = useRef<Set<string>>(new Set());
 
   const markStageComplete = useCallback((stage: StageKey) => {
     setCompletedStages((prev) => {
@@ -196,6 +203,79 @@ export default function ArenaPage() {
     fetchWallets();
     const interval = setInterval(fetchWallets, 60_000);
     return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Lift station data from canvas ───────────────────────────────────────────
+  const handleStationsReady = useCallback((s: StationInfo[]) => {
+    setStations(s);
+  }, []);
+
+  // ── Scanner calls polling (every 30s) ─────────────────────────────────────
+  useEffect(() => {
+    const fetchScannerCalls = async () => {
+      try {
+        const allCalls: ScannerCallsMap = {};
+        const results = await Promise.allSettled(
+          SCANNER_IDS.map(async (id) => {
+            const res = await fetch(`/api/proxy/scanner/calls?scannerId=${id}`);
+            if (!res.ok) return [];
+            const json = await res.json() as { calls?: ScannerCallData[] };
+            return json.calls ?? [];
+          }),
+        );
+        const now = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        results.forEach((r) => {
+          if (r.status !== 'fulfilled') return;
+          for (const call of r.value) {
+            const addr = call.tokenAddress;
+            if (!allCalls[addr]) allCalls[addr] = [];
+            allCalls[addr].push(call);
+
+            // Inject new scanner calls as feed events (avoid duplicates)
+            if (!prevScannerCallIdsRef.current.has(call.id)) {
+              prevScannerCallIdsRef.current.add(call.id);
+              // Evict old IDs to prevent unbounded growth over long sessions
+              if (prevScannerCallIdsRef.current.size > 500) {
+                const iter = prevScannerCallIdsRef.current.values();
+                for (let j = 0; j < 200; j++) iter.next();
+                // Keep the newest 300 by rebuilding from remaining iterator
+                const keep = new Set<string>();
+                for (const v of iter) keep.add(v);
+                prevScannerCallIdsRef.current = keep;
+              }
+              const sym = call.tokenSymbol ? `$${call.tokenSymbol}` : addr.slice(0, 8);
+              const detail = call.reasoning?.[0] ?? '';
+              setEvents((prev) => {
+                const evt: FeedEvent = {
+                  timestamp: now,
+                  agentName: call.scannerName,
+                  action: 'SCANNER_CALL',
+                  token: sym,
+                  detail: `${call.convictionScore.toFixed(2)} conviction${detail ? ` | ${detail}` : ''}`,
+                };
+                const next = [...prev, evt];
+                return next.length > 50 ? next.slice(next.length - 50) : next;
+              });
+            }
+          }
+        });
+        setScannerCalls(allCalls);
+      } catch {
+        // scanner data is optional — keep existing
+      }
+    };
+
+    // Start after 3s (wait for initial load)
+    let intervalId: ReturnType<typeof setInterval> | undefined;
+    const initialDelay = setTimeout(() => {
+      fetchScannerCalls();
+      intervalId = setInterval(fetchScannerCalls, 30_000);
+    }, 3000);
+
+    return () => {
+      clearTimeout(initialDelay);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEvent = useCallback((evt: FeedEvent) => {
@@ -263,6 +343,30 @@ export default function ArenaPage() {
           </p>
         </div>
 
+        {/* View mode selector */}
+        <div className="ml-4 flex items-center gap-1">
+          {(['war-room', 'scanner-grid', 'heat-map'] as ViewMode[]).map((mode) => {
+            const labels: Record<ViewMode, string> = { 'war-room': 'War Room', 'scanner-grid': 'Scanners', 'heat-map': 'Heat Map' };
+            const isActive = viewMode === mode;
+            return (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider transition-colors"
+                style={{
+                  fontFamily: 'JetBrains Mono, monospace',
+                  color: isActive ? '#E8B45E' : 'rgba(255,255,255,0.3)',
+                  background: isActive ? 'rgba(232,180,94,0.12)' : 'transparent',
+                  border: `1px solid ${isActive ? 'rgba(232,180,94,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                  cursor: 'pointer',
+                }}
+              >
+                {labels[mode]}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Live indicator */}
         <div className="ml-auto flex items-center gap-2">
           <span
@@ -297,6 +401,8 @@ export default function ArenaPage() {
             onEvent={handleEvent}
             onAgentHover={handleAgentHover}
             onLoadingStage={markStageComplete}
+            onStationsReady={handleStationsReady}
+            scannerCalls={scannerCalls}
           />
 
           {/* Agent hover card HTML overlay */}
@@ -320,7 +426,7 @@ export default function ArenaPage() {
           }}
         >
           {/* Top 40%: INTEL BRIEF narrative */}
-          <IntelBrief agents={agents} events={events} />
+          <IntelBrief agents={agents} events={events} stations={stations} scannerCalls={scannerCalls} />
 
           {/* Bottom 60%: LIVE FEED */}
           <div
@@ -476,22 +582,23 @@ export default function ArenaPage() {
           </div>
           {events.slice(-8).reverse().map((evt, i) => (
             <div
-              key={i}
+              key={`${evt.timestamp}-${evt.agentName}-${evt.token}-${i}`}
               className="px-3 py-1 text-xs flex items-center gap-2"
               style={{ fontFamily: 'JetBrains Mono, monospace', borderBottom: '1px solid rgba(255,255,255,0.03)' }}
             >
               <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '9px' }}>{evt.timestamp}</span>
               <span
                 style={{
-                  color: evt.action === 'BUY' ? '#00ff41' : evt.action === 'SELL' ? '#ff0033' : '#ffaa00',
+                  color: evt.action === 'BUY' ? '#00ff41' : evt.action === 'SELL' ? '#ff0033' : evt.action === 'SCANNER_CALL' ? '#00d4ff' : '#ffaa00',
                   fontWeight: '700',
                   fontSize: '9px',
                 }}
               >
-                {evt.action}
+                {evt.action === 'SCANNER_CALL' ? 'CALL' : evt.action}
               </span>
               <span style={{ color: '#E8B45E' }}>{evt.agentName}</span>
               <span style={{ color: 'rgba(255,255,255,0.5)' }}>{evt.token}</span>
+              {evt.detail && <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '8px' }}>{evt.detail}</span>}
             </div>
           ))}
         </div>

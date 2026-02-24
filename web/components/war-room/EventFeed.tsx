@@ -10,15 +10,17 @@ interface EventFeedProps {
 }
 
 const ACTION_COLORS: Record<FeedEvent['action'], string> = {
-  BUY:       '#00ff41',
-  SELL:      '#ff0033',
-  ANALYZING: '#ffaa00',
+  BUY:          '#00ff41',
+  SELL:         '#ff0033',
+  ANALYZING:    '#ffaa00',
+  SCANNER_CALL: '#00d4ff',
 };
 
 const ACTION_LABELS: Record<FeedEvent['action'], string> = {
-  BUY:       'BUY ',
-  SELL:      'SELL',
-  ANALYZING: 'SCAN',
+  BUY:          'BUY ',
+  SELL:         'SELL',
+  ANALYZING:    'SCAN',
+  SCANNER_CALL: 'CALL',
 };
 
 export default function EventFeed({ events, hideHeader = false }: EventFeedProps) {
@@ -95,7 +97,7 @@ export default function EventFeed({ events, hideHeader = false }: EventFeedProps
         ) : (
           <div className="flex flex-col">
             {events.map((evt, i) => (
-              <EventRow key={i} event={evt} isLatest={i === events.length - 1} />
+              <EventRow key={`${evt.timestamp}-${evt.agentName}-${evt.token}-${i}`} event={evt} isLatest={i === events.length - 1} />
             ))}
           </div>
         )}
@@ -163,6 +165,15 @@ function EventRow({ event, isLatest }: EventRowProps) {
           {event.token}
         </span>
       </div>
+      {/* Detail line for scanner calls */}
+      {event.detail && (
+        <div
+          className="mt-0.5 truncate"
+          style={{ color: 'rgba(255,255,255,0.35)', fontSize: '9px' }}
+        >
+          {event.detail}
+        </div>
+      )}
     </div>
   );
 }

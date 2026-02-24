@@ -26,6 +26,7 @@ export class HeadlineTicker {
   private W: () => number;
   private needsBgRedraw = true;
   private lastWidth = 0;
+  private isPriorityOverride = false;
 
   constructor(pixi: PixiModules, parent: PixiContainer, W: () => number) {
     this.pixi = pixi;
@@ -80,6 +81,7 @@ export class HeadlineTicker {
     this.headlineText.text = text;
     (this.headlineText.style as { fill: number }).fill = color;
     this.headlineText.x = this.W(); // reset to right edge for scroll-in
+    this.isPriorityOverride = true;
   }
 
   update(dt: number) {
@@ -98,16 +100,16 @@ export class HeadlineTicker {
       this.advanceHeadline();
     }
 
-    // Color based on content
-    const hl = this.headlineText.text;
-    if (hl.includes('LIVE TX')) {
-      // keep priority color set by overridePriority
-    } else if (hl.includes('ALPHA') || hl.includes('COORDINATED')) {
-      (this.headlineText.style as { fill: number }).fill = 0xe8b45e;
-    } else if (hl.includes('NEW GRADUATION')) {
-      (this.headlineText.style as { fill: number }).fill = 0x00ff41;
-    } else {
-      (this.headlineText.style as { fill: number }).fill = 0xffaa00;
+    // Color based on content (skip if priority override is active)
+    if (!this.isPriorityOverride) {
+      const hl = this.headlineText.text;
+      if (hl.includes('ALPHA') || hl.includes('COORDINATED')) {
+        (this.headlineText.style as { fill: number }).fill = 0xe8b45e;
+      } else if (hl.includes('NEW GRADUATION')) {
+        (this.headlineText.style as { fill: number }).fill = 0x00ff41;
+      } else {
+        (this.headlineText.style as { fill: number }).fill = 0xffaa00;
+      }
     }
   }
 
@@ -116,5 +118,7 @@ export class HeadlineTicker {
     this.currentHeadlineIdx = (this.currentHeadlineIdx + 1) % this.headlines.length;
     this.headlineText.text = this.headlines[this.currentHeadlineIdx];
     this.headlineText.x = this.W(); // start from right edge
+    // Reset color override so normal headlines get normal colors
+    this.isPriorityOverride = false;
   }
 }

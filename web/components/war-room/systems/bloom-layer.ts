@@ -49,9 +49,26 @@ export class BloomLayer {
     });
   }
 
-  update(now: number, agents: AgentState[], stations: TokenStation[]) {
+  /** Build persistent agent glow objects. Call once after agents are created, or when agents change. */
+  buildAgentGlows(agents: AgentState[]) {
     const { Graphics } = this.pixi;
+    // Remove old
+    this.agentGlows.forEach((g) => { g.parent?.removeChild(g); });
+    this.agentGlows = [];
 
+    agents.forEach((ag) => {
+      if (ag.trustScore <= 0.9) return;
+      const g = new Graphics();
+      g.circle(0, 0, 24);
+      g.fill({ color: 0xe8b45e, alpha: 0.2 });
+      g.x = ag.container.x;
+      g.y = ag.container.y;
+      this.container.addChild(g);
+      this.agentGlows.push(g);
+    });
+  }
+
+  update(now: number, agents: AgentState[], stations: TokenStation[]) {
     // Sync station glow positions and pulse
     this.stationGlows.forEach((g, i) => {
       const st = stations[i];
@@ -61,22 +78,17 @@ export class BloomLayer {
       g.alpha = 0.12 + 0.06 * Math.sin(now / 600 + i);
     });
 
-    // Agent ring glows for high-trust agents
-    // Remove old, rebuild (cheap — only a few agents)
-    this.agentGlows.forEach((g) => {
-      g.parent?.removeChild(g);
-    });
-    this.agentGlows = [];
-
+    // Update persistent agent glows — just move + pulse alpha, no allocation
+    let glowIdx = 0;
     agents.forEach((ag) => {
       if (ag.trustScore <= 0.9) return;
-      const g = new Graphics();
-      g.circle(0, 0, 24);
-      g.fill({ color: 0xe8b45e, alpha: 0.2 + 0.08 * Math.sin(now / 500) });
-      g.x = ag.container.x;
-      g.y = ag.container.y;
-      this.container.addChild(g);
-      this.agentGlows.push(g);
+      const g = this.agentGlows[glowIdx];
+      if (g) {
+        g.x = ag.container.x;
+        g.y = ag.container.y;
+        g.alpha = 0.2 + 0.08 * Math.sin(now / 500);
+        glowIdx++;
+      }
     });
   }
 }

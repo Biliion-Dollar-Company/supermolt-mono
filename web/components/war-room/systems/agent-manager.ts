@@ -96,17 +96,23 @@ export class AgentManager {
         rankText.anchor.set(0.5, 0.5);
         rankText.visible = avatarSprite === null;
 
+        // Name label with dark pill background for readability
+        const labelBg = new Graphics();
         const label = new Text({
-          text: ag.name.toUpperCase(),
+          text: ag.name.length > 10 ? ag.name.slice(0, 9).toUpperCase() + '..' : ag.name.toUpperCase(),
           style: new TextStyle({
             fontFamily: 'JetBrains Mono, monospace',
-            fontSize: 9,
+            fontSize: 11,
             fontWeight: '700',
             fill: trustScore > 0.95 ? 0xe8b45e : 0xffffff,
           }),
         });
         label.anchor.set(0.5, 0);
-        label.y = 18;
+        label.y = 20;
+        // Draw pill background after measuring text
+        const lw = Math.max(label.width + 8, 40);
+        labelBg.rect(-lw / 2, 19, lw, 15);
+        labelBg.fill({ color: 0x000000, alpha: 0.7 });
 
         const bubbleBg = new Graphics();
         bubbleBg.visible = false;
@@ -126,7 +132,7 @@ export class AgentManager {
 
         container.addChild(outerRing, ring, circle);
         if (avatarSprite) container.addChild(avatarSprite);
-        container.addChild(rankText, label, bubbleBg, bubbleText);
+        container.addChild(rankText, labelBg, label, bubbleBg, bubbleText);
         this.agentsLayer.addChild(container);
 
         const firstTarget = (homeStation + 1 + i) % stations.length;

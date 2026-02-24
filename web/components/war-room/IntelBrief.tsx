@@ -1,23 +1,18 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import type { AgentData, FeedEvent } from './types';
+import type { AgentData, FeedEvent, StationInfo, ScannerCallData, ScannerCallsMap } from './types';
+import { minsAgo } from './helpers';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface StationInfo {
-  ticker: string;
-  name: string;
-  detectedAt?: Date;
-  isNew?: boolean;
-  agentCount?: number;
-}
 
 interface IntelBriefProps {
   agents: AgentData[];
   events: FeedEvent[];
-  /** Optional station data passed from parent if available */
+  /** Station data passed from parent */
   stations?: StationInfo[];
+  /** Scanner calls keyed by token address */
+  scannerCalls?: ScannerCallsMap;
 }
 
 // ─── Narrative generators ─────────────────────────────────────────────────────
@@ -26,19 +21,63 @@ function formatWinRate(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
-function timeSinceMs(date: Date): number {
-  return Date.now() - date.getTime();
-}
-
-function minsAgo(date: Date): number {
-  return Math.floor(timeSinceMs(date) / 60_000);
-}
-
 function buildNarrative(
   agents: AgentData[],
   events: FeedEvent[],
   stations: StationInfo[],
+  scannerCalls: ScannerCallsMap = {},
 ): string {
+  // ── Scenario 0: Scanner convergence (highest priority) ────────────────────
+  // Find tokens where multiple scanners have open calls
+  const tokenScannerCounts: { token: string; calls: ScannerCallData[]; scannerNames: string[] }[] = [];
+  for (const [addr, calls] of Object.entries(scannerCalls)) {
+    if (calls.length >= 2) {
+      const openCalls = calls.filter((c) => c.status.toLowerCase() === 'open');
+      if (openCalls.length >= 2) {
+        const sym = openCalls[0].tokenSymbol ? `$${openCalls[0].tokenSymbol}` : addr.slice(0, 8);
+        const scannerNames = [...new Set(openCalls.map((c) => c.scannerName))];
+        tokenScannerCounts.push({ token: sym, calls: openCalls, scannerNames });
+      }
+    }
+  }
+  tokenScannerCounts.sort((a, b) => b.calls.length - a.calls.length);
+
+  if (tokenScannerCounts.length > 0) {
+    const top = tokenScannerCounts[0];
+    const topCall = [...top.calls].sort((a, b) => b.convictionScore - a.convictionScore)[0];
+    const scannerList = top.scannerNames.slice(0, 3).join(', ');
+
+    if (top.calls.length >= 3) {
+      return (
+        `SCANNER CONVERGENCE — ${top.calls.length} scanners are flagging ${top.token}. ` +
+        `Active signals from ${scannerList}. ` +
+        `Highest conviction: ${topCall.scannerName} at ${Math.round(topCall.convictionScore * 100)}%. ` +
+        `${topCall.reasoning?.[0] ? `Reasoning: "${topCall.reasoning[0]}"` : 'Multiple independent signals converging.'}`
+      );
+    } else {
+      return (
+        `${top.calls.length} scanners are watching ${top.token} — ${scannerList}. ` +
+        `Lead signal: ${topCall.scannerName} (${Math.round(topCall.convictionScore * 100)}% conviction). ` +
+        `${topCall.reasoning?.[0] ?? 'Monitoring for additional confirmation.'}`
+      );
+    }
+  }
+
+  // ── Scenario 0.5: High-conviction single scanner call ─────────────────────
+  const allCalls = Object.values(scannerCalls).flat().filter((c) => c.status.toLowerCase() === 'open');
+  const highConviction = allCalls.filter((c) => c.convictionScore >= 0.8);
+  if (highConviction.length > 0) {
+    const best = [...highConviction].sort((a, b) => b.convictionScore - a.convictionScore)[0];
+    const sym = best.tokenSymbol ? `$${best.tokenSymbol}` : best.tokenAddress.slice(0, 8);
+    return (
+      `HIGH CONVICTION — ${best.scannerName} scanner detected strong signal on ${sym} ` +
+      `(${Math.round(best.convictionScore * 100)}% conviction). ` +
+      `${best.reasoning?.[0] ?? 'Technical indicators aligned.'} ` +
+      `${best.entryPrice ? `Entry at $${best.entryPrice.toFixed(6)}. ` : ''}` +
+      `Waiting for whale wallet confirmation.`
+    );
+  }
+
   const now = Date.now();
 
   // ── Scenario 1: Multiple high-trust agents at same token ──────────────────
@@ -90,8 +129,8 @@ function buildNarrative(
   const newStations = stations.filter((s) => s.isNew && s.detectedAt);
   if (newStations.length > 0 && events.length > 0) {
     const latestNewStation = newStations.sort((a, b) => {
-      const aMs = a.detectedAt ? timeSinceMs(a.detectedAt) : Infinity;
-      const bMs = b.detectedAt ? timeSinceMs(b.detectedAt) : Infinity;
+      const aMs = a.detectedAt ? Date.now() - a.detectedAt.getTime() : Infinity;
+      const bMs = b.detectedAt ? Date.now() - b.detectedAt.getTime() : Infinity;
       return aMs - bMs;
     })[0];
 
@@ -271,7 +310,7 @@ function useTypewriter(text: string, speed = 18): { displayed: string; done: boo
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function IntelBrief({ agents, events, stations = [] }: IntelBriefProps) {
+export default function IntelBrief({ agents, events, stations = [], scannerCalls = {} }: IntelBriefProps) {
   const [narrative, setNarrative] = useState('');
   const [updateCount, setUpdateCount] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -282,12 +321,14 @@ export default function IntelBrief({ agents, events, stations = [] }: IntelBrief
   const agentsRef = useRef(agents);
   const eventsRef = useRef(events);
   const stationsRef = useRef(stations);
+  const scannerCallsRef = useRef(scannerCalls);
   agentsRef.current = agents;
   eventsRef.current = events;
   stationsRef.current = stations;
+  scannerCallsRef.current = scannerCalls;
 
   const generate = useCallback(() => {
-    const text = buildNarrative(agentsRef.current, eventsRef.current, stationsRef.current);
+    const text = buildNarrative(agentsRef.current, eventsRef.current, stationsRef.current, scannerCallsRef.current);
     setNarrative(text);
     setLastUpdated(new Date());
     setUpdateCount((n) => n + 1);
@@ -305,6 +346,7 @@ export default function IntelBrief({ agents, events, stations = [] }: IntelBrief
     if (
       narrative.includes('ALPHA SIGNAL') ||
       narrative.includes('HIGH CONVICTION') ||
+      narrative.includes('SCANNER CONVERGENCE') ||
       narrative.includes('consensus is forming') ||
       narrative.includes('ACCUMULATION DETECTED')
     ) {

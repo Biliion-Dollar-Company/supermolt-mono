@@ -4,8 +4,8 @@ import type {
   Text as PixiText,
   Sprite as PixiSprite,
 } from 'pixi.js';
-import type { Chain, TokenDef, TokenStation, TokenMetrics, AgentState, Conversation } from '../types';
-import { STATION_POSITIONS } from '../constants';
+import type { Chain, TokenDef, TokenStation, TokenMetrics, AgentState, Conversation, ScannerCallData, ScannerCallsMap } from '../types';
+import { STATION_POSITIONS, SCANNER_COLORS, MONO_FONT } from '../constants';
 import { fmtMinsAgo, fmtCompact, clamp } from '../helpers';
 
 // Chain badge colors
@@ -25,17 +25,17 @@ interface PixiModules {
 }
 
 // ── Collapsed card ───────────────────────────────────────────────────────────
-const C_SIZE = 52;
+const C_SIZE = 60;
 const C_HALF = C_SIZE / 2;
-const C_IMG  = 28;
+const C_IMG  = 48;  // BIGGER: was 36
 const C_PAD  = 5;
 
 // ── Expanded card ────────────────────────────────────────────────────────────
-const E_BW   = 88;
-const E_BH   = 34;
-const E_PAD  = 7;
-const E_IMG  = 26;
-const E_METRICS_W = 48;
+const E_BW   = 100;
+const E_BH   = 42;
+const E_PAD  = 8;
+const E_IMG  = 36;  // BIGGER: was 32
+const E_METRICS_W = 52;
 
 // ── Animation ────────────────────────────────────────────────────────────────
 const EXPAND_SPEED = 0.006;  // progress per ms (~170ms full transition)
@@ -96,6 +96,8 @@ export class StationManager {
   stations: TokenStation[] = [];
   private W: () => number;
   private H: () => number;
+  /** Texture cache: URL → PixiJS Texture (avoids duplicate image loads per station) */
+  private textureCache: Map<string, any> = new Map();
 
   constructor(
     pixi: PixiModules,
@@ -143,39 +145,37 @@ export class StationManager {
       const borderAlpha = def.isOld ? 0.3 : def.isNew ? 1.0 : 0.7;
       const lineW = def.isNew ? 1.8 : 1.2;
 
-      // ── Glow ───────────────────────────────────────────────────────────────
+      // ── Glow (around image only, not old container) ───────────────────────
       const glowColor = def.isNew ? 0xffcc00 : 0xe8b45e;
-      const glowAlpha = def.isNew ? 0.18 : def.isOld ? 0.02 : 0.05;
+      const glowAlpha = def.isNew ? 0.22 : def.isOld ? 0.03 : 0.08;  // Slightly stronger since smaller
       const glow = new Graphics();
-      glow.rect(-C_HALF - 6, -C_HALF - 6, C_SIZE + 12, C_SIZE + 12);
+      const glowSize = C_IMG + 10;  // Just around the image
+      glow.rect(-glowSize / 2, -glowSize / 2, glowSize, glowSize);
       glow.fill({ color: glowColor, alpha: glowAlpha });
 
       // ═════════════════════════════════════════════════════════════════════════
-      // COLLAPSED STATE — small square: image centered + ticker below
+      // COLLAPSED STATE — floating image with ticker below (NO CONTAINER)
       // ═════════════════════════════════════════════════════════════════════════
       const collapsedGroup = new Container();
 
-      const cBox = new Graphics();
-      cBox.rect(-C_HALF, -C_HALF, C_SIZE, C_SIZE);
-      cBox.fill({ color: 0x0a0a0a, alpha: 0.92 });
-
-      const cBorder = new Graphics();
-      drawFancyBorder(cBorder, -C_HALF, -C_HALF, C_SIZE, C_SIZE, 10, 4, 3, brandColor, borderAlpha, lineW);
+      // REMOVED: cBox (background)
+      // REMOVED: cBorder (fancy border)
 
       const cImgX = -C_IMG / 2;
-      const cImgY = -C_HALF + C_PAD;
+      const cImgY = -C_IMG / 2;  // Center the image vertically now
       const cImgPlaceholder = new Graphics();
       cImgPlaceholder.rect(cImgX, cImgY, C_IMG, C_IMG);
-      cImgPlaceholder.fill({ color: 0x141414, alpha: 0.8 });
-      cImgPlaceholder.setStrokeStyle({ width: 0.5, color: brandColor, alpha: 0.2 });
+      cImgPlaceholder.fill({ color: 0x141414, alpha: 0.6 });
+      // Subtle border glow
+      cImgPlaceholder.setStrokeStyle({ width: 1, color: brandColor, alpha: borderAlpha * 0.5 });
       cImgPlaceholder.rect(cImgX, cImgY, C_IMG, C_IMG);
       cImgPlaceholder.stroke();
 
       const cTicker = new Text({
         text: def.ticker,
         style: new TextStyle({
-          fontFamily: 'JetBrains Mono, monospace',
-          fontSize: 8,
+          fontFamily: MONO_FONT,
+          fontSize: 9,  // Slightly bigger since no container
           fontWeight: '800',
           fill: def.isNew ? 0xffcc00 : def.isOld ? 0x888888 : 0xe8b45e,
           letterSpacing: 0.5,
@@ -183,39 +183,55 @@ export class StationManager {
       });
       cTicker.anchor.set(0.5, 0);
       cTicker.x = 0;
-      cTicker.y = cImgY + C_IMG + 3;
+      cTicker.y = cImgY + C_IMG + 4;  // Position below image
+
+      // Token name below ticker (truncated, grey)
+      const shortCollapsedName = def.name.length > 10 ? def.name.slice(0, 9) + '..' : def.name;
+      const cName = new Text({
+        text: shortCollapsedName,
+        style: new TextStyle({
+          fontFamily: MONO_FONT,
+          fontSize: 7,
+          fill: 0x666666,
+        }),
+      });
+      cName.anchor.set(0.5, 0);
+      cName.x = 0;
+      cName.y = cImgY + C_IMG + 15;
 
       if (def.isNew) {
         const cNewBg = new Graphics();
-        cNewBg.rect(C_HALF - 18, -C_HALF + 1, 18, 10);
+        cNewBg.rect(cImgX + C_IMG - 22, cImgY - 12, 22, 11);  // Position above image
         cNewBg.fill({ color: 0xffcc00 });
         const cNewText = new Text({
           text: 'NEW',
-          style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '900', fill: 0x000000 }),
+          style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fontWeight: '900', fill: 0x000000 }),
         });
         cNewText.anchor.set(1, 0);
-        cNewText.x = C_HALF - 2;
-        cNewText.y = -C_HALF + 2;
+        cNewText.x = cImgX + C_IMG - 2;
+        cNewText.y = cImgY - 11;
         collapsedGroup.addChild(cNewBg, cNewText);
       }
 
-      // ── Chain badge (collapsed) ──────────────────────────────────────────────
+      // ── Chain badge (collapsed) — OVERLAY ON IMAGE (top-right corner)
       const chainColor = CHAIN_COLORS[def.chain] ?? 0x9945ff;
       const cChainBadge = new Graphics();
-      cChainBadge.circle(-C_HALF + 6, C_HALF - 6, 5);
+      const cBadgeX = cImgX + C_IMG - 7;  // Top-right of image
+      const cBadgeY = cImgY + 7;
+      cChainBadge.circle(cBadgeX, cBadgeY, 6);  // Slightly bigger (was 5)
       cChainBadge.fill({ color: chainColor });
-      cChainBadge.setStrokeStyle({ width: 1, color: 0x000000, alpha: 0.6 });
-      cChainBadge.circle(-C_HALF + 6, C_HALF - 6, 5);
+      cChainBadge.setStrokeStyle({ width: 1.2, color: 0x000000, alpha: 0.8 });
+      cChainBadge.circle(cBadgeX, cBadgeY, 6);
       cChainBadge.stroke();
       const cChainLabel = new Text({
-        text: def.chain === 'SOL' ? 'S' : def.chain === 'BASE' ? 'B' : 'B',
-        style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '900', fill: 0xffffff }),
+        text: def.chain,
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fontWeight: '900', fill: 0xffffff }),
       });
       cChainLabel.anchor.set(0.5, 0.5);
-      cChainLabel.x = -C_HALF + 6;
-      cChainLabel.y = C_HALF - 6;
+      cChainLabel.x = cBadgeX;
+      cChainLabel.y = cBadgeY;
 
-      collapsedGroup.addChild(cBox, cBorder, cImgPlaceholder, cTicker, cChainBadge, cChainLabel);
+      collapsedGroup.addChild(cImgPlaceholder, cTicker, cName, cChainBadge, cChainLabel);  // REMOVED: cBox, cBorder
 
       // ═════════════════════════════════════════════════════════════════════════
       // EXPANDED STATE — full panel that slides out
@@ -254,7 +270,7 @@ export class StationManager {
 
       const eTickerText = new Text({
         text: def.ticker,
-        style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: '800', fill: def.isNew ? 0xffcc00 : def.isOld ? 0x888888 : 0xe8b45e, letterSpacing: 1 }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 10, fontWeight: '800', fill: def.isNew ? 0xffcc00 : def.isOld ? 0x888888 : 0xe8b45e, letterSpacing: 1 }),
       });
       eTickerText.x = eTextX;
       eTickerText.y = eImgY + 2;
@@ -262,37 +278,37 @@ export class StationManager {
       const shortName = def.name.length > 12 ? def.name.slice(0, 11) + '..' : def.name;
       const eNameText = new Text({
         text: shortName,
-        style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 7, fill: def.isOld ? 0x555555 : 0x999999 }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 7, fill: def.isOld ? 0x555555 : 0x999999 }),
       });
       eNameText.x = eTextX;
       eNameText.y = eImgY + 15;
 
       const eTimeText = new Text({
         text: fmtMinsAgo(def.detectedAt),
-        style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 6, fill: def.isNew ? 0xffcc00 : def.isOld ? 0x444444 : 0x555555 }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fill: def.isNew ? 0xffcc00 : def.isOld ? 0x444444 : 0x555555 }),
       });
       eTimeText.x = leftX;
       eTimeText.y = E_BH - E_PAD - 8;
 
       // Right: metrics
       const mX = divX + 8;
-      const labelStyle = new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fill: 0x444444, letterSpacing: 0.5 });
+      const labelStyle = new TextStyle({ fontFamily: MONO_FONT, fontSize: 5, fill: 0x444444, letterSpacing: 0.5 });
 
       const mcapLabel = new Text({ text: 'MCAP', style: labelStyle });
       mcapLabel.x = mX; mcapLabel.y = -E_BH + E_PAD;
 
       const metricPriceText = new Text({
         text: '—',
-        style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 8, fontWeight: '800', fill: 0xffffff }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 8, fontWeight: '800', fill: 0xffffff }),
       });
       metricPriceText.x = mX; metricPriceText.y = -E_BH + E_PAD + 8;
 
-      const holdersLabel = new Text({ text: 'HOLDERS', style: labelStyle });
+      const holdersLabel = new Text({ text: 'VOL 24H', style: labelStyle });
       holdersLabel.x = mX; holdersLabel.y = -E_BH + E_PAD + 26;
 
       const metricHoldersText = new Text({
         text: '—',
-        style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 8, fontWeight: '800', fill: 0xe8b45e }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 8, fontWeight: '800', fill: 0xe8b45e }),
       });
       metricHoldersText.x = mX; metricHoldersText.y = -E_BH + E_PAD + 34;
 
@@ -302,27 +318,29 @@ export class StationManager {
         eNewBg.fill({ color: 0xffcc00 });
         const eNewText = new Text({
           text: 'NEW',
-          style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 6, fontWeight: '900', fill: 0x000000 }),
+          style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fontWeight: '900', fill: 0x000000 }),
         });
         eNewText.anchor.set(1, 0);
         eNewText.x = E_BW - E_PAD; eNewText.y = -E_BH + 4;
         expandedGroup.addChild(eNewBg, eNewText);
       }
 
-      // ── Chain badge (expanded) ───────────────────────────────────────────────
+      // ── Chain badge (expanded) — OVERLAY ON IMAGE (top-right corner)
       const eChainBadge = new Graphics();
-      eChainBadge.circle(-E_BW + 8, E_BH - 8, 6);
+      const eBadgeX = eImgX + E_IMG - 8;  // Top-right of image
+      const eBadgeY = eImgY + 8;
+      eChainBadge.circle(eBadgeX, eBadgeY, 7);  // Slightly bigger
       eChainBadge.fill({ color: chainColor });
-      eChainBadge.setStrokeStyle({ width: 1, color: 0x000000, alpha: 0.6 });
-      eChainBadge.circle(-E_BW + 8, E_BH - 8, 6);
+      eChainBadge.setStrokeStyle({ width: 1.2, color: 0x000000, alpha: 0.8 });
+      eChainBadge.circle(eBadgeX, eBadgeY, 7);
       eChainBadge.stroke();
       const eChainText = new Text({
         text: def.chain,
-        style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '900', fill: 0xffffff }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 6, fontWeight: '900', fill: 0xffffff }),
       });
       eChainText.anchor.set(0.5, 0.5);
-      eChainText.x = -E_BW + 8;
-      eChainText.y = E_BH - 8;
+      eChainText.x = eBadgeX;
+      eChainText.y = eBadgeY;
 
       expandedGroup.addChild(
         eBox, eBorder, eDivider, eImgPlaceholder,
@@ -335,18 +353,25 @@ export class StationManager {
       // Shared
       // ═════════════════════════════════════════════════════════════════════════
       const dot = new Graphics();
-      dot.rect(-2, C_HALF + 4, 4, 4);
+      const dotY = C_IMG / 2 + 4;  // Position below image (no container anymore)
+      dot.rect(-2, dotY, 4, 4);
       dot.fill({ color: def.isNew ? 0xffcc00 : 0xffaa00 });
 
       const coordinationRing = new Graphics();
       coordinationRing.visible = false;
 
-      const chatIcon = new Text({ text: '', style: new TextStyle({ fontSize: 12 }) });
+      const chatIcon = new Text({ text: '💬', style: new TextStyle({ fontSize: 12 }) });
       chatIcon.anchor.set(0.5, 1);
-      chatIcon.x = C_HALF - 4; chatIcon.y = -C_HALF + 2;
+      chatIcon.x = C_IMG / 2 - 4;  // Top-right of image
+      chatIcon.y = -C_IMG / 2 + 2;
       chatIcon.visible = false;
 
-      container.addChild(glow, collapsedGroup, expandedGroup, dot, coordinationRing, chatIcon);
+      // Scanner dots container (positioned below collapsed image, left side)
+      const scannerDotsContainer = new Container();
+      scannerDotsContainer.y = -C_IMG / 2 - 10;
+      scannerDotsContainer.x = -C_IMG / 2;
+
+      container.addChild(glow, collapsedGroup, expandedGroup, dot, coordinationRing, chatIcon, scannerDotsContainer);
       this.stationsLayer.addChild(container);
 
       // Click to toggle
@@ -366,12 +391,12 @@ export class StationManager {
         isNew: def.isNew, isOld: def.isOld,
         container,
         priceText: eNameText,
-        dot, box: cBox,
+        dot, box: cImgPlaceholder,  // Use placeholder as "box" reference
         glowGraphics: glow,
         timeText: eTimeText,
         coordinationRing, chatIcon,
         imageSprite: null,
-        collapsedGroup, collapsedBox: cBox, collapsedBorder: cBorder,
+        collapsedGroup, collapsedBox: cImgPlaceholder, collapsedBorder: new (this.pixi.Graphics)(),  // Dummy border
         expandedGroup, expandedBox: eBox, expandedBorder: eBorder,
         metricPriceText, metricHoldersText,
         metrics: null,
@@ -380,6 +405,8 @@ export class StationManager {
         expandTarget: 0,
         visitCount: 0,
         scaleTarget: 1.0, scaleCurrent: 1.0,
+        scannerDotsContainer,
+        scannerCalls: [],
       };
 
       this.stations.push(station);
@@ -451,17 +478,20 @@ export class StationManager {
       st.expandedGroup.visible = st.expandProgress > 0.01;
 
       // ── Glow interpolation ─────────────────────────────────────────────────
-      // Smoothly grow glow from collapsed to expanded size
+      // Smoothly grow glow from collapsed image to expanded size
       st.glowGraphics.clear();
-      const gHW = C_HALF + 6 + t * (E_BW + 6 - C_HALF - 6);  // half-width
-      const gHH = C_HALF + 6 + t * (E_BH + 6 - C_HALF - 6);  // half-height
+      const collapsedGlowHalf = (C_IMG + 10) / 2;  // Half of collapsed glow size
+      const gHW = collapsedGlowHalf + t * (E_BW + 6 - collapsedGlowHalf);  // half-width
+      const gHH = collapsedGlowHalf + t * (E_BH + 6 - collapsedGlowHalf);  // half-height
       const glowColor = st.isNew ? 0xffcc00 : 0xe8b45e;
-      const glowAlpha = (st.isNew ? 0.18 : st.isOld ? 0.02 : 0.05) + t * 0.06;
+      const glowAlpha = (st.isNew ? 0.22 : st.isOld ? 0.03 : 0.08) + t * 0.06;
       st.glowGraphics.rect(-gHW, -gHH, gHW * 2, gHH * 2);
       st.glowGraphics.fill({ color: glowColor, alpha: glowAlpha });
 
       // ── Dot position ───────────────────────────────────────────────────────
-      const dotY = C_HALF + 4 + t * (E_BH + 4 - C_HALF - 4);
+      const collapsedDotY = C_IMG / 2 + 4;
+      const expandedDotY = E_BH + 4;
+      const dotY = collapsedDotY + t * (expandedDotY - collapsedDotY);
       st.dot.clear();
       st.dot.rect(-2, dotY, 4, 4);
       st.dot.fill({ color: st.isNew ? 0xffcc00 : 0xffaa00 });
@@ -506,7 +536,28 @@ export class StationManager {
     if (!st) return;
     st.metrics = metrics;
     st.metricPriceText.text = fmtCompact(metrics.marketCap);
-    st.metricHoldersText.text = metrics.holders > 0 ? metrics.holders.toLocaleString('en-US') : '—';
+    st.metricHoldersText.text = metrics.volume24h > 0 ? fmtCompact(metrics.volume24h) : '—';
+
+    // If image failed to load and GeckoTerminal provided a CDN URL, retry
+    if (!st.imageSprite && metrics.imageUrl) {
+      const cImgX = -C_IMG / 2;
+      const cImgY = -C_HALF + C_PAD;
+      const leftX = -E_BW + E_PAD;
+      this.loadTokenImage(st, metrics.imageUrl, cImgX, cImgY, C_IMG, st.collapsedGroup);
+      this.loadTokenImage(st, metrics.imageUrl, leftX, -E_BH + E_PAD, E_IMG, st.expandedGroup);
+    }
+  }
+
+  /**
+   * Rewrite IPFS URLs to a faster gateway. The default ipfs.io gateway
+   * is extremely unreliable (timeouts, HTML error pages, CORS issues).
+   */
+  private rewriteIpfsUrl(url: string): string {
+    // ipfs.io → Pinata public gateway (fast, CORS-safe, returns proper content-type)
+    if (url.includes('ipfs.io/ipfs/')) {
+      return url.replace('https://ipfs.io/ipfs/', 'https://gateway.pinata.cloud/ipfs/');
+    }
+    return url;
   }
 
   private async loadTokenImage(
@@ -515,9 +566,31 @@ export class StationManager {
     parent: PixiContainer,
   ) {
     try {
-      const { Assets, Sprite, Graphics } = this.pixi;
-      const texture = await Assets.load(url);
-      const sprite = new Sprite(texture);
+      const { Sprite, Graphics } = this.pixi;
+      const resolved = this.rewriteIpfsUrl(url);
+
+      // Check texture cache first (avoids duplicate network requests for collapsed + expanded)
+      let tex = this.textureCache.get(resolved);
+      if (!tex) {
+        // Load via HTML Image to avoid PixiJS null-texture crash
+        const imgEl = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('Image load failed'));
+          img.src = resolved;
+          // Timeout after 8s — IPFS can be slow
+          setTimeout(() => reject(new Error('Image load timeout')), 8000);
+        });
+
+        // Import Texture at runtime to create from the loaded HTMLImageElement
+        const { Texture } = await import('pixi.js');
+        tex = Texture.from(imgEl);
+        if (!tex || !tex.source) return; // safety: skip if still null
+        this.textureCache.set(resolved, tex);
+      }
+
+      const sprite = new Sprite(tex);
       sprite.x = imgX; sprite.y = imgY;
       sprite.width = size; sprite.height = size;
       const mask = new Graphics();
@@ -528,7 +601,7 @@ export class StationManager {
       parent.addChild(sprite);
       if (!station.imageSprite) station.imageSprite = sprite;
     } catch (err) {
-      console.warn(`[StationManager] Failed to load image for ${station.ticker}: ${url}`, err);
+      console.warn(`[StationManager] Image failed for ${station.ticker}: ${url}`, err instanceof Error ? err.message : err);
     }
   }
 
@@ -539,9 +612,18 @@ export class StationManager {
   updateGlowPulse(now: number) {
     const pulseAlpha = 0.10 + 0.08 * Math.sin(now / 400);
     this.stations.forEach((st) => {
-      if (st.isNew) st.glowGraphics.alpha = pulseAlpha * 2.5;
+      if (st.isNew) {
+        st.glowGraphics.alpha = pulseAlpha * 2.5;
+      } else if (st.scannerCalls.length > 0) {
+        // Scanner-active stations get a stronger, faster pulse
+        const scannerPulse = 0.15 + 0.12 * Math.sin(now / 300);
+        st.glowGraphics.alpha = scannerPulse * (1 + st.scannerCalls.length * 0.3);
+      }
     });
   }
+
+  /** Persistent Graphics for coordination lines (reused each frame to avoid GC churn) */
+  private coordLinesGraphics: PixiGraphics | null = null;
 
   updateCoordination(
     now: number, agentStates: AgentState[],
@@ -556,7 +638,12 @@ export class StationManager {
       }
     });
 
-    coordLinesLayer.removeChildren();
+    // Use a single persistent Graphics for all coordination lines
+    if (!this.coordLinesGraphics) {
+      this.coordLinesGraphics = new Graphics();
+      coordLinesLayer.addChild(this.coordLinesGraphics);
+    }
+    this.coordLinesGraphics.clear();
 
     this.stations.forEach((st, idx) => {
       const occupants = stationOccupants[idx] ?? [];
@@ -565,19 +652,18 @@ export class StationManager {
       if (hasCoordination) {
         const ringScale = 1.0 + 0.08 * Math.sin(now / 500);
         st.coordinationRing.clear();
-        const rW = (st.expanded ? 94 : 36) * ringScale;
-        const rH = (st.expanded ? 40 : 36) * ringScale;
+        const rW = (st.expanded ? 106 : C_IMG / 2 + 6) * ringScale;
+        const rH = (st.expanded ? 48 : C_IMG / 2 + 6) * ringScale;
         drawFancyBorder(st.coordinationRing, -rW, -rH, rW * 2, rH * 2, 14, 6, 4, 0xe8b45e, 0.5 + 0.3 * Math.sin(now / 300), 2.0);
         st.coordinationRing.visible = true;
         st.glowGraphics.alpha = 0.25 + 0.1 * Math.sin(now / 400);
 
+        const lineAlpha = 0.4 + 0.2 * Math.sin(now / 300);
         for (let a = 0; a < occupants.length - 1; a++) {
           for (let b = a + 1; b < occupants.length; b++) {
-            const line = new Graphics();
-            line.setStrokeStyle({ width: 1, color: 0xe8b45e, alpha: 0.4 + 0.2 * Math.sin(now / 300) });
-            drawDashedLine(line, occupants[a].container.x, occupants[a].container.y, occupants[b].container.x, occupants[b].container.y, 6, 4);
-            line.stroke();
-            coordLinesLayer.addChild(line);
+            this.coordLinesGraphics!.setStrokeStyle({ width: 1, color: 0xe8b45e, alpha: lineAlpha });
+            drawDashedLine(this.coordLinesGraphics!, occupants[a].container.x, occupants[a].container.y, occupants[b].container.x, occupants[b].container.y, 6, 4);
+            this.coordLinesGraphics!.stroke();
           }
         }
       } else {
@@ -603,6 +689,96 @@ export class StationManager {
 
   resetVisitCounts() {
     this.stations.forEach((st) => { st.visitCount = Math.max(0, st.visitCount - 1); });
+  }
+
+  /**
+   * Update scanner call overlays on stations.
+   * Renders colored dots for each scanner with an open call on that token.
+   */
+  updateScannerOverlays(callsMap: ScannerCallsMap) {
+    const { Graphics, Text, TextStyle } = this.pixi;
+
+    this.stations.forEach((st) => {
+      st.scannerDotsContainer.removeChildren();
+
+      const calls = st.mint ? (callsMap[st.mint] ?? []) : [];
+      st.scannerCalls = calls;
+
+      if (calls.length === 0) return;
+
+      // Render a small colored dot per scanner
+      calls.forEach((call, i) => {
+        const scannerKey = call.scannerName?.toLowerCase() ?? call.scannerId;
+        const color = SCANNER_COLORS[scannerKey] ?? 0xffffff;
+        const g = new Graphics();
+        g.circle(i * 10, 0, 3.5);
+        g.fill({ color, alpha: 0.9 });
+        // Glow
+        g.circle(i * 10, 0, 6);
+        g.fill({ color, alpha: 0.15 });
+        st.scannerDotsContainer.addChild(g);
+
+        // Conviction mini-label for first call
+        if (i === 0) {
+          const convLabel = new Text({
+            text: `${Math.round(call.convictionScore * 100)}%`,
+            style: new TextStyle({
+              fontFamily: MONO_FONT,
+              fontSize: 6,
+              fontWeight: '700',
+              fill: color,
+            }),
+          });
+          convLabel.x = calls.length * 10 + 4;
+          convLabel.y = -4;
+          st.scannerDotsContainer.addChild(convLabel);
+        }
+      });
+    });
+  }
+
+  /**
+   * Draw faint horizontal guide lines connecting station rows for spatial orientation.
+   * Call once after buildStations and on resize.
+   */
+  drawGridLines(bgLayer: PixiContainer) {
+    const { Graphics } = this.pixi;
+    // Remove previous grid lines if any (tagged child)
+    const existing = (bgLayer as unknown as { _gridLines?: PixiGraphics })._gridLines;
+    if (existing) { bgLayer.removeChild(existing); existing.destroy(); }
+
+    if (this.stations.length === 0) return;
+
+    const g = new Graphics();
+    (bgLayer as unknown as { _gridLines: PixiGraphics })._gridLines = g;
+
+    // Group stations into rows by approximate Y position (within 15% of screen height)
+    const rows: { y: number; minX: number; maxX: number }[] = [];
+    const threshold = this.H() * 0.15;
+
+    this.stations.forEach((st) => {
+      const sy = st.container.y;
+      const sx = st.container.x;
+      const row = rows.find((r) => Math.abs(r.y - sy) < threshold);
+      if (row) {
+        row.y = (row.y + sy) / 2; // average Y
+        row.minX = Math.min(row.minX, sx);
+        row.maxX = Math.max(row.maxX, sx);
+      } else {
+        rows.push({ y: sy, minX: sx, maxX: sx });
+      }
+    });
+
+    // Draw horizontal lines spanning each row
+    g.setStrokeStyle({ width: 0.5, color: 0xe8b45e, alpha: 0.06 });
+    rows.forEach((row) => {
+      const pad = 40;
+      g.moveTo(row.minX - pad, row.y);
+      g.lineTo(row.maxX + pad, row.y);
+    });
+    g.stroke();
+
+    bgLayer.addChild(g);
   }
 
   handleResize() {

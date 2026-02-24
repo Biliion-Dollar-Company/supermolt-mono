@@ -43,7 +43,7 @@ export class PopupManager {
     stationX: number,
     stationY: number,
     txt: string,
-    _color: number,
+    color: number,
     action?: string,
   ) {
     const { Container, Graphics, Text, TextStyle } = this.pixi;
@@ -51,10 +51,11 @@ export class PopupManager {
 
     const icon = action ? (ACTION_ICONS[action] ?? '\u25C6') : '\u25C6';
     const short = txt.length > 20 ? txt.slice(0, 19) + '..' : txt;
+    const iconColor = color || BRAND;
 
     const iconT = new Text({
       text: icon,
-      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '900', fill: BRAND }),
+      style: new TextStyle({ fontFamily: 'JetBrains Mono, monospace', fontSize: 5, fontWeight: '900', fill: iconColor }),
     });
     iconT.anchor.set(0.5, 0.5);
 
@@ -75,7 +76,7 @@ export class PopupManager {
     const bg = new Graphics();
     bg.rect(-w / 2, -h / 2, w, h);
     bg.fill({ color: 0x0a0a0a, alpha: 0.88 });
-    bg.setStrokeStyle({ width: 0.5, color: BRAND, alpha: 0.3 });
+    bg.setStrokeStyle({ width: 0.5, color: iconColor, alpha: 0.3 });
     bg.rect(-w / 2, -h / 2, w, h);
     bg.stroke();
 

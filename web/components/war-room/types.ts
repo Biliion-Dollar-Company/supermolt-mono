@@ -23,8 +23,43 @@ export interface AgentData {
 export interface FeedEvent {
   timestamp: string;
   agentName: string;
-  action: 'BUY' | 'SELL' | 'ANALYZING';
+  action: 'BUY' | 'SELL' | 'ANALYZING' | 'SCANNER_CALL';
   token: string;
+  /** Extra detail for scanner calls */
+  detail?: string;
+}
+
+/** Lightweight station info passed to IntelBrief and other non-Pixi consumers */
+export interface StationInfo {
+  ticker: string;
+  name: string;
+  mint?: string;
+  chain: Chain;
+  detectedAt?: Date;
+  isNew?: boolean;
+  agentCount?: number;
+}
+
+// ─── Scanner Call types (mirrors backend ScannerCallDto) ─────────────────────
+
+export interface ScannerCallData {
+  id: string;
+  scannerId: string;
+  scannerName: string;
+  tokenAddress: string;
+  tokenSymbol: string | null;
+  tokenName: string | null;
+  convictionScore: number;
+  reasoning: string[];
+  entryPrice: number | null;
+  currentPrice: number | null;
+  pnlPercent: number | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface ScannerCallsMap {
+  [tokenAddress: string]: ScannerCallData[];
 }
 
 export interface HoveredAgentInfo {
@@ -127,6 +162,9 @@ export interface TokenStation {
   visitCount: number;
   scaleTarget: number;
   scaleCurrent: number;
+  // Scanner overlay
+  scannerDotsContainer: PixiContainer;
+  scannerCalls: ScannerCallData[];
 }
 
 export interface AgentState {
@@ -161,7 +199,8 @@ export interface AgentState {
 
 export interface TokenMetrics {
   marketCap: number;
-  holders: number;
+  volume24h: number;
+  imageUrl?: string;  // CDN image from GeckoTerminal (fallback for failed IPFS)
 }
 
 export interface Popup {

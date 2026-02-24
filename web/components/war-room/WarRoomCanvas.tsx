@@ -12,6 +12,9 @@ import type {
   DevPrintToken,
   DevPrintTransaction,
   Conversation,
+  StationInfo,
+  ScannerCallData,
+  ScannerCallsMap,
 } from './types';
 import { STATION_POSITIONS } from './constants';
 import { StationManager } from './systems/station-manager';
@@ -32,9 +35,12 @@ interface Props {
   onAgentHover?: (info: HoveredAgentInfo | null) => void;
   onLiveTx?: (notif: LiveTxNotification) => void;
   onLoadingStage?: (stage: LoadingStage) => void;
+  onStationsReady?: (stations: StationInfo[]) => void;
+  /** Scanner calls keyed by token address, provided by parent */
+  scannerCalls?: ScannerCallsMap;
 }
 
-export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx, onLoadingStage }: Props) {
+export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx, onLoadingStage, onStationsReady, scannerCalls }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<PixiApplication | null>(null);
   const onEventRef = useRef(onEvent);
@@ -46,16 +52,27 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
   const seenTxIdsRef = useRef<Set<string>>(new Set());
   const pendingTxsRef = useRef<DevPrintTransaction[]>([]);
   const [liveTxNotifs, setLiveTxNotifs] = useState<LiveTxNotification[]>([]);
+  const [showPanHint, setShowPanHint] = useState(true);
 
   const onLoadingStageRef = useRef(onLoadingStage);
+  const onStationsReadyRef = useRef(onStationsReady);
+  const scannerCallsRef = useRef<ScannerCallsMap>(scannerCalls ?? {});
 
   // Keep refs in sync
   const stationMgrRef = useRef<StationManager | null>(null);
+
+  // Auto-dismiss pan hint
+  useEffect(() => {
+    const t = setTimeout(() => setShowPanHint(false), 6000);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => { onEventRef.current = onEvent; }, [onEvent]);
   useEffect(() => { onHoverRef.current = onAgentHover; }, [onAgentHover]);
   useEffect(() => { onLiveTxRef.current = onLiveTx; }, [onLiveTx]);
   useEffect(() => { onLoadingStageRef.current = onLoadingStage; }, [onLoadingStage]);
+  useEffect(() => { onStationsReadyRef.current = onStationsReady; }, [onStationsReady]);
+  useEffect(() => { scannerCallsRef.current = scannerCalls ?? {}; }, [scannerCalls]);
   useEffect(() => { agentsRef.current = agents; }, [agents]);
 
   // ── Token polling ──────────────────────────────────────────────────────────
@@ -93,6 +110,15 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
       if (stationMgrRef.current) {
         stationMgrRef.current.buildStations(defs);
       }
+      // Emit lightweight station info to parent
+      onStationsReadyRef.current?.(defs.map((d) => ({
+        ticker: d.ticker,
+        name: d.name,
+        mint: d.mint,
+        chain: d.chain,
+        detectedAt: d.detectedAt,
+        isNew: d.isNew,
+      })));
     } catch {
       // keep existing data
     }
@@ -149,54 +175,60 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Token metrics polling (DexScreener — free, no API key) ───────────────
-  // OPTIMIZED: Parallel fetching with Promise.allSettled instead of sequential
+  // ── Token metrics polling (GeckoTerminal — free, no API key) ─────────────
+  // GeckoTerminal has excellent pump.fun coverage (DexScreener misses most of them)
   const fetchMetrics = useCallback(async () => {
     if (!stationMgrRef.current) return;
     const stations = stationMgrRef.current.stations;
     const mints = stations.map((s) => s.mint).filter(Boolean) as string[];
     if (mints.length === 0) return;
 
-    // Fetch all metrics in parallel (DexScreener allows this)
-    const fetchPromises = mints.map(async (mint) => {
+    // GeckoTerminal batch: up to 30 addresses per request
+    const batchSize = 30;
+    for (let i = 0; i < mints.length; i += batchSize) {
+      const batch = mints.slice(i, i + batchSize);
       try {
-        const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`);
-        if (!res.ok) return null;
+        const addresses = batch.join(',');
+        const res = await fetch(
+          `https://api.geckoterminal.com/api/v2/networks/solana/tokens/multi/${addresses}`,
+          { headers: { Accept: 'application/json' } },
+        );
+        if (!res.ok) continue;
+
         const json = await res.json() as {
-          pairs?: Array<{
-            marketCap?: number;
-            txns?: { h24?: { buys?: number; sells?: number } };
-          }>
+          data: Array<{
+            attributes: {
+              address: string;
+              fdv_usd: string | null;
+              price_usd: string | null;
+              volume_usd?: { h24: string };
+              image_url?: string | null;
+            };
+          }>;
         };
-        const pair = json.pairs?.[0];
-        if (!pair) return null;
 
-        // DexScreener doesn't provide holder count — use 24h unique txns as proxy
-        const holders = (pair.txns?.h24?.buys ?? 0) + (pair.txns?.h24?.sells ?? 0);
+        for (const token of json.data ?? []) {
+          const addr = token.attributes.address;
+          const fdv = parseFloat(token.attributes.fdv_usd || '0');
+          const volume = parseFloat(token.attributes.volume_usd?.h24 || '0');
+          const geckoImage = token.attributes.image_url || undefined;
 
-        return {
-          mint,
-          metrics: {
-            marketCap: pair.marketCap ?? 0,
-            holders,
-          } as TokenMetrics,
-        };
-      } catch {
-        return null;
-      }
-    });
-
-    const results = await Promise.allSettled(fetchPromises);
-
-    results.forEach((result) => {
-      if (result.status === 'fulfilled' && result.value) {
-        const { mint, metrics } = result.value;
-        const stIdx = stations.findIndex((s) => s.mint === mint);
-        if (stIdx !== -1 && stationMgrRef.current) {
-          stationMgrRef.current.updateStationMetrics(stIdx, metrics);
+          // FDV is the best metric for pump.fun tokens (market_cap_usd is often null)
+          if (fdv > 0) {
+            const stIdx = stations.findIndex((s) => s.mint === addr);
+            if (stIdx !== -1 && stationMgrRef.current) {
+              stationMgrRef.current.updateStationMetrics(stIdx, {
+                marketCap: fdv,
+                volume24h: Math.round(volume),
+                imageUrl: geckoImage, // CDN image fallback for failed IPFS loads
+              });
+            }
+          }
         }
+      } catch {
+        // GeckoTerminal down — metrics stay as dashes
       }
-    });
+    }
   }, []);
 
   // ── PixiJS initialization ──────────────────────────────────────────────────
@@ -223,9 +255,85 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
 
     const pixiModules = { Container, Graphics, Text, TextStyle, Assets, Sprite };
 
+    // ── Pan / Zoom world container ─────────────────────────────────────────
+    const worldContainer = new Container();
+    app.stage.addChild(worldContainer);
+
+    // Zoom / pan state
+    let zoomLevel = 1.0;
+    const MIN_ZOOM = 0.5;
+    const MAX_ZOOM = 2.5;
+    let panX = 0;
+    let panY = 0;
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragPanStartX = 0;
+    let dragPanStartY = 0;
+
+    const applyTransform = () => {
+      worldContainer.scale.set(zoomLevel);
+      worldContainer.x = panX;
+      worldContainer.y = panY;
+    };
+
+    // Mouse wheel zoom (centered on cursor)
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.08 : 0.93;
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomLevel * zoomFactor));
+      // Zoom toward cursor position
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const scale = newZoom / zoomLevel;
+        panX = mx - scale * (mx - panX);
+        panY = my - scale * (my - panY);
+      }
+      zoomLevel = newZoom;
+      applyTransform();
+    };
+
+    // Drag to pan
+    const onPointerDown = (e: PointerEvent) => {
+      // Only pan with middle-button or when no interactive element is hit
+      if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragPanStartX = panX;
+        dragPanStartY = panY;
+        (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
+      }
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!isDragging) return;
+      panX = dragPanStartX + (e.clientX - dragStartX);
+      panY = dragPanStartY + (e.clientY - dragStartY);
+      applyTransform();
+    };
+    const onPointerUp = () => { isDragging = false; };
+
+    // Double-click to reset view
+    const onDblClick = () => {
+      zoomLevel = 1.0;
+      panX = 0;
+      panY = 0;
+      applyTransform();
+    };
+
+    const canvasEl = app.canvas as HTMLCanvasElement;
+    canvasEl.addEventListener('wheel', onWheel, { passive: false });
+    canvasEl.addEventListener('pointerdown', onPointerDown);
+    canvasEl.addEventListener('pointermove', onPointerMove);
+    canvasEl.addEventListener('pointerup', onPointerUp);
+    canvasEl.addEventListener('pointercancel', onPointerUp);
+    canvasEl.addEventListener('dblclick', onDblClick);
+
     // ── Background dot-grid ──────────────────────────────────────────────────
     const bgLayer = new Container();
-    app.stage.addChild(bgLayer);
+    worldContainer.addChild(bgLayer);
 
     const drawBg = () => {
       bgLayer.removeChildren();
@@ -241,26 +349,27 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
     };
     drawBg();
 
-    // ── Headline ticker ──────────────────────────────────────────────────────
+    // ── Headline ticker (above world — doesn't pan/zoom) ──────────────────
     const headlineTicker = new HeadlineTicker(pixiModules, app.stage, W);
 
     // ── Stations ─────────────────────────────────────────────────────────────
     const stationsLayer = new Container();
     stationsLayer.eventMode = 'static';
-    app.stage.addChild(stationsLayer);
+    worldContainer.addChild(stationsLayer);
     const coordinationLayer = new Container();
     coordinationLayer.eventMode = 'none';
-    app.stage.addChild(coordinationLayer);
+    worldContainer.addChild(coordinationLayer);
 
     const stationMgr = new StationManager(pixiModules, stationsLayer, coordinationLayer, W, H);
     stationMgrRef.current = stationMgr;
     // Fetch real tokens BEFORE building stations so we don't show placeholders
     await fetchTokens();
     stationMgr.buildStations(tokenDefsRef.current);
+    stationMgr.drawGridLines(bgLayer);
     onLoadingStageRef.current?.('tokens');
 
     // ── Bloom layer (additive blend — behind agents, above stations) ─────────
-    const bloomLayer = new BloomLayer(pixiModules, app.stage);
+    const bloomLayer = new BloomLayer(pixiModules, worldContainer);
     bloomLayer.buildStationGlows(stationMgr.stations);
     bloomLayer.getContainer().eventMode = 'none';
 
@@ -270,10 +379,11 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
     // ── Agents ───────────────────────────────────────────────────────────────
     const agentsLayer = new Container();
     agentsLayer.eventMode = 'none';
-    app.stage.addChild(agentsLayer);
+    worldContainer.addChild(agentsLayer);
 
     const agentMgr = new AgentManager(pixiModules, agentsLayer);
     await agentMgr.createAgentStates(agentsRef.current, stationMgr.stations);
+    bloomLayer.buildAgentGlows(agentMgr.agentStates);
     onLoadingStageRef.current?.('agents');
 
     // ── Mouse hover ──────────────────────────────────────────────────────────
@@ -282,13 +392,18 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
     app.stage.hitArea = app.screen;
 
     app.stage.on('mousemove', (event) => {
-      const { x, y } = event.global;
+      if (isDragging) return;
+      // Convert global coords to world coords (account for pan/zoom)
+      const gx = event.global.x;
+      const gy = event.global.y;
+      const wx = (gx - panX) / zoomLevel;
+      const wy = (gy - panY) / zoomLevel;
       let found: (typeof agentMgr.agentStates)[number] | null = null;
 
       for (const ag of agentMgr.agentStates) {
-        const dx = ag.container.x - x;
-        const dy = ag.container.y - y;
-        if (Math.sqrt(dx * dx + dy * dy) < HOVER_RADIUS) {
+        const dx = ag.container.x - wx;
+        const dy = ag.container.y - wy;
+        if (Math.sqrt(dx * dx + dy * dy) < HOVER_RADIUS / zoomLevel) {
           found = ag;
           break;
         }
@@ -297,7 +412,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
       if (onHoverRef.current) {
         if (found) {
           const currentStation = stationMgr.stations[found.currentStationIdx]?.ticker ?? '';
-          onHoverRef.current({ agent: found.data, currentStation, x, y });
+          onHoverRef.current({ agent: found.data, currentStation, x: gx, y: gy });
         } else {
           onHoverRef.current(null);
         }
@@ -308,19 +423,19 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
       if (onHoverRef.current) onHoverRef.current(null);
     });
 
-    // ── Popups ───────────────────────────────────────────────────────────────
+    // ── Popups (in world space so they move with pan/zoom) ────────────────
     const popupLayer = new Container();
     popupLayer.eventMode = 'none';
-    app.stage.addChild(popupLayer);
+    worldContainer.addChild(popupLayer);
     const liveTxLayer = new Container();
     liveTxLayer.eventMode = 'none';
-    app.stage.addChild(liveTxLayer);
+    worldContainer.addChild(liveTxLayer);
     const popupMgr = new PopupManager(pixiModules, popupLayer, liveTxLayer);
 
     // ── Coordination lines ───────────────────────────────────────────────────
     const coordLinesLayer = new Container();
     coordLinesLayer.eventMode = 'none';
-    app.stage.addChild(coordLinesLayer);
+    worldContainer.addChild(coordLinesLayer);
 
     // ── Screen flash ─────────────────────────────────────────────────────────
     const screenFlash = new ScreenFlash(pixiModules, app.stage, W, H);
@@ -412,6 +527,8 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
         visitDecayMs = 0;
         stationMgr.resetVisitCounts();
         stationMgr.autoExpandMostActive();
+        // Update scanner indicators
+        stationMgr.updateScannerOverlays(scannerCallsRef.current);
       }
 
       // ── Station glow pulse ─────────────────────────────────────────────────
@@ -456,6 +573,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
     // ── Resize ───────────────────────────────────────────────────────────────
     const handleResize = () => {
       stationMgr.handleResize();
+      stationMgr.drawGridLines(bgLayer);
       bloomLayer.buildStationGlows(stationMgr.stations);
       drawBg();
     };
@@ -463,45 +581,57 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      canvasEl.removeEventListener('wheel', onWheel);
+      canvasEl.removeEventListener('pointerdown', onPointerDown);
+      canvasEl.removeEventListener('pointermove', onPointerMove);
+      canvasEl.removeEventListener('pointerup', onPointerUp);
+      canvasEl.removeEventListener('pointercancel', onPointerUp);
+      canvasEl.removeEventListener('dblclick', onDblClick);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start polling (OPTIMIZED: staggered start to reduce initial load spike)
+  // Note: first fetchTokens() happens inside initPixi (await-ed to build stations).
+  // This effect only handles the recurring poll — skip the redundant initial call.
+  const didInitialFetchRef = useRef(false);
   useEffect(() => {
-    // Tokens: immediate (needed for stations)
-    fetchTokens();
+    if (!didInitialFetchRef.current) {
+      didInitialFetchRef.current = true;
+    } else {
+      fetchTokens(); // Only on dep change (shouldn't happen with stable useCallback)
+    }
     const interval = setInterval(fetchTokens, 60_000);
     return () => clearInterval(interval);
   }, [fetchTokens]);
 
   useEffect(() => {
     // Conversations: start after 1s
+    let intervalId: ReturnType<typeof setInterval> | undefined;
     const initialDelay = setTimeout(() => {
       fetchConversations();
-      const interval = setInterval(fetchConversations, 30_000);
-      return () => clearInterval(interval);
+      intervalId = setInterval(fetchConversations, 30_000);
     }, 1000);
-    return () => clearTimeout(initialDelay);
+    return () => { clearTimeout(initialDelay); if (intervalId) clearInterval(intervalId); };
   }, [fetchConversations]);
 
   useEffect(() => {
     // Transactions: start after 2s
+    let intervalId: ReturnType<typeof setInterval> | undefined;
     const initialDelay = setTimeout(() => {
       fetchTransactions();
-      const interval = setInterval(fetchTransactions, 30_000);
-      return () => clearInterval(interval);
+      intervalId = setInterval(fetchTransactions, 30_000);
     }, 2000);
-    return () => clearTimeout(initialDelay);
+    return () => { clearTimeout(initialDelay); if (intervalId) clearInterval(intervalId); };
   }, [fetchTransactions]);
 
   // Metrics: first fetch after 5s (wait for stations + all initial data), then every 45s (less frequent)
   useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | undefined;
     const initialDelay = setTimeout(() => {
       fetchMetrics();
-      const interval = setInterval(fetchMetrics, 45_000);
-      return () => clearInterval(interval);
+      intervalId = setInterval(fetchMetrics, 45_000);
     }, 5000);
-    return () => clearTimeout(initialDelay);
+    return () => { clearTimeout(initialDelay); if (intervalId) clearInterval(intervalId); };
   }, [fetchMetrics]);
 
   useEffect(() => {
@@ -519,6 +649,26 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
   return (
     <div className="relative w-full h-full" style={{ background: '#000000' }}>
       <div ref={containerRef} className="w-full h-full" />
+
+      {/* Pan/zoom hint */}
+      {showPanHint && (
+        <div
+          className="absolute bottom-4 left-4 pointer-events-none"
+          style={{
+            zIndex: 40,
+            fontFamily: 'JetBrains Mono, monospace',
+            fontSize: '9px',
+            color: 'rgba(232,180,94,0.5)',
+            letterSpacing: '0.5px',
+            background: 'rgba(0,0,0,0.6)',
+            padding: '6px 10px',
+            border: '1px solid rgba(232,180,94,0.15)',
+            animation: 'fadeOut 1s ease-out 5s forwards',
+          }}
+        >
+          SCROLL TO ZOOM &middot; CTRL+DRAG TO PAN &middot; DOUBLE-CLICK TO RESET
+        </div>
+      )}
 
       {/* Live TX overlay notifications */}
       <div

@@ -28,7 +28,7 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
   const cardW = 260;
   const cardH = 200;
   const left = Math.min(x + 16, window.innerWidth - cardW - 16);
-  const top  = Math.min(y - 20, window.innerHeight - cardH - 16);
+  const top  = Math.max(16, Math.min(y - 20, window.innerHeight - cardH - 16));
 
   return (
     <div
@@ -182,6 +182,18 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
           />
         </div>
       </div>
+
+      {/* PnL / Avg Return */}
+      {agent.pnl != null && agent.pnl !== 0 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 }}>
+            Avg Return
+          </span>
+          <span style={{ color: agent.pnl >= 0 ? '#00ff41' : '#ff0033', fontSize: 10, fontWeight: '700' }}>
+            {agent.pnl >= 0 ? '+' : ''}{agent.pnl.toFixed(1)}%
+          </span>
+        </div>
+      )}
 
       {/* Best trade */}
       {agent.bestTradePct != null && (
