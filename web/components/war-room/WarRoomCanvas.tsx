@@ -275,16 +275,16 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
       applyTransform();
     };
 
-    // Drag to pan
+    // Drag to pan — left-click drag anywhere on the canvas
     const onPointerDown = (e: PointerEvent) => {
-      // Only pan with middle-button or when no interactive element is hit
-      if (e.button === 1 || (e.button === 0 && e.ctrlKey)) {
+      if (e.button === 0 || e.button === 1) {
         isDragging = true;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
         dragPanStartX = panX;
         dragPanStartY = panY;
         (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
+        canvasEl.style.cursor = 'grabbing';
       }
     };
     const onPointerMove = (e: PointerEvent) => {
@@ -293,7 +293,10 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
       panY = dragPanStartY + (e.clientY - dragStartY);
       applyTransform();
     };
-    const onPointerUp = () => { isDragging = false; };
+    const onPointerUp = () => {
+      isDragging = false;
+      canvasEl.style.cursor = 'grab';
+    };
 
     // Double-click to reset view
     const onDblClick = () => {
@@ -304,6 +307,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
     };
 
     const canvasEl = app.canvas as HTMLCanvasElement;
+    canvasEl.style.cursor = 'grab';
     canvasEl.addEventListener('wheel', onWheel, { passive: false });
     canvasEl.addEventListener('pointerdown', onPointerDown);
     canvasEl.addEventListener('pointermove', onPointerMove);
@@ -646,7 +650,7 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
             animation: 'fadeOut 1s ease-out 5s forwards',
           }}
         >
-          SCROLL TO ZOOM &middot; CTRL+DRAG TO PAN &middot; DOUBLE-CLICK TO RESET
+          SCROLL TO ZOOM &middot; CLICK+DRAG TO PAN &middot; DOUBLE-CLICK TO RESET
         </div>
       )}
 
