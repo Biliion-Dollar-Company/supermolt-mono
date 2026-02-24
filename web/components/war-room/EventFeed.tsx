@@ -19,7 +19,7 @@ const ACTION_COLORS: Record<FeedEvent['action'], string> = {
 const ACTION_LABELS: Record<FeedEvent['action'], string> = {
   BUY:          'BUY ',
   SELL:         'SELL',
-  ANALYZING:    'SCAN',
+  ANALYZING:    'WATCH',
   SCANNER_CALL: 'CALL',
 };
 

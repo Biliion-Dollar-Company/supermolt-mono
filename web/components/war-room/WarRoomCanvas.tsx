@@ -176,59 +176,75 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Token metrics polling (GeckoTerminal — free, no API key) ─────────────
-  // GeckoTerminal has excellent pump.fun coverage (DexScreener misses most of them)
+  // GeckoTerminal supports multiple networks: solana, base, bsc
   const fetchMetrics = useCallback(async () => {
     if (!stationMgrRef.current) return;
     const stations = stationMgrRef.current.stations;
-    const mints = stations.map((s) => s.mint).filter(Boolean) as string[];
-    if (mints.length === 0) return;
 
-    // GeckoTerminal batch: up to 30 addresses per request
-    const batchSize = 30;
-    for (let i = 0; i < mints.length; i += batchSize) {
-      const batch = mints.slice(i, i + batchSize);
-      try {
-        const addresses = batch.join(',');
-        const res = await fetch(
-          `https://api.geckoterminal.com/api/v2/networks/solana/tokens/multi/${addresses}`,
-          { headers: { Accept: 'application/json' } },
-        );
-        if (!res.ok) continue;
+    // Group station mints by chain for correct GeckoTerminal network
+    const chainToNetwork: Record<string, string> = {
+      SOL: 'solana',
+      BASE: 'base',
+      BSC: 'bsc',
+    };
 
-        const json = await res.json() as {
-          data: Array<{
-            attributes: {
-              address: string;
-              fdv_usd: string | null;
-              price_usd: string | null;
-              volume_usd?: { h24: string };
-              image_url?: string | null;
-            };
-          }>;
-        };
+    const byChain: Record<string, { mint: string; stIdx: number }[]> = {};
+    stations.forEach((s, idx) => {
+      if (!s.mint) return;
+      const chain = s.chain || 'SOL';
+      if (!byChain[chain]) byChain[chain] = [];
+      byChain[chain].push({ mint: s.mint, stIdx: idx });
+    });
 
-        for (const token of json.data ?? []) {
-          const addr = token.attributes.address;
-          const fdv = parseFloat(token.attributes.fdv_usd || '0');
-          const volume = parseFloat(token.attributes.volume_usd?.h24 || '0');
-          const geckoImage = token.attributes.image_url || undefined;
+    // Fetch each chain in parallel
+    const chainFetches = Object.entries(byChain).map(async ([chain, items]) => {
+      const network = chainToNetwork[chain] ?? 'solana';
+      const batchSize = 30;
 
-          // FDV is the best metric for pump.fun tokens (market_cap_usd is often null)
-          if (fdv > 0) {
-            const stIdx = stations.findIndex((s) => s.mint === addr);
-            if (stIdx !== -1 && stationMgrRef.current) {
-              stationMgrRef.current.updateStationMetrics(stIdx, {
+      for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        try {
+          const addresses = batch.map((b) => b.mint).join(',');
+          const res = await fetch(
+            `https://api.geckoterminal.com/api/v2/networks/${network}/tokens/multi/${addresses}`,
+            { headers: { Accept: 'application/json' } },
+          );
+          if (!res.ok) continue;
+
+          const json = await res.json() as {
+            data: Array<{
+              attributes: {
+                address: string;
+                fdv_usd: string | null;
+                price_usd: string | null;
+                volume_usd?: { h24: string };
+                image_url?: string | null;
+              };
+            }>;
+          };
+
+          for (const token of json.data ?? []) {
+            const addr = token.attributes.address;
+            const fdv = parseFloat(token.attributes.fdv_usd || '0');
+            const volume = parseFloat(token.attributes.volume_usd?.h24 || '0');
+            const geckoImage = token.attributes.image_url || undefined;
+
+            const item = batch.find((b) => b.mint.toLowerCase() === addr.toLowerCase());
+            if (item && stationMgrRef.current) {
+              stationMgrRef.current.updateStationMetrics(item.stIdx, {
                 marketCap: fdv,
                 volume24h: Math.round(volume),
-                imageUrl: geckoImage, // CDN image fallback for failed IPFS loads
+                imageUrl: geckoImage,
               });
             }
           }
+        } catch {
+          // GeckoTerminal down for this chain — metrics stay as dashes
         }
-      } catch {
-        // GeckoTerminal down — metrics stay as dashes
       }
-    }
+    });
+
+    await Promise.allSettled(chainFetches);
   }, []);
 
   // ── PixiJS initialization ──────────────────────────────────────────────────

@@ -594,7 +594,7 @@ export default function ArenaPage() {
                   fontSize: '9px',
                 }}
               >
-                {evt.action === 'SCANNER_CALL' ? 'CALL' : evt.action}
+                {evt.action === 'SCANNER_CALL' ? 'CALL' : evt.action === 'ANALYZING' ? 'WATCH' : evt.action}
               </span>
               <span style={{ color: '#E8B45E' }}>{evt.agentName}</span>
               <span style={{ color: 'rgba(255,255,255,0.5)' }}>{evt.token}</span>

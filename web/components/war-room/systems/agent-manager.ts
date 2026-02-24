@@ -286,11 +286,8 @@ export class AgentManager {
     const bubbleMsg = getBubbleText(ag.trustScore);
     const token = station.ticker;
 
-    let action: FeedEvent['action'];
-    if (ag.trustScore > 0.95) action = 'BUY';
-    else if (ag.trustScore < 0.7) action = 'ANALYZING';
-    else action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
-
+    // Agents are observing — show honest activity (ANALYZING), not fake BUY/SELL
+    const action: FeedEvent['action'] = 'ANALYZING';
     const aColor = ACTION_COLORS[action];
 
     ag.bubbleText.text = bubbleMsg;
@@ -302,7 +299,7 @@ export class AgentManager {
     ag.bubbleBg.clear();
     ag.bubbleBg.visible = false;
 
-    spawnPopup(station.container.x, station.container.y, `${ag.data.name} spotted ${token}`, aColor, action);
+    spawnPopup(station.container.x, station.container.y, `${ag.data.name} watching ${token}`, aColor, action);
 
     const ts = new Date().toLocaleTimeString('en-US', {
       hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit',
