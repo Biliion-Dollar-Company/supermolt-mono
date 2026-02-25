@@ -13,6 +13,7 @@ import { db } from './db';
 import { llmService } from '../services/llm.service';
 import { ConversationTrigger } from './conversation-triggers';
 import {
+  getAgentPersonality,
   getAgentPersonalityFromDB,
   buildAgentContext,
 } from '../services/agent-personalities';
@@ -43,34 +44,30 @@ export interface ConversationResult {
 
 // ── Agent Selection ──────────────────────────────────────
 
+// Available personality archetypes for conversation role-play
+const CONVERSATION_ARCHETYPES = [
+  'liquidity_sniper',
+  'narrative_researcher',
+  'degen_hunter',
+  'smart_money',
+  'whale_tracker',
+  'sentiment_analyst',
+  'contrarian',
+  'conservative',
+  'scalper',
+];
+
 /**
- * Select a diverse mix of agents for a conversation.
- * Picks 3-5 agents: mix of observers + trading agents with matching archetypes.
+ * Select agents for a conversation.
+ * Grabs real agents from the DB and assigns diverse archetypes for conversation variety.
  */
 export async function selectConversationAgents(
   count: number = 4,
 ): Promise<any[]> {
-  // Get observer agents
-  const observerAgents = await db.tradingAgent.findMany({
-    where: {
-      OR: [
-        { config: { path: ['role'], equals: 'observer' } },
-        { name: { in: ['Agent Alpha', 'Agent Beta', 'Agent Gamma', 'Agent Delta', 'Agent Epsilon'] } },
-      ],
-    },
-    take: 10,
-  });
-
-  // Get active trading agents (with trades in last 7 days)
+  // Try agents with trades first (more interesting context)
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const activeTradingAgents = await db.tradingAgent.findMany({
+  let agents = await db.tradingAgent.findMany({
     where: {
-      NOT: {
-        OR: [
-          { config: { path: ['role'], equals: 'observer' } },
-          { name: { in: ['Agent Alpha', 'Agent Beta', 'Agent Gamma', 'Agent Delta', 'Agent Epsilon'] } },
-        ],
-      },
       paperTrades: {
         some: { openedAt: { gte: sevenDaysAgo } },
       },
@@ -78,27 +75,31 @@ export async function selectConversationAgents(
     take: 20,
   });
 
-  // Mix: 2-3 observers + 1-2 trading agents
-  const shuffledObservers = [...observerAgents].sort(() => Math.random() - 0.5);
-  const shuffledTraders = [...activeTradingAgents].sort(() => Math.random() - 0.5);
-
-  const observerCount = Math.min(Math.ceil(count * 0.6), shuffledObservers.length);
-  const traderCount = Math.min(count - observerCount, shuffledTraders.length);
-
-  const selected = [
-    ...shuffledObservers.slice(0, observerCount),
-    ...shuffledTraders.slice(0, traderCount),
-  ];
-
-  // If still short, fill from whichever pool has more
-  if (selected.length < count) {
-    const remaining = [...shuffledObservers, ...shuffledTraders]
-      .filter(a => !selected.find(s => s.id === a.id))
-      .slice(0, count - selected.length);
-    selected.push(...remaining);
+  // Fallback: any agents at all
+  if (agents.length < count) {
+    const moreAgents = await db.tradingAgent.findMany({
+      where: {
+        id: { notIn: agents.map(a => a.id) },
+      },
+      take: count * 3,
+    });
+    agents = [...agents, ...moreAgents];
   }
 
-  return selected.slice(0, count);
+  // Shuffle and pick
+  const shuffled = [...agents].sort(() => Math.random() - 0.5).slice(0, count);
+
+  // Assign diverse archetypes so each agent has a distinct personality in the conversation
+  const usedArchetypes = [...CONVERSATION_ARCHETYPES].sort(() => Math.random() - 0.5);
+  return shuffled.map((agent, i) => ({
+    ...agent,
+    // Override archetypeId for conversation personality if agent has default/no personality
+    archetypeId: CONVERSATION_ARCHETYPES.includes(agent.archetypeId || '')
+      ? agent.archetypeId
+      : usedArchetypes[i % usedArchetypes.length],
+    // Give agents display names based on their assigned archetype
+    displayName: agent.displayName || agent.name || `Agent ${i + 1}`,
+  }));
 }
 
 // ── Prompt Builder ───────────────────────────────────────
@@ -138,8 +139,14 @@ function buildTokenDiscussionPrompt(
   if (token.chain) eventSummary += `\nChain: Solana (pump.fun graduate)`;
 
   // Build agent contexts with their scoring take
-  const agentContexts = agents.map((agent) => {
-    const pers = getAgentPersonalityFromDB(agent);
+  const agentContexts = agents.map((agent, idx) => {
+    let pers = getAgentPersonalityFromDB(agent);
+
+    // Fallback: assign a random personality if agent has no matching archetype
+    if (!pers) {
+      const fallbackArchetype = CONVERSATION_ARCHETYPES[idx % CONVERSATION_ARCHETYPES.length];
+      pers = getAgentPersonality(fallbackArchetype);
+    }
     if (!pers) return null;
 
     const stats = {
