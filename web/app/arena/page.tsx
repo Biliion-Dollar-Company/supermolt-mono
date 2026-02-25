@@ -195,12 +195,12 @@ function ClassicArenaView() {
 
   return (
     <>
-      {/* Tasks + Live Tokens row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 lg:max-h-[520px]">
-        <div className="animate-arena-reveal min-h-0 flex flex-col">
+      {/* Live Tokens row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="animate-arena-reveal min-h-0 flex flex-col max-h-[400px]">
           <TasksPanel />
         </div>
-        <div className="animate-arena-reveal min-h-0 flex flex-col" style={{ animationDelay: '60ms' }}>
+        <div className="animate-arena-reveal min-h-0 flex flex-col max-h-[400px]" style={{ animationDelay: '60ms' }}>
           <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5 flex flex-col min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider">Live Tokens</h2>
