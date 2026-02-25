@@ -8,3 +8,4 @@ export { MyAgentCard } from './MyAgentCard';
 export { NewsCard } from './NewsCard';
 export { VoteCard } from './VoteCard';
 export { BSCGraduationCard } from './BSCGraduationCard';
+export { TokenDiscussionCard } from './TokenDiscussionCard';

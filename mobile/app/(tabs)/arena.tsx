@@ -1,18 +1,21 @@
-import { ScrollView, View, RefreshControl, TouchableOpacity, StyleSheet } from 'react-native';
+import { ScrollView, View, RefreshControl, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text, LeaderboardRowSkeleton } from '@/components/ui';
-import { LeaderboardRow, ConversationCard, EpochRewardCard, VoteCard } from '@/components/arena';
+import { LeaderboardRow, ConversationCard, EpochRewardCard, VoteCard, TokenDiscussionCard } from '@/components/arena';
 import { useLeaderboard, type LeaderboardMode } from '@/hooks/useLeaderboard';
 import { useConversations } from '@/hooks/useConversations';
 import { useEpochRewards } from '@/hooks/useEpochRewards';
 import { useVotes } from '@/hooks/useVotes';
 import { useGraduations } from '@/hooks/useGraduations';
+import { useTrendingTokens } from '@/hooks/useTrendingTokens';
 import { useAuthStore } from '@/store/auth';
 import { colors } from '@/theme/colors';
 import { useState, useCallback } from 'react';
 import { useTourTarget } from '@/hooks/useTourTarget';
 import Animated, { FadeIn } from 'react-native-reanimated';
+
+type ArenaView = 'discussions' | 'classic';
 
 function SectionLabel({ icon, label }: { icon: string; label: string }) {
   return (
@@ -92,27 +95,33 @@ function getRelativeAge(dateStr: string): string {
 }
 
 export default function ArenaTab() {
+  const [arenaView, setArenaView] = useState<ArenaView>('discussions');
   const [activeTab, setActiveTab] = useState<LeaderboardMode>('trades');
   const { agents, isLoading, refresh: refreshLeaderboard } = useLeaderboard(activeTab);
   const { conversations, refresh: refreshConversations } = useConversations();
   const { rewards, refresh: refreshRewards } = useEpochRewards();
   const { votes, refresh: refreshVotes } = useVotes('active');
   const { graduations, refresh: refreshGraduations } = useGraduations(5);
+  const { tokens: trendingTokens, isLoading: tokensLoading, refresh: refreshTokens } = useTrendingTokens();
 
   const tourRef = useTourTarget('arena');
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([
-      refreshLeaderboard(),
-      refreshConversations(),
-      refreshRewards(),
-      refreshVotes(),
-      refreshGraduations(),
-    ]);
+    if (arenaView === 'discussions') {
+      await refreshTokens();
+    } else {
+      await Promise.all([
+        refreshLeaderboard(),
+        refreshConversations(),
+        refreshRewards(),
+        refreshVotes(),
+        refreshGraduations(),
+      ]);
+    }
     setRefreshing(false);
-  }, [refreshLeaderboard, refreshConversations, refreshRewards, refreshVotes, refreshGraduations]);
+  }, [arenaView, refreshTokens, refreshLeaderboard, refreshConversations, refreshRewards, refreshVotes, refreshGraduations]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
@@ -131,9 +140,11 @@ export default function ArenaTab() {
         <View style={styles.pageHeader}>
           <View>
             <Text style={styles.pageTitle}>ARENA</Text>
-            <Text style={styles.pageSubtitle}>Compete · Earn · Dominate</Text>
+            <Text style={styles.pageSubtitle}>
+              {arenaView === 'discussions' ? 'AI agents discuss trending tokens' : 'Compete · Earn · Dominate'}
+            </Text>
           </View>
-          {agents.length > 0 && (
+          {trendingTokens.length > 0 && (
             <View style={styles.liveChip}>
               <View style={styles.liveDot} />
               <Text style={styles.liveChipText}>LIVE</Text>
@@ -141,96 +152,163 @@ export default function ArenaTab() {
           )}
         </View>
 
-        {/* ── My Agent Stats ── */}
-        <MyStatsBanner />
-
-        {/* ── Epoch / Season ── */}
-        {rewards && (
-          <View ref={tourRef} collapsable={false} style={{ gap: 10 }}>
-            <SectionLabel icon="trophy-outline" label="CURRENT SEASON" />
-            <EpochRewardCard rewards={rewards} />
-          </View>
-        )}
-
-        {/* ── Active Votes ── */}
-        {votes.length > 0 && (
-          <View style={{ gap: 10 }}>
-            <SectionLabel icon="hand-left-outline" label="ACTIVE VOTES" />
-            {votes.map((vote) => (
-              <VoteCard key={vote.voteId} vote={vote} />
-            ))}
-          </View>
-        )}
-
-        {/* ── Leaderboard ── */}
-        <View style={{ gap: 10 }}>
-          {/* Header row with tab toggle */}
-          <View style={styles.leaderboardHeader}>
-            <View style={styles.leaderboardTitleRow}>
-              <Ionicons name="bar-chart-outline" size={11} color={colors.brand.primary} style={{ opacity: 0.7 }} />
-              <Text style={styles.sectionLabelText}>LEADERBOARD</Text>
-            </View>
-            {/* Compact pill toggle */}
-            <View style={styles.tabToggle}>
-              <TouchableOpacity
-                onPress={() => setActiveTab('trades')}
-                style={[styles.tabPill, activeTab === 'trades' && styles.tabPillActive]}
-              >
-                <Text style={[styles.tabPillText, activeTab === 'trades' && styles.tabPillTextActive]}>
-                  PnL
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setActiveTab('xp')}
-                style={[styles.tabPill, activeTab === 'xp' && styles.tabPillActive]}
-              >
-                <Text style={[styles.tabPillText, activeTab === 'xp' && styles.tabPillTextActive]}>
-                  XP
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Rows */}
-          {isLoading && agents.length === 0 ? (
-            <View style={{ gap: 8 }}>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <LeaderboardRowSkeleton key={i} />
-              ))}
-            </View>
-          ) : agents.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="podium-outline" size={32} color={colors.text.muted} style={{ opacity: 0.4 }} />
-              <Text style={styles.emptyText}>No rankings yet</Text>
-            </View>
-          ) : (
-            <View style={{ gap: 6 }}>
-              {agents.map((agent, i) => (
-                <LeaderboardRow key={agent.agentId} agent={agent} rank={i + 1} mode={activeTab} />
-              ))}
-            </View>
-          )}
+        {/* ── View Toggle ── */}
+        <View style={styles.viewToggle}>
+          <TouchableOpacity
+            onPress={() => setArenaView('discussions')}
+            style={[styles.viewPill, arenaView === 'discussions' && styles.viewPillActive]}
+          >
+            <Ionicons
+              name="chatbubbles-outline"
+              size={12}
+              color={arenaView === 'discussions' ? colors.brand.primary : colors.text.muted}
+            />
+            <Text style={[styles.viewPillText, arenaView === 'discussions' && styles.viewPillTextActive]}>
+              Discussions
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setArenaView('classic')}
+            style={[styles.viewPill, arenaView === 'classic' && styles.viewPillActive]}
+          >
+            <Ionicons
+              name="trophy-outline"
+              size={12}
+              color={arenaView === 'classic' ? colors.brand.primary : colors.text.muted}
+            />
+            <Text style={[styles.viewPillText, arenaView === 'classic' && styles.viewPillTextActive]}>
+              Classic
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* ── Conversations ── */}
-        {conversations.length > 0 && (
-          <View style={{ gap: 10 }}>
-            <SectionLabel icon="chatbubbles-outline" label="AGENT CONVERSATIONS" />
-            {conversations.slice(0, 5).map((conv) => (
-              <ConversationCard key={conv.conversationId} conversation={conv} />
-            ))}
+        {/* ── Discussions View ── */}
+        {arenaView === 'discussions' && (
+          <View style={{ gap: 16 }}>
+            {/* My Agent Stats */}
+            <MyStatsBanner />
+
+            {/* Token Count */}
+            {trendingTokens.length > 0 && (
+              <Text style={styles.tokenCount}>
+                {trendingTokens.length} tokens with active discussions
+              </Text>
+            )}
+
+            {/* Token Discussion Cards */}
+            {tokensLoading && trendingTokens.length === 0 ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="small" color={colors.brand.primary} />
+                <Text style={styles.emptyText}>Loading discussions...</Text>
+              </View>
+            ) : trendingTokens.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Ionicons name="chatbubbles-outline" size={32} color={colors.text.muted} style={{ opacity: 0.4 }} />
+                <Text style={styles.emptyText}>No active discussions yet</Text>
+                <Text style={styles.emptySubtext}>AI agents will start discussing trending tokens soon</Text>
+              </View>
+            ) : (
+              <View style={{ gap: 10 }}>
+                {trendingTokens.map((token) => (
+                  <TokenDiscussionCard key={token.tokenMint} token={token} />
+                ))}
+              </View>
+            )}
           </View>
         )}
 
-        {/* ── BSC Graduations ── */}
-        {graduations.length > 0 && (
-          <View style={{ gap: 10 }}>
-            <SectionLabel icon="rocket-outline" label="BSC GRADUATIONS" />
-            <View style={styles.gradList}>
-              {graduations.map((g) => (
-                <GraduationRow key={g.id} item={g} />
-              ))}
+        {/* ── Classic View ── */}
+        {arenaView === 'classic' && (
+          <View style={{ gap: 20 }}>
+            {/* My Agent Stats */}
+            <MyStatsBanner />
+
+            {/* Epoch / Season */}
+            {rewards && (
+              <View ref={tourRef} collapsable={false} style={{ gap: 10 }}>
+                <SectionLabel icon="trophy-outline" label="CURRENT SEASON" />
+                <EpochRewardCard rewards={rewards} />
+              </View>
+            )}
+
+            {/* Active Votes */}
+            {votes.length > 0 && (
+              <View style={{ gap: 10 }}>
+                <SectionLabel icon="hand-left-outline" label="ACTIVE VOTES" />
+                {votes.map((vote) => (
+                  <VoteCard key={vote.voteId} vote={vote} />
+                ))}
+              </View>
+            )}
+
+            {/* Leaderboard */}
+            <View style={{ gap: 10 }}>
+              <View style={styles.leaderboardHeader}>
+                <View style={styles.leaderboardTitleRow}>
+                  <Ionicons name="bar-chart-outline" size={11} color={colors.brand.primary} style={{ opacity: 0.7 }} />
+                  <Text style={styles.sectionLabelText}>LEADERBOARD</Text>
+                </View>
+                <View style={styles.tabToggle}>
+                  <TouchableOpacity
+                    onPress={() => setActiveTab('trades')}
+                    style={[styles.tabPill, activeTab === 'trades' && styles.tabPillActive]}
+                  >
+                    <Text style={[styles.tabPillText, activeTab === 'trades' && styles.tabPillTextActive]}>
+                      PnL
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setActiveTab('xp')}
+                    style={[styles.tabPill, activeTab === 'xp' && styles.tabPillActive]}
+                  >
+                    <Text style={[styles.tabPillText, activeTab === 'xp' && styles.tabPillTextActive]}>
+                      XP
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {isLoading && agents.length === 0 ? (
+                <View style={{ gap: 8 }}>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <LeaderboardRowSkeleton key={i} />
+                  ))}
+                </View>
+              ) : agents.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Ionicons name="podium-outline" size={32} color={colors.text.muted} style={{ opacity: 0.4 }} />
+                  <Text style={styles.emptyText}>No rankings yet</Text>
+                </View>
+              ) : (
+                <View style={{ gap: 6 }}>
+                  {agents.map((agent, i) => (
+                    <LeaderboardRow key={agent.agentId} agent={agent} rank={i + 1} mode={activeTab} />
+                  ))}
+                </View>
+              )}
             </View>
+
+            {/* Conversations */}
+            {conversations.length > 0 && (
+              <View style={{ gap: 10 }}>
+                <SectionLabel icon="chatbubbles-outline" label="AGENT CONVERSATIONS" />
+                {conversations.slice(0, 5).map((conv) => (
+                  <ConversationCard key={conv.conversationId} conversation={conv} />
+                ))}
+              </View>
+            )}
+
+            {/* BSC Graduations */}
+            {graduations.length > 0 && (
+              <View style={{ gap: 10 }}>
+                <SectionLabel icon="rocket-outline" label="BSC GRADUATIONS" />
+                <View style={styles.gradList}>
+                  {graduations.map((g) => (
+                    <GraduationRow key={g.id} item={g} />
+                  ))}
+                </View>
+              </View>
+            )}
           </View>
         )}
       </ScrollView>
@@ -285,6 +363,37 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
   },
 
+  // View toggle
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    padding: 3,
+    gap: 2,
+  },
+  viewPill: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  viewPillActive: {
+    backgroundColor: colors.brand.primary + '18',
+  },
+  viewPillText: {
+    color: colors.text.muted,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  viewPillTextActive: {
+    color: colors.brand.primary,
+  },
+
   // Section labels
   sectionLabel: {
     flexDirection: 'row',
@@ -301,6 +410,14 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 1,
     backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+
+  // Token count
+  tokenCount: {
+    color: colors.text.muted,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.3,
   },
 
   // Leaderboard header
@@ -350,6 +467,13 @@ const styles = StyleSheet.create({
     color: colors.text.muted,
     fontSize: 13,
     fontWeight: '500',
+  },
+  emptySubtext: {
+    color: colors.text.muted,
+    fontSize: 11,
+    fontWeight: '400',
+    opacity: 0.6,
+    textAlign: 'center',
   },
 
   // My Stats Banner

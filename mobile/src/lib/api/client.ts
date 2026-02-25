@@ -174,6 +174,7 @@ import type {
   UserAgent,
   SwitchAgentResponse,
   ActiveToken,
+  TrendingToken,
 } from '@/types/arena';
 
 export async function getLeaderboard(): Promise<Agent[]> {
@@ -359,6 +360,13 @@ export async function removeTrackedWallet(walletId: string): Promise<void> {
 
 export async function getActiveTokens(hours = 24): Promise<ActiveToken[]> {
   const data = await apiFetch<{ tokens: ActiveToken[] }>(`/arena/tokens/active?hours=${hours}`);
+  return data.tokens || [];
+}
+
+// ── Trending Tokens (Discussion Engine) ──
+
+export async function getArenaTokens(): Promise<TrendingToken[]> {
+  const data = await apiFetch<{ tokens: TrendingToken[] }>('/messaging/arena-tokens');
   return data.tokens || [];
 }
 

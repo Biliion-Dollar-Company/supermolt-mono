@@ -329,6 +329,36 @@ export interface ActiveToken {
   activityScore: number;
 }
 
+// Trending Tokens (Discussion Engine)
+
+export interface TrendingToken {
+  tokenMint: string;
+  tokenSymbol: string;
+  priceChange24h?: number;
+  marketCap?: number;
+  volume24h?: number;
+  liquidity?: number;
+  priceUsd?: number;
+  imageUrl?: string;
+  chain?: string;
+  conversationId?: string;
+  conversationTopic?: string;
+  messageCount: number;
+  participantCount: number;
+  lastMessageAt?: string;
+  lastMessage?: string;
+  latestMessages?: Array<{
+    agentName: string;
+    content: string;
+    timestamp: string;
+  }>;
+  sentiment?: {
+    bullish: number;
+    bearish: number;
+    neutral: number;
+  };
+}
+
 // Auth
 
 export interface QuickstartResponse {
