@@ -301,12 +301,19 @@ export async function generateTokenConversation(
       console.log(`  ✅ [ConvGen] New conversation: ${conversation.id.slice(0, 8)} for $${token.tokenSymbol}`);
     }
 
-    // Post messages
+    // Post messages — match by agentId first, fall back to index order
     let messagesPosted = 0;
     const agentNames: string[] = [];
 
-    for (const msg of messages) {
-      const agent = participatingAgents.find(a => a.id === msg.agentId);
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (!msg.message) continue;
+
+      // Try exact agentId match first, then fall back to index-based assignment
+      let agent = participatingAgents.find(a => a.id === msg.agentId);
+      if (!agent && i < participatingAgents.length) {
+        agent = participatingAgents[i];
+      }
       if (!agent) continue;
 
       await db.agentMessage.create({
