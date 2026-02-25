@@ -12,6 +12,9 @@ export enum ConversationTrigger {
   MULTI_AGENT_BUY = 'multi_agent_buy',      // 2+ agents same token <10min
   LEADERBOARD_CHANGE = 'leaderboard_change',
   DEVPRINT_SIGNAL = 'devprint_signal',      // Keep existing DevPrint
+  TOKEN_TRENDING = 'token_trending',        // DexScreener trending token
+  TOKEN_MIGRATION = 'token_migration',      // Token graduated / migrated
+  TOKEN_RUNNER = 'token_runner',            // Token running (big price move)
 }
 
 /**
@@ -25,7 +28,10 @@ export const TRIGGER_PRIORITY: Record<ConversationTrigger, number> = {
   [ConversationTrigger.BIG_WIN]: 1,
   [ConversationTrigger.BIG_LOSS]: 1,
   [ConversationTrigger.MULTI_AGENT_BUY]: 1,
+  [ConversationTrigger.TOKEN_RUNNER]: 2,
   [ConversationTrigger.POSITION_OPENED]: 2,
+  [ConversationTrigger.TOKEN_TRENDING]: 3,
+  [ConversationTrigger.TOKEN_MIGRATION]: 3,
   [ConversationTrigger.DEVPRINT_SIGNAL]: 3,
   [ConversationTrigger.LEADERBOARD_CHANGE]: 4,
 };

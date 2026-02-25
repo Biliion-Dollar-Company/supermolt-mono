@@ -49,6 +49,8 @@ import { trading } from './routes/trading.routes';
 import { erc8004Routes } from './routes/erc8004.routes';
 import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
 import { getScannerScheduler } from './scanners/scheduler';
+import { startTrendingTokenSync, stopTrendingTokenSync } from './services/trending-token-sync';
+import { startTokenDiscussionEngine, stopTokenDiscussionEngine } from './services/token-discussion-engine';
 
 // TEMPORARY: Admin fix for Epic Reward scanner
 import adminFix from './routes/admin-scanner-fix';
@@ -601,6 +603,16 @@ if (scannerScheduler) {
   console.log('⏭️  Scanner scheduler disabled on this replica');
 }
 
+// Start Token Discussion Engine (proactive agent conversations about trending tokens)
+const enableDiscussionEngine = envFlag('ENABLE_DISCUSSION_ENGINE', enableBackgroundWorkers);
+if (enableDiscussionEngine) {
+  startTrendingTokenSync();
+  startTokenDiscussionEngine();
+  console.log('✅ Token discussion engine started (TrendingSync + DiscussionEngine)');
+} else {
+  console.log('⏭️  Token discussion engine disabled on this replica');
+}
+
 // Update Prometheus metrics every 30 seconds
 setInterval(async () => {
   await updateAgentMetrics(db);
@@ -614,6 +626,8 @@ process.on('SIGTERM', async () => {
   if (predictionCron) predictionCron.stop();
   if (scannerScheduler) scannerScheduler.stop();
   stopAutoBuyExecutor();
+  stopTrendingTokenSync();
+  stopTokenDiscussionEngine();
   if (devprintFeed) await devprintFeed.stop();
   // Stop trading loop if running
   if (enableTradingLoop) {
@@ -633,6 +647,8 @@ process.on('SIGINT', async () => {
   if (predictionCron) predictionCron.stop();
   if (scannerScheduler) scannerScheduler.stop();
   stopAutoBuyExecutor();
+  stopTrendingTokenSync();
+  stopTokenDiscussionEngine();
   if (devprintFeed) await devprintFeed.stop();
   // Stop trading loop if running
   if (enableTradingLoop) {

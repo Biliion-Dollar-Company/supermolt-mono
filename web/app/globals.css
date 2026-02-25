@@ -415,6 +415,17 @@
     to { opacity: 0; }
   }
 
+  /* Token card pulse — new message highlight */
+  @keyframes card-pulse {
+    0% { border-color: rgba(232, 180, 94, 0.4); box-shadow: 0 0 16px rgba(232, 180, 94, 0.1); }
+    50% { border-color: rgba(232, 180, 94, 0.15); box-shadow: 0 0 8px rgba(232, 180, 94, 0.05); }
+    100% { border-color: rgba(232, 180, 94, 0.4); box-shadow: 0 0 16px rgba(232, 180, 94, 0.1); }
+  }
+
+  .animate-card-pulse {
+    animation: card-pulse 2s ease-in-out 3;
+  }
+
   /* 🔲 Gold fading border variant */
   .border-fade-gold {
     position: relative;

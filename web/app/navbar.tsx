@@ -15,7 +15,6 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/arena', label: 'Arena', Icon: Swords },
-    { href: '/war-room', label: 'War Room', Icon: BookOpen },
     { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   ];
 

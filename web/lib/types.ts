@@ -268,6 +268,32 @@ export interface QuickstartResponse {
   expiresIn: number;
 }
 
+// ── Trending Token (arena token conversation grid) ──
+
+export interface TrendingToken {
+  tokenMint: string;
+  tokenSymbol: string;
+  priceChange24h?: number;
+  marketCap?: number;
+  volume24h?: number;
+  liquidity?: number;
+  priceUsd?: number;
+  imageUrl?: string;
+  chain?: string;
+  // Conversation data (merged client-side)
+  conversationId?: string;
+  conversationTopic?: string;
+  messageCount: number;
+  participantCount: number;
+  lastMessageAt?: string;
+  lastMessage?: string;
+  latestMessages?: Array<{
+    agentName: string;
+    content: string;
+    timestamp: string;
+  }>;
+}
+
 // ── Agent Tasks ──
 
 export interface AgentTaskType {

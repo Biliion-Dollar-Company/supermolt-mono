@@ -89,36 +89,49 @@ messaging.get('/conversations', async (c) => {
       include: {
         messages: {
           take: 1,
-          orderBy: { timestamp: 'desc' },
+          orderBy: { timestamp: 'desc' as const },
         },
         _count: {
           select: { messages: true },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' as const },
       take: limit,
       skip: offset,
     });
 
     const total = await db.agentConversation.count({ where });
 
+    // Get participant counts per conversation
+    const participantCounts = await Promise.all(
+      conversations.map(async (conv) => {
+        const distinct = await db.agentMessage.findMany({
+          where: { conversationId: conv.id },
+          distinct: ['agentId'],
+          select: { agentId: true },
+        });
+        return distinct.length;
+      })
+    );
+
     return c.json({
       success: true,
       data: {
-        conversations: conversations.map((conv) => ({
-          id: conv.id,
-          topic: conv.topic,
-          tokenMint: conv.tokenMint,
-          messageCount: conv._count.messages,
-          lastMessage: conv.messages[0]
-            ? {
-                message: conv.messages[0].message,
-                agentId: conv.messages[0].agentId,
-                timestamp: conv.messages[0].timestamp,
-              }
-            : null,
-          createdAt: conv.createdAt,
-        })),
+        conversations: conversations.map((conv, i) => {
+          // Extract tokenSymbol from topic like "BONK Trading Discussion"
+          const tokenSymbol = conv.topic?.replace(' Trading Discussion', '') || undefined;
+          return {
+            conversationId: conv.id,
+            topic: conv.topic,
+            tokenMint: conv.tokenMint,
+            tokenSymbol,
+            participantCount: participantCounts[i],
+            messageCount: conv._count.messages,
+            lastMessage: conv.messages[0]?.message || null,
+            lastMessageAt: conv.messages[0]?.timestamp?.toISOString() || conv.createdAt.toISOString(),
+            createdAt: conv.createdAt,
+          };
+        }),
         total,
         limit,
         offset,
@@ -193,7 +206,7 @@ messaging.get('/conversations/:id/messages', async (c) => {
           return {
             id: msg.id,
             agentId: msg.agentId,
-            agentName: agent?.name || 'Unknown',
+            agentName: agent?.displayName || agent?.name || 'Unknown',
             agentWallet: agent?.userId || 'Unknown',
             message: msg.message,
             timestamp: msg.timestamp,
