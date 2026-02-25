@@ -87,11 +87,21 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
       {/* Conversation Preview */}
       {hasConversation ? (
         <div className="px-4 pb-3 pt-2 border-t border-white/[0.04] mt-2">
-          {token.lastMessage && (
+          {/* Show latest agent messages with names */}
+          {token.latestMessages && token.latestMessages.length > 0 ? (
+            <div className="space-y-1.5 mb-2">
+              {token.latestMessages.slice(0, 2).map((msg, i) => (
+                <div key={i} className="text-xs leading-relaxed">
+                  <span className="font-semibold text-accent-primary/80">{msg.agentName}:</span>{' '}
+                  <span className="text-text-secondary line-clamp-1">{msg.content}</span>
+                </div>
+              ))}
+            </div>
+          ) : token.lastMessage ? (
             <p className="text-xs text-text-secondary leading-relaxed line-clamp-2 mb-2">
               {token.lastMessage}
             </p>
-          )}
+          ) : null}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1 text-[10px] text-text-muted">

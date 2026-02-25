@@ -68,6 +68,111 @@ messaging.post('/generate-discussion', async (c) => {
   });
 });
 
+/**
+ * GET /messaging/arena-tokens
+ * Returns hot tokens with their conversation data + full metrics for the arena grid.
+ * This is the primary endpoint for the arena page.
+ */
+messaging.get('/arena-tokens', async (c) => {
+  const hotTokens = getHotTokens();
+
+  // Get conversations for all hot token mints
+  const mints = hotTokens.map(t => t.tokenMint);
+  const conversations = mints.length > 0
+    ? await db.agentConversation.findMany({
+        where: {
+          tokenMint: { in: mints },
+          topic: { contains: 'Trading Discussion' },
+        },
+        include: {
+          messages: {
+            take: 3,
+            orderBy: { timestamp: 'desc' as const },
+          },
+          _count: { select: { messages: true } },
+        },
+        orderBy: { createdAt: 'desc' as const },
+      })
+    : [];
+
+  // Get agent names for messages
+  const agentIds = [...new Set(conversations.flatMap(c => c.messages.map(m => m.agentId)))];
+  const agents = agentIds.length > 0
+    ? await db.tradingAgent.findMany({
+        where: { id: { in: agentIds } },
+        select: { id: true, name: true, displayName: true },
+      })
+    : [];
+  const agentMap = new Map(agents.map(a => [a.id, a.displayName || a.name]));
+
+  // Get participant counts
+  const participantCounts = new Map<string, number>();
+  for (const conv of conversations) {
+    const distinct = new Set(conv.messages.map(m => m.agentId));
+    // This only counts from the 3 messages we fetched, get real count
+    const allDistinct = await db.agentMessage.findMany({
+      where: { conversationId: conv.id },
+      distinct: ['agentId'],
+      select: { agentId: true },
+    });
+    participantCounts.set(conv.id, allDistinct.length);
+  }
+
+  // Build conversation map by tokenMint
+  const convMap = new Map<string, typeof conversations[0]>();
+  for (const conv of conversations) {
+    if (!conv.tokenMint) continue;
+    // Keep the one with most messages
+    const existing = convMap.get(conv.tokenMint);
+    if (!existing || conv._count.messages > existing._count.messages) {
+      convMap.set(conv.tokenMint, conv);
+    }
+  }
+
+  // Merge hot tokens + conversation data
+  const arenaTokens = hotTokens.map(token => {
+    const conv = convMap.get(token.tokenMint);
+    return {
+      tokenMint: token.tokenMint,
+      tokenSymbol: token.tokenSymbol,
+      tokenName: token.tokenName,
+      priceUsd: token.priceUsd,
+      priceChange24h: token.priceChange24h,
+      marketCap: token.marketCap,
+      volume24h: token.volume24h,
+      liquidity: token.liquidity,
+      chain: token.chain || 'solana',
+      source: token.source,
+      conversationId: conv?.id || null,
+      messageCount: conv?._count.messages || 0,
+      participantCount: conv ? (participantCounts.get(conv.id) || 0) : 0,
+      lastMessageAt: conv?.messages[0]?.timestamp?.toISOString() || null,
+      lastMessage: conv?.messages[0]?.message || null,
+      latestMessages: conv?.messages.map(m => ({
+        agentName: agentMap.get(m.agentId) || 'Unknown',
+        content: m.message,
+        timestamp: m.timestamp.toISOString(),
+      })) || [],
+    };
+  });
+
+  // Sort: tokens with conversations first, then by volume
+  arenaTokens.sort((a, b) => {
+    if (a.messageCount > 0 && b.messageCount === 0) return -1;
+    if (b.messageCount > 0 && a.messageCount === 0) return 1;
+    if (a.messageCount !== b.messageCount) return b.messageCount - a.messageCount;
+    return (b.volume24h || 0) - (a.volume24h || 0);
+  });
+
+  return c.json({
+    success: true,
+    data: {
+      tokens: arenaTokens,
+      lastSyncAt: getLastSyncTime()?.toISOString() || null,
+    },
+  });
+});
+
 // Request schemas
 const createConversationSchema = z.object({
   topic: z.string().min(1).max(200),

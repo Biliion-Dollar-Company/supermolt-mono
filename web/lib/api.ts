@@ -542,90 +542,27 @@ export async function getAgentBalance(agentId: string): Promise<{ success: boole
 // ── Trending Tokens (arena conversation grid) ──
 
 /**
- * Phase 1: Client-side merge of conversations + trades to build token feed.
- * Groups conversations by tokenMint, enriches with trade data.
+ * Fetches arena tokens from the backend's /messaging/arena-tokens endpoint.
+ * This merges hot token metrics (price, mcap, volume, liquidity) with conversation data.
  */
 export async function getTrendingTokens(): Promise<TrendingToken[]> {
-  // Fetch proactive Trading Discussion conversations (not signal/trade noise)
-  const getDiscussions = async (): Promise<Conversation[]> => {
-    const response = await api.get<{ conversations: any[] }>('/messaging/conversations?topic=Trading+Discussion&limit=50');
-    const raw = response.data.conversations || [];
-    return raw.map((c: any) => ({
-      conversationId: c.conversationId || c.id,
-      topic: c.topic,
-      tokenMint: c.tokenMint,
-      tokenSymbol: c.tokenSymbol,
-      participantCount: c.participantCount || 0,
-      messageCount: c.messageCount || 0,
-      lastMessage: typeof c.lastMessage === 'string' ? c.lastMessage : c.lastMessage?.message,
-      lastMessageAt: c.lastMessageAt || c.createdAt,
-      createdAt: c.createdAt,
-    }));
-  };
+  const response = await api.get<{ tokens: any[]; lastSyncAt: string | null }>('/messaging/arena-tokens');
+  const raw = response.data.tokens || [];
 
-  const [conversations, trades] = await Promise.all([
-    getDiscussions(),
-    getRecentTrades(100),
-  ]);
-
-  // Group conversations by tokenMint
-  const tokenMap = new Map<string, TrendingToken>();
-
-  for (const conv of conversations) {
-    const mint = conv.tokenMint;
-    if (!mint) continue;
-
-    const existing = tokenMap.get(mint);
-    if (!existing || new Date(conv.lastMessageAt) > new Date(existing.lastMessageAt || '')) {
-      tokenMap.set(mint, {
-        tokenMint: mint,
-        tokenSymbol: conv.tokenSymbol || conv.topic?.replace(' Trading Discussion', '') || mint.slice(0, 6),
-        messageCount: (existing?.messageCount || 0) + conv.messageCount,
-        participantCount: Math.max(existing?.participantCount || 0, conv.participantCount),
-        lastMessageAt: conv.lastMessageAt,
-        lastMessage: conv.lastMessage,
-        conversationId: conv.conversationId,
-        conversationTopic: conv.topic,
-      });
-    } else if (existing) {
-      existing.messageCount += conv.messageCount;
-      existing.participantCount = Math.max(existing.participantCount, conv.participantCount);
-    }
-  }
-
-  // Enrich with trade data
-  for (const trade of trades) {
-    if (!trade.tokenMint) continue;
-    const existing = tokenMap.get(trade.tokenMint);
-    if (existing) {
-      // Use trade symbol if conversation didn't have one
-      if (!existing.tokenSymbol || existing.tokenSymbol === trade.tokenMint.slice(0, 6)) {
-        existing.tokenSymbol = trade.tokenSymbol;
-      }
-    } else {
-      // Token has trades but no conversation yet — still show it
-      tokenMap.set(trade.tokenMint, {
-        tokenMint: trade.tokenMint,
-        tokenSymbol: trade.tokenSymbol || trade.tokenMint.slice(0, 6),
-        messageCount: 0,
-        participantCount: 0,
-        lastMessageAt: trade.timestamp,
-      });
-    }
-  }
-
-  // Sort: tokens with conversations first (by message count), then by recency
-  const tokens = Array.from(tokenMap.values());
-  tokens.sort((a, b) => {
-    // Conversations first
-    if (a.messageCount > 0 && b.messageCount === 0) return -1;
-    if (b.messageCount > 0 && a.messageCount === 0) return 1;
-    // Within same tier, sort by message count then recency
-    if (a.messageCount !== b.messageCount) return b.messageCount - a.messageCount;
-    const aTime = new Date(a.lastMessageAt || '').getTime() || 0;
-    const bTime = new Date(b.lastMessageAt || '').getTime() || 0;
-    return bTime - aTime;
-  });
-
-  return tokens;
+  return raw.map((t: any) => ({
+    tokenMint: t.tokenMint,
+    tokenSymbol: t.tokenSymbol,
+    priceUsd: t.priceUsd,
+    priceChange24h: t.priceChange24h,
+    marketCap: t.marketCap,
+    volume24h: t.volume24h,
+    liquidity: t.liquidity,
+    chain: t.chain,
+    conversationId: t.conversationId,
+    messageCount: t.messageCount || 0,
+    participantCount: t.participantCount || 0,
+    lastMessageAt: t.lastMessageAt,
+    lastMessage: t.lastMessage,
+    latestMessages: t.latestMessages || [],
+  }));
 }
