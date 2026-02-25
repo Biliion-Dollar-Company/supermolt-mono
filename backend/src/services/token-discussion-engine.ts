@@ -26,7 +26,7 @@ const FOLLOWUP_COOLDOWN_MS = 15 * 60 * 1000;            // 15min — follow-up r
 const MAX_CONVERSATIONS_PER_HOUR = 60;
 const STAGGER_DELAY_MS = 1500;                           // 1.5s between LLM calls
 const MAX_NEW_PER_CYCLE = 5;                             // New conversations per cycle
-const MAX_FOLLOWUPS_PER_CYCLE = 5;                       // Follow-up rounds per cycle
+const MAX_FOLLOWUPS_PER_CYCLE = 8;                       // Follow-up rounds per cycle
 
 let hourlyConversationCount = 0;
 let hourlyResetAt = Date.now() + 60 * 60 * 1000;
@@ -90,18 +90,41 @@ async function findFollowUpCandidates(): Promise<TokenContext[]> {
     },
   });
 
-  const staleMints = new Set<string>();
+  // Track the MOST RECENT message per token (across all conversations)
+  const latestMessagePerMint = new Map<string, Date>();
   for (const conv of staleConversations) {
     if (!conv.tokenMint) continue;
     const lastMsg = conv.messages[0]?.timestamp;
-    if (!lastMsg || lastMsg < staleCutoff) {
+    if (lastMsg) {
+      const existing = latestMessagePerMint.get(conv.tokenMint);
+      if (!existing || lastMsg > existing) {
+        latestMessagePerMint.set(conv.tokenMint, lastMsg);
+      }
+    }
+  }
+
+  // Token is stale if its most recent message (across ALL conversations) is old enough
+  const staleMints = new Set<string>();
+  for (const [mint, lastMsg] of latestMessagePerMint) {
+    if (lastMsg < staleCutoff) {
+      staleMints.add(mint);
+    }
+  }
+  // Also include tokens with conversations but no messages at all
+  for (const conv of staleConversations) {
+    if (conv.tokenMint && conv.messages.length === 0) {
       staleMints.add(conv.tokenMint);
     }
   }
 
-  // Also include tokens that have conversations but weren't caught above
-  // (e.g. tokens with no messages at all in their conversation)
-  return hotTokens.filter(t => staleMints.has(t.tokenMint));
+  // Return stale tokens sorted by staleness (oldest last message first = most neglected)
+  const staleTokens = hotTokens.filter(t => staleMints.has(t.tokenMint));
+  staleTokens.sort((a, b) => {
+    const aLast = latestMessagePerMint.get(a.tokenMint)?.getTime() || 0;
+    const bLast = latestMessagePerMint.get(b.tokenMint)?.getTime() || 0;
+    return aLast - bLast; // oldest first
+  });
+  return staleTokens;
 }
 
 function classifyTokenTrigger(token: TokenContext): ConversationTrigger {
@@ -158,8 +181,9 @@ async function runDiscussionCycle(): Promise<void> {
   // ── Phase B: Follow-up rounds for stale conversations ──
   const followUpCandidates = await findFollowUpCandidates();
   if (followUpCandidates.length > 0 && hourlyConversationCount < MAX_CONVERSATIONS_PER_HOUR) {
-    // Prioritize by volume
-    const sorted = [...followUpCandidates].sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
+    // Prioritize tokens with OLDEST last message (most stale first)
+    // This ensures all tokens rotate through follow-ups, not just highest volume
+    const sorted = [...followUpCandidates];
     const toFollowUp = sorted.slice(0, Math.min(MAX_FOLLOWUPS_PER_CYCLE, MAX_CONVERSATIONS_PER_HOUR - hourlyConversationCount));
     console.log(`[DiscussionEngine] Phase B: ${followUpCandidates.length} stale → refreshing ${toFollowUp.length} conversations`);
 

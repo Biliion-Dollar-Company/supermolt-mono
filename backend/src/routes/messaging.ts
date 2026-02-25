@@ -128,14 +128,32 @@ messaging.get('/arena-tokens', async (c) => {
     participantCounts.set(conv.id, allDistinct.length);
   }
 
-  // Build conversation map by tokenMint
+  // Build conversation map by tokenMint — pick newest conversation (most recent messages)
   const convMap = new Map<string, typeof conversations[0]>();
   for (const conv of conversations) {
     if (!conv.tokenMint) continue;
     const existing = convMap.get(conv.tokenMint);
-    if (!existing || conv._count.messages > existing._count.messages) {
+    if (!existing) {
       convMap.set(conv.tokenMint, conv);
+    } else {
+      // Pick whichever has the more recent last message
+      const existingLast = existing.messages[0]?.timestamp?.getTime() || 0;
+      const convLast = conv.messages[0]?.timestamp?.getTime() || 0;
+      if (convLast > existingLast) {
+        convMap.set(conv.tokenMint, conv);
+      }
     }
+  }
+
+  // Aggregate message counts across ALL conversations for each token
+  const totalMessageCounts = new Map<string, number>();
+  const totalParticipants = new Map<string, Set<string>>();
+  for (const conv of conversations) {
+    if (!conv.tokenMint) continue;
+    totalMessageCounts.set(conv.tokenMint, (totalMessageCounts.get(conv.tokenMint) || 0) + conv._count.messages);
+    if (!totalParticipants.has(conv.tokenMint)) totalParticipants.set(conv.tokenMint, new Set());
+    const pSet = totalParticipants.get(conv.tokenMint)!;
+    conv.messages.forEach(m => pSet.add(m.agentId));
   }
 
   // Merge tokens + conversation data — only include tokens WITH conversations
@@ -155,8 +173,8 @@ messaging.get('/arena-tokens', async (c) => {
         chain: token.chain || 'solana',
         source: token.source,
         conversationId: conv?.id || null,
-        messageCount: conv?._count.messages || 0,
-        participantCount: conv ? (participantCounts.get(conv.id) || 0) : 0,
+        messageCount: totalMessageCounts.get(token.tokenMint) || conv?._count.messages || 0,
+        participantCount: totalParticipants.get(token.tokenMint)?.size || (conv ? (participantCounts.get(conv.id) || 0) : 0),
         lastMessageAt: conv?.messages[0]?.timestamp?.toISOString() || null,
         lastMessage: conv?.messages[0]?.message || null,
         latestMessages: conv?.messages.map(m => ({
