@@ -546,8 +546,25 @@ export async function getAgentBalance(agentId: string): Promise<{ success: boole
  * Groups conversations by tokenMint, enriches with trade data.
  */
 export async function getTrendingTokens(): Promise<TrendingToken[]> {
+  // Fetch proactive Trading Discussion conversations (not signal/trade noise)
+  const getDiscussions = async (): Promise<Conversation[]> => {
+    const response = await api.get<{ conversations: any[] }>('/messaging/conversations?topic=Trading+Discussion&limit=50');
+    const raw = response.data.conversations || [];
+    return raw.map((c: any) => ({
+      conversationId: c.conversationId || c.id,
+      topic: c.topic,
+      tokenMint: c.tokenMint,
+      tokenSymbol: c.tokenSymbol,
+      participantCount: c.participantCount || 0,
+      messageCount: c.messageCount || 0,
+      lastMessage: typeof c.lastMessage === 'string' ? c.lastMessage : c.lastMessage?.message,
+      lastMessageAt: c.lastMessageAt || c.createdAt,
+      createdAt: c.createdAt,
+    }));
+  };
+
   const [conversations, trades] = await Promise.all([
-    getConversations(),
+    getDiscussions(),
     getRecentTrades(100),
   ]);
 

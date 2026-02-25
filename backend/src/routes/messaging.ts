@@ -136,8 +136,11 @@ messaging.get('/conversations', async (c) => {
     const limit = parseInt(c.req.query('limit') || '50', 10);
     const offset = parseInt(c.req.query('offset') || '0', 10);
     const tokenMint = c.req.query('tokenMint');
+    const topicFilter = c.req.query('topic'); // e.g. "Trading Discussion"
 
-    const where = tokenMint ? { tokenMint } : {};
+    const where: any = {};
+    if (tokenMint) where.tokenMint = tokenMint;
+    if (topicFilter) where.topic = { contains: topicFilter };
 
     const conversations = await db.agentConversation.findMany({
       where,
