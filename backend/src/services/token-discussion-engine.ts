@@ -57,7 +57,7 @@ async function findNewCandidates(): Promise<TokenContext[]> {
 
   const candidates = hotTokens.filter(token => {
     if (recentMints.has(token.tokenMint)) return false;
-    if ((token.volume24h || 0) < 30_000) return false;
+    if ((token.volume24h || 0) < 10_000) return false;
     return true;
   });
 
