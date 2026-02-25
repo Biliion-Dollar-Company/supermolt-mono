@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-import { Swords, MessageSquare, Copy, Check, LayoutGrid } from 'lucide-react';
+import { Swords, MessageSquare, Copy, Check, LayoutGrid, Zap } from 'lucide-react';
 import { getTrendingTokens, getRecentTrades, getAllPositions } from '@/lib/api';
 import type { TrendingToken, Trade, Position } from '@/lib/types';
 import {
@@ -28,23 +28,52 @@ function SkeletonBlock({ className = '' }: { className?: string }) {
 function ArenaPageSkeleton() {
   return (
     <div>
+      {/* Skeleton header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <SkeletonBlock className="w-1.5 h-1.5 rounded-full" />
+          <SkeletonBlock className="h-3 w-12" />
+          <SkeletonBlock className="h-3 w-16" />
+        </div>
+        <div className="flex gap-1">
+          <SkeletonBlock className="h-6 w-20 rounded-md" />
+          <SkeletonBlock className="h-6 w-20 rounded-md" />
+          <SkeletonBlock className="h-6 w-24 rounded-md" />
+        </div>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="bg-[#12121a]/60 border border-white/[0.08] p-4">
+          <div key={i} className="bg-[#111118]/80 border border-white/[0.06] rounded-xl p-4" style={{ animationDelay: `${i * 50}ms` }}>
             <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <SkeletonBlock className="w-8 h-8 rounded-full" />
-                <SkeletonBlock className="h-4 w-16" />
+              <div className="flex items-center gap-2.5">
+                <SkeletonBlock className="w-9 h-9 rounded-full" />
+                <div className="space-y-1.5">
+                  <SkeletonBlock className="h-3.5 w-16 rounded" />
+                  <SkeletonBlock className="h-2.5 w-12 rounded" />
+                </div>
               </div>
-              <SkeletonBlock className="h-5 w-14" />
+              <SkeletonBlock className="h-6 w-14 rounded-lg" />
             </div>
-            <div className="flex gap-3 mb-3">
-              <SkeletonBlock className="h-3 w-16" />
-              <SkeletonBlock className="h-3 w-12" />
+            <div className="flex gap-2.5 mb-3">
+              <SkeletonBlock className="h-2.5 w-14 rounded" />
+              <SkeletonBlock className="h-2.5 w-12 rounded" />
+              <SkeletonBlock className="h-2.5 w-10 rounded" />
             </div>
-            <div className="border-t border-white/[0.04] pt-3 mt-2">
-              <SkeletonBlock className="h-3 w-full mb-2" />
-              <SkeletonBlock className="h-3 w-3/4" />
+            <div className="border-t border-white/[0.04] pt-3">
+              <div className="flex items-start gap-2 mb-2">
+                <SkeletonBlock className="w-5 h-5 rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-1">
+                  <SkeletonBlock className="h-2.5 w-20 rounded" />
+                  <SkeletonBlock className="h-2.5 w-full rounded" />
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <SkeletonBlock className="w-5 h-5 rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-1">
+                  <SkeletonBlock className="h-2.5 w-16 rounded" />
+                  <SkeletonBlock className="h-2.5 w-3/4 rounded" />
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -350,48 +379,51 @@ export default function ArenaPage() {
         }}
       />
 
-      {/* Gradient orbs */}
-      <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">
-        <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.05)_0%,transparent_70%)]" />
-        <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.04)_0%,transparent_70%)]" />
-      </div>
+      {/* Subtle grid overlay */}
+      <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none bg-grid-pattern opacity-30" />
 
       <div className="relative z-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8 gap-2">
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Swords className="w-5 h-5 sm:w-6 sm:h-6 text-accent-primary" />
-            <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Arena</h1>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="relative">
+              <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-accent-primary" />
+              <div className="absolute inset-0 blur-md">
+                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-accent-primary/40" />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-lg sm:text-xl font-bold text-text-primary tracking-wide" style={{ fontFamily: 'var(--font-display), Orbitron, sans-serif' }}>Arena</h1>
+              <p className="text-[10px] text-text-muted/40 font-mono hidden sm:block">Real-time agent alpha on trending tokens</p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             {/* View Toggle */}
-            <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-lg overflow-hidden">
+            <div className="flex items-center bg-white/[0.03] border border-white/[0.06] rounded-lg overflow-hidden p-0.5">
               <button
                 onClick={() => setView('discussions')}
-                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md transition-all cursor-pointer ${
                   view === 'discussions'
-                    ? 'text-accent-primary bg-accent-primary/10'
-                    : 'text-text-muted hover:text-text-secondary'
+                    ? 'text-accent-primary bg-accent-primary/10 shadow-sm'
+                    : 'text-text-muted/50 hover:text-text-secondary'
                 }`}
               >
                 <MessageSquare className="w-3 h-3" />
                 <span className="hidden sm:inline">Discussions</span>
               </button>
-              <div className="w-px h-4 bg-white/[0.08]" />
               <button
                 onClick={() => setView('classic')}
-                className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md transition-all cursor-pointer ${
                   view === 'classic'
-                    ? 'text-accent-primary bg-accent-primary/10'
-                    : 'text-text-muted hover:text-text-secondary'
+                    ? 'text-accent-primary bg-accent-primary/10 shadow-sm'
+                    : 'text-text-muted/50 hover:text-text-secondary'
                 }`}
               >
                 <LayoutGrid className="w-3 h-3" />
                 <span className="hidden sm:inline">Classic</span>
               </button>
             </div>
-
           </div>
         </div>
 
