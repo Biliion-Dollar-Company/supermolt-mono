@@ -546,8 +546,9 @@ export async function getAgentBalance(agentId: string): Promise<{ success: boole
  * This merges hot token metrics (price, mcap, volume, liquidity) with conversation data.
  */
 export async function getTrendingTokens(): Promise<TrendingToken[]> {
-  const response = await api.get<{ tokens: any[]; lastSyncAt: string | null }>('/messaging/arena-tokens');
-  const raw = response.data.tokens || [];
+  const response = await api.get('/messaging/arena-tokens');
+  const body = response.data?.data || response.data || {};
+  const raw = body.tokens || [];
 
   return raw.map((t: any) => ({
     tokenMint: t.tokenMint,
