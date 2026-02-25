@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import dynamic from 'next/dynamic';
-import { Swords, MessageSquare, Copy, Check, LayoutGrid, Zap } from 'lucide-react';
+
+import { Swords, MessageSquare, Copy, Check, LayoutGrid } from 'lucide-react';
 import { getTrendingTokens, getRecentTrades, getAllPositions } from '@/lib/api';
 import type { TrendingToken, Trade, Position } from '@/lib/types';
 import {
@@ -19,12 +19,7 @@ import {
   TradeRecommendationBanner,
 } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
-import { useIsMobile } from '@/hooks/useIsMobile';
 
-const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), {
-  ssr: false,
-  loading: () => <div className="absolute inset-0 bg-black" />,
-});
 
 function SkeletonBlock({ className = '' }: { className?: string }) {
   return <div className={`bg-white/[0.03] animate-pulse rounded ${className}`} />;
@@ -343,41 +338,17 @@ function ConversationsView() {
 type ArenaView = 'discussions' | 'classic';
 
 export default function ArenaPage() {
-  const isMobile = useIsMobile();
   const [view, setView] = useState<ArenaView>('discussions');
 
   return (
     <div className="min-h-screen bg-bg-primary pt-18 sm:pt-20 pb-16 px-4 sm:px-[6%] lg:px-[10%] relative">
-      {/* Background */}
-      <div className="fixed inset-0 z-0">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'radial-gradient(ellipse at center, rgba(0,0,0,0.60) 15%, rgba(0,0,0,0.85) 55%, rgba(0,0,0,0.95) 100%)',
-          }}
-        />
-        {!isMobile && (
-          <div className="absolute inset-0 opacity-40">
-            <RisingLines
-              color="#E8B45E"
-              horizonColor="#E8B45E"
-              haloColor="#F5D78E"
-              riseSpeed={0.05}
-              riseScale={8.0}
-              riseIntensity={1.0}
-              flowSpeed={0.1}
-              flowDensity={3.5}
-              flowIntensity={0.5}
-              horizonIntensity={0.7}
-              haloIntensity={5.0}
-              horizonHeight={-0.85}
-              circleScale={-0.5}
-              scale={6.5}
-              brightness={0.9}
-            />
-          </div>
-        )}
-      </div>
+      {/* Background — simple CSS gradient (no WebGL) */}
+      <div
+        className="fixed inset-0 z-0"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 0%, rgba(232,180,94,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, rgba(10,10,18,1) 0%, rgba(5,5,12,1) 100%)',
+        }}
+      />
 
       {/* Gradient orbs */}
       <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">

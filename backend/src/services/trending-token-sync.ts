@@ -21,12 +21,12 @@ import type { TokenContext } from '../lib/conversation-generator';
 // Filters out rugs, dead tokens, and fake volume
 
 const QUALITY = {
-  minMarketCap: 50_000,      // $50K — pump.fun grads start low
-  minVolume24h: 30_000,      // $30K — needs some real activity
-  minLiquidity: 15_000,      // $15K — Birdeye already filters this
+  minMarketCap: 20_000,      // $20K — catch earlier stage
+  minVolume24h: 10_000,      // $10K — lower bar for fresh tokens
+  minLiquidity: 5_000,       // $5K — pump.fun grads start low
   maxAgeHours: 72,           // 3 days
-  minUniqueWallets: 10,      // Filter bot-only tokens
-  minHolders: 20,            // Needs some distribution
+  minUniqueWallets: 5,       // Lower bar
+  minHolders: 10,            // Lower bar
 };
 
 // ── In-Memory Hot List ───────────────────────────────────
@@ -145,7 +145,7 @@ async function fetchDexScreenerTrending(): Promise<TokenContext[]> {
     // Only take Solana tokens (pump.fun tokens are on Solana)
     const solanaBoosts = boosts
       .filter((b: any) => b.chainId === 'solana')
-      .slice(0, 20);
+      .slice(0, 30);
 
     for (const boost of solanaBoosts) {
       // Fetch full pair data
@@ -214,7 +214,7 @@ async function fetchDexScreenerLatestPairs(): Promise<TokenContext[]> {
     // Filter for Solana token profiles only, limit to avoid rate limit issues
     const solanaProfiles = profiles
       .filter((p: any) => p.chainId === 'solana' && p.tokenAddress)
-      .slice(0, 15);
+      .slice(0, 25);
 
     console.log(`[TrendingSync] DexScreener token-profiles: ${profiles.length} total, ${solanaProfiles.length} Solana (checking pairs...)`);
 

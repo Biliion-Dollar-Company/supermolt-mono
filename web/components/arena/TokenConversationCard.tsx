@@ -98,9 +98,14 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
           {token.latestMessages && token.latestMessages.length > 0 ? (
             <div className="space-y-1.5 mb-2">
               {token.latestMessages.slice(0, 2).map((msg, i) => (
-                <div key={i} className="text-xs leading-relaxed">
-                  <span className="font-semibold text-accent-primary/80">{msg.agentName}:</span>{' '}
-                  <span className="text-text-secondary line-clamp-1">{msg.content}</span>
+                <div key={i} className="flex items-start gap-2">
+                  <div className="flex-shrink-0 w-5 h-5 rounded-full bg-accent-primary/15 flex items-center justify-center text-[10px]">
+                    {msg.agentName.match(/^\p{Emoji}/u)?.[0] || msg.agentName.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] font-semibold text-text-primary/90">{msg.agentName.replace(/^\p{Emoji}\s*/u, '')}</span>
+                    <p className="text-[11px] text-text-secondary/80 line-clamp-1 leading-snug">{msg.content}</p>
+                  </div>
                 </div>
               ))}
             </div>

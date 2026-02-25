@@ -209,22 +209,24 @@ PARTICIPATING AGENTS:
 ${agentContexts.map((ac: any) => `${ac.emoji} ${ac.name}:\n${ac.context}`).join('\n\n')}
 
 RULES:
-- Each agent responds in their own voice (see personality above)
-- Max 2 sentences each. Punchy, raw, no corporate speak.
-- Reference SPECIFIC metrics (price, mcap, volume, liquidity) from the data above
-- Agents MUST disagree — bullish vs bearish, entry now vs wait, ape vs fade
-- Use actual numbers ($, %, k, M)
-- Talk like real degen traders in a group chat — short, opinionated, confrontational
-- Reference pump.fun graduation, Raydium liquidity, holder count naturally
-- ${trigger === ConversationTrigger.TOKEN_TRENDING ? 'Debate whether this pump.fun grad has legs or is just exit liquidity for insiders' : ''}
-- ${trigger === ConversationTrigger.TOKEN_RUNNER ? 'Some ape, some fade — debate if the move is organic or manipulated' : ''}
-- ${trigger === ConversationTrigger.TOKEN_MIGRATION ? 'Fresh graduate — debate liquidity depth, dev wallet, and whether to snipe' : ''}
-- NO hashtags, NO "NFA", NO disclaimers. Just raw trading banter.
+- Each agent MUST respond in their UNIQUE voice — personality dictates tone, vocabulary, and analysis style
+- 1-3 sentences max. Vary length — some agents are terse, others elaborate slightly
+- ALWAYS cite specific numbers from the data ($price, mcap, vol, liq ratios)
+- Agents MUST take different positions — at least one bullish, one bearish, one cautious
+- Write like real crypto traders in a private alpha group chat — raw, direct, no formality
+- Agents should reference and disagree with EACH OTHER by name (e.g. "Sniper's wrong about the liq...")
+- Vary sentence structure — don't start every message with "I'm" or "The"
+- Include specific trading actions: entry prices, position sizes, stop losses, targets
+- ${trigger === ConversationTrigger.TOKEN_TRENDING ? 'Debate: does this pump.fun grad have legs or is it exit liquidity for insiders?' : ''}
+- ${trigger === ConversationTrigger.TOKEN_RUNNER ? 'Hot debate: is this move organic or whale-manipulated? Some ape, some fade.' : ''}
+- ${trigger === ConversationTrigger.TOKEN_MIGRATION ? 'Fresh Raydium listing: debate liquidity depth, dev wallet concentration, snipe opportunity.' : ''}
+- NO hashtags, NO "NFA", NO disclaimers, NO generic platitudes
+- Each response must contain at least one SPECIFIC actionable opinion (buy/sell/wait at X price)
 
 OUTPUT: Valid JSON array only (no markdown, no code fences):
 [{"agentId":"<agent_id>","message":"...","sentiment":"BULLISH"|"BEARISH"|"NEUTRAL"},...]
 
-Include ${agentContexts.length} agent responses.`;
+Include ${agentContexts.length} agent responses. Each agent MUST have a different sentiment.`;
 }
 
 // ── Core Generator ───────────────────────────────────────
@@ -284,7 +286,7 @@ export async function generateTokenConversation(
     console.log(`  💬 [ConvGen] Generating ${token.tokenSymbol} conversation (${participatingAgents.length} agents, trigger: ${trigger})...`);
     const response = await llmService.generate(
       prompt,
-      `Generate ${participatingAgents.length} agent reactions about $${token.tokenSymbol}. JSON array only.`,
+      `Generate ${participatingAgents.length} unique, opinionated agent reactions about $${token.tokenSymbol}. Each agent must cite specific data and take a clear trading stance. JSON array only, no markdown.`,
     );
 
     if (!response) {

@@ -240,19 +240,19 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                 const colorClass = getAgentColor(msg.agentName);
                 return (
                   <div key={msg.messageId} className="flex gap-3 group">
-                    <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${colorClass}`}>
-                      {msg.agentName.charAt(0)}
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${colorClass}`}>
+                      {msg.agentName.match(/^\p{Emoji}/u)?.[0] || msg.agentName.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-xs font-medium text-text-secondary">
-                          {msg.agentName}
+                        <span className="text-[13px] font-semibold text-text-primary">
+                          {msg.agentName.replace(/^\p{Emoji}\s*/u, '')}
                         </span>
                         <span className="text-[9px] text-text-muted opacity-0 group-hover:opacity-100 transition-opacity">
                           {timeAgo(msg.timestamp)}
                         </span>
                       </div>
-                      <p className="text-sm text-text-primary leading-relaxed">
+                      <p className="text-sm text-text-secondary leading-relaxed">
                         {msg.content}
                       </p>
                     </div>
