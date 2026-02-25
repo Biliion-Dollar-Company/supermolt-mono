@@ -1,14 +1,14 @@
 /**
  * Token Discussion Engine
  *
- * Proactive conversation generator (every 7 minutes):
- *  1. Gets hot tokens from TrendingTokenSync
- *  2. Filters out tokens with recent conversations (< 2h)
- *  3. Picks top candidates and generates agent discussions
- *  4. Rate-limited: max 30 conversations/hour, 2.5s between LLM calls
+ * Aggressive conversation generator — keeps the arena alive 24/7.
  *
- * This is the engine that makes the arena feel alive — agents proactively
- * discuss trending tokens even when no trades are happening.
+ * Two modes per cycle:
+ *  A) NEW conversations — tokens that don't have any recent discussion
+ *  B) FOLLOW-UP rounds — add fresh messages to existing conversations
+ *     so tokens stay active and discussions feel ongoing
+ *
+ * Runs every 3 minutes. Targets: every token should have a message < 30min old.
  */
 
 import { db } from '../lib/db';
@@ -19,12 +19,14 @@ import {
 } from '../lib/conversation-generator';
 import { getHotTokens } from './trending-token-sync';
 
-// ── Rate Limiting ────────────────────────────────────────
+// ── Configuration ────────────────────────────────────────
 
-const CONVERSATION_COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 hours per token
-const MAX_CONVERSATIONS_PER_HOUR = 30;
-const STAGGER_DELAY_MS = 2500; // 2.5s between LLM calls
-const MAX_PER_CYCLE = 5; // Max conversations per 7min cycle
+const NEW_CONVERSATION_COOLDOWN_MS = 30 * 60 * 1000;   // 30min — new convo per token
+const FOLLOWUP_COOLDOWN_MS = 15 * 60 * 1000;            // 15min — follow-up round
+const MAX_CONVERSATIONS_PER_HOUR = 60;
+const STAGGER_DELAY_MS = 1500;                           // 1.5s between LLM calls
+const MAX_NEW_PER_CYCLE = 5;                             // New conversations per cycle
+const MAX_FOLLOWUPS_PER_CYCLE = 5;                       // Follow-up rounds per cycle
 
 let hourlyConversationCount = 0;
 let hourlyResetAt = Date.now() + 60 * 60 * 1000;
@@ -38,19 +40,11 @@ function resetHourlyIfNeeded() {
 
 // ── Token Filtering ──────────────────────────────────────
 
-/**
- * Filter hot tokens to find ones worth discussing.
- * Excludes tokens that already have recent conversations.
- */
-async function findDiscussionCandidates(): Promise<TokenContext[]> {
+async function findNewCandidates(): Promise<TokenContext[]> {
   const hotTokens = getHotTokens();
-  if (hotTokens.length === 0) {
-    console.log('[DiscussionEngine] No hot tokens available (sync may not have run yet)');
-    return [];
-  }
+  if (hotTokens.length === 0) return [];
 
-  // Get tokens with recent conversations
-  const recentCutoff = new Date(Date.now() - CONVERSATION_COOLDOWN_MS);
+  const recentCutoff = new Date(Date.now() - NEW_CONVERSATION_COOLDOWN_MS);
   const recentConversations = await db.agentConversation.findMany({
     where: {
       createdAt: { gte: recentCutoff },
@@ -61,35 +55,61 @@ async function findDiscussionCandidates(): Promise<TokenContext[]> {
 
   const recentMints = new Set(recentConversations.map(c => c.tokenMint).filter(Boolean));
 
-  // Filter: no recent conversation, has good metrics
   const candidates = hotTokens.filter(token => {
     if (recentMints.has(token.tokenMint)) return false;
-    // Extra quality check — prefer tokens with stronger signals
-    if ((token.volume24h || 0) < 50_000) return false;
+    if ((token.volume24h || 0) < 30_000) return false;
     return true;
   });
 
-  console.log(`[DiscussionEngine] ${hotTokens.length} hot tokens → ${candidates.length} candidates (${recentMints.size} with recent convos)`);
   return candidates;
 }
 
 /**
- * Determine the best trigger type for a token based on its metrics.
+ * Find tokens with stale conversations that need follow-up messages.
+ * Returns tokens whose last message is older than FOLLOWUP_COOLDOWN.
  */
-function classifyTokenTrigger(token: TokenContext): ConversationTrigger {
-  const change = token.priceChange24h || 0;
+async function findFollowUpCandidates(): Promise<TokenContext[]> {
+  const hotTokens = getHotTokens();
+  if (hotTokens.length === 0) return [];
 
-  // Big movers (>30% in either direction) are "runners"
-  if (Math.abs(change) > 30) {
-    return ConversationTrigger.TOKEN_RUNNER;
+  const staleCutoff = new Date(Date.now() - FOLLOWUP_COOLDOWN_MS);
+  const mints = hotTokens.map(t => t.tokenMint);
+
+  // Find conversations with last message older than cooldown
+  const staleConversations = await db.agentConversation.findMany({
+    where: {
+      tokenMint: { in: mints },
+      topic: { contains: 'Trading Discussion' },
+    },
+    include: {
+      messages: {
+        take: 1,
+        orderBy: { timestamp: 'desc' as const },
+        select: { timestamp: true },
+      },
+    },
+  });
+
+  const staleMints = new Set<string>();
+  for (const conv of staleConversations) {
+    if (!conv.tokenMint) continue;
+    const lastMsg = conv.messages[0]?.timestamp;
+    if (!lastMsg || lastMsg < staleCutoff) {
+      staleMints.add(conv.tokenMint);
+    }
   }
 
-  // Recently deployed tokens with activity are "migrations"
+  // Also include tokens that have conversations but weren't caught above
+  // (e.g. tokens with no messages at all in their conversation)
+  return hotTokens.filter(t => staleMints.has(t.tokenMint));
+}
+
+function classifyTokenTrigger(token: TokenContext): ConversationTrigger {
+  const change = token.priceChange24h || 0;
+  if (Math.abs(change) > 30) return ConversationTrigger.TOKEN_RUNNER;
   if (token.source === 'token_deployment' || token.source === 'migration') {
     return ConversationTrigger.TOKEN_MIGRATION;
   }
-
-  // Default: trending
   return ConversationTrigger.TOKEN_TRENDING;
 }
 
@@ -97,82 +117,90 @@ function classifyTokenTrigger(token: TokenContext): ConversationTrigger {
 
 async function runDiscussionCycle(): Promise<void> {
   const cycleStart = Date.now();
-  console.log('\n🔄 [DiscussionEngine] Starting discussion cycle...');
+  console.log('\n🔄 [DiscussionEngine] Starting cycle...');
 
   resetHourlyIfNeeded();
 
   if (hourlyConversationCount >= MAX_CONVERSATIONS_PER_HOUR) {
-    console.log(`[DiscussionEngine] Hourly cap reached (${MAX_CONVERSATIONS_PER_HOUR}), skipping cycle`);
+    console.log(`[DiscussionEngine] Hourly cap reached (${MAX_CONVERSATIONS_PER_HOUR}), skipping`);
     return;
   }
 
-  const candidates = await findDiscussionCandidates();
-  if (candidates.length === 0) {
-    console.log('[DiscussionEngine] No candidates for discussion this cycle');
-    return;
-  }
-
-  // Pick top N candidates (prioritize runners > trending > deployments)
-  const sorted = [...candidates].sort((a, b) => {
-    // Runners first (big price changes)
-    const aChange = Math.abs(a.priceChange24h || 0);
-    const bChange = Math.abs(b.priceChange24h || 0);
-    if (aChange > 30 && bChange <= 30) return -1;
-    if (bChange > 30 && aChange <= 30) return 1;
-
-    // Then by volume
-    return (b.volume24h || 0) - (a.volume24h || 0);
-  });
-
-  const toDiscuss = sorted.slice(0, Math.min(MAX_PER_CYCLE, MAX_CONVERSATIONS_PER_HOUR - hourlyConversationCount));
   let generated = 0;
 
-  for (const token of toDiscuss) {
-    if (hourlyConversationCount >= MAX_CONVERSATIONS_PER_HOUR) break;
+  // ── Phase A: New conversations for tokens without recent ones ──
+  const newCandidates = await findNewCandidates();
+  if (newCandidates.length > 0) {
+    const sorted = [...newCandidates].sort((a, b) => {
+      const aChange = Math.abs(a.priceChange24h || 0);
+      const bChange = Math.abs(b.priceChange24h || 0);
+      if (aChange > 30 && bChange <= 30) return -1;
+      if (bChange > 30 && aChange <= 30) return 1;
+      return (b.volume24h || 0) - (a.volume24h || 0);
+    });
 
-    const trigger = classifyTokenTrigger(token);
+    const toCreate = sorted.slice(0, Math.min(MAX_NEW_PER_CYCLE, MAX_CONVERSATIONS_PER_HOUR - hourlyConversationCount));
+    console.log(`[DiscussionEngine] Phase A: ${newCandidates.length} candidates → creating ${toCreate.length} new discussions`);
 
-    console.log(`\n💬 [DiscussionEngine] Generating discussion: $${token.tokenSymbol} (${trigger})`);
-
-    const result = await generateTokenConversation(trigger, token);
-
-    if (result) {
-      hourlyConversationCount++;
-      generated++;
-      console.log(`  ✅ [DiscussionEngine] $${token.tokenSymbol}: ${result.messagesPosted} messages by [${result.agents.join(', ')}]`);
+    for (const token of toCreate) {
+      if (hourlyConversationCount >= MAX_CONVERSATIONS_PER_HOUR) break;
+      const trigger = classifyTokenTrigger(token);
+      const result = await generateTokenConversation(trigger, token);
+      if (result) {
+        hourlyConversationCount++;
+        generated++;
+        console.log(`  ✅ NEW $${token.tokenSymbol}: ${result.messagesPosted} msgs by [${result.agents.join(', ')}]`);
+      }
+      await new Promise(r => setTimeout(r, STAGGER_DELAY_MS));
     }
+  }
 
-    // Stagger between LLM calls
-    if (toDiscuss.indexOf(token) < toDiscuss.length - 1) {
+  // ── Phase B: Follow-up rounds for stale conversations ──
+  const followUpCandidates = await findFollowUpCandidates();
+  if (followUpCandidates.length > 0 && hourlyConversationCount < MAX_CONVERSATIONS_PER_HOUR) {
+    // Prioritize by volume
+    const sorted = [...followUpCandidates].sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
+    const toFollowUp = sorted.slice(0, Math.min(MAX_FOLLOWUPS_PER_CYCLE, MAX_CONVERSATIONS_PER_HOUR - hourlyConversationCount));
+    console.log(`[DiscussionEngine] Phase B: ${followUpCandidates.length} stale → refreshing ${toFollowUp.length} conversations`);
+
+    for (const token of toFollowUp) {
+      if (hourlyConversationCount >= MAX_CONVERSATIONS_PER_HOUR) break;
+      const trigger = classifyTokenTrigger(token);
+      // generateTokenConversation will find the existing conversation and append to it
+      const result = await generateTokenConversation(trigger, token);
+      if (result) {
+        hourlyConversationCount++;
+        generated++;
+        console.log(`  🔄 FOLLOWUP $${token.tokenSymbol}: +${result.messagesPosted} msgs`);
+      }
       await new Promise(r => setTimeout(r, STAGGER_DELAY_MS));
     }
   }
 
   const elapsed = Date.now() - cycleStart;
-  console.log(`\n🎉 [DiscussionEngine] Cycle complete: ${generated}/${toDiscuss.length} conversations generated (${elapsed}ms, ${hourlyConversationCount}/${MAX_CONVERSATIONS_PER_HOUR} hourly)`);
+  console.log(`🎉 [DiscussionEngine] Cycle done: ${generated} generated (${elapsed}ms, ${hourlyConversationCount}/${MAX_CONVERSATIONS_PER_HOUR} hourly)\n`);
 }
 
 // ── Cron Manager ─────────────────────────────────────────
 
-const DISCUSSION_INTERVAL_MS = 7 * 60 * 1000; // 7 minutes
+const DISCUSSION_INTERVAL_MS = 3 * 60 * 1000; // 3 minutes
 let discussionTimer: ReturnType<typeof setInterval> | null = null;
 
 export function startTokenDiscussionEngine(): void {
-  console.log('[DiscussionEngine] Starting (every 7 minutes)...');
+  console.log('[DiscussionEngine] Starting (every 3 minutes)...');
 
-  // First run after 2 minutes (give TrendingSync time to populate)
+  // First run after 45 seconds (give TrendingSync time to populate)
   setTimeout(() => {
     runDiscussionCycle().catch(err => {
       console.error('[DiscussionEngine] Initial cycle failed:', err);
     });
 
-    // Then every 7 minutes
     discussionTimer = setInterval(() => {
       runDiscussionCycle().catch(err => {
         console.error('[DiscussionEngine] Cycle failed:', err);
       });
     }, DISCUSSION_INTERVAL_MS);
-  }, 2 * 60 * 1000);
+  }, 45 * 1000);
 }
 
 export function stopTokenDiscussionEngine(): void {

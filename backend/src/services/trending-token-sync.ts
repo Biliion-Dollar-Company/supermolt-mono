@@ -100,6 +100,7 @@ async function fetchBirdeyeGraduates(): Promise<TokenContext[]> {
           fdv: t.fdv,
           chain: 'solana',
           source: 'birdeye_graduated',
+          imageUrl: t.logo_uri || undefined,
         });
       }
     }
@@ -179,6 +180,67 @@ async function fetchDexScreenerTrending(): Promise<TokenContext[]> {
   }
 }
 
+// ── DexScreener Latest Pairs — Pump.fun Migrations ───────
+
+async function fetchDexScreenerLatestPairs(): Promise<TokenContext[]> {
+  try {
+    // Search for recent Raydium pairs (where pump.fun tokens migrate to)
+    const res = await fetch('https://api.dexscreener.com/latest/dex/search?q=pump', {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const pairs = data.pairs || [];
+
+    const tokens: TokenContext[] = [];
+    const seen = new Set<string>();
+
+    // Filter for Solana Raydium pairs with pump-style addresses
+    const solanaPairs = pairs
+      .filter((p: any) =>
+        p.chainId === 'solana' &&
+        (p.dexId === 'raydium' || p.dexId === 'raydium-cp') &&
+        p.pairCreatedAt &&
+        Date.now() - p.pairCreatedAt < 72 * 60 * 60 * 1000 // < 72h old
+      )
+      .slice(0, 20);
+
+    for (const pair of solanaPairs) {
+      const mint = pair.baseToken?.address;
+      if (!mint || seen.has(mint)) continue;
+      seen.add(mint);
+
+      const mcap = pair.marketCap || pair.fdv || 0;
+      const vol = pair.volume?.h24 || 0;
+      const liq = pair.liquidity?.usd || 0;
+
+      if (mcap < QUALITY.minMarketCap) continue;
+      if (vol < QUALITY.minVolume24h) continue;
+      if (liq < QUALITY.minLiquidity) continue;
+
+      tokens.push({
+        tokenMint: mint,
+        tokenSymbol: pair.baseToken?.symbol || 'UNKNOWN',
+        tokenName: pair.baseToken?.name || '',
+        priceUsd: parseFloat(pair.priceUsd || '0'),
+        priceChange24h: pair.priceChange?.h24 || 0,
+        marketCap: mcap,
+        volume24h: vol,
+        liquidity: liq,
+        chain: 'solana',
+        source: 'pumpfun_migration',
+        imageUrl: pair.info?.imageUrl || undefined,
+      });
+    }
+
+    console.log(`[TrendingSync] DexScreener latest pairs: ${tokens.length} recent pump.fun migrations`);
+    return tokens;
+  } catch (err) {
+    console.error('[TrendingSync] DexScreener latest pairs error:', err);
+    return [];
+  }
+}
+
 // ── SuperRouter Recent Trades (DB Source) ────────────────
 
 async function fetchSuperRouterTokens(): Promise<TokenContext[]> {
@@ -212,8 +274,12 @@ async function fetchSuperRouterTokens(): Promise<TokenContext[]> {
       }
     }
 
+    // Filter out stablecoins and known non-meme tokens
+    const EXCLUDED_SYMBOLS = new Set(['USDC', 'USDT', 'SOL', 'WSOL', 'WETH', 'DAI', 'BUSD']);
+
     const tokens: TokenContext[] = [];
     for (const [mint, t] of tokenMap) {
+      if (EXCLUDED_SYMBOLS.has(t.tokenSymbol?.toUpperCase())) continue;
       const mcap = Number(t.marketCap) || 0;
       const liq = Number(t.liquidity) || 0;
 
@@ -256,7 +322,7 @@ async function syncTrendingTokens(): Promise<void> {
     }
   }
 
-  // 2. DexScreener trending (free, fills gaps)
+  // 2. DexScreener trending boosts (free, popular tokens)
   const dexTokens = await fetchDexScreenerTrending();
   for (const t of dexTokens) {
     if (!seenMints.has(t.tokenMint)) {
@@ -265,7 +331,16 @@ async function syncTrendingTokens(): Promise<void> {
     }
   }
 
-  // 3. SuperRouter recent trades (tokens we've actually traded)
+  // 3. DexScreener latest pairs — fresh pump.fun migrations
+  const migrationTokens = await fetchDexScreenerLatestPairs();
+  for (const t of migrationTokens) {
+    if (!seenMints.has(t.tokenMint)) {
+      seenMints.add(t.tokenMint);
+      newHotTokens.push(t);
+    }
+  }
+
+  // 4. SuperRouter recent trades (tokens we've actually traded)
   const srTokens = await fetchSuperRouterTokens();
   for (const t of srTokens) {
     if (!seenMints.has(t.tokenMint)) {
@@ -288,7 +363,7 @@ async function syncTrendingTokens(): Promise<void> {
 
   const elapsed = Date.now() - startTime;
   console.log(`[TrendingSync] Sync complete: ${hotTokens.length} hot tokens (${elapsed}ms)`);
-  console.log(`  Sources: ${birdeyeTokens.length} birdeye, ${dexTokens.length} dexscreener, ${srTokens.length} superrouter`);
+  console.log(`  Sources: ${birdeyeTokens.length} birdeye, ${dexTokens.length} dexscreener-boosts, ${migrationTokens.length} pf-migrations, ${srTokens.length} superrouter`);
 
   for (const t of hotTokens.slice(0, 5)) {
     const mcap = t.marketCap ? `$${(t.marketCap / 1000).toFixed(0)}k` : '?';
@@ -300,11 +375,11 @@ async function syncTrendingTokens(): Promise<void> {
 
 // ── Cron Manager ─────────────────────────────────────────
 
-const SYNC_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 let syncTimer: ReturnType<typeof setInterval> | null = null;
 
 export function startTrendingTokenSync(): void {
-  console.log('[TrendingSync] Starting (every 10 minutes)...');
+  console.log('[TrendingSync] Starting (every 5 minutes)...');
 
   // Run immediately
   syncTrendingTokens().catch(err => {

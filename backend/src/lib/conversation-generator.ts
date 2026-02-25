@@ -283,12 +283,9 @@ export async function generateTokenConversation(
       return null;
     }
 
-    // Find or create conversation for this token (within 2h for proactive, 24h for trade-triggered)
-    const lookbackMs = trigger === ConversationTrigger.TOKEN_TRENDING ||
-      trigger === ConversationTrigger.TOKEN_RUNNER ||
-      trigger === ConversationTrigger.TOKEN_MIGRATION
-      ? 2 * 60 * 60 * 1000
-      : 24 * 60 * 60 * 1000;
+    // Find or create conversation for this token
+    // Use 24h lookback so follow-up rounds append to existing conversations
+    const lookbackMs = 24 * 60 * 60 * 1000;
 
     let conversation = await db.agentConversation.findFirst({
       where: {
