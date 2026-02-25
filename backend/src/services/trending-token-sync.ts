@@ -63,6 +63,7 @@ async function fetchBirdeyeGraduates(): Promise<TokenContext[]> {
       limit: 30,
       minLiquidity: QUALITY.minLiquidity,
     });
+    console.log(`[TrendingSync] Birdeye graduated_time: ${freshGrads.length} raw results`);
 
     // High volume graduates (most active)
     const highVol = await getMemeTokenList({
@@ -72,12 +73,27 @@ async function fetchBirdeyeGraduates(): Promise<TokenContext[]> {
       limit: 20,
       minLiquidity: QUALITY.minLiquidity,
     });
+    console.log(`[TrendingSync] Birdeye volume_24h_usd: ${highVol.length} raw results`);
+
+    // Fallback: fresh pump.fun tokens by creation time (may not have graduated_time set yet)
+    const freshCreations = await getMemeTokenList({
+      sortBy: 'creation_time',
+      sortType: 'desc',
+      source: 'pump.fun',
+      limit: 20,
+      minLiquidity: QUALITY.minLiquidity,
+    });
+    console.log(`[TrendingSync] Birdeye creation_time (pump.fun): ${freshCreations.length} raw results`);
+
+    if (freshGrads.length === 0 && highVol.length === 0 && freshCreations.length === 0) {
+      console.warn('[TrendingSync] Birdeye returned 0 results across all 3 queries — API key tier may not support meme token list endpoint');
+    }
 
     // Deduplicate
     const seen = new Set<string>();
     const tokens: TokenContext[] = [];
 
-    for (const list of [freshGrads, highVol]) {
+    for (const list of [freshGrads, highVol, freshCreations]) {
       for (const t of list) {
         if (seen.has(t.address)) continue;
         seen.add(t.address);
@@ -129,7 +145,7 @@ async function fetchDexScreenerTrending(): Promise<TokenContext[]> {
     // Only take Solana tokens (pump.fun tokens are on Solana)
     const solanaBoosts = boosts
       .filter((b: any) => b.chainId === 'solana')
-      .slice(0, 10);
+      .slice(0, 20);
 
     for (const boost of solanaBoosts) {
       // Fetch full pair data
@@ -184,53 +200,76 @@ async function fetchDexScreenerTrending(): Promise<TokenContext[]> {
 
 async function fetchDexScreenerLatestPairs(): Promise<TokenContext[]> {
   try {
-    // Search for recent Raydium pairs (where pump.fun tokens migrate to)
-    const res = await fetch('https://api.dexscreener.com/latest/dex/search?q=pump', {
+    // Fetch latest token profiles — better than broken ?q=pump search
+    const res = await fetch('https://api.dexscreener.com/token-profiles/latest/v1', {
       signal: AbortSignal.timeout(10000),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.log(`[TrendingSync] DexScreener token-profiles returned ${res.status}`);
+      return [];
+    }
     const data = await res.json();
-    const pairs = data.pairs || [];
+    const profiles = Array.isArray(data) ? data : [];
+
+    // Filter for Solana token profiles only, limit to avoid rate limit issues
+    const solanaProfiles = profiles
+      .filter((p: any) => p.chainId === 'solana' && p.tokenAddress)
+      .slice(0, 15);
+
+    console.log(`[TrendingSync] DexScreener token-profiles: ${profiles.length} total, ${solanaProfiles.length} Solana (checking pairs...)`);
 
     const tokens: TokenContext[] = [];
     const seen = new Set<string>();
+    const maxAge = 72 * 60 * 60 * 1000; // 72h
 
-    // Filter for Solana Raydium pairs with pump-style addresses
-    const solanaPairs = pairs
-      .filter((p: any) =>
-        p.chainId === 'solana' &&
-        (p.dexId === 'raydium' || p.dexId === 'raydium-cp') &&
-        p.pairCreatedAt &&
-        Date.now() - p.pairCreatedAt < 72 * 60 * 60 * 1000 // < 72h old
-      )
-      .slice(0, 20);
-
-    for (const pair of solanaPairs) {
-      const mint = pair.baseToken?.address;
-      if (!mint || seen.has(mint)) continue;
+    for (const profile of solanaProfiles) {
+      const mint = profile.tokenAddress;
+      if (seen.has(mint)) continue;
       seen.add(mint);
 
-      const mcap = pair.marketCap || pair.fdv || 0;
-      const vol = pair.volume?.h24 || 0;
-      const liq = pair.liquidity?.usd || 0;
+      // Rate limit between DexScreener calls
+      await new Promise(r => setTimeout(r, 400));
 
-      if (mcap < QUALITY.minMarketCap) continue;
-      if (vol < QUALITY.minVolume24h) continue;
-      if (liq < QUALITY.minLiquidity) continue;
+      try {
+        const pairRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        if (!pairRes.ok) continue;
+        const pairData = await pairRes.json();
+        const pairs = pairData.pairs || [];
 
-      tokens.push({
-        tokenMint: mint,
-        tokenSymbol: pair.baseToken?.symbol || 'UNKNOWN',
-        tokenName: pair.baseToken?.name || '',
-        priceUsd: parseFloat(pair.priceUsd || '0'),
-        priceChange24h: pair.priceChange?.h24 || 0,
-        marketCap: mcap,
-        volume24h: vol,
-        liquidity: liq,
-        chain: 'solana',
-        source: 'pumpfun_migration',
-        imageUrl: pair.info?.imageUrl || undefined,
-      });
+        // Find a Raydium pair created within 72h
+        const raydiumPair = pairs.find((p: any) =>
+          (p.dexId === 'raydium' || p.dexId === 'raydium-cp') &&
+          p.pairCreatedAt &&
+          Date.now() - p.pairCreatedAt < maxAge
+        );
+        if (!raydiumPair) continue;
+
+        const mcap = raydiumPair.marketCap || raydiumPair.fdv || 0;
+        const vol = raydiumPair.volume?.h24 || 0;
+        const liq = raydiumPair.liquidity?.usd || 0;
+
+        if (mcap < QUALITY.minMarketCap) continue;
+        if (vol < QUALITY.minVolume24h) continue;
+        if (liq < QUALITY.minLiquidity) continue;
+
+        tokens.push({
+          tokenMint: mint,
+          tokenSymbol: raydiumPair.baseToken?.symbol || 'UNKNOWN',
+          tokenName: raydiumPair.baseToken?.name || '',
+          priceUsd: parseFloat(raydiumPair.priceUsd || '0'),
+          priceChange24h: raydiumPair.priceChange?.h24 || 0,
+          marketCap: mcap,
+          volume24h: vol,
+          liquidity: liq,
+          chain: 'solana',
+          source: 'pumpfun_migration',
+          imageUrl: profile.icon || raydiumPair.info?.imageUrl || undefined,
+        });
+      } catch {
+        continue;
+      }
     }
 
     console.log(`[TrendingSync] DexScreener latest pairs: ${tokens.length} recent pump.fun migrations`);

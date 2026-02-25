@@ -94,7 +94,15 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-sm font-bold text-accent-primary">
+            {token.imageUrl ? (
+              <img
+                src={token.imageUrl}
+                alt={token.tokenSymbol}
+                className="w-10 h-10 rounded-full object-cover bg-accent-primary/10"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+              />
+            ) : null}
+            <div className={`w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-sm font-bold text-accent-primary ${token.imageUrl ? 'hidden' : ''}`}>
               {token.tokenSymbol?.charAt(0) || '?'}
             </div>
             <div>
@@ -172,6 +180,29 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
             Solscan <ExternalLink className="w-2.5 h-2.5" />
           </a>
         </div>
+
+        {/* Sentiment Summary */}
+        {token.sentiment && (token.sentiment.bullish + token.sentiment.bearish) > 0 && (() => {
+          const total = token.sentiment.bullish + token.sentiment.bearish + token.sentiment.neutral;
+          const bullPct = Math.round((token.sentiment.bullish / total) * 100);
+          const bearPct = Math.round((token.sentiment.bearish / total) * 100);
+          return (
+            <div className="px-5 py-2.5 border-b border-white/[0.06]">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">Sentiment</span>
+                <span className="text-[10px] text-text-muted">{total} opinions</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-green-400 font-mono font-semibold w-8">{bullPct}%</span>
+                <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden flex">
+                  <div className="h-full bg-green-500/80 transition-all duration-500" style={{ width: `${bullPct}%` }} />
+                  <div className="h-full bg-red-500/80 transition-all duration-500 ml-auto" style={{ width: `${bearPct}%` }} />
+                </div>
+                <span className="text-[10px] text-red-400 font-mono font-semibold w-8 text-right">{bearPct}%</span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Conversation Thread */}
         <div className="flex-1 overflow-y-auto px-5 py-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>

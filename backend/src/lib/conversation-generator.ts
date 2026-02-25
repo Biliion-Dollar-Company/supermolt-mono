@@ -90,12 +90,36 @@ export async function selectConversationAgents(
   // Shuffle and pick
   const shuffled = [...agents].sort(() => Math.random() - 0.5).slice(0, count);
 
-  // Assign diverse archetypes so each agent has a distinct personality in the conversation
-  const usedArchetypes = [...CONVERSATION_ARCHETYPES].sort(() => Math.random() - 0.5);
+  // Assign diverse archetypes so each agent has a UNIQUE personality in the conversation
+  const shuffledArchetypes = [...CONVERSATION_ARCHETYPES].sort(() => Math.random() - 0.5);
+  const usedArchetypeSet = new Set<string>();
+  let archetypeIdx = 0;
+
+  // Helper: get the next unused archetype from the shuffled list
+  const getNextUnusedArchetype = (): string => {
+    while (archetypeIdx < shuffledArchetypes.length) {
+      const candidate = shuffledArchetypes[archetypeIdx];
+      archetypeIdx++;
+      if (!usedArchetypeSet.has(candidate)) {
+        return candidate;
+      }
+    }
+    // Exhausted all archetypes — fall back to first available (shouldn't happen with 9 archetypes and ~4 agents)
+    return shuffledArchetypes[0];
+  };
+
   return shuffled.map((agent, i) => {
-    const assignedArchetype = CONVERSATION_ARCHETYPES.includes(agent.archetypeId || '')
-      ? agent.archetypeId!
-      : usedArchetypes[i % usedArchetypes.length];
+    let assignedArchetype: string;
+
+    // If the agent has its own archetype and it hasn't been used yet, keep it
+    if (agent.archetypeId && CONVERSATION_ARCHETYPES.includes(agent.archetypeId) && !usedArchetypeSet.has(agent.archetypeId)) {
+      assignedArchetype = agent.archetypeId;
+    } else {
+      // Assign the next unused archetype
+      assignedArchetype = getNextUnusedArchetype();
+    }
+
+    usedArchetypeSet.add(assignedArchetype);
 
     // Use personality displayName (e.g. "🎯 Liquidity Sniper") instead of generic "Agent-XYZ"
     const personality = getAgentPersonality(assignedArchetype);

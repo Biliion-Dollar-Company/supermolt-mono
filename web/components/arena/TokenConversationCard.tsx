@@ -109,6 +109,21 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
               {token.lastMessage}
             </p>
           ) : null}
+          {/* Sentiment Bar */}
+          {token.sentiment && (token.sentiment.bullish + token.sentiment.bearish) > 0 && (
+            <div className="mb-2">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="text-[9px] text-green-400 font-mono">{token.sentiment.bullish} bull</span>
+                <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full transition-all duration-500"
+                    style={{ width: `${(token.sentiment.bullish / (token.sentiment.bullish + token.sentiment.bearish + token.sentiment.neutral)) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[9px] text-red-400 font-mono">{token.sentiment.bearish} bear</span>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1 text-[10px] text-text-muted">

@@ -292,6 +292,11 @@ export interface TrendingToken {
     content: string;
     timestamp: string;
   }>;
+  sentiment?: {
+    bullish: number;
+    bearish: number;
+    neutral: number;
+  };
 }
 
 // ── Agent Tasks ──

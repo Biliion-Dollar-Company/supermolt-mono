@@ -103,6 +103,20 @@ class WebSocketManager {
         this.emit('vote_cast', { type: 'vote_cast', data })
       );
 
+      // Arena conversation events (new messages, new conversations)
+      this.socket.on('conversation:new', (data: any) => {
+        this.emit('conversation_new', {
+          type: 'agent_message',
+          data: {
+            conversationId: data.conversationId,
+            tokenMint: data.tokenMint,
+            tokenSymbol: data.tokenSymbol,
+            trigger: data.trigger,
+            messageCount: data.messageCount,
+          },
+        });
+      });
+
       // Agent activity events (trade recommendations, auto-buy executed)
       this.socket.on('agent:activity', (data: any) => {
         const eventData = data?.data;
@@ -203,6 +217,10 @@ class WebSocketManager {
 
   onAutoBuyExecuted(callback: (event: FeedEvent) => void): () => void {
     return this.on('auto_buy_executed', callback);
+  }
+
+  onConversationNew(callback: (event: FeedEvent) => void): () => void {
+    return this.on('conversation_new', callback);
   }
 
   /** Subscribe to a specific agent's activity room */

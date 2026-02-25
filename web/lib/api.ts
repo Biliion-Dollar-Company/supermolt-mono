@@ -565,5 +565,6 @@ export async function getTrendingTokens(): Promise<TrendingToken[]> {
     lastMessageAt: t.lastMessageAt,
     lastMessage: t.lastMessage,
     latestMessages: t.latestMessages || [],
+    sentiment: t.sentiment || undefined,
   }));
 }

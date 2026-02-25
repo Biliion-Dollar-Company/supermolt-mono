@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { Swords, MessageSquare, Copy, Check, LayoutGrid } from 'lucide-react';
+import { Swords, MessageSquare, Copy, Check, LayoutGrid, Zap } from 'lucide-react';
 import { getTrendingTokens, getRecentTrades, getAllPositions } from '@/lib/api';
 import type { TrendingToken, Trade, Position } from '@/lib/types';
 import {
@@ -272,6 +272,7 @@ function ConversationsView() {
   const [selectedToken, setSelectedToken] = useState<TrendingToken | null>(null);
   const initialLoadDone = useRef(false);
   const [ready, setReady] = useState(false);
+  const [newMints, setNewMints] = useState<Set<string>>(new Set());
 
   const fetchData = useCallback(async () => {
     try {
@@ -292,6 +293,30 @@ function ConversationsView() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  // WebSocket: listen for new conversations and trigger quick refresh
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    (async () => {
+      try {
+        const { getWebSocketManager, connectWebSocket } = await import('@/lib/websocket');
+        await connectWebSocket();
+        const ws = getWebSocketManager();
+        unsub = ws.onConversationNew((event) => {
+          const mint = event.data.token_mint || event.data.tokenMint;
+          if (mint) {
+            setNewMints(prev => new Set([...prev, mint]));
+            setTimeout(() => setNewMints(prev => { const next = new Set(prev); next.delete(mint); return next; }), 5000);
+          }
+          // Quick refresh on new conversation
+          fetchData();
+        });
+      } catch {
+        // WebSocket not available — polling fallback is fine
+      }
+    })();
+    return () => unsub?.();
+  }, [fetchData]);
+
   if (!ready) return <ArenaPageSkeleton />;
 
   return (
@@ -299,6 +324,7 @@ function ConversationsView() {
       <div className="animate-arena-reveal">
         <TokenConversationGrid
           tokens={tokens}
+          newMints={newMints}
           onTokenClick={(token) => setSelectedToken(token)}
         />
       </div>

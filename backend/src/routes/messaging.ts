@@ -156,10 +156,37 @@ messaging.get('/arena-tokens', async (c) => {
     conv.messages.forEach(m => pSet.add(m.agentId));
   }
 
+  // Analyze sentiment from message content (keyword-based)
+  const BULLISH_WORDS = /\b(ape|moon|buy|bullish|long|pump|send it|let'?s go|legs|organic|gem|early|undervalued|accumulate|hold)\b/i;
+  const BEARISH_WORDS = /\b(fade|dump|sell|bearish|short|rug|scam|exit liquidity|manipulated|overvalued|honeypot|avoid|dead)\b/i;
+
+  function analyzeSentiment(messages: { message: string }[]): { bullish: number; bearish: number; neutral: number } {
+    let bullish = 0, bearish = 0, neutral = 0;
+    for (const m of messages) {
+      const hasBull = BULLISH_WORDS.test(m.message);
+      const hasBear = BEARISH_WORDS.test(m.message);
+      if (hasBull && !hasBear) bullish++;
+      else if (hasBear && !hasBull) bearish++;
+      else neutral++;
+    }
+    return { bullish, bearish, neutral };
+  }
+
+  // Get ALL messages for sentiment analysis (not just latest 3)
+  const allConvMessages = new Map<string, { message: string }[]>();
+  for (const conv of conversations) {
+    if (!conv.tokenMint) continue;
+    const existing = allConvMessages.get(conv.tokenMint) || [];
+    existing.push(...conv.messages);
+    allConvMessages.set(conv.tokenMint, existing);
+  }
+
   // Merge tokens + conversation data — only include tokens WITH conversations
   const arenaTokens = dedupedTokens
     .map(token => {
       const conv = convMap.get(token.tokenMint);
+      const msgs = allConvMessages.get(token.tokenMint) || [];
+      const sentiment = analyzeSentiment(msgs);
       return {
         tokenMint: token.tokenMint,
         tokenSymbol: token.tokenSymbol,
@@ -177,6 +204,7 @@ messaging.get('/arena-tokens', async (c) => {
         participantCount: totalParticipants.get(token.tokenMint)?.size || (conv ? (participantCounts.get(conv.id) || 0) : 0),
         lastMessageAt: conv?.messages[0]?.timestamp?.toISOString() || null,
         lastMessage: conv?.messages[0]?.message || null,
+        sentiment,
         latestMessages: conv?.messages.map(m => ({
           agentName: agentMap.get(m.agentId) || 'Unknown',
           content: m.message,
@@ -511,6 +539,75 @@ messaging.post('/messages', async (c) => {
       },
       500
     );
+  }
+});
+
+/**
+ * POST /messaging/cleanup-conversations
+ * Merge fragmented conversations per token into a single conversation.
+ * Keeps the newest conversation and moves messages from older ones into it.
+ */
+messaging.post('/cleanup-conversations', async (c) => {
+  try {
+    // Find all Trading Discussion conversations grouped by tokenMint
+    const conversations = await db.agentConversation.findMany({
+      where: {
+        topic: { contains: 'Trading Discussion' },
+        tokenMint: { not: null },
+      },
+      include: {
+        _count: { select: { messages: true } },
+      },
+      orderBy: { createdAt: 'desc' as const },
+    });
+
+    // Group by tokenMint
+    const byMint = new Map<string, typeof conversations>();
+    for (const conv of conversations) {
+      if (!conv.tokenMint) continue;
+      const list = byMint.get(conv.tokenMint) || [];
+      list.push(conv);
+      byMint.set(conv.tokenMint, list);
+    }
+
+    let merged = 0;
+    let deleted = 0;
+
+    for (const [mint, convos] of byMint) {
+      if (convos.length <= 1) continue; // No fragmentation
+
+      // Keep the newest conversation (first in desc order)
+      const keepConv = convos[0];
+      const oldConvos = convos.slice(1);
+
+      for (const oldConv of oldConvos) {
+        if (oldConv._count.messages > 0) {
+          // Move messages from old conversation to the kept one
+          await db.agentMessage.updateMany({
+            where: { conversationId: oldConv.id },
+            data: { conversationId: keepConv.id },
+          });
+          merged += oldConv._count.messages;
+        }
+        // Delete the empty old conversation
+        await db.agentConversation.delete({
+          where: { id: oldConv.id },
+        });
+        deleted++;
+      }
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        tokensProcessed: [...byMint.entries()].filter(([, v]) => v.length > 1).length,
+        conversationsDeleted: deleted,
+        messagesMerged: merged,
+      },
+    });
+  } catch (error) {
+    console.error('Cleanup conversations error:', error);
+    return c.json({ success: false, error: 'Cleanup failed' }, 500);
   }
 });
 
