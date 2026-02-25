@@ -155,7 +155,9 @@ async function fetchDexScreenerTrending(): Promise<TokenContext[]> {
         });
         if (!pairRes.ok) continue;
         const pairData = await pairRes.json();
-        const pair = pairData.pairs?.[0];
+        const pairs = pairData.pairs || [];
+        // Pick the pair with highest volume (could be raydium, pumpswap, meteora, etc)
+        const pair = pairs.sort((a: any, b: any) => ((b.volume?.h24 || 0) - (a.volume?.h24 || 0)))[0];
         if (!pair) continue;
 
         const mcap = pair.marketCap || pair.fdv || 0;
@@ -238,17 +240,20 @@ async function fetchDexScreenerLatestPairs(): Promise<TokenContext[]> {
         const pairData = await pairRes.json();
         const pairs = pairData.pairs || [];
 
-        // Find a Raydium pair created within 72h
-        const raydiumPair = pairs.find((p: any) =>
-          (p.dexId === 'raydium' || p.dexId === 'raydium-cp') &&
-          p.pairCreatedAt &&
-          Date.now() - p.pairCreatedAt < maxAge
-        );
-        if (!raydiumPair) continue;
+        // Find a Solana DEX pair created within 72h (raydium, pumpswap, meteora, etc)
+        const solanaDexes = ['raydium', 'raydium-cp', 'pumpswap', 'meteora', 'orca'];
+        const recentPair = pairs
+          .filter((p: any) =>
+            solanaDexes.includes(p.dexId) &&
+            p.pairCreatedAt &&
+            Date.now() - p.pairCreatedAt < maxAge
+          )
+          .sort((a: any, b: any) => ((b.volume?.h24 || 0) - (a.volume?.h24 || 0)))[0];
+        if (!recentPair) continue;
 
-        const mcap = raydiumPair.marketCap || raydiumPair.fdv || 0;
-        const vol = raydiumPair.volume?.h24 || 0;
-        const liq = raydiumPair.liquidity?.usd || 0;
+        const mcap = recentPair.marketCap || recentPair.fdv || 0;
+        const vol = recentPair.volume?.h24 || 0;
+        const liq = recentPair.liquidity?.usd || 0;
 
         if (mcap < QUALITY.minMarketCap) continue;
         if (vol < QUALITY.minVolume24h) continue;
@@ -256,16 +261,16 @@ async function fetchDexScreenerLatestPairs(): Promise<TokenContext[]> {
 
         tokens.push({
           tokenMint: mint,
-          tokenSymbol: raydiumPair.baseToken?.symbol || 'UNKNOWN',
-          tokenName: raydiumPair.baseToken?.name || '',
-          priceUsd: parseFloat(raydiumPair.priceUsd || '0'),
-          priceChange24h: raydiumPair.priceChange?.h24 || 0,
+          tokenSymbol: recentPair.baseToken?.symbol || 'UNKNOWN',
+          tokenName: recentPair.baseToken?.name || '',
+          priceUsd: parseFloat(recentPair.priceUsd || '0'),
+          priceChange24h: recentPair.priceChange?.h24 || 0,
           marketCap: mcap,
           volume24h: vol,
           liquidity: liq,
           chain: 'solana',
           source: 'pumpfun_migration',
-          imageUrl: profile.icon || raydiumPair.info?.imageUrl || undefined,
+          imageUrl: profile.icon || recentPair.info?.imageUrl || undefined,
         });
       } catch {
         continue;

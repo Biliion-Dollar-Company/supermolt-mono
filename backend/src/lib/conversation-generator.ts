@@ -200,33 +200,41 @@ function buildTokenDiscussionPrompt(
     };
   }).filter(Boolean);
 
-  return `You are generating a LIVE conversation between AI trading agents discussing a pump.fun token that recently graduated to Raydium. Agents are debating whether to ape in or fade.
+  return `You are simulating a REAL-TIME group chat between ${agentContexts.length} degenerate crypto traders reacting to a token. This is NOT a formal discussion — it's a raw, unfiltered alpha chat where traders talk shit, flex their wins, and argue about plays.
 
-EVENT:
+TOKEN ALERT:
 ${eventSummary}
 
-PARTICIPATING AGENTS:
+THE TRADERS:
 ${agentContexts.map((ac: any) => `${ac.emoji} ${ac.name}:\n${ac.context}`).join('\n\n')}
 
-RULES:
-- Each agent MUST respond in their UNIQUE voice — personality dictates tone, vocabulary, and analysis style
-- 1-3 sentences max. Vary length — some agents are terse, others elaborate slightly
-- ALWAYS cite specific numbers from the data ($price, mcap, vol, liq ratios)
-- Agents MUST take different positions — at least one bullish, one bearish, one cautious
-- Write like real crypto traders in a private alpha group chat — raw, direct, no formality
-- Agents should reference and disagree with EACH OTHER by name (e.g. "Sniper's wrong about the liq...")
-- Vary sentence structure — don't start every message with "I'm" or "The"
-- Include specific trading actions: entry prices, position sizes, stop losses, targets
-- ${trigger === ConversationTrigger.TOKEN_TRENDING ? 'Debate: does this pump.fun grad have legs or is it exit liquidity for insiders?' : ''}
-- ${trigger === ConversationTrigger.TOKEN_RUNNER ? 'Hot debate: is this move organic or whale-manipulated? Some ape, some fade.' : ''}
-- ${trigger === ConversationTrigger.TOKEN_MIGRATION ? 'Fresh Raydium listing: debate liquidity depth, dev wallet concentration, snipe opportunity.' : ''}
-- NO hashtags, NO "NFA", NO disclaimers, NO generic platitudes
-- Each response must contain at least one SPECIFIC actionable opinion (buy/sell/wait at X price)
+CRITICAL STYLE RULES — READ CAREFULLY:
+1. This must read like a REAL group chat, not AI-generated analysis. Think CT (Crypto Twitter) group chat energy.
+2. NEVER start a message with "I'm" or "I am" or "The" — vary openers. Use the token ticker, a reaction, a callout, or jump straight into the take.
+3. Agents MUST argue with each other. Call each other out BY NAME. ("lol Sniper you're gonna get rekt on that entry", "Whale's cooked, that wallet is a known dumper")
+4. Mix short punchy takes (5-10 words) with slightly longer analysis (2 sentences max). NOT every message should be the same length.
+5. Use REAL trader language: "entry", "sizing", "tp" (take profit), "sl" (stop loss), "bid", "fade", "ape", "nuke", "send", "cooked", "rekt"
+6. Reference EXACT numbers from the data — $price, mcap, vol, liq. Don't just say "low liquidity", say "$${token.liquidity ? (token.liquidity / 1000).toFixed(0) + 'k' : '?'} liq"
+7. At least one agent must be BULLISH with a specific entry, one BEARISH with a reason, one giving a nuanced/conditional take
+8. ${trigger === ConversationTrigger.TOKEN_TRENDING ? 'Context: pump.fun grad getting attention. Debate: real momentum or exit liquidity trap?' : ''}${trigger === ConversationTrigger.TOKEN_RUNNER ? 'Context: this thing is RUNNING. Debate: organic send or coordinated pump? Chase or fade?' : ''}${trigger === ConversationTrigger.TOKEN_MIGRATION ? 'Context: fresh graduation. Debate: snipe the fresh liq or wait for the dump?' : ''}
+9. NO hashtags. NO "NFA". NO disclaimers. NO corporate speak. NO "I believe" or "in my opinion". Just raw calls.
+10. Each message must feel DIFFERENT from the others in structure and tone.
+
+BAD examples (too generic, too similar, AI-sounding):
+- "I'm not touching this with low liquidity"
+- "The market cap is too small for my taste"
+- "I'm bullish on this token due to strong volume"
+
+GOOD examples (real trader energy):
+- "bid $0.00045, tp at $0.0008. liq is thin but vol is 28x — this sends or dies trying"
+- "Sniper you're cooked lmao, dev wallet holds 12%. fade at $0.0006 before the rug"
+- "$320k vol on a $50k mcap?? someone knows something. aping 2 SOL"
+- "touch grass. this is the 4th pump.fun grad today with the same chart pattern. all dumped."
 
 OUTPUT: Valid JSON array only (no markdown, no code fences):
 [{"agentId":"<agent_id>","message":"...","sentiment":"BULLISH"|"BEARISH"|"NEUTRAL"},...]
 
-Include ${agentContexts.length} agent responses. Each agent MUST have a different sentiment.`;
+${agentContexts.length} responses. Each MUST have different sentiment and different message structure.`;
 }
 
 // ── Core Generator ───────────────────────────────────────
@@ -286,7 +294,7 @@ export async function generateTokenConversation(
     console.log(`  💬 [ConvGen] Generating ${token.tokenSymbol} conversation (${participatingAgents.length} agents, trigger: ${trigger})...`);
     const response = await llmService.generate(
       prompt,
-      `Generate ${participatingAgents.length} unique, opinionated agent reactions about $${token.tokenSymbol}. Each agent must cite specific data and take a clear trading stance. JSON array only, no markdown.`,
+      `${participatingAgents.length} raw trader reactions to $${token.tokenSymbol}. They must argue with each other, cite exact numbers, and sound like real degens in a group chat. JSON array only.`,
     );
 
     if (!response) {
