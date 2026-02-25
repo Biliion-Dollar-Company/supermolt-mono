@@ -76,8 +76,20 @@ messaging.post('/generate-discussion', async (c) => {
 messaging.get('/arena-tokens', async (c) => {
   const hotTokens = getHotTokens();
 
+  // Deduplicate by tokenSymbol — keep the one with highest volume
+  const symbolMap = new Map<string, typeof hotTokens[0]>();
+  for (const t of hotTokens) {
+    const sym = t.tokenSymbol?.toUpperCase();
+    if (!sym) continue;
+    const existing = symbolMap.get(sym);
+    if (!existing || (t.volume24h || 0) > (existing.volume24h || 0)) {
+      symbolMap.set(sym, t);
+    }
+  }
+  const dedupedTokens = Array.from(symbolMap.values());
+
   // Get conversations for all hot token mints
-  const mints = hotTokens.map(t => t.tokenMint);
+  const mints = dedupedTokens.map(t => t.tokenMint);
   const conversations = mints.length > 0
     ? await db.agentConversation.findMany({
         where: {
@@ -108,8 +120,6 @@ messaging.get('/arena-tokens', async (c) => {
   // Get participant counts
   const participantCounts = new Map<string, number>();
   for (const conv of conversations) {
-    const distinct = new Set(conv.messages.map(m => m.agentId));
-    // This only counts from the 3 messages we fetched, get real count
     const allDistinct = await db.agentMessage.findMany({
       where: { conversationId: conv.id },
       distinct: ['agentId'],
@@ -122,44 +132,44 @@ messaging.get('/arena-tokens', async (c) => {
   const convMap = new Map<string, typeof conversations[0]>();
   for (const conv of conversations) {
     if (!conv.tokenMint) continue;
-    // Keep the one with most messages
     const existing = convMap.get(conv.tokenMint);
     if (!existing || conv._count.messages > existing._count.messages) {
       convMap.set(conv.tokenMint, conv);
     }
   }
 
-  // Merge hot tokens + conversation data
-  const arenaTokens = hotTokens.map(token => {
-    const conv = convMap.get(token.tokenMint);
-    return {
-      tokenMint: token.tokenMint,
-      tokenSymbol: token.tokenSymbol,
-      tokenName: token.tokenName,
-      priceUsd: token.priceUsd,
-      priceChange24h: token.priceChange24h,
-      marketCap: token.marketCap,
-      volume24h: token.volume24h,
-      liquidity: token.liquidity,
-      chain: token.chain || 'solana',
-      source: token.source,
-      conversationId: conv?.id || null,
-      messageCount: conv?._count.messages || 0,
-      participantCount: conv ? (participantCounts.get(conv.id) || 0) : 0,
-      lastMessageAt: conv?.messages[0]?.timestamp?.toISOString() || null,
-      lastMessage: conv?.messages[0]?.message || null,
-      latestMessages: conv?.messages.map(m => ({
-        agentName: agentMap.get(m.agentId) || 'Unknown',
-        content: m.message,
-        timestamp: m.timestamp.toISOString(),
-      })) || [],
-    };
-  });
+  // Merge tokens + conversation data — only include tokens WITH conversations
+  const arenaTokens = dedupedTokens
+    .map(token => {
+      const conv = convMap.get(token.tokenMint);
+      return {
+        tokenMint: token.tokenMint,
+        tokenSymbol: token.tokenSymbol,
+        tokenName: token.tokenName,
+        imageUrl: token.imageUrl || null,
+        priceUsd: token.priceUsd,
+        priceChange24h: token.priceChange24h,
+        marketCap: token.marketCap,
+        volume24h: token.volume24h,
+        liquidity: token.liquidity,
+        chain: token.chain || 'solana',
+        source: token.source,
+        conversationId: conv?.id || null,
+        messageCount: conv?._count.messages || 0,
+        participantCount: conv ? (participantCounts.get(conv.id) || 0) : 0,
+        lastMessageAt: conv?.messages[0]?.timestamp?.toISOString() || null,
+        lastMessage: conv?.messages[0]?.message || null,
+        latestMessages: conv?.messages.map(m => ({
+          agentName: agentMap.get(m.agentId) || 'Unknown',
+          content: m.message,
+          timestamp: m.timestamp.toISOString(),
+        })) || [],
+      };
+    })
+    .filter(t => t.messageCount > 0); // Only show tokens with active discussions
 
-  // Sort: tokens with conversations first, then by volume
+  // Sort by message count, then volume
   arenaTokens.sort((a, b) => {
-    if (a.messageCount > 0 && b.messageCount === 0) return -1;
-    if (b.messageCount > 0 && a.messageCount === 0) return 1;
     if (a.messageCount !== b.messageCount) return b.messageCount - a.messageCount;
     return (b.volume24h || 0) - (a.volume24h || 0);
   });

@@ -552,6 +552,7 @@ export async function getTrendingTokens(): Promise<TrendingToken[]> {
   return raw.map((t: any) => ({
     tokenMint: t.tokenMint,
     tokenSymbol: t.tokenSymbol,
+    imageUrl: t.imageUrl || undefined,
     priceUsd: t.priceUsd,
     priceChange24h: t.priceChange24h,
     marketCap: t.marketCap,

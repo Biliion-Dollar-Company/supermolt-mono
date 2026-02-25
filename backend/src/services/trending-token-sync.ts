@@ -161,6 +161,7 @@ async function fetchDexScreenerTrending(): Promise<TokenContext[]> {
           fdv: pair.fdv || 0,
           chain: 'solana',
           source: 'dexscreener_trending',
+          imageUrl: pair.info?.imageUrl || undefined,
         });
 
         // Rate limit DexScreener

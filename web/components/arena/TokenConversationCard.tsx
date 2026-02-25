@@ -45,8 +45,15 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
       <div className="px-4 pt-4 pb-2">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            {/* Token icon placeholder */}
-            <div className="w-8 h-8 rounded-full bg-accent-primary/10 flex items-center justify-center text-xs font-bold text-accent-primary">
+            {token.imageUrl ? (
+              <img
+                src={token.imageUrl}
+                alt={token.tokenSymbol}
+                className="w-8 h-8 rounded-full object-cover bg-accent-primary/10"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
+              />
+            ) : null}
+            <div className={`w-8 h-8 rounded-full bg-accent-primary/10 flex items-center justify-center text-xs font-bold text-accent-primary ${token.imageUrl ? 'hidden' : ''}`}>
               {token.tokenSymbol?.charAt(0) || '?'}
             </div>
             <div>

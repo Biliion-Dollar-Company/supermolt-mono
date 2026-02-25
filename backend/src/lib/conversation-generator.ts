@@ -34,6 +34,7 @@ export interface TokenContext {
   fdv?: number;
   chain?: string;
   source?: string; // 'dexscreener_trending' | 'token_deployment' | 'migration'
+  imageUrl?: string;
 }
 
 export interface ConversationResult {
@@ -91,15 +92,21 @@ export async function selectConversationAgents(
 
   // Assign diverse archetypes so each agent has a distinct personality in the conversation
   const usedArchetypes = [...CONVERSATION_ARCHETYPES].sort(() => Math.random() - 0.5);
-  return shuffled.map((agent, i) => ({
-    ...agent,
-    // Override archetypeId for conversation personality if agent has default/no personality
-    archetypeId: CONVERSATION_ARCHETYPES.includes(agent.archetypeId || '')
-      ? agent.archetypeId
-      : usedArchetypes[i % usedArchetypes.length],
-    // Give agents display names based on their assigned archetype
-    displayName: agent.displayName || agent.name || `Agent ${i + 1}`,
-  }));
+  return shuffled.map((agent, i) => {
+    const assignedArchetype = CONVERSATION_ARCHETYPES.includes(agent.archetypeId || '')
+      ? agent.archetypeId!
+      : usedArchetypes[i % usedArchetypes.length];
+
+    // Use personality displayName (e.g. "🎯 Liquidity Sniper") instead of generic "Agent-XYZ"
+    const personality = getAgentPersonality(assignedArchetype);
+    const displayName = personality?.displayName || agent.displayName || agent.name || `Agent ${i + 1}`;
+
+    return {
+      ...agent,
+      archetypeId: assignedArchetype,
+      displayName,
+    };
+  });
 }
 
 // ── Prompt Builder ───────────────────────────────────────
@@ -323,6 +330,15 @@ export async function generateTokenConversation(
           message: msg.message,
         },
       });
+
+      // Persist personality displayName to DB so arena endpoint can look it up
+      if (agent.displayName && agent.displayName !== agent.name) {
+        db.tradingAgent.update({
+          where: { id: agent.id },
+          data: { displayName: agent.displayName },
+        }).catch(() => {}); // fire-and-forget
+      }
+
       messagesPosted++;
       agentNames.push(agent.displayName || agent.name);
 
