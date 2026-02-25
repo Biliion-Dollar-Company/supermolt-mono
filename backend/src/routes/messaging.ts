@@ -10,8 +10,63 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
 import { db } from '../lib/db';
+import { getHotTokens, getLastSyncTime } from '../services/trending-token-sync';
+import { generateTokenConversation } from '../lib/conversation-generator';
+import { ConversationTrigger } from '../lib/conversation-triggers';
 
 const messaging = new Hono();
+
+/**
+ * GET /messaging/engine-status
+ * Diagnostic: check if discussion engine is finding tokens
+ */
+messaging.get('/engine-status', async (c) => {
+  const hotTokens = getHotTokens();
+  const lastSync = getLastSyncTime();
+  return c.json({
+    success: true,
+    data: {
+      hotTokenCount: hotTokens.length,
+      lastSyncAt: lastSync?.toISOString() || null,
+      topTokens: hotTokens.slice(0, 10).map(t => ({
+        symbol: t.tokenSymbol,
+        mint: t.tokenMint,
+        source: t.source,
+        marketCap: t.marketCap,
+        volume24h: t.volume24h,
+        priceChange24h: t.priceChange24h,
+      })),
+    },
+  });
+});
+
+/**
+ * POST /messaging/generate-discussion
+ * Manual trigger: generate a conversation for a specific token or the top hot token
+ */
+messaging.post('/generate-discussion', async (c) => {
+  const hotTokens = getHotTokens();
+  const body = await c.req.json().catch(() => ({}));
+  const targetMint = (body as any).tokenMint;
+
+  const token = targetMint
+    ? hotTokens.find(t => t.tokenMint === targetMint) || hotTokens[0]
+    : hotTokens[0];
+
+  if (!token) {
+    return c.json({ success: false, error: 'No hot tokens available. Sync may not have run yet.' }, 400);
+  }
+
+  const result = await generateTokenConversation(
+    ConversationTrigger.TOKEN_TRENDING,
+    token,
+  );
+
+  return c.json({
+    success: !!result,
+    data: result || { error: 'Generation failed — check server logs' },
+  });
+});
 
 // Request schemas
 const createConversationSchema = z.object({
