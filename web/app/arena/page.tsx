@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { Swords, Wifi, WifiOff, MessageSquare, Copy, Check, LayoutGrid, List } from 'lucide-react';
+import { Swords, MessageSquare, Copy, Check, LayoutGrid } from 'lucide-react';
 import { getTrendingTokens, getRecentTrades, getAllPositions } from '@/lib/api';
 import type { TrendingToken, Trade, Position } from '@/lib/types';
 import {
@@ -319,24 +319,6 @@ type ArenaView = 'discussions' | 'classic';
 export default function ArenaPage() {
   const isMobile = useIsMobile();
   const [view, setView] = useState<ArenaView>('discussions');
-  const [isLive, setIsLive] = useState(true);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-
-  // Heartbeat to check backend is alive
-  useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/health`);
-        setIsLive(res.ok);
-      } catch {
-        setIsLive(false);
-      }
-      setLastRefresh(new Date());
-    };
-    check();
-    const interval = setInterval(check, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-bg-primary pt-18 sm:pt-20 pb-16 px-4 sm:px-[6%] lg:px-[10%] relative">
@@ -413,15 +395,6 @@ export default function ArenaPage() {
               </button>
             </div>
 
-            <span className="text-xs text-text-muted hidden sm:inline" suppressHydrationWarning>
-              {lastRefresh.toLocaleTimeString()}
-            </span>
-            <div className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-full ${
-              isLive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
-            }`}>
-              {isLive ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-              {isLive ? 'Live' : 'Offline'}
-            </div>
           </div>
         </div>
 
