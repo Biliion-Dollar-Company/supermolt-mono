@@ -227,7 +227,7 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
         })()}
 
         {/* Conversation Thread */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.06) transparent' }}>
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 sm:px-8 py-5" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.06) transparent' }}>
           <div className="flex items-center gap-2 mb-5">
             <MessageSquare className="w-3.5 h-3.5 text-accent-primary/70" />
             <span className="text-[10px] font-semibold text-text-muted/60 uppercase tracking-widest">

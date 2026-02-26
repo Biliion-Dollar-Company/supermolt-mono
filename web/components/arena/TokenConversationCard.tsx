@@ -102,11 +102,27 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
                   </span>
                 )}
               </div>
-              {token.priceUsd && (
-                <span className="text-[11px] text-text-muted font-mono">
-                  {formatPrice(token.priceUsd)}
-                </span>
-              )}
+              {/* Metrics inline under symbol */}
+              <div className="flex items-center gap-2 mt-0.5 text-[10px] text-text-muted/70">
+                {token.marketCap ? (
+                  <span className="flex items-center gap-0.5">
+                    <span className="text-text-muted/40">MC</span>
+                    <span className="text-text-secondary/80 font-medium">{formatCompact(token.marketCap)}</span>
+                  </span>
+                ) : null}
+                {token.volume24h ? (
+                  <span className="flex items-center gap-0.5">
+                    <span className="text-text-muted/40">Vol</span>
+                    <span className="text-text-secondary/80 font-medium">{formatCompact(token.volume24h)}</span>
+                  </span>
+                ) : null}
+                {token.liquidity ? (
+                  <span className="flex items-center gap-0.5">
+                    <span className="text-text-muted/40">Liq</span>
+                    <span className="text-text-secondary/80 font-medium">{formatCompact(token.liquidity)}</span>
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
           {change !== undefined && (
@@ -119,27 +135,6 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
           )}
         </div>
 
-        {/* Compact Metrics */}
-        <div className="flex items-center gap-2.5 text-[10px] text-text-muted/70">
-          {token.marketCap ? (
-            <span className="flex items-center gap-1">
-              <span className="text-text-muted/40">MC</span>
-              <span className="text-text-secondary/80 font-medium">{formatCompact(token.marketCap)}</span>
-            </span>
-          ) : null}
-          {token.volume24h ? (
-            <span className="flex items-center gap-1">
-              <span className="text-text-muted/40">Vol</span>
-              <span className="text-text-secondary/80 font-medium">{formatCompact(token.volume24h)}</span>
-            </span>
-          ) : null}
-          {token.liquidity ? (
-            <span className="flex items-center gap-1">
-              <span className="text-text-muted/40">Liq</span>
-              <span className="text-text-secondary/80 font-medium">{formatCompact(token.liquidity)}</span>
-            </span>
-          ) : null}
-        </div>
       </div>
 
       {/* Conversation Preview */}
