@@ -19,7 +19,7 @@ import {
   TradeRecommendationBanner,
 } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
-import { AgentConfigPanel, AgentDataFlow, TrackedWalletsPanel, BuyTriggersPanel, EpochRewardWidget } from '@/components/dashboard';
+import { AgentConfigPanel, AgentDataFlow, TrackedWalletsPanel, BuyTriggersPanel } from '@/components/dashboard';
 import { useAuthStore } from '@/store/authStore';
 
 
@@ -407,7 +407,6 @@ function CommandCenterSection() {
         <div className="space-y-6">
           <AgentConfigPanel />
           <BuyTriggersPanel />
-          <EpochRewardWidget />
         </div>
         <TrackedWalletsPanel />
       </div>
@@ -451,28 +450,28 @@ export default function ArenaPage() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             {/* View Toggle */}
-            <div className="flex items-center bg-white/[0.03] border border-white/[0.06] rounded-lg overflow-hidden p-0.5">
+            <div className="flex items-center bg-white/[0.03] border border-white/[0.06] rounded-lg overflow-hidden p-1">
               <button
                 onClick={() => setView('discussions')}
-                className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md transition-all cursor-pointer ${
+                className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-md transition-all cursor-pointer ${
                   view === 'discussions'
                     ? 'text-accent-primary bg-accent-primary/10 shadow-sm'
                     : 'text-text-muted/50 hover:text-text-secondary'
                 }`}
               >
-                <MessageSquare className="w-3 h-3" />
-                <span className="hidden sm:inline">Discussions</span>
+                <MessageSquare className="w-4 h-4" />
+                <span>Discussions</span>
               </button>
               <button
                 onClick={() => setView('classic')}
-                className={`flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-md transition-all cursor-pointer ${
+                className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-md transition-all cursor-pointer ${
                   view === 'classic'
                     ? 'text-accent-primary bg-accent-primary/10 shadow-sm'
                     : 'text-text-muted/50 hover:text-text-secondary'
                 }`}
               >
-                <LayoutGrid className="w-3 h-3" />
-                <span className="hidden sm:inline">Classic</span>
+                <LayoutGrid className="w-4 h-4" />
+                <span>Classic</span>
               </button>
             </div>
           </div>
