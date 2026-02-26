@@ -43,7 +43,7 @@ function ArenaPageSkeleton() {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {Array.from({ length: 9 }).map((_, i) => (
-          <div key={i} className="bg-[#111118]/80 border border-white/[0.06] rounded-xl p-4" style={{ animationDelay: `${i * 50}ms` }}>
+          <div key={i} className="bg-[#0e0e18]/90 relative p-4" style={{ animationDelay: `${i * 50}ms` }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 <SkeletonBlock className="w-9 h-9 rounded-full" />

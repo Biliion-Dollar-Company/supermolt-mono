@@ -60,14 +60,22 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
     <button
       onClick={onClick}
       className={`
-        w-full text-left rounded-xl overflow-hidden transition-all duration-300 cursor-pointer group relative
-        bg-[#111118]/80 backdrop-blur-xl border
-        hover:bg-[#15151f]/90 hover:border-accent-primary/25 hover:shadow-[0_4px_32px_rgba(232,180,94,0.08)] hover:-translate-y-0.5
-        ${isNew ? 'animate-card-pulse border-accent-primary/30' : 'border-white/[0.06]'}
+        w-full text-left overflow-hidden transition-all duration-300 cursor-pointer group relative
+        bg-[#0e0e18]/90 backdrop-blur-xl
+        hover:bg-[#12121c] hover:shadow-[0_4px_32px_rgba(232,180,94,0.06)]
+        ${isNew ? 'animate-card-pulse' : ''}
       `}
     >
-      {/* Subtle top gradient accent */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
+      {/* Corner brackets — branded border style */}
+      <span className="absolute top-0 left-0 w-5 h-5 border-t border-l border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
+      <span className="absolute top-0 right-0 w-5 h-5 border-t border-r border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
+      <span className="absolute bottom-0 left-0 w-5 h-5 border-b border-l border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
+      <span className="absolute bottom-0 right-0 w-5 h-5 border-b border-r border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
+      {/* Edge lines between corners */}
+      <span className="absolute top-0 left-5 right-5 h-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
+      <span className="absolute bottom-0 left-5 right-5 h-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
+      <span className="absolute left-0 top-5 bottom-5 w-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
+      <span className="absolute right-0 top-5 bottom-5 w-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
 
       {/* Header: Token Info */}
       <div className="px-4 pt-4 pb-2.5">

@@ -227,8 +227,8 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
         })()}
 
         {/* Conversation Thread */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 sm:px-8 py-5" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.06) transparent' }}>
-          <div className="flex items-center gap-2 mb-5">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto py-5" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.06) transparent' }}>
+          <div className="flex items-center gap-2 mb-5 px-6 sm:px-8">
             <MessageSquare className="w-3.5 h-3.5 text-accent-primary/70" />
             <span className="text-[10px] font-semibold text-text-muted/60 uppercase tracking-widest">
               Discussion
@@ -239,11 +239,11 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
           </div>
 
           {loading ? (
-            <div className="space-y-4">
+            <div className="space-y-4 px-6 sm:px-8">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex gap-3 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}>
-                  <div className="w-8 h-8 bg-white/[0.03] rounded-full flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
+                <div key={i} className="flex gap-3.5 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}>
+                  <div className="w-9 h-9 bg-white/[0.03] rounded-full flex-shrink-0" />
+                  <div className="flex-1 space-y-2 pt-1">
                     <div className="h-3 w-24 bg-white/[0.03] rounded" />
                     <div className="h-3 w-full bg-white/[0.03] rounded" />
                     <div className="h-3 w-2/3 bg-white/[0.03] rounded" />
@@ -252,31 +252,32 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
               ))}
             </div>
           ) : messages.length === 0 ? (
-            <div className="text-center py-16 text-text-muted">
+            <div className="text-center py-16 text-text-muted px-6 sm:px-8">
               <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-20" />
               <p className="text-sm font-medium text-text-secondary/70">No messages yet</p>
               <p className="text-xs mt-1.5 text-text-muted/50">Agents will discuss this token soon</p>
             </div>
           ) : (
-            <div className="space-y-1">
+            <div className="space-y-0.5 px-6 sm:px-8">
               {messages.map((msg, idx) => {
                 const color = getAgentColor(msg.agentName);
                 const sentiment = getSentimentStyle(msg.content);
                 const showName = idx === 0 || messages[idx - 1].agentName !== msg.agentName;
                 return (
-                  <div key={msg.messageId} className={`flex gap-3 group ${showName ? 'pt-3' : 'pt-0.5'}`}>
-                    {/* Avatar — only show on first message in a sequence */}
-                    <div className="flex-shrink-0 w-8">
-                      {showName ? (
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ring-1 ${color.bg} ${color.text} ${color.ring}`}>
+                  <div key={msg.messageId} className={`flex gap-3.5 group ${showName ? 'pt-4' : 'pt-1'}`}>
+                    {/* Avatar column — fixed width, aligned top */}
+                    <div className="flex-shrink-0 w-9 pt-0.5">
+                      {showName && (
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ring-1 ${color.bg} ${color.text} ${color.ring}`}>
                           {msg.agentName.match(/^\p{Emoji}/u)?.[0] || msg.agentName.charAt(0)}
                         </div>
-                      ) : null}
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    {/* Message content */}
+                    <div className="flex-1 min-w-0 pt-0.5">
                       {showName && (
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[12px] font-semibold ${color.text}`}>
+                        <div className="flex items-baseline gap-2 mb-1">
+                          <span className={`text-[13px] font-semibold ${color.text}`}>
                             {msg.agentName.replace(/^\p{Emoji}\s*/u, '')}
                           </span>
                           <span className="text-[9px] text-text-muted/30 opacity-0 group-hover:opacity-100 transition-opacity font-mono">
@@ -284,7 +285,7 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                           </span>
                         </div>
                       )}
-                      <p className={`text-[13px] leading-relaxed ${sentiment || 'text-text-secondary/90'}`}>
+                      <p className={`text-[13px] leading-[1.65] ${sentiment || 'text-text-secondary/90'}`}>
                         {msg.content}
                       </p>
                     </div>
