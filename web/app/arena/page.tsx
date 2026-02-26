@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { Swords, MessageSquare, Copy, Check, LayoutGrid, Zap } from 'lucide-react';
-import { getTrendingTokens, getRecentTrades, getAllPositions } from '@/lib/api';
+import { getTrendingTokens, getRecentTrades, getAllPositions, getMyAgent } from '@/lib/api';
 import type { TrendingToken, Trade, Position } from '@/lib/types';
 import {
   TokenConversationGrid,
@@ -19,6 +19,8 @@ import {
   TradeRecommendationBanner,
 } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
+import { AgentConfigPanel, AgentDataFlow, TrackedWalletsPanel, BuyTriggersPanel, EpochRewardWidget } from '@/components/dashboard';
+import { useAuthStore } from '@/store/authStore';
 
 
 function SkeletonBlock({ className = '' }: { className?: string }) {
@@ -366,6 +368,55 @@ function ConversationsView() {
 
 type ArenaView = 'discussions' | 'classic';
 
+// ── Command Center Section (moved from /dashboard) ──
+
+function CommandCenterSection() {
+  const { isAuthenticated, _hasHydrated, setAuth } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!_hasHydrated) return;
+    if (isAuthenticated) {
+      getMyAgent()
+        .then((me) => {
+          setAuth(me.agent, me.onboarding.tasks, me.onboarding.progress);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [_hasHydrated, isAuthenticated, setAuth]);
+
+  if (!_hasHydrated || loading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <SkeletonBlock className="h-[320px]" />
+        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+          <SkeletonBlock className="h-[300px]" />
+          <SkeletonBlock className="h-[300px]" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 animate-arena-reveal">
+      <AgentDataFlow />
+      <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+        <div className="space-y-6">
+          <AgentConfigPanel />
+          <BuyTriggersPanel />
+          <EpochRewardWidget />
+        </div>
+        <TrackedWalletsPanel />
+      </div>
+    </div>
+  );
+}
+
+// ── Main Arena Page ──
+
 export default function ArenaPage() {
   const [view, setView] = useState<ArenaView>('discussions');
 
@@ -426,6 +477,14 @@ export default function ArenaPage() {
             </div>
           </div>
         </div>
+
+        {/* Command Center — agent pipeline & config */}
+        <div className="mb-8">
+          <CommandCenterSection />
+        </div>
+
+        {/* Divider */}
+        <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/20 to-transparent mb-8" />
 
         {/* Content based on selected view */}
         {view === 'discussions' ? <ConversationsView /> : <ClassicArenaView />}

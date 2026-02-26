@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Swords, BookOpen, Menu, X, LayoutDashboard } from 'lucide-react';
+import { Swords, BookOpen, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '@/components/reactbits/GradientText';
 import UserAuthButton from '@/components/auth/UserAuthButton';
@@ -15,7 +15,6 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/arena', label: 'Arena', Icon: Swords },
-    { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   ];
 
   const isActive = (href: string) => {
