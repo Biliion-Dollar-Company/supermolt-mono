@@ -43,9 +43,9 @@ function ArenaPageSkeleton() {
           <SkeletonBlock className="h-6 w-24 rounded-md" />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="columns-2 gap-3 [column-fill:balance]">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="bg-white/[0.02] relative p-4 animate-pulse" style={{ animationDelay: `${i * 50}ms` }}>
+          <div key={i} className="break-inside-avoid mb-3 bg-white/[0.02] relative p-4 animate-pulse" style={{ animationDelay: `${i * 50}ms` }}>
             {/* Corner brackets */}
             <span className="absolute top-0 left-0 w-5 h-5 border-t border-l border-white/[0.06]" />
             <span className="absolute top-0 right-0 w-5 h-5 border-t border-r border-white/[0.06]" />
@@ -69,23 +69,27 @@ function ArenaPageSkeleton() {
                 <SkeletonBlock className="h-2.5 w-12 rounded" />
               </div>
             </div>
-            {/* Feed preview: 2-3 line items */}
+            {/* Feed preview: varying line counts for bento effect */}
             <div className="bg-white/[0.01] rounded-md p-2.5 space-y-2">
               <div className="flex items-center gap-1.5">
                 <SkeletonBlock className="w-4 h-4 rounded-full flex-shrink-0" />
                 <SkeletonBlock className="h-2.5 w-12 rounded" />
                 <SkeletonBlock className="h-2.5 w-full rounded" />
               </div>
-              <div className="flex items-center gap-1.5">
-                <SkeletonBlock className="w-4 h-4 rounded-full flex-shrink-0" />
-                <SkeletonBlock className="h-2.5 w-10 rounded" />
-                <SkeletonBlock className="h-2.5 w-3/4 rounded" />
-              </div>
-              <div className="flex items-center gap-1.5">
-                <SkeletonBlock className="w-4 h-4 rounded-full flex-shrink-0" />
-                <SkeletonBlock className="h-2.5 w-14 rounded" />
-                <SkeletonBlock className="h-2.5 w-2/3 rounded" />
-              </div>
+              {i % 3 !== 2 && (
+                <div className="flex items-center gap-1.5">
+                  <SkeletonBlock className="w-4 h-4 rounded-full flex-shrink-0" />
+                  <SkeletonBlock className="h-2.5 w-10 rounded" />
+                  <SkeletonBlock className="h-2.5 w-3/4 rounded" />
+                </div>
+              )}
+              {i % 2 === 0 && (
+                <div className="flex items-center gap-1.5">
+                  <SkeletonBlock className="w-4 h-4 rounded-full flex-shrink-0" />
+                  <SkeletonBlock className="h-2.5 w-14 rounded" />
+                  <SkeletonBlock className="h-2.5 w-2/3 rounded" />
+                </div>
+              )}
             </div>
             {/* Footer: timestamp */}
             <div className="flex items-center justify-between mt-2">

@@ -94,12 +94,12 @@ export function TokenConversationGrid({ tokens, newMints, onTokenClick }: TokenC
         </div>
       </div>
 
-      {/* Token Grid — always 2 columns */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Token Grid — masonry bento layout */}
+      <div className="columns-2 gap-3 [column-fill:balance]">
         {sorted.map((token, i) => (
           <div
             key={token.tokenMint}
-            className="animate-arena-reveal"
+            className="break-inside-avoid mb-3 animate-arena-reveal"
             style={{ animationDelay: `${Math.min(i * 40, 300)}ms` }}
           >
             <TokenConversationCard

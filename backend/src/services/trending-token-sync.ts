@@ -129,6 +129,50 @@ async function fetchBirdeyeGraduates(): Promise<TokenContext[]> {
   }
 }
 
+// ── Batch pair lookup helper ─────────────────────────────
+// DexScreener /tokens/v1/{chain}/{addresses} supports comma-separated addresses
+// Returns an array of pair objects. We batch up to 30 at a time.
+
+async function batchFetchPairs(chain: string, mints: string[]): Promise<Map<string, any>> {
+  const pairsByMint = new Map<string, any>();
+  const BATCH_SIZE = 30;
+
+  for (let i = 0; i < mints.length; i += BATCH_SIZE) {
+    const batch = mints.slice(i, i + BATCH_SIZE);
+    try {
+      const res = await fetch(
+        `https://api.dexscreener.com/tokens/v1/${chain}/${batch.join(',')}`,
+        { signal: AbortSignal.timeout(15000) },
+      );
+      if (!res.ok) {
+        console.log(`[TrendingSync] DexScreener batch returned ${res.status}`);
+        continue;
+      }
+      const data = await res.json();
+      const pairs: any[] = Array.isArray(data) ? data : data.pairs || [];
+
+      for (const pair of pairs) {
+        const mint = pair.baseToken?.address;
+        if (!mint) continue;
+        const existing = pairsByMint.get(mint);
+        // Keep pair with highest volume
+        if (!existing || (pair.volume?.h24 || 0) > (existing.volume?.h24 || 0)) {
+          pairsByMint.set(mint, pair);
+        }
+      }
+
+      // Rate limit between batches
+      if (i + BATCH_SIZE < mints.length) {
+        await new Promise(r => setTimeout(r, 300));
+      }
+    } catch (err) {
+      console.error(`[TrendingSync] Batch pair fetch error (batch ${i / BATCH_SIZE + 1}):`, err);
+    }
+  }
+
+  return pairsByMint;
+}
+
 // ── DexScreener Source (Free Fallback) ───────────────────
 
 async function fetchDexScreenerTrending(): Promise<TokenContext[]> {
@@ -140,57 +184,51 @@ async function fetchDexScreenerTrending(): Promise<TokenContext[]> {
     const data = await res.json();
     const boosts = Array.isArray(data) ? data : [];
 
-    const tokens: TokenContext[] = [];
-
-    // Only take Solana tokens (pump.fun tokens are on Solana)
+    // Only take Solana tokens
     const solanaBoosts = boosts
       .filter((b: any) => b.chainId === 'solana')
       .slice(0, 30);
 
-    for (const boost of solanaBoosts) {
-      // Fetch full pair data
-      try {
-        const pairRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${boost.tokenAddress}`, {
-          signal: AbortSignal.timeout(8000),
-        });
-        if (!pairRes.ok) continue;
-        const pairData = await pairRes.json();
-        const pairs = pairData.pairs || [];
-        // Pick the pair with highest volume (could be raydium, pumpswap, meteora, etc)
-        const pair = pairs.sort((a: any, b: any) => ((b.volume?.h24 || 0) - (a.volume?.h24 || 0)))[0];
-        if (!pair) continue;
-
-        const mcap = pair.marketCap || pair.fdv || 0;
-        const vol = pair.volume?.h24 || 0;
-        const liq = pair.liquidity?.usd || 0;
-
-        if (mcap < QUALITY.minMarketCap) continue;
-        if (vol < QUALITY.minVolume24h) continue;
-        if (liq < QUALITY.minLiquidity) continue;
-
-        tokens.push({
-          tokenMint: boost.tokenAddress,
-          tokenSymbol: pair.baseToken?.symbol || 'UNKNOWN',
-          tokenName: pair.baseToken?.name || '',
-          priceUsd: parseFloat(pair.priceUsd || '0'),
-          priceChange24h: pair.priceChange?.h24 || 0,
-          marketCap: mcap,
-          volume24h: vol,
-          liquidity: liq,
-          fdv: pair.fdv || 0,
-          chain: 'solana',
-          source: 'dexscreener_trending',
-          imageUrl: pair.info?.imageUrl || undefined,
-        });
-
-        // Rate limit DexScreener
-        await new Promise(r => setTimeout(r, 400));
-      } catch {
-        continue;
-      }
+    if (solanaBoosts.length === 0) {
+      console.log('[TrendingSync] DexScreener boosts: 0 Solana tokens');
+      return [];
     }
 
-    console.log(`[TrendingSync] DexScreener: ${tokens.length} Solana tokens passed filters`);
+    // Batch-fetch all pair data in 1-2 calls instead of 30 individual calls
+    const mints = solanaBoosts.map((b: any) => b.tokenAddress);
+    const boostIconMap = new Map(solanaBoosts.map((b: any) => [b.tokenAddress, b.icon]));
+    const pairsByMint = await batchFetchPairs('solana', mints);
+
+    const tokens: TokenContext[] = [];
+    for (const mint of mints) {
+      const pair = pairsByMint.get(mint);
+      if (!pair) continue;
+
+      const mcap = pair.marketCap || pair.fdv || 0;
+      const vol = pair.volume?.h24 || 0;
+      const liq = pair.liquidity?.usd || 0;
+
+      if (mcap < QUALITY.minMarketCap) continue;
+      if (vol < QUALITY.minVolume24h) continue;
+      if (liq < QUALITY.minLiquidity) continue;
+
+      tokens.push({
+        tokenMint: mint,
+        tokenSymbol: pair.baseToken?.symbol || 'UNKNOWN',
+        tokenName: pair.baseToken?.name || '',
+        priceUsd: parseFloat(pair.priceUsd || '0'),
+        priceChange24h: pair.priceChange?.h24 || 0,
+        marketCap: mcap,
+        volume24h: vol,
+        liquidity: liq,
+        fdv: pair.fdv || 0,
+        chain: 'solana',
+        source: 'dexscreener_trending',
+        imageUrl: pair.info?.imageUrl || boostIconMap.get(mint) || undefined,
+      });
+    }
+
+    console.log(`[TrendingSync] DexScreener: ${tokens.length}/${solanaBoosts.length} Solana tokens passed filters`);
     return tokens;
   } catch (err) {
     console.error('[TrendingSync] DexScreener fetch error:', err);
@@ -202,7 +240,7 @@ async function fetchDexScreenerTrending(): Promise<TokenContext[]> {
 
 async function fetchDexScreenerLatestPairs(): Promise<TokenContext[]> {
   try {
-    // Fetch latest token profiles — better than broken ?q=pump search
+    // Fetch latest token profiles
     const res = await fetch('https://api.dexscreener.com/token-profiles/latest/v1', {
       signal: AbortSignal.timeout(10000),
     });
@@ -213,71 +251,56 @@ async function fetchDexScreenerLatestPairs(): Promise<TokenContext[]> {
     const data = await res.json();
     const profiles = Array.isArray(data) ? data : [];
 
-    // Filter for Solana token profiles only, limit to avoid rate limit issues
+    // Filter for Solana token profiles only
     const solanaProfiles = profiles
       .filter((p: any) => p.chainId === 'solana' && p.tokenAddress)
-      .slice(0, 25);
+      .slice(0, 30);
 
-    console.log(`[TrendingSync] DexScreener token-profiles: ${profiles.length} total, ${solanaProfiles.length} Solana (checking pairs...)`);
+    console.log(`[TrendingSync] DexScreener token-profiles: ${profiles.length} total, ${solanaProfiles.length} Solana`);
+
+    if (solanaProfiles.length === 0) return [];
+
+    // Batch-fetch all pair data
+    const mints = [...new Set(solanaProfiles.map((p: any) => p.tokenAddress))];
+    const iconMap = new Map(solanaProfiles.map((p: any) => [p.tokenAddress, p.icon]));
+    const pairsByMint = await batchFetchPairs('solana', mints);
 
     const tokens: TokenContext[] = [];
-    const seen = new Set<string>();
     const maxAge = 72 * 60 * 60 * 1000; // 72h
+    const solanaDexes = ['raydium', 'raydium-cp', 'pumpswap', 'meteora', 'orca'];
 
-    for (const profile of solanaProfiles) {
-      const mint = profile.tokenAddress;
-      if (seen.has(mint)) continue;
-      seen.add(mint);
+    for (const mint of mints) {
+      const pair = pairsByMint.get(mint);
+      if (!pair) continue;
 
-      // Rate limit between DexScreener calls
-      await new Promise(r => setTimeout(r, 400));
+      // Check if it's a recent Solana DEX pair
+      if (pair.pairCreatedAt && Date.now() - pair.pairCreatedAt > maxAge) continue;
+      if (pair.dexId && !solanaDexes.includes(pair.dexId)) continue;
 
-      try {
-        const pairRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${mint}`, {
-          signal: AbortSignal.timeout(8000),
-        });
-        if (!pairRes.ok) continue;
-        const pairData = await pairRes.json();
-        const pairs = pairData.pairs || [];
+      const mcap = pair.marketCap || pair.fdv || 0;
+      const vol = pair.volume?.h24 || 0;
+      const liq = pair.liquidity?.usd || 0;
 
-        // Find a Solana DEX pair created within 72h (raydium, pumpswap, meteora, etc)
-        const solanaDexes = ['raydium', 'raydium-cp', 'pumpswap', 'meteora', 'orca'];
-        const recentPair = pairs
-          .filter((p: any) =>
-            solanaDexes.includes(p.dexId) &&
-            p.pairCreatedAt &&
-            Date.now() - p.pairCreatedAt < maxAge
-          )
-          .sort((a: any, b: any) => ((b.volume?.h24 || 0) - (a.volume?.h24 || 0)))[0];
-        if (!recentPair) continue;
+      if (mcap < QUALITY.minMarketCap) continue;
+      if (vol < QUALITY.minVolume24h) continue;
+      if (liq < QUALITY.minLiquidity) continue;
 
-        const mcap = recentPair.marketCap || recentPair.fdv || 0;
-        const vol = recentPair.volume?.h24 || 0;
-        const liq = recentPair.liquidity?.usd || 0;
-
-        if (mcap < QUALITY.minMarketCap) continue;
-        if (vol < QUALITY.minVolume24h) continue;
-        if (liq < QUALITY.minLiquidity) continue;
-
-        tokens.push({
-          tokenMint: mint,
-          tokenSymbol: recentPair.baseToken?.symbol || 'UNKNOWN',
-          tokenName: recentPair.baseToken?.name || '',
-          priceUsd: parseFloat(recentPair.priceUsd || '0'),
-          priceChange24h: recentPair.priceChange?.h24 || 0,
-          marketCap: mcap,
-          volume24h: vol,
-          liquidity: liq,
-          chain: 'solana',
-          source: 'pumpfun_migration',
-          imageUrl: profile.icon || recentPair.info?.imageUrl || undefined,
-        });
-      } catch {
-        continue;
-      }
+      tokens.push({
+        tokenMint: mint,
+        tokenSymbol: pair.baseToken?.symbol || 'UNKNOWN',
+        tokenName: pair.baseToken?.name || '',
+        priceUsd: parseFloat(pair.priceUsd || '0'),
+        priceChange24h: pair.priceChange?.h24 || 0,
+        marketCap: mcap,
+        volume24h: vol,
+        liquidity: liq,
+        chain: 'solana',
+        source: 'pumpfun_migration',
+        imageUrl: iconMap.get(mint) || pair.info?.imageUrl || undefined,
+      });
     }
 
-    console.log(`[TrendingSync] DexScreener latest pairs: ${tokens.length} recent pump.fun migrations`);
+    console.log(`[TrendingSync] DexScreener latest pairs: ${tokens.length}/${mints.length} recent pump.fun migrations`);
     return tokens;
   } catch (err) {
     console.error('[TrendingSync] DexScreener latest pairs error:', err);
@@ -342,6 +365,28 @@ async function fetchSuperRouterTokens(): Promise<TokenContext[]> {
     }
 
     console.log(`[TrendingSync] SuperRouter DB: ${tokens.length} recently traded tokens`);
+
+    // Enrich with DexScreener data (batch) so they have volume/price/image
+    if (tokens.length > 0) {
+      try {
+        const enrichMints = tokens.map(t => t.tokenMint);
+        const enriched = await batchFetchPairs('solana', enrichMints);
+        for (const t of tokens) {
+          const pair = enriched.get(t.tokenMint);
+          if (!pair) continue;
+          t.priceUsd = t.priceUsd || parseFloat(pair.priceUsd || '0');
+          t.priceChange24h = t.priceChange24h ?? (pair.priceChange?.h24 || 0);
+          t.volume24h = t.volume24h || (pair.volume?.h24 || 0);
+          t.liquidity = t.liquidity || (pair.liquidity?.usd || 0);
+          t.imageUrl = t.imageUrl || pair.info?.imageUrl || undefined;
+          t.tokenName = t.tokenName || pair.baseToken?.name || '';
+        }
+        console.log(`[TrendingSync] Enriched ${enriched.size}/${tokens.length} SuperRouter tokens via DexScreener`);
+      } catch (err) {
+        console.error('[TrendingSync] SuperRouter enrichment error:', err);
+      }
+    }
+
     return tokens;
   } catch (err) {
     console.error('[TrendingSync] SuperRouter fetch error:', err);
@@ -393,13 +438,10 @@ async function syncTrendingTokens(): Promise<void> {
     }
   }
 
-  // Sort: birdeye_graduated first, then by volume
+  // Sort by volume, then market cap — biggest runners first
   newHotTokens.sort((a, b) => {
-    // Prioritize graduated tokens
-    if (a.source === 'birdeye_graduated' && b.source !== 'birdeye_graduated') return -1;
-    if (b.source === 'birdeye_graduated' && a.source !== 'birdeye_graduated') return 1;
-    // Then by volume
-    return (b.volume24h || 0) - (a.volume24h || 0);
+    return (b.volume24h || 0) - (a.volume24h || 0)
+      || (b.marketCap || 0) - (a.marketCap || 0);
   });
 
   hotTokens = newHotTokens;
