@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Flame, ArrowDownUp, TrendingUp, MessageSquare, Clock } from 'lucide-react';
+import { Flame, TrendingUp, MessageSquare, Clock, BarChart3, DollarSign } from 'lucide-react';
 import { TokenConversationCard } from './TokenConversationCard';
 import type { TrendingToken } from '@/lib/types';
 
-type SortMode = 'active' | 'trending' | 'newest';
+type SortMode = 'volume' | 'mcap' | 'trending' | 'active';
 
 interface TokenConversationGridProps {
   tokens: TrendingToken[];
@@ -16,23 +16,25 @@ interface TokenConversationGridProps {
 function sortTokens(tokens: TrendingToken[], mode: SortMode): TrendingToken[] {
   const sorted = [...tokens];
   switch (mode) {
+    case 'volume':
+      return sorted.sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
+    case 'mcap':
+      return sorted.sort((a, b) => (b.marketCap || 0) - (a.marketCap || 0));
+    case 'trending':
+      return sorted.sort((a, b) => Math.abs(b.priceChange24h || 0) - Math.abs(a.priceChange24h || 0));
     case 'active':
       return sorted.sort((a, b) => {
         const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
         const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
         return bTime - aTime;
       });
-    case 'trending':
-      return sorted.sort((a, b) => Math.abs(b.priceChange24h || 0) - Math.abs(a.priceChange24h || 0));
-    case 'newest':
-      return sorted.sort((a, b) => (b.messageCount || 0) - (a.messageCount || 0));
     default:
       return sorted;
   }
 }
 
 export function TokenConversationGrid({ tokens, newMints, onTokenClick }: TokenConversationGridProps) {
-  const [sortMode, setSortMode] = useState<SortMode>('active');
+  const [sortMode, setSortMode] = useState<SortMode>('volume');
 
   if (tokens.length === 0) {
     return (
@@ -51,9 +53,10 @@ export function TokenConversationGrid({ tokens, newMints, onTokenClick }: TokenC
 
   const sorted = sortTokens(tokens, sortMode);
   const sortOptions: { key: SortMode; label: string; icon: typeof Clock }[] = [
-    { key: 'active', label: 'Most Active', icon: Clock },
+    { key: 'volume', label: 'Volume', icon: BarChart3 },
+    { key: 'mcap', label: 'Market Cap', icon: DollarSign },
     { key: 'trending', label: 'Top Movers', icon: TrendingUp },
-    { key: 'newest', label: 'Most Discussed', icon: MessageSquare },
+    { key: 'active', label: 'Active', icon: MessageSquare },
   ];
 
   return (
@@ -91,8 +94,8 @@ export function TokenConversationGrid({ tokens, newMints, onTokenClick }: TokenC
         </div>
       </div>
 
-      {/* Token Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* Token Grid — always 2 columns */}
+      <div className="grid grid-cols-2 gap-3">
         {sorted.map((token, i) => (
           <div
             key={token.tokenMint}

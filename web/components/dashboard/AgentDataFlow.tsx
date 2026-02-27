@@ -178,7 +178,7 @@ function PulseLayer({
                     path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                     const dx = agentPos.x - from.x;
                     const dy = agentPos.y - from.y;
-                    path.setAttribute('d', `M ${from.x} ${from.y} C ${from.x + dx * 0.3} ${from.y + dy * 0.6}, ${agentPos.x - dx * 0.3} ${agentPos.y - dy * 0.3}, ${agentPos.x} ${agentPos.y}`);
+                    path.setAttribute('d', `M ${from.x} ${from.y} C ${from.x + dx * 0.5} ${from.y + dy * 0.15}, ${agentPos.x - dx * 0.3} ${agentPos.y - dy * 0.1}, ${agentPos.x} ${agentPos.y}`);
                     pathCacheRef.current.set(pulse.feedIndex, path);
                 }
 
@@ -227,7 +227,7 @@ function PulseLayer({
             {feedPositions.map((from, i) => {
                 const dx = agentPos.x - from.x;
                 const dy = agentPos.y - from.y;
-                const d = `M ${from.x} ${from.y} C ${from.x + dx * 0.3} ${from.y + dy * 0.6}, ${agentPos.x - dx * 0.3} ${agentPos.y - dy * 0.3}, ${agentPos.x} ${agentPos.y}`;
+                const d = `M ${from.x} ${from.y} C ${from.x + dx * 0.5} ${from.y + dy * 0.15}, ${agentPos.x - dx * 0.3} ${agentPos.y - dy * 0.1}, ${agentPos.x} ${agentPos.y}`;
                 return (
                     <path key={`line-${i}`} d={d} fill="none" stroke={FEEDS[i]?.color ?? '#333'} strokeWidth={1.5} opacity={0.12} />
                 );
@@ -306,16 +306,17 @@ export function AgentDataFlow() {
     const pulses = usePulseEngine(FEEDS.length, 3.5, 5);
 
     const feedPositions = useMemo(() => {
-        const y = 55;
-        const margin = dims.w * 0.12;
-        const usable = dims.w - margin * 2;
+        // Feeds stacked vertically on the left side
+        const x = dims.w * 0.16;
+        const topMargin = dims.h * 0.14;
+        const usableH = dims.h * 0.72;
         return FEEDS.map((_, i) => ({
-            x: margin + (usable / (FEEDS.length - 1)) * i,
-            y,
+            x,
+            y: topMargin + (usableH / (FEEDS.length - 1)) * i,
         }));
-    }, [dims.w]);
+    }, [dims.w, dims.h]);
 
-    const agentPos = useMemo(() => ({ x: dims.w / 2, y: dims.h * 0.78 }), [dims]);
+    const agentPos = useMemo(() => ({ x: dims.w * 0.72, y: dims.h * 0.5 }), [dims]);
 
     const xpPercent = agent ? Math.min(100, Math.round((agent.xp / Math.max(1, agent.xpForNextLevel)) * 100)) : 0;
     const hasAgent = !!agent;
@@ -630,7 +631,7 @@ export function AgentDataFlow() {
     // ── Desktop layout ──────────────────────────────────────────
     return (
         <div className="bg-[#0a0a12]/60 backdrop-blur-xl border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_32px_rgba(0,0,0,0.5)]">
-            <div ref={containerRef} className="relative h-[400px]">
+            <div ref={containerRef} className="relative h-[260px]">
 
                 {/* Pulse animation layer */}
                 <PulseLayer
@@ -642,7 +643,7 @@ export function AgentDataFlow() {
                     height={dims.h}
                 />
 
-                {/* ── Feed nodes (top row) ── */}
+                {/* ── Feed nodes (left column, stacked vertically) ── */}
                 {FEEDS.map((feed, i) => {
                     const Icon = feed.icon;
                     const pos = feedPositions[i];
@@ -654,19 +655,19 @@ export function AgentDataFlow() {
                             style={{ left: pos?.x, top: pos?.y }}
                         >
                             <div
-                                className="relative bg-[#0e0e18]/90 backdrop-blur-md px-6 py-3.5 cursor-pointer group hover:bg-[#0e0e18] transition-colors duration-200"
+                                className="relative bg-[#0e0e18]/90 backdrop-blur-md px-4 py-2.5 cursor-pointer group hover:bg-[#0e0e18] transition-colors duration-200"
                                 onClick={() => setSelectedFeed(feed.id)}
                             >
                                 {/* Corner brackets */}
-                                <span className="absolute top-0 left-0 w-3 h-3 border-t border-l" style={{ borderColor: c }} />
-                                <span className="absolute top-0 right-0 w-3 h-3 border-t border-r" style={{ borderColor: c }} />
-                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b border-l" style={{ borderColor: c }} />
-                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b border-r" style={{ borderColor: c }} />
+                                <span className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l" style={{ borderColor: c }} />
+                                <span className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r" style={{ borderColor: c }} />
+                                <span className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l" style={{ borderColor: c }} />
+                                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r" style={{ borderColor: c }} />
 
-                                <div className="flex items-center gap-3.5">
-                                    <Icon className="w-6 h-6 flex-shrink-0" style={{ color: feed.color }} />
+                                <div className="flex items-center gap-2.5">
+                                    <Icon className="w-5 h-5 flex-shrink-0" style={{ color: feed.color }} />
                                     <div className="flex flex-col">
-                                        <span className="text-base font-bold text-text-primary whitespace-nowrap leading-tight">{feed.label}</span>
+                                        <span className="text-sm font-bold text-text-primary whitespace-nowrap leading-tight">{feed.label}</span>
                                         <span className="text-[10px] text-text-muted whitespace-nowrap">{feed.desc}</span>
                                     </div>
                                 </div>
@@ -675,7 +676,7 @@ export function AgentDataFlow() {
                     );
                 })}
 
-                {/* ── Agent card (bottom center) ── */}
+                {/* ── Agent card (right side) ── */}
                 <div
                     className="absolute -translate-x-1/2 -translate-y-1/2 z-20"
                     style={{ left: agentPos.x, top: agentPos.y }}
@@ -689,7 +690,7 @@ export function AgentDataFlow() {
                             {/* Glow */}
                             <div className="absolute -inset-3 bg-accent-primary/[0.06] blur-xl pointer-events-none group-hover:bg-accent-primary/[0.1] transition-all duration-300" />
 
-                            <div className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-8 py-5 flex items-center gap-5 shadow-[0_0_40px_rgba(232,180,94,0.06)] group-hover:bg-[#0e0e18] transition-colors duration-200">
+                            <div className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-6 py-3.5 flex items-center gap-4 shadow-[0_0_40px_rgba(232,180,94,0.06)] group-hover:bg-[#0e0e18] transition-colors duration-200">
                                 {/* Corner brackets */}
                                 <span className="absolute top-0 left-0 w-4 h-4 border-t border-l border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
                                 <span className="absolute top-0 right-0 w-4 h-4 border-t border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
@@ -697,11 +698,11 @@ export function AgentDataFlow() {
                                 <span className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
 
                                 {/* Avatar */}
-                                <div className="w-16 h-16 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <div className="w-12 h-12 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarUrl ? (
                                         <img src={avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
                                     ) : (
-                                        <span className="text-accent-primary font-bold text-2xl">
+                                        <span className="text-accent-primary font-bold text-xl">
                                             {agent.name?.charAt(0)?.toUpperCase() ?? '?'}
                                         </span>
                                     )}
@@ -807,25 +808,25 @@ export function AgentDataFlow() {
                             <div className="absolute -inset-4 bg-accent-primary/[0.06] blur-2xl pointer-events-none group-hover:bg-accent-primary/[0.1] transition-all duration-500" />
                             <button
                                 onClick={() => { if (!authenticated) login(); }}
-                                className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-8 py-5 max-w-md cursor-pointer hover:bg-[#0e0e18] transition-all duration-300"
+                                className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-6 py-3 max-w-sm cursor-pointer hover:bg-[#0e0e18] transition-all duration-300"
                             >
                                 {/* Corner brackets */}
-                                <span className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
-                                <span className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
-                                <span className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
-                                <span className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
 
-                                {/* Title */}
-                                <h3 className="text-base font-bold text-text-primary text-center mb-4">
-                                    {authenticated ? 'Create Your Agent' : 'Deploy Your Agent'}
-                                </h3>
-
-                                {/* Button */}
-                                <div className="flex items-center justify-center gap-2 w-full py-3 bg-accent-primary/10 border border-accent-primary/30 group-hover:bg-accent-primary/20 group-hover:border-accent-primary/50 transition-all duration-300">
-                                    <Zap className="w-4 h-4 text-accent-primary" />
-                                    <span className="text-sm font-bold text-accent-primary">
-                                        {authenticated ? 'Get Started' : 'Create'}
-                                    </span>
+                                {/* Inline: title + button side by side */}
+                                <div className="flex items-center gap-4">
+                                    <h3 className="text-sm font-bold text-text-primary whitespace-nowrap">
+                                        {authenticated ? 'Create Your Agent' : 'Deploy Your Agent'}
+                                    </h3>
+                                    <div className="flex items-center gap-1.5 px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 group-hover:bg-accent-primary/20 group-hover:border-accent-primary/50 transition-all duration-300">
+                                        <Zap className="w-3.5 h-3.5 text-accent-primary" />
+                                        <span className="text-xs font-bold text-accent-primary">
+                                            {authenticated ? 'Start' : 'Create'}
+                                        </span>
+                                    </div>
                                 </div>
                             </button>
                         </div>

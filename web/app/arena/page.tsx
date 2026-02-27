@@ -364,7 +364,7 @@ function ConversationsView() {
   return (
     <>
       {/* Split layout: tokens left, divider, sidebar right */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_340px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_auto_minmax(360px,1fr)] gap-6">
         {/* Left — Token cards grid */}
         <div className="min-w-0 animate-arena-reveal">
           <TokenConversationGrid
