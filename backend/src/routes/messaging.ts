@@ -76,7 +76,66 @@ messaging.post('/generate-discussion', async (c) => {
  */
 messaging.get('/arena-tokens', async (c) => {
   const result = await cachedFetch('arena-tokens', 60, async () => {
-    const hotTokens = getHotTokens();
+    let hotTokens = getHotTokens();
+
+    // ── Fallback: pull tokens from DB when trending sync has no data ──
+    // Agents may be actively discussing/trading tokens that external APIs
+    // don't surface. Query conversations and trades from the last 72 hours
+    // so the arena always shows tokens agents are engaging with.
+    if (hotTokens.length === 0) {
+      console.log('[arena-tokens] hotTokens empty — falling back to DB-sourced tokens');
+      const since = new Date(Date.now() - 72 * 60 * 60 * 1000);
+
+      const [dbConversations, dbTrades] = await Promise.all([
+        db.agentConversation.findMany({
+          where: { tokenMint: { not: null }, createdAt: { gte: since } },
+          select: { tokenMint: true },
+          distinct: ['tokenMint'],
+          take: 50,
+        }),
+        db.paperTrade.findMany({
+          where: { openedAt: { gte: since } },
+          select: { tokenMint: true, tokenSymbol: true, tokenName: true, marketCap: true, liquidity: true },
+          distinct: ['tokenMint'],
+          orderBy: { openedAt: 'desc' },
+          take: 50,
+        }),
+      ]);
+
+      // Build a map of mints → best trade data
+      const tradeMap = new Map<string, typeof dbTrades[0]>();
+      for (const t of dbTrades) {
+        const existing = tradeMap.get(t.tokenMint);
+        if (!existing || (Number(t.marketCap) || 0) > (Number(existing.marketCap) || 0)) {
+          tradeMap.set(t.tokenMint, t);
+        }
+      }
+
+      // Collect all unique mints from conversations + trades
+      const allMints = new Set<string>();
+      for (const c of dbConversations) if (c.tokenMint) allMints.add(c.tokenMint);
+      for (const t of dbTrades) allMints.add(t.tokenMint);
+
+      // Build TokenContext objects from DB data
+      const dbTokens: typeof hotTokens = [];
+      for (const mint of allMints) {
+        const trade = tradeMap.get(mint);
+        dbTokens.push({
+          tokenMint: mint,
+          tokenSymbol: trade?.tokenSymbol || mint.slice(0, 6),
+          tokenName: trade?.tokenName || undefined,
+          marketCap: Number(trade?.marketCap) || undefined,
+          liquidity: Number(trade?.liquidity) || undefined,
+          chain: 'solana',
+          source: 'db_fallback',
+        });
+      }
+
+      if (dbTokens.length > 0) {
+        console.log(`[arena-tokens] DB fallback found ${dbTokens.length} tokens from conversations/trades`);
+        hotTokens = dbTokens;
+      }
+    }
 
     // Deduplicate by tokenSymbol — keep the one with highest volume
     const symbolMap = new Map<string, typeof hotTokens[0]>();

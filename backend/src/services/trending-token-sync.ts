@@ -394,6 +394,106 @@ async function fetchSuperRouterTokens(): Promise<TokenContext[]> {
   }
 }
 
+// ── Agent Discussions (DB Source) ─────────────────────────
+// Tokens that agents are actively discussing in conversations.
+// This ensures the arena always shows tokens with agent activity,
+// even when external API sources (Birdeye, DexScreener) return nothing.
+
+async function fetchDiscussedTokens(alreadySeen: Set<string>): Promise<TokenContext[]> {
+  try {
+    const cutoff = new Date(Date.now() - QUALITY.maxAgeHours * 60 * 60 * 1000);
+
+    // Get tokens from recent agent conversations
+    const recentConvs = await db.agentConversation.findMany({
+      where: {
+        tokenMint: { not: null },
+        createdAt: { gte: cutoff },
+      },
+      select: { tokenMint: true },
+      distinct: ['tokenMint'],
+      take: 50,
+    });
+
+    // Also get tokens from active positions
+    const activePositions = await db.agentPosition.findMany({
+      where: { quantity: { gt: 0 } },
+      select: { tokenMint: true, tokenSymbol: true },
+      distinct: ['tokenMint'],
+      take: 30,
+    });
+
+    // Get symbol info from trades for these mints
+    const allMints = new Set<string>();
+    for (const c of recentConvs) if (c.tokenMint && !alreadySeen.has(c.tokenMint)) allMints.add(c.tokenMint);
+    for (const p of activePositions) if (p.tokenMint && !alreadySeen.has(p.tokenMint)) allMints.add(p.tokenMint);
+
+    if (allMints.size === 0) return [];
+
+    const mintArray = Array.from(allMints);
+
+    // Get trade data for symbol/name resolution
+    const tradeData = await db.paperTrade.findMany({
+      where: { tokenMint: { in: mintArray } },
+      select: { tokenMint: true, tokenSymbol: true, tokenName: true, marketCap: true, liquidity: true },
+      distinct: ['tokenMint'],
+      orderBy: { openedAt: 'desc' },
+    });
+
+    const tradeMap = new Map<string, typeof tradeData[0]>();
+    for (const t of tradeData) tradeMap.set(t.tokenMint, t);
+
+    // Build position symbol map
+    const posSymbolMap = new Map<string, string>();
+    for (const p of activePositions) posSymbolMap.set(p.tokenMint, p.tokenSymbol);
+
+    // Build token contexts
+    const tokens: TokenContext[] = [];
+    for (const mint of mintArray) {
+      const trade = tradeMap.get(mint);
+      const symbol = trade?.tokenSymbol || posSymbolMap.get(mint);
+      if (!symbol) continue; // Skip if we can't resolve a symbol
+
+      tokens.push({
+        tokenMint: mint,
+        tokenSymbol: symbol,
+        tokenName: trade?.tokenName || undefined,
+        marketCap: Number(trade?.marketCap) || undefined,
+        liquidity: Number(trade?.liquidity) || undefined,
+        chain: 'solana',
+        source: 'agent_discussion',
+      });
+    }
+
+    // Enrich with DexScreener data so they have price/volume/image
+    if (tokens.length > 0) {
+      try {
+        const enrichMints = tokens.map(t => t.tokenMint);
+        const enriched = await batchFetchPairs('solana', enrichMints);
+        for (const t of tokens) {
+          const pair = enriched.get(t.tokenMint);
+          if (!pair) continue;
+          t.priceUsd = t.priceUsd || parseFloat(pair.priceUsd || '0');
+          t.priceChange24h = t.priceChange24h ?? (pair.priceChange?.h24 || 0);
+          t.volume24h = t.volume24h || (pair.volume?.h24 || 0);
+          t.liquidity = t.liquidity || (pair.liquidity?.usd || 0);
+          t.marketCap = t.marketCap || pair.marketCap || pair.fdv || 0;
+          t.imageUrl = t.imageUrl || pair.info?.imageUrl || undefined;
+          t.tokenName = t.tokenName || pair.baseToken?.name || '';
+        }
+        console.log(`[TrendingSync] Enriched ${enriched.size}/${tokens.length} discussed tokens via DexScreener`);
+      } catch (err) {
+        console.error('[TrendingSync] Discussion token enrichment error:', err);
+      }
+    }
+
+    console.log(`[TrendingSync] Agent discussions: ${tokens.length} tokens from conversations/positions`);
+    return tokens;
+  } catch (err) {
+    console.error('[TrendingSync] Discussed tokens fetch error:', err);
+    return [];
+  }
+}
+
 // ── Main Sync ────────────────────────────────────────────
 
 async function syncTrendingTokens(): Promise<void> {
@@ -438,6 +538,16 @@ async function syncTrendingTokens(): Promise<void> {
     }
   }
 
+  // 5. Tokens from active agent conversations (DB source)
+  // Ensures tokens that agents are discussing always appear in the arena
+  const discussedTokens = await fetchDiscussedTokens(seenMints);
+  for (const t of discussedTokens) {
+    if (!seenMints.has(t.tokenMint)) {
+      seenMints.add(t.tokenMint);
+      newHotTokens.push(t);
+    }
+  }
+
   // Sort by volume, then market cap — biggest runners first
   newHotTokens.sort((a, b) => {
     return (b.volume24h || 0) - (a.volume24h || 0)
@@ -449,7 +559,7 @@ async function syncTrendingTokens(): Promise<void> {
 
   const elapsed = Date.now() - startTime;
   console.log(`[TrendingSync] Sync complete: ${hotTokens.length} hot tokens (${elapsed}ms)`);
-  console.log(`  Sources: ${birdeyeTokens.length} birdeye, ${dexTokens.length} dexscreener-boosts, ${migrationTokens.length} pf-migrations, ${srTokens.length} superrouter`);
+  console.log(`  Sources: ${birdeyeTokens.length} birdeye, ${dexTokens.length} dexscreener-boosts, ${migrationTokens.length} pf-migrations, ${srTokens.length} superrouter, ${discussedTokens.length} discussed`);
 
   for (const t of hotTokens.slice(0, 5)) {
     const mcap = t.marketCap ? `$${(t.marketCap / 1000).toFixed(0)}k` : '?';
