@@ -223,6 +223,41 @@ class WebSocketManager {
     return this.on('conversation_new', callback);
   }
 
+  /** Subscribe to a token's unified feed room */
+  subscribeToTokenFeed(mint: string): void {
+    if (this.socket?.connected) {
+      this.socket.emit('subscribe:token', mint);
+    }
+  }
+
+  /** Unsubscribe from a token's feed room */
+  unsubscribeFromTokenFeed(mint: string): void {
+    if (this.socket?.connected) {
+      this.socket.emit('unsubscribe', `token:${mint}`);
+    }
+  }
+
+  /** Listen for unified feed items */
+  onFeedItem(callback: (item: any) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('feed:item', callback);
+    return () => { this.socket?.off('feed:item', callback); };
+  }
+
+  /** Listen for typing indicator updates */
+  onFeedTyping(callback: (data: { tokenMint: string; agentNames: string[] }) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('feed:typing', callback);
+    return () => { this.socket?.off('feed:typing', callback); };
+  }
+
+  /** Listen for active agent count updates */
+  onFeedAgentsActive(callback: (data: { tokenMint: string; count: number }) => void): () => void {
+    if (!this.socket) return () => {};
+    this.socket.on('feed:agents_active', callback);
+    return () => { this.socket?.off('feed:agents_active', callback); };
+  }
+
   /** Subscribe to a specific agent's activity room */
   subscribeToAgent(agentId: string): void {
     if (this.socket?.connected) {

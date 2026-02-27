@@ -460,6 +460,13 @@ export async function generateTokenConversation(
     const round1Contexts = allAgentContexts.slice(0, midpoint);
 
     console.log(`  💬 [ConvGen] Round 1: ${round1Agents.length} agents react to $${token.tokenSymbol} (trigger: ${trigger})...`);
+
+    // Emit typing indicator for round 1 agents
+    try {
+      const round1Names = round1Agents.map(a => a.displayName || a.name).filter(Boolean);
+      websocketEvents.broadcastTokenTyping(token.tokenMint, round1Names);
+    } catch {}
+
     const round1Prompt = buildDiscussionPrompt(trigger, token, round1Contexts, conversationHistory);
     const round1Response = await llmService.generate(round1Prompt.system, round1Prompt.user, CONVERSATION_LLM_CONFIG);
 
@@ -473,6 +480,23 @@ export async function generateTokenConversation(
 
     const round1Result = await postMessagesToConversation(round1Messages, round1Agents, conversation.id);
 
+    // Clear typing and emit feed items for round 1
+    try {
+      websocketEvents.broadcastTokenTyping(token.tokenMint, []);
+      for (const chatMsg of round1Result.chatMessages) {
+        const agent = round1Agents.find(a => (a.displayName || a.name) === chatMsg.agentName);
+        websocketEvents.broadcastTokenFeedItem(token.tokenMint, {
+          id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          timestamp: new Date().toISOString(),
+          tokenMint: token.tokenMint,
+          type: 'message',
+          agentId: agent?.id || '',
+          agentName: chatMsg.agentName,
+          content: chatMsg.message,
+        });
+      }
+    } catch {}
+
     // ── Round 2: remaining agents react to token + history + round 1 ──
     let totalPosted = round1Result.posted;
     const allNames = [...round1Result.names];
@@ -484,6 +508,13 @@ export async function generateTokenConversation(
       const round2History = [...conversationHistory, ...round1Result.chatMessages];
 
       console.log(`  💬 [ConvGen] Round 2: ${round2Agents.length} agents react to round 1...`);
+
+      // Emit typing indicator for round 2 agents
+      try {
+        const round2Names = round2Agents.map(a => a.displayName || a.name).filter(Boolean);
+        websocketEvents.broadcastTokenTyping(token.tokenMint, round2Names);
+      } catch {}
+
       const round2Prompt = buildDiscussionPrompt(trigger, token, round2Contexts, round2History);
       const round2Response = await llmService.generate(round2Prompt.system, round2Prompt.user, CONVERSATION_LLM_CONFIG);
 
@@ -493,8 +524,27 @@ export async function generateTokenConversation(
           const round2Result = await postMessagesToConversation(round2Messages, round2Agents, conversation.id);
           totalPosted += round2Result.posted;
           allNames.push(...round2Result.names);
+
+          // Emit feed items for round 2
+          try {
+            for (const chatMsg of round2Result.chatMessages) {
+              const agent = round2Agents.find(a => (a.displayName || a.name) === chatMsg.agentName);
+              websocketEvents.broadcastTokenFeedItem(token.tokenMint, {
+                id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                timestamp: new Date().toISOString(),
+                tokenMint: token.tokenMint,
+                type: 'message',
+                agentId: agent?.id || '',
+                agentName: chatMsg.agentName,
+                content: chatMsg.message,
+              });
+            }
+          } catch {}
         }
       }
+
+      // Clear typing after round 2
+      try { websocketEvents.broadcastTokenTyping(token.tokenMint, []); } catch {}
     }
 
     console.log(`🎉 [ConvGen] Posted ${totalPosted} messages for $${token.tokenSymbol} (trigger: ${trigger}, 2-round)`);

@@ -1,7 +1,33 @@
 'use client';
 
-import { MessageSquare, Users, TrendingUp, TrendingDown, Clock, ChevronRight } from 'lucide-react';
-import type { TrendingToken } from '@/lib/types';
+import { TrendingUp, TrendingDown, ChevronRight, ArrowUpRight, ArrowDownRight, CheckCircle2 } from 'lucide-react';
+import type { TrendingToken, UnifiedFeedItem } from '@/lib/types';
+
+function formatCompact(n?: number): string {
+  if (!n) return '-';
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}k`;
+  return `$${n.toFixed(0)}`;
+}
+
+function getAgentColor(name: string): string {
+  const colors = [
+    'text-blue-400', 'text-purple-400', 'text-emerald-400',
+    'text-amber-400', 'text-pink-400', 'text-cyan-400', 'text-rose-400',
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function extractEmoji(name: string): string {
+  const match = name.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F?)/u);
+  return match?.[0] || name.charAt(0);
+}
+
+function stripEmoji(name: string): string {
+  return name.replace(/^\p{Emoji_Presentation}\s*|\p{Emoji}\uFE0F?\s*/u, '');
+}
 
 function timeAgo(dateStr?: string): string {
   if (!dateStr) return '';
@@ -14,35 +40,60 @@ function timeAgo(dateStr?: string): string {
   return `${Math.floor(hrs / 24)}d`;
 }
 
-function formatCompact(n?: number): string {
-  if (!n) return '-';
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}k`;
-  return `$${n.toFixed(0)}`;
-}
-
-function formatPrice(n?: number): string {
-  if (!n) return '';
-  if (n < 0.0001) return `$${n.toPrecision(2)}`;
-  if (n < 0.01) return `$${n.toPrecision(3)}`;
-  if (n < 1) return `$${n.toFixed(4)}`;
-  return `$${n.toFixed(2)}`;
-}
-
-// Deterministic color from agent name
-function getAgentAccent(name: string): string {
-  const accents = [
-    'from-blue-500/20 to-blue-600/5',
-    'from-purple-500/20 to-purple-600/5',
-    'from-emerald-500/20 to-emerald-600/5',
-    'from-amber-500/20 to-amber-600/5',
-    'from-pink-500/20 to-pink-600/5',
-    'from-cyan-500/20 to-cyan-600/5',
-    'from-rose-500/20 to-rose-600/5',
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return accents[Math.abs(hash) % accents.length];
+function FeedItemPreview({ item }: { item: UnifiedFeedItem }) {
+  switch (item.type) {
+    case 'message':
+      return (
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="flex-shrink-0 w-4 h-4 rounded-full bg-white/[0.06] flex items-center justify-center text-[8px]">
+            {extractEmoji(item.agentName)}
+          </span>
+          <span className={`text-[10px] font-semibold flex-shrink-0 ${getAgentColor(item.agentName)}`}>
+            {stripEmoji(item.agentName).split(' ')[0]}:
+          </span>
+          <span className="text-[10px] text-text-secondary/70 truncate">
+            {item.content}
+          </span>
+        </div>
+      );
+    case 'trade':
+      return (
+        <div className="flex items-center gap-1.5 min-w-0">
+          {item.side === 'BUY' ? (
+            <ArrowUpRight className="w-3 h-3 text-green-400 flex-shrink-0" />
+          ) : (
+            <ArrowDownRight className="w-3 h-3 text-red-400 flex-shrink-0" />
+          )}
+          <span className={`text-[10px] font-semibold flex-shrink-0 ${getAgentColor(item.agentName)}`}>
+            {stripEmoji(item.agentName).split(' ')[0]}
+          </span>
+          <span className={`text-[10px] ${item.side === 'BUY' ? 'text-green-400/80' : 'text-red-400/80'}`}>
+            {item.side === 'BUY' ? 'bought' : 'sold'} {item.amount.toFixed(2)} SOL
+          </span>
+        </div>
+      );
+    case 'task_claimed':
+    case 'task_completed':
+      return (
+        <div className="flex items-center gap-1.5 min-w-0">
+          <CheckCircle2 className="w-3 h-3 text-accent-primary/70 flex-shrink-0" />
+          <span className={`text-[10px] font-semibold flex-shrink-0 ${getAgentColor(item.agentName)}`}>
+            {stripEmoji(item.agentName).split(' ')[0]}
+          </span>
+          <span className="text-[10px] text-text-muted/60 truncate">
+            {item.type === 'task_completed' ? 'completed' : 'claimed'} &ldquo;{item.taskTitle}&rdquo;
+          </span>
+        </div>
+      );
+    case 'system':
+      return (
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="text-[10px] text-text-muted/50 italic truncate">{item.content}</span>
+        </div>
+      );
+    default:
+      return null;
+  }
 }
 
 interface TokenConversationCardProps {
@@ -54,34 +105,49 @@ interface TokenConversationCardProps {
 export function TokenConversationCard({ token, onClick, isNew }: TokenConversationCardProps) {
   const change = token.priceChange24h;
   const isPositive = change !== undefined && change >= 0;
-  const hasConversation = token.messageCount > 0;
+
+  // Use feedPreview if available, fall back to latestMessages
+  const feedItems: UnifiedFeedItem[] = token.feedPreview && token.feedPreview.length > 0
+    ? token.feedPreview
+    : (token.latestMessages || []).map((msg, i) => ({
+        id: `msg-preview-${i}`,
+        timestamp: msg.timestamp,
+        tokenMint: token.tokenMint,
+        type: 'message' as const,
+        agentId: '',
+        agentName: msg.agentName,
+        content: msg.content,
+      }));
+
+  const hasActivity = feedItems.length > 0 || token.messageCount > 0;
+  const activeCount = token.activeAgentCount || token.participantCount || 0;
+  const typingAgents = token.typingAgents || [];
 
   return (
     <button
       onClick={onClick}
       className={`
         w-full text-left overflow-hidden transition-all duration-300 cursor-pointer group relative
-        bg-[#0e0e18]/90 backdrop-blur-xl
-        hover:bg-[#12121c] hover:shadow-[0_4px_32px_rgba(232,180,94,0.06)]
+        bg-white/[0.02] backdrop-blur-xl
+        shadow-[0_2px_16px_rgba(0,0,0,0.5)]
+        hover:bg-white/[0.04] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_24px_rgba(232,180,94,0.06)]
         ${isNew ? 'animate-card-pulse' : ''}
       `}
     >
-      {/* Corner brackets — branded border style */}
+      {/* Corner brackets */}
       <span className="absolute top-0 left-0 w-5 h-5 border-t border-l border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
       <span className="absolute top-0 right-0 w-5 h-5 border-t border-r border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
       <span className="absolute bottom-0 left-0 w-5 h-5 border-b border-l border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
       <span className="absolute bottom-0 right-0 w-5 h-5 border-b border-r border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
-      {/* Edge lines between corners */}
-      <span className="absolute top-0 left-5 right-5 h-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
+      <span className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
       <span className="absolute bottom-0 left-5 right-5 h-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
       <span className="absolute left-0 top-5 bottom-5 w-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
       <span className="absolute right-0 top-5 bottom-5 w-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
 
-      {/* Header: Token Info */}
-      <div className="px-4 pt-4 pb-2.5">
-        <div className="flex items-center justify-between mb-2.5">
+      {/* Header: Token Info + Price + Online Count */}
+      <div className="px-4 pt-4 pb-2">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2.5">
-            {/* Token Image */}
             <div className="relative">
               {token.imageUrl ? (
                 <img
@@ -94,10 +160,6 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
               <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-xs font-bold text-accent-primary ring-1 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
                 {token.tokenSymbol?.charAt(0) || '?'}
               </div>
-              {/* Live dot */}
-              {hasConversation && token.lastMessageAt && (Date.now() - new Date(token.lastMessageAt).getTime()) < 30 * 60 * 1000 && (
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 ring-2 ring-[#111118]" />
-              )}
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -110,7 +172,6 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
                   </span>
                 )}
               </div>
-              {/* Metrics inline under symbol */}
               <div className="flex items-center gap-2 mt-0.5 text-[10px] text-text-muted/70">
                 {token.marketCap ? (
                   <span className="flex items-center gap-0.5">
@@ -133,89 +194,39 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
               </div>
             </div>
           </div>
-          {change !== undefined && (
-            <div className={`flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-1 rounded-lg ${
-              isPositive ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'
-            }`}>
-              {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-              {isPositive ? '+' : ''}{change.toFixed(1)}%
-            </div>
-          )}
+          <div className="flex flex-col items-end gap-1">
+            {change !== undefined && (
+              <div className={`flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-1 rounded-lg ${
+                isPositive ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'
+              }`}>
+                {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {isPositive ? '+' : ''}{change.toFixed(1)}%
+              </div>
+            )}
+            {activeCount > 0 && (
+              <div className="flex items-center gap-1 text-[9px] text-text-muted/50">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-online-pulse" />
+                {activeCount} online
+              </div>
+            )}
+          </div>
         </div>
-
       </div>
 
-      {/* Conversation Preview */}
-      {hasConversation ? (
-        <div className="px-4 pb-3.5 pt-2.5 border-t border-white/[0.04]">
-          {/* Agent message previews */}
-          {token.latestMessages && token.latestMessages.length > 0 ? (
-            <div className="space-y-2 mb-2.5">
-              {token.latestMessages.slice(0, 2).map((msg, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <div className={`flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br ${getAgentAccent(msg.agentName)} flex items-center justify-center text-[9px] font-medium`}>
-                    {msg.agentName.match(/^\p{Emoji}/u)?.[0] || msg.agentName.charAt(0)}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="text-[10px] font-semibold text-text-primary/80">{msg.agentName.replace(/^\p{Emoji}\s*/u, '')}</span>
-                    <p className="text-[10px] text-text-secondary/70 line-clamp-1 leading-snug">{msg.content}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : token.lastMessage ? (
-            <p className="text-[11px] text-text-secondary/70 leading-relaxed line-clamp-2 mb-2.5">
-              {token.lastMessage}
-            </p>
-          ) : null}
-
-          {/* Sentiment Bar */}
-          {token.sentiment && (token.sentiment.bullish + token.sentiment.bearish) > 0 && (() => {
-            const total = token.sentiment.bullish + token.sentiment.bearish + token.sentiment.neutral;
-            const bullPct = Math.round((token.sentiment.bullish / total) * 100);
-            return (
-              <div className="mb-2.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[9px] text-green-400/80 font-mono font-medium w-6">{bullPct}%</span>
-                  <div className="flex-1 h-1 bg-white/[0.04] rounded-full overflow-hidden flex">
-                    <div
-                      className="h-full bg-green-500/60 rounded-full transition-all duration-700"
-                      style={{ width: `${bullPct}%` }}
-                    />
-                    <div
-                      className="h-full bg-red-500/60 rounded-full transition-all duration-700 ml-auto"
-                      style={{ width: `${100 - bullPct}%` }}
-                    />
-                  </div>
-                  <span className="text-[9px] text-red-400/80 font-mono font-medium w-6 text-right">{100 - bullPct}%</span>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Footer stats */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1 text-[10px] text-text-muted/60">
-                <Users className="w-3 h-3" />
-                {token.participantCount}
-              </span>
-              <span className="flex items-center gap-1 text-[10px] text-text-muted/60">
-                <MessageSquare className="w-3 h-3" />
-                {token.messageCount}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="flex items-center gap-1 text-[10px] text-text-muted/60">
-                <Clock className="w-3 h-3" />
-                {timeAgo(token.lastMessageAt)}
-              </span>
-              <ChevronRight className="w-3 h-3 text-text-muted/30 group-hover:text-accent-primary/50 transition-colors" />
-            </div>
+      {/* Feed Preview — last 2-3 items */}
+      {hasActivity ? (
+        <div className="px-3 pb-2">
+          <div className="bg-white/[0.015] shadow-[inset_0_1px_3px_rgba(0,0,0,0.3)] rounded-md px-2.5 py-2 space-y-1.5">
+            {feedItems.slice(0, 3).map((item, i) => (
+              <FeedItemPreview key={item.id || i} item={item} />
+            ))}
+            {feedItems.length === 0 && token.lastMessage && (
+              <p className="text-[10px] text-text-secondary/60 truncate">{token.lastMessage}</p>
+            )}
           </div>
         </div>
       ) : (
-        <div className="px-4 pb-3.5 pt-2.5 border-t border-white/[0.04]">
+        <div className="px-4 pb-2">
           <div className="flex items-center justify-between">
             <p className="text-[10px] text-text-muted/50 italic">Agents analyzing...</p>
             <div className="flex gap-0.5">
@@ -226,6 +237,30 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
           </div>
         </div>
       )}
+
+      {/* Footer: Typing indicator or timestamp */}
+      <div className="px-4 pb-3 flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          {typingAgents.length > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] text-accent-primary/70 truncate">
+                {typingAgents.length === 1
+                  ? `${stripEmoji(typingAgents[0])} typing`
+                  : `${stripEmoji(typingAgents[0])}, ${stripEmoji(typingAgents[1])}${typingAgents.length > 2 ? ` +${typingAgents.length - 2}` : ''} typing`
+                }
+              </span>
+              <div className="flex gap-0.5 items-center">
+                <div className="w-1 h-1 rounded-full bg-accent-primary/60 animate-typing-dot" />
+                <div className="w-1 h-1 rounded-full bg-accent-primary/60 animate-typing-dot" style={{ animationDelay: '0.15s' }} />
+                <div className="w-1 h-1 rounded-full bg-accent-primary/60 animate-typing-dot" style={{ animationDelay: '0.3s' }} />
+              </div>
+            </div>
+          ) : token.lastMessageAt ? (
+            <span className="text-[9px] text-text-muted/30 font-mono">{timeAgo(token.lastMessageAt)}</span>
+          ) : null}
+        </div>
+        <ChevronRight className="w-3.5 h-3.5 text-text-muted/30 group-hover:text-accent-primary/50 transition-colors flex-shrink-0" />
+      </div>
     </button>
   );
 }

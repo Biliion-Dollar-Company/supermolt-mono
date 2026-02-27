@@ -426,6 +426,36 @@
     animation: card-pulse 2s ease-in-out 3;
   }
 
+  /* Feed item enter animation */
+  @keyframes feed-item-enter {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-feed-enter {
+    animation: feed-item-enter 200ms ease-out forwards;
+  }
+
+  /* Typing dots bounce */
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-4px); }
+  }
+
+  .animate-typing-dot {
+    animation: typing-bounce 1.4s ease-in-out infinite;
+  }
+
+  /* Online pulse indicator */
+  @keyframes online-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .animate-online-pulse {
+    animation: online-pulse 2s ease-in-out infinite;
+  }
+
   /* Panel slide-in from right */
   @keyframes slide-in-right {
     from { transform: translateX(100%); opacity: 0.8; }

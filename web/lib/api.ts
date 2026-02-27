@@ -41,6 +41,36 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
+// ── Client-side in-memory cache ──────────────────────────────────
+// Prevents duplicate fetches when switching views (mount/unmount/remount)
+const clientCache = new Map<string, { data: unknown; expiresAt: number; promise?: Promise<unknown> }>();
+
+function cachedCall<T>(key: string, ttlMs: number, fetcher: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const entry = clientCache.get(key);
+
+  // Return cached data if fresh
+  if (entry && entry.expiresAt > now && entry.data !== undefined) {
+    return Promise.resolve(entry.data as T);
+  }
+
+  // Deduplicate in-flight requests
+  if (entry?.promise) {
+    return entry.promise as Promise<T>;
+  }
+
+  const promise = fetcher().then((result) => {
+    clientCache.set(key, { data: result, expiresAt: Date.now() + ttlMs });
+    return result;
+  }).catch((err) => {
+    clientCache.delete(key);
+    throw err;
+  });
+
+  clientCache.set(key, { data: entry?.data, expiresAt: entry?.expiresAt ?? 0, promise });
+  return promise;
+}
+
 // JWT Token management
 class TokenManager {
   private token: string | null = null;
@@ -204,18 +234,22 @@ export async function getAgentTrades(agentId: string, limit = 50): Promise<Trade
   return response.data.trades || [];
 }
 
-// Get recent trades (for tape)
+// Get recent trades (for tape) — cached 15s
 export async function getRecentTrades(limit = 100): Promise<Trade[]> {
-  const response = await api.get<TradesResponse>('/arena/trades', {
-    params: { limit },
+  return cachedCall(`trades:${limit}`, 15_000, async () => {
+    const response = await api.get<TradesResponse>('/arena/trades', {
+      params: { limit },
+    });
+    return response.data.trades || [];
   });
-  return response.data.trades || [];
 }
 
-// Get all positions
+// Get all positions — cached 15s
 export async function getAllPositions(): Promise<Position[]> {
-  const response = await api.get<PositionsResponse>('/arena/positions');
-  return response.data.positions || [];
+  return cachedCall('positions:all', 15_000, async () => {
+    const response = await api.get<PositionsResponse>('/arena/positions');
+    return response.data.positions || [];
+  });
 }
 
 // Get agent positions (public arena endpoint)
@@ -546,26 +580,32 @@ export async function getAgentBalance(agentId: string): Promise<{ success: boole
  * This merges hot token metrics (price, mcap, volume, liquidity) with conversation data.
  */
 export async function getTrendingTokens(): Promise<TrendingToken[]> {
-  const response = await api.get('/messaging/arena-tokens');
-  const body = response.data?.data || response.data || {};
-  const raw = body.tokens || [];
+  return cachedCall('trending-tokens', 15_000, async () => {
+    const response = await api.get('/messaging/arena-tokens');
+    const body = response.data?.data || response.data || {};
+    const raw = body.tokens || [];
 
-  return raw.map((t: any) => ({
-    tokenMint: t.tokenMint,
-    tokenSymbol: t.tokenSymbol,
-    imageUrl: t.imageUrl || undefined,
-    priceUsd: t.priceUsd,
-    priceChange24h: t.priceChange24h,
-    marketCap: t.marketCap,
-    volume24h: t.volume24h,
-    liquidity: t.liquidity,
-    chain: t.chain,
-    conversationId: t.conversationId,
-    messageCount: t.messageCount || 0,
-    participantCount: t.participantCount || 0,
-    lastMessageAt: t.lastMessageAt,
-    lastMessage: t.lastMessage,
-    latestMessages: t.latestMessages || [],
-    sentiment: t.sentiment || undefined,
-  }));
+    return raw.map((t: any) => ({
+      tokenMint: t.tokenMint,
+      tokenSymbol: t.tokenSymbol,
+      imageUrl: t.imageUrl || undefined,
+      priceUsd: t.priceUsd,
+      priceChange24h: t.priceChange24h,
+      marketCap: t.marketCap,
+      volume24h: t.volume24h,
+      liquidity: t.liquidity,
+      chain: t.chain,
+      conversationId: t.conversationId,
+      messageCount: t.messageCount || 0,
+      participantCount: t.participantCount || 0,
+      lastMessageAt: t.lastMessageAt,
+      lastMessage: t.lastMessage,
+      latestMessages: t.latestMessages || [],
+      sentiment: t.sentiment || undefined,
+      positions: t.positions || undefined,
+      taskCount: t.taskCount || undefined,
+      feedPreview: t.feedPreview || undefined,
+      activeAgentCount: t.activeAgentCount || 0,
+    }));
+  });
 }

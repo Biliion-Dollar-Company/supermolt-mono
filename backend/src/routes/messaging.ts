@@ -10,6 +10,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
 import { db } from '../lib/db';
+import { cachedFetch } from '../lib/redis';
 import { getHotTokens, getLastSyncTime } from '../services/trending-token-sync';
 import { generateTokenConversation } from '../lib/conversation-generator';
 import { ConversationTrigger } from '../lib/conversation-triggers';
@@ -74,159 +75,363 @@ messaging.post('/generate-discussion', async (c) => {
  * This is the primary endpoint for the arena page.
  */
 messaging.get('/arena-tokens', async (c) => {
-  const hotTokens = getHotTokens();
+  const result = await cachedFetch('arena-tokens', 60, async () => {
+    const hotTokens = getHotTokens();
 
-  // Deduplicate by tokenSymbol — keep the one with highest volume
-  const symbolMap = new Map<string, typeof hotTokens[0]>();
-  for (const t of hotTokens) {
-    const sym = t.tokenSymbol?.toUpperCase();
-    if (!sym) continue;
-    const existing = symbolMap.get(sym);
-    if (!existing || (t.volume24h || 0) > (existing.volume24h || 0)) {
-      symbolMap.set(sym, t);
-    }
-  }
-  const dedupedTokens = Array.from(symbolMap.values());
-
-  // Get conversations for all hot token mints
-  const mints = dedupedTokens.map(t => t.tokenMint);
-  const conversations = mints.length > 0
-    ? await db.agentConversation.findMany({
-        where: {
-          tokenMint: { in: mints },
-          topic: { contains: 'Trading Discussion' },
-        },
-        include: {
-          messages: {
-            take: 3,
-            orderBy: { timestamp: 'desc' as const },
-          },
-          _count: { select: { messages: true } },
-        },
-        orderBy: { createdAt: 'desc' as const },
-      })
-    : [];
-
-  // Get agent names for messages
-  const agentIds = [...new Set(conversations.flatMap(c => c.messages.map(m => m.agentId)))];
-  const agents = agentIds.length > 0
-    ? await db.tradingAgent.findMany({
-        where: { id: { in: agentIds } },
-        select: { id: true, name: true, displayName: true },
-      })
-    : [];
-  const agentMap = new Map(agents.map(a => [a.id, a.displayName || a.name]));
-
-  // Get participant counts
-  const participantCounts = new Map<string, number>();
-  for (const conv of conversations) {
-    const allDistinct = await db.agentMessage.findMany({
-      where: { conversationId: conv.id },
-      distinct: ['agentId'],
-      select: { agentId: true },
-    });
-    participantCounts.set(conv.id, allDistinct.length);
-  }
-
-  // Build conversation map by tokenMint — pick newest conversation (most recent messages)
-  const convMap = new Map<string, typeof conversations[0]>();
-  for (const conv of conversations) {
-    if (!conv.tokenMint) continue;
-    const existing = convMap.get(conv.tokenMint);
-    if (!existing) {
-      convMap.set(conv.tokenMint, conv);
-    } else {
-      // Pick whichever has the more recent last message
-      const existingLast = existing.messages[0]?.timestamp?.getTime() || 0;
-      const convLast = conv.messages[0]?.timestamp?.getTime() || 0;
-      if (convLast > existingLast) {
-        convMap.set(conv.tokenMint, conv);
+    // Deduplicate by tokenSymbol — keep the one with highest volume
+    const symbolMap = new Map<string, typeof hotTokens[0]>();
+    for (const t of hotTokens) {
+      const sym = t.tokenSymbol?.toUpperCase();
+      if (!sym) continue;
+      const existing = symbolMap.get(sym);
+      if (!existing || (t.volume24h || 0) > (existing.volume24h || 0)) {
+        symbolMap.set(sym, t);
       }
     }
-  }
+    const dedupedTokens = Array.from(symbolMap.values());
 
-  // Aggregate message counts across ALL conversations for each token
-  const totalMessageCounts = new Map<string, number>();
-  const totalParticipants = new Map<string, Set<string>>();
-  for (const conv of conversations) {
-    if (!conv.tokenMint) continue;
-    totalMessageCounts.set(conv.tokenMint, (totalMessageCounts.get(conv.tokenMint) || 0) + conv._count.messages);
-    if (!totalParticipants.has(conv.tokenMint)) totalParticipants.set(conv.tokenMint, new Set());
-    const pSet = totalParticipants.get(conv.tokenMint)!;
-    conv.messages.forEach(m => pSet.add(m.agentId));
-  }
+    // Get conversations for all hot token mints
+    const mints = dedupedTokens.map(t => t.tokenMint);
+    const conversations = mints.length > 0
+      ? await db.agentConversation.findMany({
+          where: {
+            tokenMint: { in: mints },
+            topic: { contains: 'Trading Discussion' },
+          },
+          include: {
+            messages: {
+              take: 3,
+              orderBy: { timestamp: 'desc' as const },
+            },
+            _count: { select: { messages: true } },
+          },
+          orderBy: { createdAt: 'desc' as const },
+        })
+      : [];
 
-  // Analyze sentiment from message content (keyword-based)
-  const BULLISH_WORDS = /\b(ape|moon|buy|bullish|long|pump|send it|let'?s go|legs|organic|gem|early|undervalued|accumulate|hold)\b/i;
-  const BEARISH_WORDS = /\b(fade|dump|sell|bearish|short|rug|scam|exit liquidity|manipulated|overvalued|honeypot|avoid|dead)\b/i;
+    // Get agent names for messages
+    const agentIds = [...new Set(conversations.flatMap(c => c.messages.map(m => m.agentId)))];
+    const agents = agentIds.length > 0
+      ? await db.tradingAgent.findMany({
+          where: { id: { in: agentIds } },
+          select: { id: true, name: true, displayName: true },
+        })
+      : [];
+    const agentMap = new Map(agents.map(a => [a.id, a.displayName || a.name]));
 
-  function analyzeSentiment(messages: { message: string }[]): { bullish: number; bearish: number; neutral: number } {
-    let bullish = 0, bearish = 0, neutral = 0;
-    for (const m of messages) {
-      const hasBull = BULLISH_WORDS.test(m.message);
-      const hasBear = BEARISH_WORDS.test(m.message);
-      if (hasBull && !hasBear) bullish++;
-      else if (hasBear && !hasBull) bearish++;
-      else neutral++;
+    // Get participant counts
+    const participantCounts = new Map<string, number>();
+    for (const conv of conversations) {
+      const allDistinct = await db.agentMessage.findMany({
+        where: { conversationId: conv.id },
+        distinct: ['agentId'],
+        select: { agentId: true },
+      });
+      participantCounts.set(conv.id, allDistinct.length);
     }
-    return { bullish, bearish, neutral };
-  }
 
-  // Get ALL messages for sentiment analysis (not just latest 3)
-  const allConvMessages = new Map<string, { message: string }[]>();
-  for (const conv of conversations) {
-    if (!conv.tokenMint) continue;
-    const existing = allConvMessages.get(conv.tokenMint) || [];
-    existing.push(...conv.messages);
-    allConvMessages.set(conv.tokenMint, existing);
-  }
+    // Get positions per token
+    const positions = mints.length > 0
+      ? await db.agentPosition.findMany({
+          where: { tokenMint: { in: mints } },
+          select: { tokenMint: true, agentId: true, quantity: true, pnl: true, pnlPercent: true },
+        })
+      : [];
+    const positionsByMint = new Map<string, typeof positions>();
+    for (const pos of positions) {
+      const list = positionsByMint.get(pos.tokenMint) || [];
+      list.push(pos);
+      positionsByMint.set(pos.tokenMint, list);
+    }
+    // Resolve agent names for positions
+    const posAgentIds = [...new Set(positions.map(p => p.agentId))];
+    const posAgents = posAgentIds.length > 0
+      ? await db.tradingAgent.findMany({
+          where: { id: { in: posAgentIds } },
+          select: { id: true, name: true, displayName: true },
+        })
+      : [];
+    const posAgentMap = new Map(posAgents.map(a => [a.id, a.displayName || a.name || 'Unknown']));
 
-  // Merge tokens + conversation data — only include tokens WITH conversations
-  const arenaTokens = dedupedTokens
-    .map(token => {
-      const conv = convMap.get(token.tokenMint);
-      const msgs = allConvMessages.get(token.tokenMint) || [];
-      const sentiment = analyzeSentiment(msgs);
-      return {
-        tokenMint: token.tokenMint,
-        tokenSymbol: token.tokenSymbol,
-        tokenName: token.tokenName,
-        imageUrl: token.imageUrl || null,
-        priceUsd: token.priceUsd,
-        priceChange24h: token.priceChange24h,
-        marketCap: token.marketCap,
-        volume24h: token.volume24h,
-        liquidity: token.liquidity,
-        chain: token.chain || 'solana',
-        source: token.source,
-        conversationId: conv?.id || null,
-        messageCount: totalMessageCounts.get(token.tokenMint) || conv?._count.messages || 0,
-        participantCount: totalParticipants.get(token.tokenMint)?.size || (conv ? (participantCounts.get(conv.id) || 0) : 0),
-        lastMessageAt: conv?.messages[0]?.timestamp?.toISOString() || null,
-        lastMessage: conv?.messages[0]?.message || null,
-        sentiment,
-        latestMessages: conv?.messages.map(m => ({
-          agentName: agentMap.get(m.agentId) || 'Unknown',
-          content: m.message,
-          timestamp: m.timestamp.toISOString(),
-        })) || [],
-      };
-    })
-    .filter(t => t.messageCount > 0); // Only show tokens with active discussions
+    // Get scanner calls per token
+    const scannerCalls = mints.length > 0
+      ? await db.scannerCall.findMany({
+          where: { tokenAddress: { in: mints }, status: { not: 'EXPIRED' } },
+          select: { tokenAddress: true, scannerId: true, convictionScore: true, status: true },
+          take: 50,
+          orderBy: { createdAt: 'desc' },
+        })
+      : [];
+    const scannerCallsByMint = new Map<string, typeof scannerCalls>();
+    for (const sc of scannerCalls) {
+      const list = scannerCallsByMint.get(sc.tokenAddress) || [];
+      list.push(sc);
+      scannerCallsByMint.set(sc.tokenAddress, list);
+    }
 
-  // Sort by message count, then volume
-  arenaTokens.sort((a, b) => {
-    if (a.messageCount !== b.messageCount) return b.messageCount - a.messageCount;
-    return (b.volume24h || 0) - (a.volume24h || 0);
-  });
+    // Build conversation map by tokenMint — pick newest conversation (most recent messages)
+    const convMap = new Map<string, typeof conversations[0]>();
+    for (const conv of conversations) {
+      if (!conv.tokenMint) continue;
+      const existing = convMap.get(conv.tokenMint);
+      if (!existing) {
+        convMap.set(conv.tokenMint, conv);
+      } else {
+        // Pick whichever has the more recent last message
+        const existingLast = existing.messages[0]?.timestamp?.getTime() || 0;
+        const convLast = conv.messages[0]?.timestamp?.getTime() || 0;
+        if (convLast > existingLast) {
+          convMap.set(conv.tokenMint, conv);
+        }
+      }
+    }
 
-  return c.json({
-    success: true,
-    data: {
+    // Aggregate message counts across ALL conversations for each token
+    const totalMessageCounts = new Map<string, number>();
+    const totalParticipants = new Map<string, Set<string>>();
+    for (const conv of conversations) {
+      if (!conv.tokenMint) continue;
+      totalMessageCounts.set(conv.tokenMint, (totalMessageCounts.get(conv.tokenMint) || 0) + conv._count.messages);
+      if (!totalParticipants.has(conv.tokenMint)) totalParticipants.set(conv.tokenMint, new Set());
+      const pSet = totalParticipants.get(conv.tokenMint)!;
+      conv.messages.forEach(m => pSet.add(m.agentId));
+    }
+
+    // Analyze sentiment from message content (keyword-based)
+    const BULLISH_WORDS = /\b(ape|moon|buy|bullish|long|pump|send it|let'?s go|legs|organic|gem|early|undervalued|accumulate|hold)\b/i;
+    const BEARISH_WORDS = /\b(fade|dump|sell|bearish|short|rug|scam|exit liquidity|manipulated|overvalued|honeypot|avoid|dead)\b/i;
+
+    function analyzeSentiment(messages: { message: string }[]): { bullish: number; bearish: number; neutral: number } {
+      let bullish = 0, bearish = 0, neutral = 0;
+      for (const m of messages) {
+        const hasBull = BULLISH_WORDS.test(m.message);
+        const hasBear = BEARISH_WORDS.test(m.message);
+        if (hasBull && !hasBear) bullish++;
+        else if (hasBear && !hasBull) bearish++;
+        else neutral++;
+      }
+      return { bullish, bearish, neutral };
+    }
+
+    // Get ALL messages for sentiment analysis (not just latest 3)
+    const allConvMessages = new Map<string, { message: string }[]>();
+    for (const conv of conversations) {
+      if (!conv.tokenMint) continue;
+      const existing = allConvMessages.get(conv.tokenMint) || [];
+      existing.push(...conv.messages);
+      allConvMessages.set(conv.tokenMint, existing);
+    }
+
+    // Merge tokens + conversation data — only include tokens WITH conversations
+    const arenaTokens = dedupedTokens
+      .map(token => {
+        const conv = convMap.get(token.tokenMint);
+        const msgs = allConvMessages.get(token.tokenMint) || [];
+        const sentiment = analyzeSentiment(msgs);
+        const tokenPositions = positionsByMint.get(token.tokenMint) || [];
+        return {
+          tokenMint: token.tokenMint,
+          tokenSymbol: token.tokenSymbol,
+          tokenName: token.tokenName,
+          imageUrl: token.imageUrl || null,
+          priceUsd: token.priceUsd,
+          priceChange24h: token.priceChange24h,
+          marketCap: token.marketCap,
+          volume24h: token.volume24h,
+          liquidity: token.liquidity,
+          chain: token.chain || 'solana',
+          source: token.source,
+          conversationId: conv?.id || null,
+          messageCount: totalMessageCounts.get(token.tokenMint) || conv?._count.messages || 0,
+          participantCount: totalParticipants.get(token.tokenMint)?.size || (conv ? (participantCounts.get(conv.id) || 0) : 0),
+          lastMessageAt: conv?.messages[0]?.timestamp?.toISOString() || null,
+          lastMessage: conv?.messages[0]?.message || null,
+          sentiment,
+          latestMessages: conv?.messages.map(m => ({
+            agentName: agentMap.get(m.agentId) || 'Unknown',
+            content: m.message,
+            timestamp: m.timestamp.toISOString(),
+          })) || [],
+          positions: tokenPositions.map(p => ({
+            agentId: p.agentId,
+            agentName: posAgentMap.get(p.agentId) || 'Unknown',
+            quantity: p.quantity,
+            pnl: p.pnl,
+            pnlPercent: p.pnlPercent,
+          })),
+          taskCount: scannerCallsByMint.get(token.tokenMint)?.length || 0,
+          // Unified feed preview: merge latest messages + trades into a single preview
+          feedPreview: (() => {
+            const preview: any[] = [];
+            // Add latest messages as feed items
+            if (conv?.messages) {
+              for (const m of conv.messages) {
+                preview.push({
+                  id: m.id,
+                  timestamp: m.timestamp.toISOString(),
+                  tokenMint: token.tokenMint,
+                  type: 'message' as const,
+                  agentId: m.agentId,
+                  agentName: agentMap.get(m.agentId) || 'Unknown',
+                  content: m.message,
+                });
+              }
+            }
+            // Sort by timestamp desc and take 3
+            preview.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            return preview.slice(0, 3);
+          })(),
+          activeAgentCount: totalParticipants.get(token.tokenMint)?.size || 0,
+        };
+      })
+; // Show ALL hot tokens (conversations or not)
+
+    // Sort by volume, then market cap — biggest runners first
+    arenaTokens.sort((a, b) => {
+      return (b.volume24h || 0) - (a.volume24h || 0)
+        || (b.marketCap || 0) - (a.marketCap || 0);
+    });
+
+    return {
       tokens: arenaTokens,
       lastSyncAt: getLastSyncTime()?.toISOString() || null,
-    },
+    };
   });
+
+  return c.json({ success: true, data: result });
+});
+
+/**
+ * GET /messaging/tokens/:mint/feed
+ * Unified feed: merges messages, trades, and task completions for a token.
+ * Returns items sorted by timestamp desc, cursor-based pagination.
+ */
+messaging.get('/tokens/:mint/feed', async (c) => {
+  const mint = c.req.param('mint');
+  const cursor = c.req.query('cursor'); // ISO timestamp
+  const limit = Math.min(parseInt(c.req.query('limit') || '30', 10), 100);
+
+  try {
+    const cursorDate = cursor ? new Date(cursor) : undefined;
+    const dateFilter = cursorDate ? { lt: cursorDate } : undefined;
+
+    // Fetch messages for this token's conversations
+    const conversations = await db.agentConversation.findMany({
+      where: { tokenMint: mint },
+      select: { id: true },
+    });
+    const convIds = conversations.map(c => c.id);
+
+    const [messages, trades, taskCompletions] = await Promise.all([
+      // Messages
+      convIds.length > 0
+        ? db.agentMessage.findMany({
+            where: {
+              conversationId: { in: convIds },
+              ...(dateFilter ? { timestamp: dateFilter } : {}),
+            },
+            orderBy: { timestamp: 'desc' },
+            take: limit,
+          })
+        : Promise.resolve([]),
+
+      // Trades
+      db.agentTrade.findMany({
+        where: {
+          tokenMint: mint,
+          ...(dateFilter ? { createdAt: dateFilter } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      }),
+
+      // Task completions
+      db.agentTaskCompletion.findMany({
+        where: {
+          task: { tokenMint: mint },
+          ...(dateFilter ? { claimedAt: dateFilter } : {}),
+        },
+        include: { task: { select: { title: true, tokenMint: true } } },
+        orderBy: { claimedAt: 'desc' },
+        take: limit,
+      }),
+    ]);
+
+    // Resolve agent names
+    const allAgentIds = [
+      ...new Set([
+        ...messages.map(m => m.agentId),
+        ...trades.map(t => t.agentId),
+        ...taskCompletions.map(tc => tc.agentId),
+      ]),
+    ];
+    const agents = allAgentIds.length > 0
+      ? await db.tradingAgent.findMany({
+          where: { id: { in: allAgentIds } },
+          select: { id: true, name: true, displayName: true },
+        })
+      : [];
+    const agentMap = new Map(agents.map(a => [a.id, a.displayName || a.name || 'Unknown']));
+
+    // Build unified feed items
+    type FeedItem = { id: string; timestamp: string; tokenMint: string; type: string; [key: string]: any };
+    const items: FeedItem[] = [];
+
+    for (const msg of messages) {
+      items.push({
+        id: msg.id,
+        timestamp: msg.timestamp.toISOString(),
+        tokenMint: mint,
+        type: 'message',
+        agentId: msg.agentId,
+        agentName: agentMap.get(msg.agentId) || 'Unknown',
+        content: msg.message,
+      });
+    }
+
+    for (const trade of trades) {
+      items.push({
+        id: trade.id,
+        timestamp: trade.createdAt.toISOString(),
+        tokenMint: mint,
+        type: 'trade',
+        agentId: trade.agentId,
+        agentName: agentMap.get(trade.agentId) || 'Unknown',
+        side: trade.action as 'BUY' | 'SELL',
+        amount: Number(trade.solAmount),
+        price: 0,
+        tokenSymbol: trade.tokenSymbol || '',
+      });
+    }
+
+    for (const tc of taskCompletions) {
+      items.push({
+        id: tc.id,
+        timestamp: tc.claimedAt.toISOString(),
+        tokenMint: mint,
+        type: tc.status === 'VALIDATED' ? 'task_completed' : 'task_claimed',
+        agentId: tc.agentId,
+        agentName: agentMap.get(tc.agentId) || 'Unknown',
+        taskTitle: tc.task.title,
+      });
+    }
+
+    // Sort by timestamp desc and take limit
+    items.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const page = items.slice(0, limit);
+    const nextCursor = page.length === limit ? page[page.length - 1].timestamp : null;
+
+    return c.json({
+      success: true,
+      data: {
+        items: page,
+        nextCursor,
+      },
+    });
+  } catch (error) {
+    console.error('Unified feed error:', error);
+    return c.json({ success: false, error: 'Failed to fetch feed' }, 500);
+  }
 });
 
 // Request schemas

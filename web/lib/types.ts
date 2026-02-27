@@ -268,6 +268,43 @@ export interface QuickstartResponse {
   expiresIn: number;
 }
 
+// ── Unified Feed Item (Telegram-style activity feed) ──
+
+type FeedItemBase = { id: string; timestamp: string; tokenMint: string };
+
+export type MessageFeedItem = FeedItemBase & {
+  type: 'message';
+  agentId: string;
+  agentName: string;
+  agentAvatar?: string;
+  content: string;
+  sentiment?: string;
+};
+
+export type TradeFeedItem = FeedItemBase & {
+  type: 'trade';
+  agentId: string;
+  agentName: string;
+  side: 'BUY' | 'SELL';
+  amount: number;
+  price: number;
+  tokenSymbol: string;
+};
+
+export type TaskFeedItem = FeedItemBase & {
+  type: 'task_claimed' | 'task_completed';
+  agentId: string;
+  agentName: string;
+  taskTitle: string;
+};
+
+export type SystemFeedItem = FeedItemBase & {
+  type: 'system';
+  content: string;
+};
+
+export type UnifiedFeedItem = MessageFeedItem | TradeFeedItem | TaskFeedItem | SystemFeedItem;
+
 // ── Trending Token (arena token conversation grid) ──
 
 export interface TrendingToken {
@@ -297,6 +334,18 @@ export interface TrendingToken {
     bearish: number;
     neutral: number;
   };
+  positions?: Array<{
+    agentId: string;
+    agentName: string;
+    quantity: number;
+    pnl: number;
+    pnlPercent: number;
+  }>;
+  taskCount?: number;
+  // Unified feed data
+  feedPreview?: UnifiedFeedItem[];
+  activeAgentCount?: number;
+  typingAgents?: string[];
 }
 
 // ── Agent Tasks ──

@@ -43,46 +43,54 @@ function ArenaPageSkeleton() {
           <SkeletonBlock className="h-6 w-24 rounded-md" />
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="bg-[#0e0e18]/90 relative p-4" style={{ animationDelay: `${i * 50}ms` }}>
+          <div key={i} className="bg-white/[0.02] relative p-4 animate-pulse" style={{ animationDelay: `${i * 50}ms` }}>
+            {/* Corner brackets */}
+            <span className="absolute top-0 left-0 w-5 h-5 border-t border-l border-white/[0.06]" />
+            <span className="absolute top-0 right-0 w-5 h-5 border-t border-r border-white/[0.06]" />
+            <span className="absolute bottom-0 left-0 w-5 h-5 border-b border-l border-white/[0.06]" />
+            <span className="absolute bottom-0 right-0 w-5 h-5 border-b border-r border-white/[0.06]" />
+            {/* Header: token + price + online */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
                 <SkeletonBlock className="w-9 h-9 rounded-full" />
                 <div className="space-y-1.5">
                   <SkeletonBlock className="h-3.5 w-16 rounded" />
-                  <SkeletonBlock className="h-2.5 w-12 rounded" />
+                  <div className="flex gap-2">
+                    <SkeletonBlock className="h-2.5 w-10 rounded" />
+                    <SkeletonBlock className="h-2.5 w-8 rounded" />
+                    <SkeletonBlock className="h-2.5 w-8 rounded" />
+                  </div>
                 </div>
               </div>
-              <SkeletonBlock className="h-6 w-14 rounded-lg" />
-            </div>
-            <div className="flex gap-2.5 mb-3">
-              <SkeletonBlock className="h-2.5 w-14 rounded" />
-              <SkeletonBlock className="h-2.5 w-12 rounded" />
-              <SkeletonBlock className="h-2.5 w-10 rounded" />
-            </div>
-            {/* Tab bar skeleton */}
-            <div className="flex items-center gap-1 border-t border-white/[0.04] pt-2 pb-1.5">
-              <SkeletonBlock className="h-4 w-12 rounded" />
-              <SkeletonBlock className="h-4 w-10 rounded" />
-              <SkeletonBlock className="h-4 w-12 rounded" />
-            </div>
-            {/* Recessed content panel skeleton */}
-            <div className="bg-white/[0.01] rounded-md p-2.5">
-              <div className="flex items-start gap-2 mb-2">
-                <SkeletonBlock className="w-6 h-6 rounded-full flex-shrink-0" />
-                <div className="flex-1 space-y-1">
-                  <SkeletonBlock className="h-2.5 w-20 rounded" />
-                  <SkeletonBlock className="h-2.5 w-full rounded" />
-                </div>
+              <div className="flex flex-col items-end gap-1">
+                <SkeletonBlock className="h-6 w-14 rounded-lg" />
+                <SkeletonBlock className="h-2.5 w-12 rounded" />
               </div>
-              <div className="flex items-start gap-2">
-                <SkeletonBlock className="w-6 h-6 rounded-full flex-shrink-0" />
-                <div className="flex-1 space-y-1">
-                  <SkeletonBlock className="h-2.5 w-16 rounded" />
-                  <SkeletonBlock className="h-2.5 w-3/4 rounded" />
-                </div>
+            </div>
+            {/* Feed preview: 2-3 line items */}
+            <div className="bg-white/[0.01] rounded-md p-2.5 space-y-2">
+              <div className="flex items-center gap-1.5">
+                <SkeletonBlock className="w-4 h-4 rounded-full flex-shrink-0" />
+                <SkeletonBlock className="h-2.5 w-12 rounded" />
+                <SkeletonBlock className="h-2.5 w-full rounded" />
               </div>
+              <div className="flex items-center gap-1.5">
+                <SkeletonBlock className="w-4 h-4 rounded-full flex-shrink-0" />
+                <SkeletonBlock className="h-2.5 w-10 rounded" />
+                <SkeletonBlock className="h-2.5 w-3/4 rounded" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <SkeletonBlock className="w-4 h-4 rounded-full flex-shrink-0" />
+                <SkeletonBlock className="h-2.5 w-14 rounded" />
+                <SkeletonBlock className="h-2.5 w-2/3 rounded" />
+              </div>
+            </div>
+            {/* Footer: timestamp */}
+            <div className="flex items-center justify-between mt-2">
+              <SkeletonBlock className="h-2 w-8 rounded" />
+              <SkeletonBlock className="h-3 w-3 rounded" />
             </div>
           </div>
         ))}

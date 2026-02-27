@@ -156,6 +156,13 @@ class WebSocketEventsService {
         console.log(`[WebSocket] ${socket.id} subscribed to price:${mint}`);
       });
 
+      // Subscribe to token feed room (unified activity feed)
+      socket.on('subscribe:token', (mint: string) => {
+        if (!mint || typeof mint !== 'string') return;
+        socket.join(`token:${mint}`);
+        console.log(`[WebSocket] ${socket.id} subscribed to token:${mint}`);
+      });
+
       // Subscribe to feed channels (DevPrint market intelligence)
       socket.on('subscribe:feed', (channel: string) => {
         if (!VALID_FEED_CHANNELS.has(channel as FeedChannel)) {
@@ -361,6 +368,27 @@ class WebSocketEventsService {
     notifyConsensus(event.agentId, event.tokenSymbol, event.walletCount).catch(() => {});
 
     console.log(`[WebSocket] Broadcast consensus:reached for ${event.tokenSymbol} (${event.walletCount} wallets)`);
+  }
+
+  /** Broadcast a unified feed item to a token room */
+  broadcastTokenFeedItem(mint: string, item: any): void {
+    if (!this.io) return;
+    this.io.to(`token:${mint}`).emit('feed:item', item);
+    this.broadcastRaw({ type: 'feed:item', tokenMint: mint, ...item });
+  }
+
+  /** Broadcast typing status for a token room */
+  broadcastTokenTyping(mint: string, agentNames: string[]): void {
+    if (!this.io) return;
+    this.io.to(`token:${mint}`).emit('feed:typing', { tokenMint: mint, agentNames });
+    this.broadcastRaw({ type: 'feed:typing', tokenMint: mint, agentNames });
+  }
+
+  /** Broadcast active agent count for a token room */
+  broadcastTokenAgentsActive(mint: string, count: number): void {
+    if (!this.io) return;
+    this.io.to(`token:${mint}`).emit('feed:agents_active', { tokenMint: mint, count });
+    this.broadcastRaw({ type: 'feed:agents_active', tokenMint: mint, count });
   }
 
   broadcastFeedEvent(channel: FeedChannel, data: any): void {
