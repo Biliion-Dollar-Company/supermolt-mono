@@ -178,7 +178,7 @@ function PulseLayer({
                     path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                     const dx = agentPos.x - from.x;
                     const dy = agentPos.y - from.y;
-                    path.setAttribute('d', `M ${from.x} ${from.y} C ${from.x + dx * 0.5} ${from.y + dy * 0.15}, ${agentPos.x - dx * 0.3} ${agentPos.y - dy * 0.1}, ${agentPos.x} ${agentPos.y}`);
+                    path.setAttribute('d', `M ${from.x} ${from.y} C ${from.x + dx * 0.4} ${from.y}, ${agentPos.x} ${agentPos.y - dy * 0.4}, ${agentPos.x} ${agentPos.y}`);
                     pathCacheRef.current.set(pulse.feedIndex, path);
                 }
 
@@ -227,7 +227,7 @@ function PulseLayer({
             {feedPositions.map((from, i) => {
                 const dx = agentPos.x - from.x;
                 const dy = agentPos.y - from.y;
-                const d = `M ${from.x} ${from.y} C ${from.x + dx * 0.5} ${from.y + dy * 0.15}, ${agentPos.x - dx * 0.3} ${agentPos.y - dy * 0.1}, ${agentPos.x} ${agentPos.y}`;
+                const d = `M ${from.x} ${from.y} C ${from.x + dx * 0.4} ${from.y}, ${agentPos.x} ${agentPos.y - dy * 0.4}, ${agentPos.x} ${agentPos.y}`;
                 return (
                     <path key={`line-${i}`} d={d} fill="none" stroke={FEEDS[i]?.color ?? '#333'} strokeWidth={1.5} opacity={0.12} />
                 );
@@ -306,17 +306,18 @@ export function AgentDataFlow() {
     const pulses = usePulseEngine(FEEDS.length, 3.5, 5);
 
     const feedPositions = useMemo(() => {
-        // Feeds stacked vertically on the left side
-        const x = dims.w * 0.16;
-        const topMargin = dims.h * 0.14;
-        const usableH = dims.h * 0.72;
-        return FEEDS.map((_, i) => ({
-            x,
-            y: topMargin + (usableH / (FEEDS.length - 1)) * i,
-        }));
+        // 4 corners around the center agent
+        const mx = dims.w * 0.14; // horizontal margin
+        const my = dims.h * 0.22; // vertical margin
+        return [
+            { x: mx, y: my },                        // top-left
+            { x: dims.w - mx, y: my },                // top-right
+            { x: mx, y: dims.h - my },                // bottom-left
+            { x: dims.w - mx, y: dims.h - my },       // bottom-right
+        ];
     }, [dims.w, dims.h]);
 
-    const agentPos = useMemo(() => ({ x: dims.w * 0.72, y: dims.h * 0.5 }), [dims]);
+    const agentPos = useMemo(() => ({ x: dims.w * 0.5, y: dims.h * 0.5 }), [dims]);
 
     const xpPercent = agent ? Math.min(100, Math.round((agent.xp / Math.max(1, agent.xpForNextLevel)) * 100)) : 0;
     const hasAgent = !!agent;
@@ -631,7 +632,7 @@ export function AgentDataFlow() {
     // ── Desktop layout ──────────────────────────────────────────
     return (
         <div className="bg-[#0a0a12]/60 backdrop-blur-xl border border-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_8px_32px_rgba(0,0,0,0.5)]">
-            <div ref={containerRef} className="relative h-[260px]">
+            <div ref={containerRef} className="relative h-[180px]">
 
                 {/* Pulse animation layer */}
                 <PulseLayer
@@ -643,7 +644,7 @@ export function AgentDataFlow() {
                     height={dims.h}
                 />
 
-                {/* ── Feed nodes (left column, stacked vertically) ── */}
+                {/* ── Feed nodes (2x2 grid on left) ── */}
                 {FEEDS.map((feed, i) => {
                     const Icon = feed.icon;
                     const pos = feedPositions[i];
@@ -655,20 +656,20 @@ export function AgentDataFlow() {
                             style={{ left: pos?.x, top: pos?.y }}
                         >
                             <div
-                                className="relative bg-[#0e0e18]/90 backdrop-blur-md px-4 py-2.5 cursor-pointer group hover:bg-[#0e0e18] transition-colors duration-200"
+                                className="relative bg-[#0e0e18]/90 backdrop-blur-md px-3 py-2 cursor-pointer group hover:bg-[#0e0e18] transition-colors duration-200"
                                 onClick={() => setSelectedFeed(feed.id)}
                             >
                                 {/* Corner brackets */}
-                                <span className="absolute top-0 left-0 w-2.5 h-2.5 border-t border-l" style={{ borderColor: c }} />
-                                <span className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r" style={{ borderColor: c }} />
-                                <span className="absolute bottom-0 left-0 w-2.5 h-2.5 border-b border-l" style={{ borderColor: c }} />
-                                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 border-b border-r" style={{ borderColor: c }} />
+                                <span className="absolute top-0 left-0 w-2 h-2 border-t border-l" style={{ borderColor: c }} />
+                                <span className="absolute top-0 right-0 w-2 h-2 border-t border-r" style={{ borderColor: c }} />
+                                <span className="absolute bottom-0 left-0 w-2 h-2 border-b border-l" style={{ borderColor: c }} />
+                                <span className="absolute bottom-0 right-0 w-2 h-2 border-b border-r" style={{ borderColor: c }} />
 
-                                <div className="flex items-center gap-2.5">
-                                    <Icon className="w-5 h-5 flex-shrink-0" style={{ color: feed.color }} />
+                                <div className="flex items-center gap-2">
+                                    <Icon className="w-4 h-4 flex-shrink-0" style={{ color: feed.color }} />
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-text-primary whitespace-nowrap leading-tight">{feed.label}</span>
-                                        <span className="text-[10px] text-text-muted whitespace-nowrap">{feed.desc}</span>
+                                        <span className="text-xs font-bold text-text-primary whitespace-nowrap leading-tight">{feed.label}</span>
+                                        <span className="text-[9px] text-text-muted whitespace-nowrap">{feed.desc}</span>
                                     </div>
                                 </div>
                             </div>
@@ -690,55 +691,55 @@ export function AgentDataFlow() {
                             {/* Glow */}
                             <div className="absolute -inset-3 bg-accent-primary/[0.06] blur-xl pointer-events-none group-hover:bg-accent-primary/[0.1] transition-all duration-300" />
 
-                            <div className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-6 py-3.5 flex items-center gap-4 shadow-[0_0_40px_rgba(232,180,94,0.06)] group-hover:bg-[#0e0e18] transition-colors duration-200">
+                            <div className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-4 py-2.5 flex items-center gap-3 shadow-[0_0_40px_rgba(232,180,94,0.06)] group-hover:bg-[#0e0e18] transition-colors duration-200">
                                 {/* Corner brackets */}
-                                <span className="absolute top-0 left-0 w-4 h-4 border-t border-l border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
-                                <span className="absolute top-0 right-0 w-4 h-4 border-t border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
-                                <span className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
-                                <span className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute top-0 left-0 w-3 h-3 border-t border-l border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute top-0 right-0 w-3 h-3 border-t border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
 
                                 {/* Avatar */}
-                                <div className="w-12 h-12 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <div className="w-9 h-9 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarUrl ? (
                                         <img src={avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
                                     ) : (
-                                        <span className="text-accent-primary font-bold text-xl">
+                                        <span className="text-accent-primary font-bold text-base">
                                             {agent.name?.charAt(0)?.toUpperCase() ?? '?'}
                                         </span>
                                     )}
                                 </div>
 
                                 {/* Info */}
-                                <div className="flex flex-col gap-1.5 min-w-0 text-left">
-                                    <div className="flex items-center gap-2.5">
-                                        <h3 className="text-lg font-bold text-text-primary truncate">{agent.name}</h3>
-                                        <span className="bg-accent-primary/15 border border-accent-primary/25 px-2 py-0.5 text-xs font-bold text-accent-primary whitespace-nowrap">
+                                <div className="flex flex-col gap-1 min-w-0 text-left">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="text-sm font-bold text-text-primary truncate">{agent.name}</h3>
+                                        <span className="bg-accent-primary/15 border border-accent-primary/25 px-1.5 py-0.5 text-[10px] font-bold text-accent-primary whitespace-nowrap">
                                             Lv.{agent.level}
                                         </span>
-                                        <div className={`flex items-center gap-1 text-[10px] font-semibold ${statusInfo.color}`}>
+                                        <div className={`flex items-center gap-1 text-[9px] font-semibold ${statusInfo.color}`}>
                                             <div className={`w-1.5 h-1.5 rounded-full ${statusInfo.dot} animate-pulse`} />
                                             {statusInfo.label}
                                         </div>
                                     </div>
 
                                     {/* XP bar */}
-                                    <div className="flex items-center gap-3 mt-1">
-                                        <div className="w-44 h-2 bg-white/[0.06] overflow-hidden">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-32 h-1.5 bg-white/[0.06] overflow-hidden">
                                             <div
                                                 className="h-full bg-gradient-to-r from-accent-primary/80 to-accent-primary transition-all duration-500"
                                                 style={{ width: `${xpPercent}%` }}
                                             />
                                         </div>
-                                        <span className="text-xs text-text-muted font-mono whitespace-nowrap">
-                                            {agent.xp} / {agent.xpForNextLevel} XP
+                                        <span className="text-[10px] text-text-muted font-mono whitespace-nowrap">
+                                            {agent.xp}/{agent.xpForNextLevel}
                                         </span>
                                     </div>
                                 </div>
 
                                 {/* Expand chevron */}
-                                <div className="pl-3 border-l border-white/[0.06] ml-2 flex-shrink-0">
+                                <div className="pl-2 border-l border-white/[0.06] ml-1 flex-shrink-0">
                                     <ChevronDown
-                                        className="w-5 h-5 text-text-muted transition-transform duration-300 ease-out"
+                                        className="w-4 h-4 text-text-muted transition-transform duration-300 ease-out"
                                         style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                                     />
                                 </div>

@@ -365,8 +365,9 @@ function ConversationsView() {
     <>
       {/* Split layout: tokens left, divider, sidebar right */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_auto_minmax(360px,1fr)] gap-6">
-        {/* Left — Token cards grid */}
-        <div className="min-w-0 animate-arena-reveal">
+        {/* Left — Command center + Token cards grid */}
+        <div className="min-w-0 animate-arena-reveal space-y-5">
+          <CommandCenterSection />
           <TokenConversationGrid
             tokens={tokens}
             newMints={newMints}
@@ -523,14 +524,6 @@ export default function ArenaPage() {
             </div>
           </div>
         </div>
-
-        {/* Command Center — agent pipeline & config */}
-        <div className="mb-8">
-          <CommandCenterSection />
-        </div>
-
-        {/* Divider */}
-        <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/20 to-transparent mb-8" />
 
         {/* Content — both views stay mounted, toggle visibility to preserve state */}
         <div className={view === 'discussions' ? '' : 'hidden'}>
