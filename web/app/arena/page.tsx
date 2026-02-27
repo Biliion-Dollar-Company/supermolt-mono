@@ -43,8 +43,8 @@ function ArenaPageSkeleton() {
           <SkeletonBlock className="h-6 w-24 rounded-md" />
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {Array.from({ length: 9 }).map((_, i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="bg-[#0e0e18]/90 relative p-4" style={{ animationDelay: `${i * 50}ms` }}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2.5">
@@ -61,16 +61,23 @@ function ArenaPageSkeleton() {
               <SkeletonBlock className="h-2.5 w-12 rounded" />
               <SkeletonBlock className="h-2.5 w-10 rounded" />
             </div>
-            <div className="border-t border-white/[0.04] pt-3">
+            {/* Tab bar skeleton */}
+            <div className="flex items-center gap-1 border-t border-white/[0.04] pt-2 pb-1.5">
+              <SkeletonBlock className="h-4 w-12 rounded" />
+              <SkeletonBlock className="h-4 w-10 rounded" />
+              <SkeletonBlock className="h-4 w-12 rounded" />
+            </div>
+            {/* Recessed content panel skeleton */}
+            <div className="bg-white/[0.01] rounded-md p-2.5">
               <div className="flex items-start gap-2 mb-2">
-                <SkeletonBlock className="w-5 h-5 rounded-full flex-shrink-0" />
+                <SkeletonBlock className="w-6 h-6 rounded-full flex-shrink-0" />
                 <div className="flex-1 space-y-1">
                   <SkeletonBlock className="h-2.5 w-20 rounded" />
                   <SkeletonBlock className="h-2.5 w-full rounded" />
                 </div>
               </div>
               <div className="flex items-start gap-2">
-                <SkeletonBlock className="w-5 h-5 rounded-full flex-shrink-0" />
+                <SkeletonBlock className="w-6 h-6 rounded-full flex-shrink-0" />
                 <div className="flex-1 space-y-1">
                   <SkeletonBlock className="h-2.5 w-16 rounded" />
                   <SkeletonBlock className="h-2.5 w-3/4 rounded" />
@@ -195,6 +202,7 @@ function ClassicArenaView() {
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [leaderboardTab, setLeaderboardTab] = useState<'trades' | 'xp'>('trades');
+  const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     try {
@@ -204,7 +212,9 @@ function ClassicArenaView() {
       ]);
       const aggregated = aggregateTokens(trades, positions);
       setTokens(aggregated);
-    } catch {}
+    } catch {} finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -230,9 +240,14 @@ function ClassicArenaView() {
           <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5 flex flex-col min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider">Live Tokens</h2>
-              <span className="text-xs text-text-muted">{tokens.length} tokens</span>
+              <span className="text-xs text-text-muted">{loading ? '' : `${tokens.length} tokens`}</span>
             </div>
-            {tokens.length === 0 ? (
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-8 gap-3">
+                <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
+                <span className="text-xs text-text-muted/60">Loading tokens...</span>
+              </div>
+            ) : tokens.length === 0 ? (
               <div className="flex items-center justify-center py-8 text-text-muted text-sm">No recent trading activity</div>
             ) : (
               <>
@@ -299,6 +314,7 @@ function ConversationsView() {
   const initialLoadDone = useRef(false);
   const [ready, setReady] = useState(false);
   const [newMints, setNewMints] = useState<Set<string>>(new Set());
+  const [leaderboardTab, setLeaderboardTab] = useState<'trades' | 'xp'>('trades');
 
   const fetchData = useCallback(async () => {
     try {
@@ -347,13 +363,44 @@ function ConversationsView() {
 
   return (
     <>
-      <div className="animate-arena-reveal">
-        <TokenConversationGrid
-          tokens={tokens}
-          newMints={newMints}
-          onTokenClick={(token) => setSelectedToken(token)}
-        />
+      {/* Split layout: tokens left, divider, sidebar right */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_340px] gap-6">
+        {/* Left — Token cards grid */}
+        <div className="min-w-0 animate-arena-reveal">
+          <TokenConversationGrid
+            tokens={tokens}
+            newMints={newMints}
+            onTokenClick={(token) => setSelectedToken(token)}
+          />
+        </div>
+
+        {/* Vertical divider */}
+        <div className="hidden lg:flex justify-center">
+          <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
+        </div>
+
+        {/* Right sidebar */}
+        <div className="space-y-5">
+          <div className="animate-arena-reveal" style={{ animationDelay: '60ms' }}>
+            <MyAgentPanel />
+          </div>
+
+          <div className="animate-arena-reveal" style={{ animationDelay: '120ms' }}>
+            <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4">
+              <div className="flex items-center gap-1 mb-4">
+                <button onClick={() => setLeaderboardTab('trades')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'trades' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>Trades</button>
+                <button onClick={() => setLeaderboardTab('xp')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'xp' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>XP</button>
+              </div>
+              {leaderboardTab === 'trades' ? <ArenaLeaderboard /> : <XPLeaderboard />}
+            </div>
+          </div>
+
+          <div className="animate-arena-reveal" style={{ animationDelay: '180ms' }}>
+            <EpochRewardPanel />
+          </div>
+        </div>
       </div>
+
       {selectedToken && (
         <TokenConversationPanel
           token={selectedToken}
@@ -485,8 +532,13 @@ export default function ArenaPage() {
         {/* Divider */}
         <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/20 to-transparent mb-8" />
 
-        {/* Content based on selected view */}
-        {view === 'discussions' ? <ConversationsView /> : <ClassicArenaView />}
+        {/* Content — both views stay mounted, toggle visibility to preserve state */}
+        <div className={view === 'discussions' ? '' : 'hidden'}>
+          <ConversationsView />
+        </div>
+        <div className={view === 'classic' ? '' : 'hidden'}>
+          <ClassicArenaView />
+        </div>
       </div>
     </div>
   );

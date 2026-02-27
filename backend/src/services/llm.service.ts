@@ -37,17 +37,17 @@ export class LLMService {
     /**
      * Generate text completion using available LLM
      */
-    async generate(systemPrompt: string, userPrompt: string): Promise<string | null> {
+    async generate(systemPrompt: string, userPrompt: string, config?: { temperature?: number; maxTokens?: number }): Promise<string | null> {
         try {
             // Prioritize Groq (Cheaper/Faster)
             if (GROQ_API_KEY) {
-                return this.callGroq(systemPrompt, userPrompt);
+                return this.callGroq(systemPrompt, userPrompt, config);
             }
             if (ANTHROPIC_API_KEY) {
-                return this.callAnthropic(systemPrompt, userPrompt);
+                return this.callAnthropic(systemPrompt, userPrompt, config);
             }
             if (OPENAI_API_KEY) {
-                return this.callOpenAI(systemPrompt, userPrompt);
+                return this.callOpenAI(systemPrompt, userPrompt, config);
             }
             return null;
         } catch (error) {
@@ -56,7 +56,7 @@ export class LLMService {
         }
     }
 
-    private async callGroq(system: string, user: string): Promise<string> {
+    private async callGroq(system: string, user: string, config?: { temperature?: number; maxTokens?: number }): Promise<string> {
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -69,8 +69,8 @@ export class LLMService {
                     { role: 'system', content: system },
                     { role: 'user', content: user },
                 ],
-                temperature: 0.7,
-                max_tokens: 1024,
+                temperature: config?.temperature ?? 0.7,
+                max_tokens: config?.maxTokens ?? 1024,
             }),
         });
 
@@ -83,7 +83,7 @@ export class LLMService {
         return data.choices[0].message.content;
     }
 
-    private async callAnthropic(system: string, user: string): Promise<string> {
+    private async callAnthropic(system: string, user: string, config?: { temperature?: number; maxTokens?: number }): Promise<string> {
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -93,10 +93,10 @@ export class LLMService {
             },
             body: JSON.stringify({
                 model: 'claude-3-haiku-20240307', // Fast & cheap for analysis
-                max_tokens: 300,
+                max_tokens: config?.maxTokens ?? 300,
                 system: system,
                 messages: [{ role: 'user', content: user }],
-                temperature: 0.7,
+                temperature: config?.temperature ?? 0.7,
             }),
         });
 
@@ -109,7 +109,7 @@ export class LLMService {
         return data.content[0].text;
     }
 
-    private async callOpenAI(system: string, user: string): Promise<string> {
+    private async callOpenAI(system: string, user: string, config?: { temperature?: number; maxTokens?: number }): Promise<string> {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -122,8 +122,8 @@ export class LLMService {
                     { role: 'system', content: system },
                     { role: 'user', content: user },
                 ],
-                temperature: 0.7,
-                max_tokens: 300,
+                temperature: config?.temperature ?? 0.7,
+                max_tokens: config?.maxTokens ?? 300,
             }),
         });
 
