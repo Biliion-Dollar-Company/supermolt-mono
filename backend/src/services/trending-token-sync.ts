@@ -18,6 +18,7 @@
 
 import { db } from '../lib/db';
 import type { TokenContext } from '../lib/conversation-generator';
+import { websocketEvents } from './websocket-events';
 
 // ── Quality Thresholds ───────────────────────────────────
 // Filters out rugs, dead tokens, and fake volume
@@ -557,12 +558,24 @@ async function syncTrendingTokens(): Promise<void> {
   });
 
   // Only replace hot list if we got results — preserve previous on total failure
+  const previousMints = new Set(hotTokens.map(t => t.tokenMint));
   if (newHotTokens.length > 0) {
     hotTokens = newHotTokens;
   } else if (hotTokens.length > 0) {
     console.log(`[TrendingSync] All sources returned 0 — keeping previous ${hotTokens.length} tokens`);
   }
   lastSyncAt = new Date();
+
+  // Broadcast update via WebSocket so frontends refresh instantly
+  const newMints = hotTokens.filter(t => !previousMints.has(t.tokenMint)).map(t => t.tokenMint);
+  const sources = [...new Set(hotTokens.map(t => t.source).filter(Boolean))] as string[];
+  try {
+    websocketEvents.broadcastArenaUpdate({
+      hotTokenCount: hotTokens.length,
+      newMints,
+      sources,
+    });
+  } catch {}
 
   const elapsed = Date.now() - startTime;
   console.log(`[TrendingSync] Sync complete: ${hotTokens.length} hot tokens (${elapsed}ms)`);

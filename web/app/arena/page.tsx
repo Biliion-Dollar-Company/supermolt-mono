@@ -347,28 +347,47 @@ function ConversationsView() {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  // WebSocket: listen for new conversations and trigger quick refresh
+  // WebSocket: listen for new conversations + token list updates
   useEffect(() => {
-    let unsub: (() => void) | undefined;
+    const unsubs: (() => void)[] = [];
     (async () => {
       try {
         const { getWebSocketManager, connectWebSocket } = await import('@/lib/websocket');
         await connectWebSocket();
         const ws = getWebSocketManager();
-        unsub = ws.onConversationNew((event) => {
+
+        // New conversation created → highlight token + refresh
+        unsubs.push(ws.onConversationNew((event) => {
           const mint = event.data.token_mint || event.data.tokenMint;
           if (mint) {
             setNewMints(prev => new Set([...prev, mint]));
             setTimeout(() => setNewMints(prev => { const next = new Set(prev); next.delete(mint); return next; }), 5000);
           }
-          // Quick refresh on new conversation
           fetchData();
-        });
+        }));
+
+        // Token list updated (sync completed) → refresh grid instantly
+        unsubs.push(ws.onArenaTokensUpdated((event) => {
+          const mints: string[] = event.data.newMints || [];
+          if (mints.length > 0) {
+            setNewMints(prev => {
+              const next = new Set(prev);
+              mints.forEach(m => next.add(m));
+              return next;
+            });
+            setTimeout(() => setNewMints(prev => {
+              const next = new Set(prev);
+              mints.forEach(m => next.delete(m));
+              return next;
+            }), 5000);
+          }
+          fetchData();
+        }));
       } catch {
         // WebSocket not available — polling fallback is fine
       }
     })();
-    return () => unsub?.();
+    return () => unsubs.forEach(u => u());
   }, [fetchData]);
 
   if (!ready) return <ArenaPageSkeleton />;

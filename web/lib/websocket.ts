@@ -103,6 +103,19 @@ class WebSocketManager {
         this.emit('vote_cast', { type: 'vote_cast', data })
       );
 
+      // Arena token list updated (new tokens synced)
+      this.socket.on('arena:tokens_updated', (data: any) => {
+        this.emit('arena_tokens_updated', {
+          type: 'agent_updated',
+          data: {
+            hotTokenCount: data.hotTokenCount,
+            newMints: data.newMints,
+            sources: data.sources,
+            timestamp: data.timestamp,
+          },
+        });
+      });
+
       // Arena conversation events (new messages, new conversations)
       this.socket.on('conversation:new', (data: any) => {
         this.emit('conversation_new', {
@@ -221,6 +234,10 @@ class WebSocketManager {
 
   onConversationNew(callback: (event: FeedEvent) => void): () => void {
     return this.on('conversation_new', callback);
+  }
+
+  onArenaTokensUpdated(callback: (event: FeedEvent) => void): () => void {
+    return this.on('arena_tokens_updated', callback);
   }
 
   /** Subscribe to a token's unified feed room */

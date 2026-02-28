@@ -391,6 +391,18 @@ class WebSocketEventsService {
     this.broadcastRaw({ type: 'feed:agents_active', tokenMint: mint, count });
   }
 
+  /** Broadcast arena token list update (token count changed, new tokens appeared) */
+  broadcastArenaUpdate(summary: { hotTokenCount: number; newMints: string[]; sources: string[] }): void {
+    const payload = { timestamp: new Date().toISOString(), ...summary };
+    if (this.io) {
+      this.io.emit('arena:tokens_updated', payload);
+    }
+    this.broadcastRaw({ type: 'arena:tokens_updated', ...payload });
+    if (summary.newMints.length > 0) {
+      console.log(`[WebSocket] Broadcast arena:tokens_updated — ${summary.hotTokenCount} tokens, ${summary.newMints.length} new`);
+    }
+  }
+
   broadcastFeedEvent(channel: FeedChannel, data: any): void {
     if (!this.io) return;
     this.io.to(`feed:${channel}`).emit(`feed:${channel}`, data);
