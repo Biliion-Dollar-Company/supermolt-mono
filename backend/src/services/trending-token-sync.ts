@@ -5,16 +5,14 @@
  *  1. Fetches recently graduated pump.fun tokens from Birdeye
  *  2. Enriches with DexScreener data for tokens without Birdeye key
  *  3. Also pulls tokens SuperRouter has traded recently (72h)
- *  4. CoinGecko trending as fallback when DexScreener is rate-limited
- *  5. Jupiter verified token list as safety net
+ *  4. GeckoTerminal trending as always-on fallback (returns Solana mints directly)
  *  6. Filters by quality thresholds (organic volume, liquidity)
  *  7. Maintains in-memory hot list for the discussion engine
  *
  * Sources (priority order):
  *  A. Birdeye Meme Token List (graduated=true, sorted by graduated_time) — BEST
  *  B. DexScreener trending boosts — FREE fallback (429-prone on shared IPs)
- *  C. CoinGecko trending — FREE fallback (different rate limits)
- *  D. Jupiter verified tokens — FREE safety net (always works)
+ *  C. GeckoTerminal trending — FREE always-on fallback (separate rate limits, direct mints)
  *  E. SuperRouter recent trades from DB — tokens we already have data on
  */
 
@@ -352,80 +350,77 @@ async function fetchDexScreenerLatestPairs(): Promise<TokenContext[]> {
   }
 }
 
-// ── CoinGecko Solana Meme Coins (Fallback — different rate limits) ─
-// Uses /coins/markets with category filter for reliable data,
-// then resolves Solana mint addresses via /coins/{id} with rate limiting.
-// Address map is cached to avoid repeated lookups.
+// ── GeckoTerminal Trending (Reliable Fallback) ──────────
+// Uses GeckoTerminal (CoinGecko's DEX product) — returns Solana mint addresses
+// directly in a single call. No address resolution needed. Separate rate limits
+// from DexScreener. Fetches 2 pages (40 trending pools) for good coverage.
 
-const geckoAddressCache = new Map<string, string>(); // coinGeckoId -> solana mint
-
-async function resolveSolanaAddress(coinId: string): Promise<string | null> {
-  const cached = geckoAddressCache.get(coinId);
-  if (cached) return cached;
-
-  const res = await fetchWithRetry(
-    `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false`,
-    { timeoutMs: 8000, retries: 0, label: `CoinGecko coin/${coinId}` },
-  );
-  if (!res) return null;
-
+async function fetchGeckoTerminalTrending(): Promise<TokenContext[]> {
   try {
-    const data = await res.json();
-    const platforms = data?.detail_platforms || data?.platforms || {};
-    const solana = platforms?.solana;
-    const addr = typeof solana === 'string' ? solana : solana?.contract_address;
-    if (addr) {
-      geckoAddressCache.set(coinId, addr);
-      return addr;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-async function fetchCoinGeckoTrending(): Promise<TokenContext[]> {
-  try {
-    const res = await fetchWithRetry(
-      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&category=solana-meme-coins&order=volume_desc&per_page=20&page=1&sparkline=false',
-      { timeoutMs: 12000, retries: 1, label: 'CoinGecko markets' },
-    );
-    if (!res) return [];
-
-    const data = await res.json();
-    const coins: any[] = Array.isArray(data) ? data : [];
-    if (coins.length === 0) return [];
-
-    console.log(`[TrendingSync] CoinGecko: ${coins.length} Solana meme coins from /markets`);
-
-    // Resolve Solana mint addresses (rate limit: ~2 per second)
     const tokens: TokenContext[] = [];
-    for (const coin of coins) {
-      const mint = await resolveSolanaAddress(coin.id);
-      if (!mint) continue;
 
-      tokens.push({
-        tokenMint: mint,
-        tokenSymbol: coin.symbol?.toUpperCase() || 'UNKNOWN',
-        tokenName: coin.name || '',
-        priceUsd: coin.current_price || undefined,
-        priceChange24h: coin.price_change_percentage_24h || undefined,
-        marketCap: coin.market_cap || undefined,
-        volume24h: coin.total_volume || undefined,
-        fdv: coin.fully_diluted_valuation || undefined,
-        chain: 'solana',
-        source: 'coingecko_trending',
-        imageUrl: coin.image || undefined,
-      });
+    for (const page of [1, 2]) {
+      const res = await fetchWithRetry(
+        `https://api.geckoterminal.com/api/v2/networks/solana/trending_pools?page=${page}&include=base_token`,
+        { timeoutMs: 12000, retries: 1, label: `GeckoTerminal trending p${page}` },
+      );
+      if (!res) continue;
 
-      // Rate limit: ~500ms between address lookups (CoinGecko free = 10-30/min)
-      await new Promise(r => setTimeout(r, 500));
+      const data = await res.json();
+      const pools: any[] = data?.data || [];
+      const included: Record<string, any> = {};
+      for (const item of data?.included || []) {
+        included[item.id] = item;
+      }
+
+      for (const pool of pools) {
+        const attrs = pool?.attributes || {};
+        const baseTokenId = pool?.relationships?.base_token?.data?.id || '';
+        // Extract mint from ID format: "solana_MINT_ADDRESS"
+        const mint = baseTokenId.startsWith('solana_') ? baseTokenId.slice(7) : '';
+        if (!mint) continue;
+
+        const baseToken = included[baseTokenId]?.attributes || {};
+        const symbol = baseToken.symbol || '';
+        const name = baseToken.name || '';
+        const imageUrl = baseToken.image_url || undefined;
+
+        const mcap = parseFloat(attrs.market_cap_usd) || 0;
+        const fdv = parseFloat(attrs.fdv_usd) || 0;
+        const vol24h = parseFloat(attrs.volume_usd?.h24) || 0;
+        const liq = parseFloat(attrs.reserve_in_usd) || 0;
+        const price = parseFloat(attrs.base_token_price_usd) || 0;
+        const priceChange24h = parseFloat(attrs.price_change_percentage?.h24) || 0;
+
+        // Quality filters
+        const effectiveMcap = mcap || fdv;
+        if (effectiveMcap < QUALITY.minMarketCap) continue;
+        if (vol24h < QUALITY.minVolume24h) continue;
+
+        tokens.push({
+          tokenMint: mint,
+          tokenSymbol: symbol.toUpperCase() || 'UNKNOWN',
+          tokenName: name,
+          priceUsd: price || undefined,
+          priceChange24h: priceChange24h || undefined,
+          marketCap: effectiveMcap || undefined,
+          volume24h: vol24h || undefined,
+          liquidity: liq || undefined,
+          fdv: fdv || undefined,
+          chain: 'solana',
+          source: 'geckoterminal_trending',
+          imageUrl,
+        });
+      }
+
+      // Small delay between pages
+      if (page < 2) await new Promise(r => setTimeout(r, 300));
     }
 
-    console.log(`[TrendingSync] CoinGecko: ${tokens.length}/${coins.length} resolved with Solana addresses`);
+    console.log(`[TrendingSync] GeckoTerminal: ${tokens.length} trending Solana tokens`);
     return tokens;
   } catch (err) {
-    console.error('[TrendingSync] CoinGecko fetch error:', err);
+    console.error('[TrendingSync] GeckoTerminal fetch error:', err);
     return [];
   }
 }
@@ -547,13 +542,9 @@ async function syncTrendingTokens(): Promise<void> {
   const migrationTokens = await fetchDexScreenerLatestPairs();
   addTokens(migrationTokens);
 
-  // 4. CoinGecko Solana meme coins — fallback when DexScreener is rate-limited
-  //    Only fetch if DexScreener returned nothing (saves CoinGecko rate limit)
-  let geckoTokens: TokenContext[] = [];
-  if (newHotTokens.length < 5) {
-    geckoTokens = await fetchCoinGeckoTrending();
-    addTokens(geckoTokens);
-  }
+  // 4. GeckoTerminal trending — always-on fallback, returns Solana mints directly
+  const geckoTokens = await fetchGeckoTerminalTrending();
+  addTokens(geckoTokens);
 
   // 5. SuperRouter recent trades (tokens we've actually traded)
   const srTokens = await fetchSuperRouterTokens();
@@ -575,7 +566,7 @@ async function syncTrendingTokens(): Promise<void> {
 
   const elapsed = Date.now() - startTime;
   console.log(`[TrendingSync] Sync complete: ${hotTokens.length} hot tokens (${elapsed}ms)`);
-  console.log(`  Sources: ${birdeyeTokens.length} birdeye, ${dexTokens.length} dex-boosts, ${migrationTokens.length} pf-migrations, ${geckoTokens.length} coingecko, ${srTokens.length} superrouter`);
+  console.log(`  Sources: ${birdeyeTokens.length} birdeye, ${dexTokens.length} dex-boosts, ${migrationTokens.length} pf-migrations, ${geckoTokens.length} geckoterminal, ${srTokens.length} superrouter`);
 
   for (const t of hotTokens.slice(0, 5)) {
     const mcap = t.marketCap ? `$${(t.marketCap / 1000).toFixed(0)}k` : '?';
