@@ -241,8 +241,8 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                   ${token.tokenSymbol}
                 </span>
                 {change !== undefined && (
-                  <span className={`flex items-center gap-0.5 text-xs font-mono font-semibold px-1.5 py-0.5 rounded-md ${
-                    isPositive ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'
+                  <span className={`flex items-center gap-0.5 text-xs font-mono font-semibold ${
+                    isPositive ? 'text-green-400' : 'text-red-400'
                   }`}>
                     {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                     {isPositive ? '+' : ''}{change.toFixed(1)}%

@@ -196,8 +196,8 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
           </div>
           <div className="flex flex-col items-end gap-1">
             {change !== undefined && (
-              <div className={`flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-1 rounded-lg ${
-                isPositive ? 'text-green-400 bg-green-500/10' : 'text-red-400 bg-red-500/10'
+              <div className={`flex items-center gap-1 text-[11px] font-mono font-semibold ${
+                isPositive ? 'text-green-400' : 'text-red-400'
               }`}>
                 {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                 {isPositive ? '+' : ''}{change.toFixed(1)}%
