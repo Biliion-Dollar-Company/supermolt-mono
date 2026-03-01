@@ -15,6 +15,7 @@ import { createClankerMonitor } from './services/clanker-monitor.js';
 
 import { createSortinoCron } from './services/sortino-cron.js';
 import { createPredictionCron } from './services/prediction-cron.js';
+import { createPolymarketSyncCron } from './services/polymarket/polymarket.cron';
 import { createMetricsMiddleware, getMetrics, getMetricsContentType, updateAgentMetrics, updateEpochMetrics } from './services/metrics.service.js';
 import { DistributedLockService, getReplicaId } from './services/distributed-lock.service.js';
 
@@ -45,6 +46,7 @@ import { baseRoutes } from './routes/base.routes';
 import { surgeRoutes } from './routes/surge.routes';
 import { pumpfunRoutes } from './routes/pumpfun.routes';
 import { predictionRoutes } from './routes/prediction.routes';
+import polymarketRoutes from './routes/polymarket.routes';
 import { trading } from './routes/trading.routes';
 import { erc8004Routes } from './routes/erc8004.routes';
 import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
@@ -564,6 +566,16 @@ if (enableSortinoCron) {
     predictionCron.start();
   } catch (err) {
     console.warn('⚠️  Prediction cron failed to start (tables may not exist yet):', err);
+  }
+  
+  // Start Polymarket sync cron
+  try {
+    if (envFlag('ENABLE_POLYMARKET_SYNC', true)) {
+      const polymarketCron = createPolymarketSyncCron();
+      console.log('✅ Polymarket sync cron started');
+    }
+  } catch (err) {
+    console.warn('⚠️  Polymarket sync failed to start:', err);
   }
 } else {
   console.log('⏭️  Sortino cron disabled on this replica');

@@ -26,6 +26,7 @@
     "bs58": "^6.0.0",
     "bullmq": "^5.10.3",
     "clanker-sdk": "^4.2.10",
+    "cron": "^4.4.0",
     "ethers": "^6.16.0",
     "expo-server-sdk": "^6.0.0",
     "gray-matter": "^4.0.3",

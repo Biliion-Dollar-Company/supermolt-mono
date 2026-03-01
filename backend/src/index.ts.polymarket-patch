@@ -1,0 +1,28 @@
+// This section should replace lines 505-525 in index.ts
+
+let sortinoCron: ReturnType<typeof createSortinoCron> | null = null;
+let predictionCron: ReturnType<typeof createPredictionCron> | null = null;
+
+if (enableSortinoCron) {
+  sortinoCron = createSortinoCron(db, lockService);
+  sortinoCron.start();
+  
+  try {
+    predictionCron = createPredictionCron(db, lockService);
+    predictionCron.start();
+  } catch (err) {
+    console.warn('⚠️  Prediction cron failed to start (tables may not exist yet):', err);
+  }
+  
+  // Start Polymarket sync cron
+  try {
+    if (envFlag('ENABLE_POLYMARKET_SYNC', true)) {
+      const polymarketCron = createPolymarketSyncCron();
+      console.log('✅ Polymarket sync cron started');
+    }
+  } catch (err) {
+    console.warn('⚠️  Polymarket sync failed to start:', err);
+  }
+} else {
+  console.log('⏭️  Sortino cron disabled on this replica');
+}
