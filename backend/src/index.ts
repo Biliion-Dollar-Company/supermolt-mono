@@ -228,6 +228,9 @@ app.route('/pumpfun', pumpfunRoutes);
 // Prediction market routes (Kalshi + future platforms)
 app.route('/prediction', predictionRoutes);
 
+// Polymarket routes (multi-agent prediction markets)
+app.route('/api/polymarket', polymarketRoutes);
+
 // Arena routes (public, frontend arena page)
 app.route('/arena', arenaMeRoutes); // /arena/me — must be before generic arena routes
 app.route('/arena/me', agentConfigRoutes); // Agent configuration endpoints
