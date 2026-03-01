@@ -773,3 +773,21 @@ model PredictionStats {
   @@index([brierScore])
   @@map("prediction_stats")
 }
+
+model GlintSignal {
+  id              String   @id @default(cuid())
+  confidence      String   // "HIGH", "CRIT", "MEDIUM", etc.
+  confidenceScore Int      // 1-10 numeric score
+  source          String   // "@NickTimiraos", etc.
+  text            String   @db.Text
+  markets         Json     // Array of related Polymarket markets
+  category        String   // "Politics", "Crypto", etc.
+  receivedAt      DateTime
+  processed       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([processed])
+  @@index([confidenceScore])
+  @@index([receivedAt])
+  @@map("glint_signals")
+}
