@@ -182,6 +182,99 @@ polymarketRoutes.get('/sync/status', async (c) => {
   });
 });
 
+// POST /polymarket/import — Import markets from external sources (News Scanner, Jupiter API)
+polymarketRoutes.post('/import', async (c) => {
+  try {
+    const importMarketsSchema = z.object({
+      markets: z.array(z.object({
+        externalId: z.string(),
+        title: z.string(),
+        category: z.string().optional().default('Unknown'),
+        yesPrice: z.number().min(0).max(1),
+        noPrice: z.number().min(0).max(1),
+        volume: z.number().optional().default(0),
+        expiresAt: z.string().datetime(),
+        metadata: z.record(z.any()).optional().default({}),
+      })),
+      source: z.string().optional().default('unknown'),
+    });
+
+    const body = await c.req.json();
+    const parsed = importMarketsSchema.parse(body);
+
+    const results = {
+      created: 0,
+      updated: 0,
+      skipped: 0,
+      errors: [] as string[],
+    };
+
+    for (const marketData of parsed.markets) {
+      try {
+        // Check if market already exists
+        const existing = await db.predictionMarket.findUnique({
+          where: {
+            platform_externalId: {
+              platform: 'POLYMARKET',
+              externalId: marketData.externalId,
+            },
+          },
+        });
+
+        if (existing) {
+          // Update prices and volume
+          await db.predictionMarket.update({
+            where: { id: existing.id },
+            data: {
+              yesPrice: marketData.yesPrice,
+              noPrice: marketData.noPrice,
+              volume: marketData.volume,
+              updatedAt: new Date(),
+            },
+          });
+          results.updated++;
+        } else {
+          // Create new market
+          await db.predictionMarket.create({
+            data: {
+              platform: 'POLYMARKET',
+              externalId: marketData.externalId,
+              title: marketData.title,
+              category: marketData.category,
+              yesPrice: marketData.yesPrice,
+              noPrice: marketData.noPrice,
+              volume: marketData.volume,
+              expiresAt: new Date(marketData.expiresAt),
+              status: 'open',
+              outcome: 'PENDING',
+              metadata: marketData.metadata,
+            },
+          });
+          results.created++;
+        }
+      } catch (err: any) {
+        results.errors.push(`${marketData.externalId}: ${err.message}`);
+        results.skipped++;
+      }
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        source: parsed.source,
+        totalProcessed: parsed.markets.length,
+        ...results,
+      },
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return c.json({ success: false, error: 'Invalid request body', details: error.errors }, 400);
+    }
+    console.error('[Polymarket] POST /import error:', error);
+    return c.json({ success: false, error: 'Failed to import markets' }, 500);
+  }
+});
+
 // ── Authenticated Routes ────────────────────────────────
 
 // POST /polymarket/signals — Share a market signal
