@@ -24,7 +24,7 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { db } from '../lib/db';
 import { getPendingBuys, evaluateTrendingTriggers, type AutoBuyRequest } from './trigger-engine';
 import { createTradingExecutor, type TradingExecutor } from './trading-executor';
-import { PositionTracker } from './position-tracker';
+import { PositionTrackerV2 as PositionTracker } from './position-tracker-v2';
 import { websocketEvents } from './websocket-events';
 import { getTokenPrice } from '../lib/birdeye';
 import { getBnbPrice, getBscTokenPrice } from '../lib/bsc-prices';

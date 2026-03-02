@@ -19,7 +19,7 @@ import { db } from '../lib/db';
 import * as surgeApi from '../services/surge-api.service';
 import { getEthPrice, getBaseTokenPrice } from '../lib/base-prices';
 import { treasuryManagerBase } from '../services/treasury-manager-base.service';
-import { PositionTracker } from '../services/position-tracker';
+import { PositionTrackerV2 as PositionTracker } from '../services/position-tracker-v2';
 import { websocketEvents } from '../services/websocket-events';
 
 export const surgeRoutes = new Hono();

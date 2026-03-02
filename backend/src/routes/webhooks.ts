@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import crypto from 'crypto';
 import { extractSwapsFromTransaction } from '../lib/swap-parser';
 import { getTokenPrice } from '../lib/birdeye';
-import { PositionTracker } from '../services/position-tracker';
+import { PositionTrackerV2 as PositionTracker } from '../services/position-tracker-v2';
 import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-observer';
 // closePaperTrade/recalculateAgentStats now handled inline in closePaperTradesForSell $transaction
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';

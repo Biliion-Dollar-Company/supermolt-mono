@@ -10,7 +10,7 @@
 import { db } from '../lib/db';
 import { Prisma } from '@prisma/client';
 import { estimateBnbValue, getBscTokenPrice, getBnbPrice } from '../lib/bsc-prices';
-import { PositionTracker } from './position-tracker';
+import { PositionTrackerV2 as PositionTracker } from './position-tracker-v2';
 import { autoCompleteOnboardingTask } from './onboarding.service';
 import { evaluateTriggers, type DetectedTrade } from './trigger-engine';
 

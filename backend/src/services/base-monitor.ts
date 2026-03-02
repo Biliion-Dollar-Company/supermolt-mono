@@ -9,7 +9,7 @@
 
 import { db } from '../lib/db';
 import { estimateEthValue, getBaseTokenPrice, getEthPrice } from '../lib/base-prices';
-import { PositionTracker } from './position-tracker';
+import { PositionTrackerV2 as PositionTracker } from './position-tracker-v2';
 import { autoCompleteOnboardingTask } from './onboarding.service';
 import { evaluateTriggers } from './trigger-engine';
 
