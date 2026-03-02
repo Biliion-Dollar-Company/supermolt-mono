@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "start": "bunx prisma generate && bunx prisma db push --accept-data-loss && bun run src/index.ts",
+    "start": "bun run src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
