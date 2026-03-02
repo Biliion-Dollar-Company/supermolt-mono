@@ -58,11 +58,19 @@ polymarketRoutes.get('/markets', async (c) => {
   try {
     const category = c.req.query('category');
     const limit = Math.min(parseInt(c.req.query('limit') || '50'), 200);
+    const daysAhead = parseInt(c.req.query('daysAhead') || '30');
+    
+    // Calculate cutoff date (now + N days)
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() + daysAhead);
 
     const markets = await db.predictionMarket.findMany({
       where: {
         platform: 'POLYMARKET',
         status: 'open',
+        expiresAt: {
+          lte: cutoffDate, // Only markets closing within N days
+        },
         ...(category ? { category } : {}),
       },
       orderBy: { volume: 'desc' },
@@ -84,6 +92,7 @@ polymarketRoutes.get('/markets', async (c) => {
         metadata: m.metadata,
       })),
       count: markets.length,
+      cutoffDate: cutoffDate.toISOString(),
     });
   } catch (error: any) {
     console.error('[Polymarket] GET /markets error:', error);
