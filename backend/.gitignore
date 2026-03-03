@@ -2,6 +2,10 @@
 .env
 .env.local
 .env.*.local
+.env.devnet
+.env.orion
+.env.production
+.env.staging
 
 # Node/Bun
 node_modules/
