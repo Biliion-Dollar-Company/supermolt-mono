@@ -12,6 +12,7 @@ import { db } from '../lib/db';
 import { polymarketSyncService } from '../services/polymarket/polymarket.sync';
 import { polymarketArbScanner } from '../services/polymarket/polymarket.arb-scanner';
 import { polymarketLatencyScanner } from '../services/polymarket/polymarket.latency-scanner';
+import { polymarketWeatherScanner } from '../services/polymarket/polymarket.weather-scanner';
 
 const polymarketRoutes = new Hono();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -452,6 +453,30 @@ polymarketRoutes.get('/latency/opportunities', async (c) => {
   } catch (error: any) {
     console.error('[Polymarket] GET /latency/opportunities error:', error);
     return c.json({ success: false, error: 'Failed to fetch latency opportunities' }, 500);
+  }
+});
+
+// ── Weather Scanner Routes ────────────────────────────────
+
+// GET /polymarket/weather/stats — Weather scanner statistics
+polymarketRoutes.get('/weather/stats', (c) => {
+  return c.json({ success: true, data: polymarketWeatherScanner.getStats() });
+});
+
+// GET /polymarket/weather/opportunities — Recent weather arb opportunities
+polymarketRoutes.get('/weather/opportunities', async (c) => {
+  try {
+    const opportunities = await db.agentPrediction.findMany({
+      where: { agentId: 'weather-scanner' },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: { market: true },
+    });
+
+    return c.json({ success: true, data: opportunities, count: opportunities.length });
+  } catch (error: any) {
+    console.error('[Polymarket] GET /weather/opportunities error:', error);
+    return c.json({ success: false, error: 'Failed to fetch weather opportunities' }, 500);
   }
 });
 
