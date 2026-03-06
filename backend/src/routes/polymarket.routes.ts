@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { db } from '../lib/db';
 import { polymarketSyncService } from '../services/polymarket/polymarket.sync';
 import { polymarketArbScanner } from '../services/polymarket/polymarket.arb-scanner';
+import { polymarketLatencyScanner } from '../services/polymarket/polymarket.latency-scanner';
 
 const polymarketRoutes = new Hono();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -427,6 +428,30 @@ polymarketRoutes.get('/arb/opportunities', async (c) => {
   } catch (error: any) {
     console.error('[Polymarket] GET /arb/opportunities error:', error);
     return c.json({ success: false, error: 'Failed to fetch arb opportunities' }, 500);
+  }
+});
+
+// ── Latency Scanner Routes ──────────────────────────────
+
+// GET /polymarket/latency/stats — Latency scanner statistics
+polymarketRoutes.get('/latency/stats', (c) => {
+  return c.json({ success: true, data: polymarketLatencyScanner.getStats() });
+});
+
+// GET /polymarket/latency/opportunities — Recent latency arb opportunities
+polymarketRoutes.get('/latency/opportunities', async (c) => {
+  try {
+    const opportunities = await db.agentPrediction.findMany({
+      where: { agentId: 'latency-scanner' },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: { market: true },
+    });
+
+    return c.json({ success: true, data: opportunities, count: opportunities.length });
+  } catch (error: any) {
+    console.error('[Polymarket] GET /latency/opportunities error:', error);
+    return c.json({ success: false, error: 'Failed to fetch latency opportunities' }, 500);
   }
 });
 
