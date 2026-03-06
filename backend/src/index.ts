@@ -16,6 +16,7 @@ import { createClankerMonitor } from './services/clanker-monitor.js';
 import { createSortinoCron } from './services/sortino-cron.js';
 import { createPredictionCron } from './services/prediction-cron.js';
 import { createPolymarketSyncCron } from './services/polymarket/polymarket.cron';
+import { createPolymarketArbCron } from './services/polymarket/polymarket.arb-cron';
 import { createMetricsMiddleware, getMetrics, getMetricsContentType, updateAgentMetrics, updateEpochMetrics } from './services/metrics.service.js';
 import { DistributedLockService, getReplicaId } from './services/distributed-lock.service.js';
 
@@ -580,6 +581,8 @@ if (enableSortinoCron) {
     if (envFlag('ENABLE_POLYMARKET_SYNC', true)) {
       const polymarketCron = createPolymarketSyncCron();
       console.log('✅ Polymarket sync cron started');
+      const arbCron = createPolymarketArbCron();
+      console.log('✅ Polymarket arb scanner cron started');
     }
   } catch (err) {
     console.warn('⚠️  Polymarket sync failed to start:', err);

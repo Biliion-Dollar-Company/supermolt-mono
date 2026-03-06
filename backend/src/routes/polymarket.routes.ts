@@ -10,6 +10,7 @@ import * as jose from 'jose';
 import { z } from 'zod';
 import { db } from '../lib/db';
 import { polymarketSyncService } from '../services/polymarket/polymarket.sync';
+import { polymarketArbScanner } from '../services/polymarket/polymarket.arb-scanner';
 
 const polymarketRoutes = new Hono();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -290,6 +291,9 @@ polymarketRoutes.post('/import', async (c) => {
 polymarketRoutes.post('/signals', requireAuth, async (c) => {
   try {
     const agentId = c.get('agentId');
+    if (!agentId) {
+      return c.json({ success: false, error: 'Unauthorized' }, 401);
+    }
     const body = signalSchema.parse(await c.req.json());
 
     // Verify market exists
@@ -344,7 +348,7 @@ polymarketRoutes.post('/signals', requireAuth, async (c) => {
       success: true,
       data: {
         id: prediction.id,
-        market: prediction.market,
+        market,
         side: prediction.side,
         confidence: prediction.confidence,
         reasoning: prediction.reasoning,
@@ -399,6 +403,30 @@ polymarketRoutes.get('/my-signals', requireAuth, async (c) => {
   } catch (error: any) {
     console.error('[Polymarket] GET /my-signals error:', error);
     return c.json({ success: false, error: 'Failed to fetch signals' }, 500);
+  }
+});
+
+// ── Arb Scanner Routes ──────────────────────────────────
+
+// GET /polymarket/arb/stats — Scanner statistics
+polymarketRoutes.get('/arb/stats', (c) => {
+  return c.json({ success: true, data: polymarketArbScanner.getStats() });
+});
+
+// GET /polymarket/arb/opportunities — Recent arb opportunities
+polymarketRoutes.get('/arb/opportunities', async (c) => {
+  try {
+    const opportunities = await db.agentPrediction.findMany({
+      where: { agentId: 'arb-scanner' },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      include: { market: true },
+    });
+
+    return c.json({ success: true, data: opportunities, count: opportunities.length });
+  } catch (error: any) {
+    console.error('[Polymarket] GET /arb/opportunities error:', error);
+    return c.json({ success: false, error: 'Failed to fetch arb opportunities' }, 500);
   }
 });
 
