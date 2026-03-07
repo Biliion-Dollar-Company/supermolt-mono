@@ -52,6 +52,7 @@ import { predictionRoutes } from './routes/prediction.routes';
 import polymarketRoutes from './routes/polymarket.routes';
 import glintRoutes from './routes/glint.routes';
 import swarmRoutes from './routes/swarm.routes';
+import { runStartupMigrations } from './lib/migrate';
 import { trading } from './routes/trading.routes';
 import { erc8004Routes } from './routes/erc8004.routes';
 import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
@@ -476,7 +477,8 @@ try {
 }
 
 // Start the server
-server.listen(port, '0.0.0.0', () => {
+server.listen(port, '0.0.0.0', async () => {
+  await runStartupMigrations();
   console.log(`✅ Server running on port ${port}`);
   console.log(`   HTTP: http://0.0.0.0:${port}`);
   console.log(`   WebSocket: ws://0.0.0.0:${port}`);
