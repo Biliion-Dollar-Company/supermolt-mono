@@ -32,12 +32,11 @@ export class PolymarketArbScanner {
     });
 
     for (const m of candidates) {
-      const yes = typeof m.outcomePrices === 'string'
-        ? JSON.parse(m.outcomePrices)[0]
-        : Number(m.yes_price ?? m.outcomePrices?.[0] ?? 0);
-      const no = typeof m.outcomePrices === 'string'
-        ? JSON.parse(m.outcomePrices)[1]
-        : Number(m.no_price ?? m.outcomePrices?.[1] ?? 0);
+      const prices = typeof m.outcomePrices === 'string'
+        ? JSON.parse(m.outcomePrices) as string[]
+        : null;
+      const yes = prices ? Number(prices[0]) : (m.probability ?? 0);
+      const no = prices ? Number(prices[1]) : (1 - (m.probability ?? 0));
 
       const yesPrice = Number(yes);
       const noPrice = Number(no);
@@ -69,7 +68,7 @@ export class PolymarketArbScanner {
           yesPrice,
           noPrice,
           volume: Number(m.volume ?? 0),
-          expiresAt: m.end_date_iso ? new Date(m.end_date_iso) : new Date(Date.now() + 86400000),
+          expiresAt: m.endDate ? new Date(m.endDate) : m.end_date ? new Date(m.end_date) : new Date(Date.now() + 86400000),
           status: 'open',
           outcome: 'PENDING',
           metadata: { arbSpread: spread },
