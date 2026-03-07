@@ -774,6 +774,24 @@ model PredictionStats {
   @@map("prediction_stats")
 }
 
+model SwarmDecision {
+  id            String   @id @default(cuid())
+  marketId      String
+  question      String
+  consensus     String   // BUY_YES | BUY_NO | NO_TRADE
+  confidence    Float
+  votes         Json     // AgentVote[]
+  executed      Boolean  @default(false)
+  dryRun        Boolean  @default(true)
+  txHash        String?
+  erc8004Logged Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([marketId])
+  @@index([createdAt])
+  @@map("swarm_decisions")
+}
+
 model GlintSignal {
   id              String   @id @default(cuid())
   confidence      String   // "HIGH", "CRIT", "MEDIUM", etc.

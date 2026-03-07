@@ -51,6 +51,7 @@ import { pumpfunRoutes } from './routes/pumpfun.routes';
 import { predictionRoutes } from './routes/prediction.routes';
 import polymarketRoutes from './routes/polymarket.routes';
 import glintRoutes from './routes/glint.routes';
+import swarmRoutes from './routes/swarm.routes';
 import { trading } from './routes/trading.routes';
 import { erc8004Routes } from './routes/erc8004.routes';
 import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
@@ -237,6 +238,9 @@ app.route('/api/polymarket', polymarketRoutes);
 
 // Glint routes (event-driven signal webhooks)
 app.route('/api/glint', glintRoutes);
+
+// Swarm routes (multi-agent prediction consensus)
+app.route('/swarm', swarmRoutes);
 
 // Arena routes (public, frontend arena page)
 app.route('/arena', arenaMeRoutes); // /arena/me — must be before generic arena routes
