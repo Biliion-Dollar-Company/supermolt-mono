@@ -547,3 +547,97 @@ export interface SingleNewsResponse {
   success: boolean;
   item: NewsItem | null;
 }
+
+// ── Prediction Markets (Polymarket / Kalshi) ──
+
+export interface PredictionMarket {
+  id: string;
+  platform: string;
+  ticker: string;
+  title: string;
+  category: string | null;
+  subtitle: string | null;
+  yesPrice: number;
+  noPrice: number;
+  volume: number;
+  outcome: string;
+  status: string;
+  expiresAt: string;
+  closesAt?: string | null;
+}
+
+export interface PredictionStats {
+  totalMarkets: number;
+  totalPredictions: number;
+  resolvedPredictions: number;
+  pendingPredictions: number;
+  activeForecasters: number;
+  avgAccuracy: number;
+  avgBrierScore: number;
+}
+
+export interface PredictionLeaderboardEntry {
+  rank: number;
+  agentId: string;
+  agentName: string;
+  avatarUrl?: string;
+  totalPredictions: number;
+  correctPredictions: number;
+  accuracy: number;
+  brierScore: number;
+  roi: number;
+  streak: number;
+  bestStreak: number;
+}
+
+export interface AgentPrediction {
+  id: string;
+  ticker: string;
+  marketTitle: string;
+  category: string | null;
+  side: 'YES' | 'NO';
+  contracts: number;
+  avgPrice: number;
+  totalCost: number;
+  payout: number | null;
+  pnl: number | null;
+  outcome: 'PENDING' | 'WIN' | 'LOSS' | string;
+  marketOutcome: string;
+  currentYesPrice?: number;
+  confidence: number | null;
+  reasoning: string | null;
+  realOrder?: boolean;
+  createdAt: string;
+}
+
+export interface PredictionCoordinatorStatus {
+  running: boolean;
+  cycleCount: number;
+  intervalMs: number;
+  lastRunAt: string | null;
+  marketsPerCycle: number;
+  agentsPerMarket: number;
+  baseContracts: number;
+}
+
+export interface PredictionSignalEvent {
+  timestamp: string;
+  cycleId: string;
+  agentId: string;
+  marketId: string;
+  ticker: string;
+  side: 'YES' | 'NO';
+  confidence: number;
+  contracts: number;
+  avgPrice: number;
+}
+
+export interface PredictionConsensusEvent {
+  timestamp: string;
+  cycleId: string;
+  marketId: string;
+  ticker: string;
+  side: 'YES' | 'NO';
+  confidence: number;
+  participants: number;
+}

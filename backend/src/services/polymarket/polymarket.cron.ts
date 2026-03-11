@@ -3,22 +3,29 @@
  * Runs every 5 minutes to sync markets from Polymarket
  */
 
-import { CronJob } from 'cron';
 import { polymarketSyncService } from './polymarket.sync';
 
+const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+
 export function createPolymarketSyncCron() {
-  // Run every 5 minutes: '*/5 * * * *'
-  const job = new CronJob('*/5 * * * *', async () => {
+  const runSync = async () => {
     await polymarketSyncService.syncMarkets();
-  });
+  };
 
   // Run initial sync immediately
-  polymarketSyncService.syncMarkets().then(() => {
+  runSync().then(() => {
     console.log('[PolymarketCron] ✅ Initial sync complete');
   });
 
-  job.start();
+  const intervalId = setInterval(() => {
+    runSync().catch((err) => {
+      console.error('[PolymarketCron] ❌ Scheduled sync failed:', err);
+    });
+  }, SYNC_INTERVAL_MS);
+
   console.log('[PolymarketCron] 🔄 Cron job started (every 5 minutes)');
 
-  return job;
+  return {
+    stop: () => clearInterval(intervalId),
+  };
 }

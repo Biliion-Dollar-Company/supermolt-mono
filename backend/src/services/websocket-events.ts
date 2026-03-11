@@ -56,6 +56,24 @@ interface BroadcastEvents {
     agentId: string;
     agentName: string;
   };
+  'prediction:signal': {
+    cycleId: string;
+    agentId: string;
+    marketId: string;
+    ticker: string;
+    side: 'YES' | 'NO';
+    confidence: number;
+    contracts: number;
+    avgPrice: number;
+  };
+  'prediction:consensus': {
+    cycleId: string;
+    marketId: string;
+    ticker: string;
+    side: 'YES' | 'NO';
+    confidence: number;
+    participants: number;
+  };
 }
 
 class WebSocketEventsService {
@@ -368,6 +386,28 @@ class WebSocketEventsService {
     notifyConsensus(event.agentId, event.tokenSymbol, event.walletCount).catch(() => {});
 
     console.log(`[WebSocket] Broadcast consensus:reached for ${event.tokenSymbol} (${event.walletCount} wallets)`);
+  }
+
+  broadcastPredictionSignal(event: BroadcastEvents['prediction:signal']) {
+    const payload = {
+      timestamp: new Date().toISOString(),
+      ...event,
+    };
+    if (this.io) {
+      this.io.emit('prediction:signal', payload);
+    }
+    this.broadcastRaw({ type: 'prediction:signal', ...payload });
+  }
+
+  broadcastPredictionConsensus(event: BroadcastEvents['prediction:consensus']) {
+    const payload = {
+      timestamp: new Date().toISOString(),
+      ...event,
+    };
+    if (this.io) {
+      this.io.emit('prediction:consensus', payload);
+    }
+    this.broadcastRaw({ type: 'prediction:consensus', ...payload });
   }
 
   /** Broadcast a unified feed item to a token room */

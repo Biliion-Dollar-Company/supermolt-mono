@@ -9,7 +9,7 @@
  * - Transaction-safe updates
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, Chain } from '@prisma/client';
 import { getTokenPrice } from '../lib/birdeye';
 import { getBscTokenPrice } from '../lib/bsc-prices';
 import { getBaseTokenPrice } from '../lib/base-prices';
@@ -33,7 +33,7 @@ export interface PositionData {
  */
 async function getPriceForPosition(
   tokenMint: string,
-  chain: string,
+  chain: Chain,
 ): Promise<{ priceUsd: number } | null> {
   if (chain === 'BSC') {
     const price = await getBscTokenPrice(tokenMint);
@@ -60,7 +60,7 @@ export class PositionTrackerV2 {
     tokenName: string,
     quantity: number,
     pricePerToken: number,
-    chain: string = 'SOLANA'
+    chain: Chain = 'SOLANA'
   ): Promise<void> {
     try {
       // Guard against invalid input
@@ -153,7 +153,7 @@ export class PositionTrackerV2 {
     tokenMint: string,
     quantity: number,
     pricePerToken: number,
-    chain: string = 'SOLANA'
+    chain: Chain = 'SOLANA'
   ): Promise<void> {
     try {
       // Guard against invalid input

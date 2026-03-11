@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 
-import { Swords, MessageSquare, Copy, Check, LayoutGrid, Zap } from 'lucide-react';
+import { Swords, MessageSquare, Copy, Check, LayoutGrid, Zap, LineChart } from 'lucide-react';
 import { getTrendingTokens, getRecentTrades, getAllPositions, getMyAgent } from '@/lib/api';
 import type { TrendingToken, Trade, Position } from '@/lib/types';
 import {
@@ -528,6 +529,13 @@ export default function ArenaPage() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href="/arena/predictions"
+              className="hidden sm:flex items-center gap-2 text-xs font-medium px-3 py-2 border border-cyan-400/30 text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/15 transition-colors"
+            >
+              <LineChart className="w-3.5 h-3.5" />
+              Prediction Arena
+            </Link>
             {/* View Toggle */}
             <div className="flex items-center bg-white/[0.03] border border-white/[0.06] rounded-lg overflow-hidden p-1">
               <button

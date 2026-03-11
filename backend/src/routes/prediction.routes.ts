@@ -13,6 +13,8 @@ import { z } from 'zod';
 import { db } from '../lib/db';
 import { getKalshiService } from '../services/kalshi.service';
 import { calculateLevel } from '../services/onboarding.service';
+import { getPredictionCoordinator } from '../services/prediction-coordinator';
+import { websocketEvents } from '../services/websocket-events';
 
 const predictionRoutes = new Hono();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -394,6 +396,17 @@ predictionRoutes.post('/markets/:ticker/predict', requireAuth, async (c) => {
       return pred;
     });
 
+    websocketEvents.broadcastPredictionSignal({
+      cycleId: 'manual',
+      agentId,
+      marketId: market.id,
+      ticker,
+      side: prediction.side,
+      confidence: prediction.confidence || 0,
+      contracts: prediction.contracts,
+      avgPrice: Number(prediction.avgPrice),
+    });
+
     return c.json({
       success: true,
       data: {
@@ -468,11 +481,16 @@ predictionRoutes.get('/predictions', requireAuth, async (c) => {
 
 // ── Admin Routes ────────────────────────────────────────
 
+function isInternalAuthorized(c: Context): boolean {
+  if (process.env.NODE_ENV !== 'production') return true;
+  const internalKey = c.req.header('X-Internal-Key');
+  return !!process.env.INTERNAL_API_KEY && internalKey === process.env.INTERNAL_API_KEY;
+}
+
 // POST /prediction/sync — Trigger manual market sync
 predictionRoutes.post('/sync', async (c) => {
   try {
-    const internalKey = c.req.header('X-Internal-Key');
-    if (internalKey !== process.env.INTERNAL_API_KEY && process.env.NODE_ENV === 'production') {
+    if (!isInternalAuthorized(c)) {
       return c.json({ success: false, error: 'Unauthorized' }, 401);
     }
 
@@ -484,6 +502,54 @@ predictionRoutes.post('/sync', async (c) => {
     console.error('[Prediction] POST /sync error:', error);
     return c.json({ success: false, error: 'Sync failed' }, 500);
   }
+});
+
+// GET /prediction/coordinator/status — coordinator process status
+predictionRoutes.get('/coordinator/status', async (c) => {
+  const coordinator = getPredictionCoordinator();
+  return c.json({ success: true, data: coordinator.getStatus() });
+});
+
+// GET /prediction/coordinator/exposure — pending exposure snapshot
+predictionRoutes.get('/coordinator/exposure', async (c) => {
+  const coordinator = getPredictionCoordinator();
+  const agentId = c.req.query('agentId');
+  const data = await coordinator.getExposure(agentId);
+  return c.json({ success: true, data });
+});
+
+// POST /prediction/coordinator/cycle — run one cycle now
+predictionRoutes.post('/coordinator/cycle', async (c) => {
+  try {
+    if (!isInternalAuthorized(c)) {
+      return c.json({ success: false, error: 'Unauthorized' }, 401);
+    }
+    const coordinator = getPredictionCoordinator();
+    const result = await coordinator.runCycle();
+    return c.json({ success: true, data: result });
+  } catch (error: any) {
+    return c.json({ success: false, error: error.message || 'Coordinator cycle failed' }, 500);
+  }
+});
+
+// POST /prediction/coordinator/start — start background coordinator
+predictionRoutes.post('/coordinator/start', async (c) => {
+  if (!isInternalAuthorized(c)) {
+    return c.json({ success: false, error: 'Unauthorized' }, 401);
+  }
+  const coordinator = getPredictionCoordinator();
+  coordinator.start();
+  return c.json({ success: true, data: coordinator.getStatus() });
+});
+
+// POST /prediction/coordinator/stop — stop background coordinator
+predictionRoutes.post('/coordinator/stop', async (c) => {
+  if (!isInternalAuthorized(c)) {
+    return c.json({ success: false, error: 'Unauthorized' }, 401);
+  }
+  const coordinator = getPredictionCoordinator();
+  coordinator.stop();
+  return c.json({ success: true, data: coordinator.getStatus() });
 });
 
 export { predictionRoutes };

@@ -59,6 +59,7 @@ import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-e
 import { getScannerScheduler } from './scanners/scheduler';
 import { startTrendingTokenSync, stopTrendingTokenSync } from './services/trending-token-sync';
 import { startTokenDiscussionEngine, stopTokenDiscussionEngine } from './services/token-discussion-engine';
+import { getPredictionCoordinator } from './services/prediction-coordinator';
 
 // TEMPORARY: Admin fix for Epic Reward scanner
 import adminFix from './routes/admin-scanner-fix';
@@ -599,6 +600,16 @@ if (enableSortinoCron) {
   } catch (err) {
     console.warn('⚠️  Polymarket sync failed to start:', err);
   }
+
+  // Start Prediction Coordinator (automated multi-agent prediction placement)
+  try {
+    if (envFlag('ENABLE_PREDICTION_COORDINATOR', true)) {
+      getPredictionCoordinator().start();
+      console.log('✅ Prediction coordinator started (5-min cycles, 8 markets, 3 agents/market)');
+    }
+  } catch (err) {
+    console.warn('⚠️  Prediction coordinator failed to start:', err);
+  }
 } else {
   console.log('⏭️  Sortino cron disabled on this replica');
 }
@@ -658,6 +669,7 @@ process.on('SIGTERM', async () => {
   console.log('\n🛑 Shutting down...');
   if (sortinoCron) sortinoCron.stop();
   if (predictionCron) predictionCron.stop();
+  getPredictionCoordinator().stop();
   if (scannerScheduler) scannerScheduler.stop();
   stopAutoBuyExecutor();
   stopTrendingTokenSync();
@@ -679,6 +691,7 @@ process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down...');
   if (sortinoCron) sortinoCron.stop();
   if (predictionCron) predictionCron.stop();
+  getPredictionCoordinator().stop();
   if (scannerScheduler) scannerScheduler.stop();
   stopAutoBuyExecutor();
   stopTrendingTokenSync();

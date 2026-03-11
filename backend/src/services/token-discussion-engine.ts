@@ -21,12 +21,12 @@ import { getHotTokens } from './trending-token-sync';
 
 // ── Configuration ────────────────────────────────────────
 
-const NEW_CONVERSATION_COOLDOWN_MS = 30 * 60 * 1000;   // 30min — new convo per token
-const FOLLOWUP_COOLDOWN_MS = 15 * 60 * 1000;            // 15min — follow-up round
-const MAX_CONVERSATIONS_PER_HOUR = 60;
-const STAGGER_DELAY_MS = 1500;                           // 1.5s between LLM calls
-const MAX_NEW_PER_CYCLE = 5;                             // New conversations per cycle
-const MAX_FOLLOWUPS_PER_CYCLE = 8;                       // Follow-up rounds per cycle
+const NEW_CONVERSATION_COOLDOWN_MS = 10 * 60 * 1000;   // 10min — new convo per token
+const FOLLOWUP_COOLDOWN_MS = 8 * 60 * 1000;             // 8min — follow-up round
+const MAX_CONVERSATIONS_PER_HOUR = 150;
+const STAGGER_DELAY_MS = 800;                            // 800ms between LLM calls
+const MAX_NEW_PER_CYCLE = 12;                            // New conversations per cycle
+const MAX_FOLLOWUPS_PER_CYCLE = 15;                      // Follow-up rounds per cycle
 
 let hourlyConversationCount = 0;
 let hourlyResetAt = Date.now() + 60 * 60 * 1000;

@@ -37,6 +37,11 @@ import {
   BSCMigrationStats,
   BSCMigrationStatsResponse,
   TrendingToken,
+  PredictionMarket,
+  PredictionStats,
+  PredictionLeaderboardEntry,
+  AgentPrediction,
+  PredictionCoordinatorStatus,
 } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
@@ -608,4 +613,83 @@ export async function getTrendingTokens(): Promise<TrendingToken[]> {
       activeAgentCount: t.activeAgentCount || 0,
     }));
   });
+}
+
+// ── Prediction Markets ──
+
+export async function getPredictionMarkets(limit = 40, status: 'open' | 'closed' | 'settled' = 'open'): Promise<PredictionMarket[]> {
+  const response = await api.get<{ success: boolean; data: PredictionMarket[] }>('/prediction/markets', {
+    params: { limit, status },
+  });
+  return response.data.data || [];
+}
+
+export async function getPredictionStats(): Promise<PredictionStats> {
+  const response = await api.get<{ success: boolean; data: PredictionStats }>('/prediction/stats');
+  return response.data.data;
+}
+
+export async function getPredictionLeaderboard(limit = 25, min = 3): Promise<PredictionLeaderboardEntry[]> {
+  const response = await api.get<{ success: boolean; data: PredictionLeaderboardEntry[] }>('/prediction/leaderboard', {
+    params: { limit, min },
+  });
+  return response.data.data || [];
+}
+
+export async function getMyPredictions(limit = 50): Promise<AgentPrediction[]> {
+  const response = await api.get<{ success: boolean; data: AgentPrediction[] }>('/prediction/predictions', {
+    params: { limit },
+  });
+  return response.data.data || [];
+}
+
+export async function placePrediction(
+  ticker: string,
+  payload: {
+    side: 'YES' | 'NO';
+    contracts: number;
+    confidence?: number;
+    reasoning?: string;
+    placeRealOrder?: boolean;
+  },
+): Promise<{ success: boolean; data?: { predictionId: string }; error?: string }> {
+  const response = await api.post('/prediction/markets/' + encodeURIComponent(ticker) + '/predict', payload);
+  return response.data;
+}
+
+export async function getPredictionCoordinatorStatus(): Promise<PredictionCoordinatorStatus> {
+  const response = await api.get<{ success: boolean; data: PredictionCoordinatorStatus }>('/prediction/coordinator/status');
+  return response.data.data;
+}
+
+// ── Polymarket P&L Dashboard ──
+
+const POLYMARKET_BASE = 'https://sr-mobile-production.up.railway.app/api/polymarket';
+
+export async function getPolymarketSignals(): Promise<any> {
+  const response = await axios.get(`${POLYMARKET_BASE}/signals`);
+  return response.data;
+}
+
+export async function getPolymarketMarkets(): Promise<any[]> {
+  const response = await axios.get(`${POLYMARKET_BASE}/markets`);
+  return response.data?.data || response.data?.markets || response.data || [];
+}
+
+export async function getPolymarketArbOpportunities(): Promise<any[]> {
+  try {
+    const response = await axios.get('/api/proxy/polymarket/arb');
+    return response.data || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getPolymarketBrierHistory(): Promise<any[]> {
+  try {
+    const response = await axios.get('/api/proxy/polymarket/history');
+    return response.data || [];
+  } catch {
+    return [];
+  }
 }

@@ -199,7 +199,7 @@ export class PolymarketClient {
    * Get midpoint price from order book
    */
   async getMidpoint(tokenId: string): Promise<number | null> {
-    const book = await getOrderBook(tokenId);
+    const book = await this.getOrderBook(tokenId);
     if (!book || book.bids.length === 0 || book.asks.length === 0) {
       return null;
     }

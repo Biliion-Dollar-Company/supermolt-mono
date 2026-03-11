@@ -4,7 +4,7 @@ import { getJWT } from './api';
 export interface FeedEvent {
   type: 'trade_detected' | 'token_deployed' | 'agent_updated' | 'price_update' |
         'position_opened' | 'position_closed' | 'agent_message' | 'vote_started' | 'vote_cast' |
-        'trade_recommendation' | 'auto_buy_executed';
+        'trade_recommendation' | 'auto_buy_executed' | 'prediction_signal' | 'prediction_consensus';
   data: {
     agent_id?: string;
     token_mint?: string;
@@ -153,6 +153,20 @@ class WebSocketManager {
           });
         }
       });
+
+      this.socket.on('prediction:signal', (data: any) => {
+        this.emit('prediction_signal', {
+          type: 'prediction_signal',
+          data,
+        });
+      });
+
+      this.socket.on('prediction:consensus', (data: any) => {
+        this.emit('prediction_consensus', {
+          type: 'prediction_consensus',
+          data,
+        });
+      });
     });
   }
 
@@ -238,6 +252,14 @@ class WebSocketManager {
 
   onArenaTokensUpdated(callback: (event: FeedEvent) => void): () => void {
     return this.on('arena_tokens_updated', callback);
+  }
+
+  onPredictionSignal(callback: (event: FeedEvent) => void): () => void {
+    return this.on('prediction_signal', callback);
+  }
+
+  onPredictionConsensus(callback: (event: FeedEvent) => void): () => void {
+    return this.on('prediction_consensus', callback);
   }
 
   /** Subscribe to a token's unified feed room */
