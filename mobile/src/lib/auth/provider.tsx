@@ -40,6 +40,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Auth bypass for testing when Privy/Twitter OAuth is broken in production
+const BYPASS_AUTH = process.env.EXPO_PUBLIC_BYPASS_AUTH === 'true';
+const BYPASS_USER: User = { id: 'bypass-user', twitterUsername: 'test_user' };
+
 export function useAuthContext() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -92,6 +96,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // After Privy auth succeeds, exchange for backend JWT
   useEffect(() => {
+    if (BYPASS_AUTH) return; // Skip token exchange in bypass mode
     if (!privyUser) {
       setSrToken(null);
       return;
@@ -173,7 +178,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const agentProfile = useAuthStore((s) => s.agentProfile);
   const hasCompletedOnboarding = useOnboardingStore((s) => s.hasCompletedOnboarding);
 
+  // Bypass mode: go straight to tabs on first render
   useEffect(() => {
+    if (!BYPASS_AUTH) return;
+    const firstSegment = segments[0];
+    const onRootIndex = firstSegment === undefined;
+    if (onRootIndex) {
+      router.replace('/(tabs)');
+    }
+  }, [segments, router]);
+
+  useEffect(() => {
+    if (BYPASS_AUTH) return; // Handled above
     if (!isReady && !initTimeout) return;
     // Don't redirect while still exchanging tokens
     if (srAuthLoading) return;
@@ -247,18 +263,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [privyLogout, clearAuthStore]);
 
-  const value: AuthContextType = {
-    user,
-    wallet,
-    isLoading,
-    isAuthenticated: !!privyUser,
-    srToken,
-    loginWithTwitter,
-    logout,
-  };
+  const value: AuthContextType = BYPASS_AUTH
+    ? {
+        user: BYPASS_USER,
+        wallet: null,
+        isLoading: false,
+        isAuthenticated: true,
+        srToken: null,
+        loginWithTwitter: async () => {},
+        logout: async () => { router.replace('/'); },
+      }
+    : {
+        user,
+        wallet,
+        isLoading,
+        isAuthenticated: !!privyUser,
+        srToken,
+        loginWithTwitter,
+        logout,
+      };
 
   // Show loading screen while Privy initializes (with timeout fallback)
-  if (!isReady && !initTimeout) {
+  if (!BYPASS_AUTH && !isReady && !initTimeout) {
     return (
       <View
         style={{
