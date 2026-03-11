@@ -159,14 +159,14 @@ function analyzeAsGamma(trade: TradeEvent, data: DevPrintData): AgentAnalysis {
       `📈 Statistical analysis: ${Math.abs(data.priceChange24h || 0) > 50 ? 'High' : 'Normal'} volatility (${Math.abs(data.priceChange24h || 0).toFixed(1)}% σ)`,
     ],
     correlation: [
-      `🔗 Correlation with SOL: 0.${Math.floor(Math.random() * 50 + 30)}. Market-dependent trade.`,
-      `📊 Pattern matches ${Math.floor(Math.random() * 5 + 15)} historical similar setups. Win rate: ${Math.floor(Math.random() * 30 + 50)}%`,
-      `🎲 Monte Carlo sim: ${Math.floor(Math.random() * 30 + 50)}% probability of 2x in 7 days`,
+      `🔗 Vol/Liq ratio: ${((data.volume24h || 0) / (data.liquidity || 1)).toFixed(2)}x — ${((data.volume24h || 0) / (data.liquidity || 1)) > 3 ? 'elevated turnover, watch for dumps' : 'normal market activity'}`,
+      `📊 24h price action: ${(data.priceChange24h || 0) > 0 ? '+' : ''}${(data.priceChange24h || 0).toFixed(1)}% with $${((data.volume24h || 0) / 1000).toFixed(0)}K volume`,
+      `🎲 Market cap / liquidity: ${((data.marketCap || 0) / (data.liquidity || 1)).toFixed(1)}x ratio — ${((data.marketCap || 0) / (data.liquidity || 1)) > 10 ? 'thin liquidity relative to cap' : 'reasonable depth'}`,
     ],
     risk: [
-      `⚠️ Standard deviation: ${(Math.random() * 2 + 1).toFixed(1)}x - expect ${(Math.random() * 2 + 1) > 2 ? 'extreme' : 'high'} volatility`,
-      `📉 Downside risk: ${Math.floor(Math.random() * 40 + 20)}% based on historical drawdowns`,
-      `🔢 Sharpe ratio: ${(Math.random() * 2).toFixed(2)} - ${(Math.random() * 2) > 1 ? 'Acceptable' : 'Below threshold'} risk-adjusted return`,
+      `⚠️ Liquidity: $${((data.liquidity || 0) / 1000).toFixed(0)}K — ${(data.liquidity || 0) < 50000 ? 'low, expect high slippage on exit' : 'adequate for position size'}`,
+      `📉 24h drawdown risk: price already ${(data.priceChange24h || 0) > 0 ? `+${(data.priceChange24h || 0).toFixed(1)}%` : `${(data.priceChange24h || 0).toFixed(1)}%`} — ${Math.abs(data.priceChange24h || 0) > 30 ? 'overextended, mean reversion likely' : 'within normal range'}`,
+      `🔢 Volume to market cap: ${(((data.volume24h || 0) / (data.marketCap || 1)) * 100).toFixed(1)}% daily turnover — ${((data.volume24h || 0) / (data.marketCap || 1)) > 0.3 ? 'high velocity, short-term trade only' : 'stable, longer hold viable'}`,
     ],
   };
 
@@ -189,9 +189,9 @@ function analyzeAsGamma(trade: TradeEvent, data: DevPrintData): AgentAnalysis {
 function analyzeAsDelta(trade: TradeEvent, data: DevPrintData): AgentAnalysis {
   const messages = {
     redFlags: [
-      `🚨 Dev wallet still holds ${Math.floor(Math.random() * 30 + 20)}% of supply. Seems sus.`,
-      `🔍 Contract analysis: No liquidity lock detected. High rug risk.`,
-      `⚠️ Top holder concentration: ${Math.floor(Math.random() * 5 + 5)} wallets = ${Math.floor(Math.random() * 30 + 40)}% supply. Danger zone.`,
+      `🚨 ${data.holders || 0} holders, $${((data.liquidity || 0) / 1000).toFixed(0)}K liquidity — thin distribution, high exit risk.`,
+      `🔍 Vol/Liq ratio ${((data.volume24h || 0) / (data.liquidity || 1)).toFixed(1)}x — ${((data.volume24h || 0) / (data.liquidity || 1)) > 5 ? 'wash trading pattern, not organic' : 'elevated but watching'}.`,
+      `⚠️ $${((data.marketCap || 0) / 1000).toFixed(0)}K mcap with only $${((data.liquidity || 0) / 1000).toFixed(0)}K liquidity — ${((data.marketCap || 0) / (data.liquidity || 1)) > 20 ? 'severely underbacked, rug potential' : 'low liquidity relative to cap'}.`,
     ],
     skeptical: [
       `🤔 Hype doesn't match fundamentals. Staying cautious.`,
