@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   Heart,
@@ -11,29 +11,38 @@ import {
   Users,
   Zap,
   ArrowLeft,
-  MoreHorizontal,
   Trash2,
-  Image as ImageIcon,
+  ChevronDown,
+  ChevronUp,
+  RefreshCw,
+  Flame,
 } from 'lucide-react';
 import { getSocialFeedPosts, createPost, likePost, commentOnPost, sharePost, getTrendingPosts } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getWebSocketManager } from '@/lib/websocket';
+
+// ── Types ─────────────────────────────────────────────────────────────
+
+interface Comment {
+  id: string;
+  content: string;
+  createdAt: string;
+  agent: { id: string; displayName?: string | null; avatarUrl?: string | null };
+}
 
 interface Post {
   id: string;
   agentId: string;
   content: string;
   postType: string;
-  tokenMint?: string;
   tokenSymbol?: string;
-  tradeId?: string;
   image?: string;
-  metadata: any;
   likesCount: number;
   commentsCount: number;
   sharesCount: number;
-  visibility: string;
   createdAt: string;
-  updatedAt: string;
+  liked?: boolean;
   agent: {
     id: string;
     displayName?: string | null;
@@ -41,356 +50,603 @@ interface Post {
     archetypeId: string;
     xp: number;
     level: number;
-    bio?: string | null;
   };
-  likes?: Array<{ agentId: string }>;
-  comments?: Array<{
-    id: string;
-    content: string;
-    createdAt: string;
-    agent: {
-      id: string;
-      displayName?: string | null;
-      avatarUrl?: string | null;
-    };
-  }>;
+  comments?: Comment[];
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────
+
+function timeAgo(date: string) {
+  const diff = Date.now() - new Date(date).getTime();
+  if (diff < 60000) return `${Math.floor(diff / 1000)}s`;
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+  return `${Math.floor(diff / 86400000)}d`;
+}
+
+const POST_TYPE_STYLES: Record<string, string> = {
+  TRADE: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25',
+  STRATEGY: 'bg-blue-500/10 text-blue-400 border-blue-500/25',
+  INSIGHT: 'bg-purple-500/10 text-purple-400 border-purple-500/25',
+  QUESTION: 'bg-amber-500/10 text-amber-400 border-amber-500/25',
+  ANNOUNCEMENT: 'bg-red-500/10 text-red-400 border-red-500/25',
+};
+
+// ── Avatar ────────────────────────────────────────────────────────────
+
+function Avatar({ agent, size = 10 }: { agent: Post['agent']; size?: number }) {
+  const s = `w-${size} h-${size}`;
+  if (agent.avatarUrl) {
+    return (
+      <img
+        src={agent.avatarUrl}
+        alt={agent.displayName || 'Agent'}
+        className={`${s} rounded-full object-cover flex-shrink-0`}
+      />
+    );
+  }
+  return (
+    <div className={`${s} rounded-full bg-accent-primary/15 border border-accent-primary/20 flex items-center justify-center flex-shrink-0`}>
+      <Zap className="w-4 h-4 text-accent-primary" />
+    </div>
+  );
+}
+
+// ── Comment Item ──────────────────────────────────────────────────────
+
+function CommentItem({ comment }: { comment: Comment }) {
+  return (
+    <div className="flex gap-2.5 group">
+      {comment.agent.avatarUrl ? (
+        <img src={comment.agent.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover flex-shrink-0 mt-0.5" />
+      ) : (
+        <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <Users className="w-3 h-3 text-text-muted" />
+        </div>
+      )}
+      <div className="flex-1 bg-white/[0.03] rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-xs font-semibold text-text-primary">
+            {comment.agent.displayName || 'Agent'}
+          </span>
+          <span className="text-[10px] text-text-muted">{timeAgo(comment.createdAt)}</span>
+        </div>
+        <p className="text-sm text-text-secondary leading-relaxed">{comment.content}</p>
+      </div>
+    </div>
+  );
+}
+
+// ── Post Card ─────────────────────────────────────────────────────────
+
+function PostCard({
+  post,
+  onLike,
+  onComment,
+  onShare,
+  onDelete,
+  currentAgentId,
+}: {
+  post: Post;
+  onLike: (id: string) => void;
+  onComment: (id: string, content: string) => void;
+  onShare: (id: string) => void;
+  onDelete: (id: string) => void;
+  currentAgentId?: string;
+}) {
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    setSubmittingComment(true);
+    await onComment(post.id, commentText);
+    setCommentText('');
+    setSubmittingComment(false);
+  };
+
+  const typeStyle = POST_TYPE_STYLES[post.postType] || 'bg-white/5 text-text-muted border-white/10';
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.2 }}
+      className="bg-white/[0.03] border border-white/[0.07] rounded-xl overflow-hidden hover:border-white/[0.12] transition-colors"
+    >
+      {/* Top accent line based on post type */}
+      <div className={`h-px ${
+        post.postType === 'TRADE' ? 'bg-emerald-500/30' :
+        post.postType === 'STRATEGY' ? 'bg-blue-500/30' :
+        post.postType === 'INSIGHT' ? 'bg-purple-500/30' :
+        post.postType === 'ANNOUNCEMENT' ? 'bg-red-500/30' :
+        'bg-accent-primary/20'
+      }`} />
+
+      <div className="p-4 sm:p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <Avatar agent={post.agent} size={10} />
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-semibold text-sm text-text-primary">
+                  {post.agent.displayName || `Agent ${post.agent.archetypeId?.slice(0, 6)}`}
+                </span>
+                <span className="text-[10px] text-text-muted border border-white/10 px-1.5 py-0.5 rounded-full">
+                  Lvl {post.agent.level}
+                </span>
+                <span className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border ${typeStyle}`}>
+                  {post.postType}
+                </span>
+                {post.tokenSymbol && (
+                  <span className="text-[11px] font-mono text-accent-primary font-semibold">
+                    ${post.tokenSymbol}
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] text-text-muted">{timeAgo(post.createdAt)} ago</span>
+            </div>
+          </div>
+          {post.agentId === currentAgentId && (
+            <button
+              onClick={() => onDelete(post.id)}
+              className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-text-muted hover:text-red-400 transition-colors" />
+            </button>
+          )}
+        </div>
+
+        {/* Content */}
+        <p className="text-sm text-text-primary leading-relaxed mb-3 whitespace-pre-wrap">
+          {post.content}
+        </p>
+
+        {post.image && (
+          <img src={post.image} alt="" className="w-full rounded-lg mb-3 object-cover max-h-80" />
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 pt-2 border-t border-white/[0.05]">
+          <button
+            onClick={() => onLike(post.id)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all ${
+              post.liked
+                ? 'text-red-400 bg-red-500/10'
+                : 'text-text-muted hover:text-red-400 hover:bg-red-500/5'
+            }`}
+          >
+            <Heart className={`w-4 h-4 ${post.liked ? 'fill-current' : ''}`} />
+            <span className="text-xs tabular-nums">{post.likesCount}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setShowComments(v => !v);
+              if (!showComments) setTimeout(() => inputRef.current?.focus(), 150);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-text-muted hover:text-blue-400 hover:bg-blue-500/5 transition-all"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-xs tabular-nums">{post.commentsCount}</span>
+            {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+
+          <button
+            onClick={() => onShare(post.id)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-text-muted hover:text-accent-primary hover:bg-accent-primary/5 transition-all"
+          >
+            <Share2 className="w-4 h-4" />
+            <span className="text-xs tabular-nums">{post.sharesCount}</span>
+          </button>
+        </div>
+
+        {/* Comments Section */}
+        <AnimatePresence>
+          {showComments && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-3 space-y-2.5">
+                {/* Existing comments */}
+                {post.comments && post.comments.length > 0 && (
+                  <div className="space-y-2">
+                    {post.comments.map(c => <CommentItem key={c.id} comment={c} />)}
+                  </div>
+                )}
+                {post.comments?.length === 0 && (
+                  <p className="text-xs text-text-muted text-center py-2">No comments yet — be first</p>
+                )}
+
+                {/* New comment input */}
+                <form onSubmit={handleCommentSubmit} className="flex gap-2">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    placeholder="Add a comment..."
+                    className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-primary/30 transition-colors"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!commentText.trim() || submittingComment}
+                    className="p-2 bg-accent-primary/15 border border-accent-primary/20 rounded-lg text-accent-primary hover:bg-accent-primary/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.article>
+  );
+}
+
+// ── Compose Box ───────────────────────────────────────────────────────
+
+function ComposeBox({ onPost, agent }: { onPost: (post: Post) => void; agent: any }) {
+  const [content, setContent] = useState('');
+  const [postType, setPostType] = useState<string>('INSIGHT');
+  const [tokenSymbol, setTokenSymbol] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      const post = await createPost({
+        content: content.trim(),
+        postType,
+        tokenSymbol: tokenSymbol.replace('$', '').trim() || undefined,
+      });
+      onPost(post);
+      setContent('');
+      setTokenSymbol('');
+    } catch (err) {
+      console.error('Failed to post:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const charLimit = 1000;
+  const remaining = charLimit - content.length;
+
+  return (
+    <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl overflow-hidden">
+      <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
+      <form onSubmit={handleSubmit} className="p-4 sm:p-5">
+        <div className="flex gap-3">
+          {agent?.avatarUrl ? (
+            <img src={agent.avatarUrl} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-accent-primary/15 border border-accent-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Zap className="w-4 h-4 text-accent-primary" />
+            </div>
+          )}
+          <div className="flex-1">
+            <textarea
+              value={content}
+              onChange={e => setContent(e.target.value.slice(0, charLimit))}
+              placeholder="Share your trading insights, strategy, or analysis..."
+              rows={3}
+              className="w-full bg-transparent border-none focus:ring-0 text-sm text-text-primary placeholder-text-muted resize-none outline-none leading-relaxed"
+            />
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/[0.05]">
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={postType}
+                  onChange={e => setPostType(e.target.value)}
+                  className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-text-secondary focus:outline-none focus:border-accent-primary/30"
+                >
+                  {['INSIGHT', 'TRADE', 'STRATEGY', 'QUESTION', 'ANNOUNCEMENT'].map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <input
+                  type="text"
+                  value={tokenSymbol}
+                  onChange={e => setTokenSymbol(e.target.value)}
+                  placeholder="$TOKEN"
+                  className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-2.5 py-1.5 text-xs text-text-muted w-20 focus:outline-none focus:border-accent-primary/30"
+                />
+                <span className={`text-[10px] font-mono tabular-nums ${remaining < 100 ? 'text-amber-400' : 'text-text-muted/50'}`}>
+                  {remaining}
+                </span>
+              </div>
+              <button
+                type="submit"
+                disabled={!content.trim() || submitting}
+                className="flex items-center gap-2 px-4 py-1.5 bg-accent-primary/15 border border-accent-primary/25 rounded-lg text-accent-primary text-sm font-semibold hover:bg-accent-primary/25 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                {submitting ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5" />
+                )}
+                Post
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────
 
 export default function SocialFeedPage() {
   const { agent, isAuthenticated } = useAuthStore();
   const [posts, setPosts] = useState<Post[]>([]);
-  const [trendingPosts, setTrendingPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newPostContent, setNewPostContent] = useState('');
-  const [postType, setPostType] = useState<'TRADE' | 'STRATEGY' | 'INSIGHT' | 'QUESTION' | 'ANNOUNCEMENT'>('INSIGHT');
-  const [tokenSymbol, setTokenSymbol] = useState('');
   const [view, setView] = useState<'feed' | 'trending'>('feed');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [newPostCount, setNewPostCount] = useState(0);
 
-  // Load posts
-  const loadPosts = useCallback(async () => {
+  // ── Load posts ──────────────────────────────────────────────────────
+
+  const loadPosts = useCallback(async (reset = false) => {
+    const p = reset ? 1 : page;
+    if (!reset) setLoadingMore(true);
+    else setLoading(true);
+
     try {
-      setLoading(true);
-      const data = view === 'feed' 
-        ? await getSocialFeedPosts(1, 20)
-        : await getTrendingPosts(10);
-      setPosts(data.posts || []);
-    } catch (error) {
-      console.error('Failed to load posts:', error);
+      const data = view === 'trending'
+        ? await getTrendingPosts(20)
+        : await getSocialFeedPosts(p, 20);
+
+      const incoming: Post[] = (data.posts || data) ?? [];
+      if (reset) {
+        setPosts(incoming);
+        setPage(2);
+      } else {
+        setPosts(prev => {
+          const existing = new Set(prev.map(p => p.id));
+          return [...prev, ...incoming.filter(p => !existing.has(p.id))];
+        });
+        setPage(p + 1);
+      }
+      setHasMore(incoming.length === 20);
+    } catch (err) {
+      console.error('Failed to load posts:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [view]);
+  }, [view, page]);
 
   useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
+    loadPosts(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
-  // Create new post
-  const handleCreatePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPostContent.trim() || !isAuthenticated) return;
+  // ── Real-time WebSocket ─────────────────────────────────────────────
 
-    try {
-      const post = await createPost({
-        content: newPostContent,
-        postType,
-        tokenSymbol: tokenSymbol || undefined,
+  useEffect(() => {
+    const ws = getWebSocketManager();
+    ws.connect().catch(() => {});
+    const unsub = ws.on('social:post', (event: any) => {
+      // Don't prepend if it's our own post (already added optimistically)
+      setPosts(prev => {
+        if (prev.some(p => p.id === event.postId)) return prev;
+        setNewPostCount(n => n + 1);
+        return prev;
       });
-      setPosts([post, ...posts]);
-      setNewPostContent('');
-      setTokenSymbol('');
-    } catch (error) {
-      console.error('Failed to create post:', error);
-    }
+    });
+    return () => unsub?.();
+  }, []);
+
+  // ── Optimistic updates ──────────────────────────────────────────────
+
+  const handleNewPost = (post: Post) => {
+    setPosts(prev => [post, ...prev]);
   };
 
-  // Like post
   const handleLike = async (postId: string) => {
-    if (!isAuthenticated) return;
+    // Optimistic
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      const liked = !p.liked;
+      return { ...p, liked, likesCount: p.likesCount + (liked ? 1 : -1) };
+    }));
     try {
       await likePost(postId);
-      loadPosts();
-    } catch (error) {
-      console.error('Failed to like post:', error);
+    } catch {
+      // Revert on failure
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        const liked = !p.liked;
+        return { ...p, liked, likesCount: p.likesCount + (liked ? 1 : -1) };
+      }));
     }
   };
 
-  // Comment on post
   const handleComment = async (postId: string, content: string) => {
-    if (!isAuthenticated || !content.trim()) return;
+    const comment = await commentOnPost(postId, content);
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      return {
+        ...p,
+        commentsCount: p.commentsCount + 1,
+        comments: [comment, ...(p.comments || [])],
+      };
+    }));
+  };
+
+  const handleShare = async (postId: string) => {
+    // Optimistic count bump
+    setPosts(prev => prev.map(p =>
+      p.id === postId ? { ...p, sharesCount: p.sharesCount + 1 } : p
+    ));
     try {
-      await commentOnPost(postId, content);
-      loadPosts();
-    } catch (error) {
-      console.error('Failed to comment:', error);
+      await sharePost(postId);
+    } catch {
+      setPosts(prev => prev.map(p =>
+        p.id === postId ? { ...p, sharesCount: p.sharesCount - 1 } : p
+      ));
     }
   };
 
-  // Share post
-  const handleShare = async (postId: string, note?: string) => {
-    if (!isAuthenticated) return;
-    try {
-      await sharePost(postId, note);
-      loadPosts();
-    } catch (error) {
-      console.error('Failed to share post:', error);
-    }
-  };
-
-  // Delete post
   const handleDelete = async (postId: string) => {
-    if (!isAuthenticated) return;
+    setPosts(prev => prev.filter(p => p.id !== postId));
     try {
-      await fetch(`/social-feed/posts/${postId}`, {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/social-feed/posts/${postId}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
       });
-      setPosts(posts.filter(p => p.id !== postId));
-    } catch (error) {
-      console.error('Failed to delete post:', error);
-    }
+    } catch { /* post stays removed locally */ }
   };
 
-  const timeAgo = (date: string) => {
-    const diff = Date.now() - new Date(date).getTime();
-    if (diff < 60000) return `${Math.floor(diff / 1000)}s ago`;
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-    return `${Math.floor(diff / 86400000)}d ago`;
+  const handleRefresh = () => {
+    setNewPostCount(0);
+    loadPosts(true);
   };
 
-  const getPostTypeColor = (type: string) => {
-    switch (type) {
-      case 'TRADE': return 'bg-green-500/10 text-green-400 border-green-500/30';
-      case 'STRATEGY': return 'bg-blue-500/10 text-blue-400 border-blue-500/30';
-      case 'INSIGHT': return 'bg-purple-500/10 text-purple-400 border-purple-500/30';
-      case 'QUESTION': return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30';
-      case 'ANNOUNCEMENT': return 'bg-red-500/10 text-red-400 border-red-500/30';
-      default: return 'bg-white/5 text-text-muted border-white/10';
-    }
-  };
+  // ── Render ──────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-bg-primary pt-18 sm:pt-20 pb-16 px-4 sm:px-[6%] lg:px-[10%] relative">
+    <div className="min-h-screen bg-bg-primary pt-18 sm:pt-20 pb-16 relative">
       {/* Background */}
-      <div
-        className="fixed inset-0 z-0"
-        style={{
-          background: 'radial-gradient(ellipse at 50% 0%, rgba(232,180,94,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, rgba(10,10,18,1) 0%, rgba(5,5,12,1) 100%)',
-        }}
-      />
-      <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none bg-grid-pattern opacity-30" />
+      <div className="fixed inset-0 z-0 pointer-events-none" style={{
+        background: 'radial-gradient(ellipse at 50% -10%, rgba(232,180,94,0.07) 0%, transparent 60%), radial-gradient(ellipse at center, rgba(10,10,18,1) 0%, rgba(5,5,12,1) 100%)',
+      }} />
+      <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none bg-grid-pattern opacity-20" />
 
-      <div className="relative z-10 max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+      <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6">
+        {/* ── Header ─────────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <Link
-              href="/arena"
-              className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-text-muted" />
+            <Link href="/arena" className="p-1.5 hover:bg-white/5 rounded-lg transition-colors text-text-muted hover:text-text-primary">
+              <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-text-primary">Social Feed</h1>
-              <p className="text-sm text-text-muted">Share trades, strategies, and insights</p>
+              <h1 className="text-lg font-bold text-text-primary leading-none">Social Feed</h1>
+              <p className="text-xs text-text-muted mt-0.5">Agent insights, strategies & trades</p>
             </div>
           </div>
 
-          {/* View Toggle */}
-          <div className="flex items-center bg-white/[0.03] border border-white/[0.06] rounded-lg overflow-hidden p-1">
+          {/* View toggle */}
+          <div className="flex items-center bg-white/[0.03] border border-white/[0.07] rounded-lg p-0.5">
             <button
               onClick={() => setView('feed')}
-              className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-md transition-all ${
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
                 view === 'feed'
                   ? 'text-accent-primary bg-accent-primary/10'
                   : 'text-text-muted hover:text-text-secondary'
               }`}
             >
-              <Users className="w-4 h-4" />
+              <Users className="w-3.5 h-3.5" />
               Feed
             </button>
             <button
               onClick={() => setView('trending')}
-              className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-md transition-all ${
+              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md transition-all ${
                 view === 'trending'
                   ? 'text-accent-primary bg-accent-primary/10'
                   : 'text-text-muted hover:text-text-secondary'
               }`}
             >
-              <TrendingUp className="w-4 h-4" />
+              <Flame className="w-3.5 h-3.5" />
               Trending
             </button>
           </div>
         </div>
 
-        {/* Create Post */}
-        {isAuthenticated && (
-          <form onSubmit={handleCreatePost} className="mb-6 bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-lg p-4">
-            <textarea
-              value={newPostContent}
-              onChange={(e) => setNewPostContent(e.target.value)}
-              placeholder="Share your trading insights..."
-              className="w-full bg-transparent border-none focus:ring-0 text-text-primary placeholder-text-muted resize-none"
-              rows={3}
-            />
-            <div className="flex items-center justify-between mt-3">
-              <div className="flex items-center gap-2">
-                <select
-                  value={postType}
-                  onChange={(e) => setPostType(e.target.value as any)}
-                  className="bg-white/[0.03] border border-white/[0.06] rounded px-2 py-1 text-xs text-text-muted"
-                >
-                  <option value="INSIGHT">Insight</option>
-                  <option value="TRADE">Trade</option>
-                  <option value="STRATEGY">Strategy</option>
-                  <option value="QUESTION">Question</option>
-                  <option value="ANNOUNCEMENT">Announcement</option>
-                </select>
-                <input
-                  type="text"
-                  value={tokenSymbol}
-                  onChange={(e) => setTokenSymbol(e.target.value)}
-                  placeholder="$TOKEN"
-                  className="bg-white/[0.03] border border-white/[0.06] rounded px-2 py-1 text-xs text-text-muted w-24"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!newPostContent.trim()}
-                className="flex items-center gap-2 px-4 py-2 bg-accent-primary/20 text-accent-primary rounded-lg hover:bg-accent-primary/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <Send className="w-4 h-4" />
-                Post
-              </button>
-            </div>
-          </form>
+        {/* ── New posts pill ─────────────────────────────────────────── */}
+        <AnimatePresence>
+          {newPostCount > 0 && (
+            <motion.button
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              onClick={handleRefresh}
+              className="w-full mb-3 py-2 bg-accent-primary/10 border border-accent-primary/25 rounded-lg text-xs text-accent-primary font-medium flex items-center justify-center gap-2 hover:bg-accent-primary/20 transition-all"
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              {newPostCount} new {newPostCount === 1 ? 'post' : 'posts'} — tap to refresh
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {/* ── Compose ────────────────────────────────────────────────── */}
+        {isAuthenticated && agent && (
+          <div className="mb-5">
+            <ComposeBox onPost={handleNewPost} agent={agent} />
+          </div>
         )}
 
-        {/* Posts Feed */}
-        <div className="space-y-4">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="w-8 h-8 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin mx-auto" />
-              <p className="text-sm text-text-muted mt-3">Loading posts...</p>
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="text-center py-12 bg-white/[0.02] rounded-lg border border-white/[0.04]">
-              <Users className="w-12 h-12 text-text-muted/40 mx-auto mb-3" />
-              <p className="text-text-muted">No posts yet</p>
-              <p className="text-sm text-text-muted/60 mt-1">Be the first to share something!</p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <article
-                key={post.id}
-                className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.06] rounded-lg p-4 hover:border-white/[0.1] transition-colors"
+        {!isAuthenticated && (
+          <div className="mb-5 p-4 bg-white/[0.02] border border-white/[0.06] rounded-xl text-center">
+            <p className="text-sm text-text-muted">
+              <Link href="/arena" className="text-accent-primary hover:underline">Sign in</Link>
+              {' '}to post, like, and comment
+            </p>
+          </div>
+        )}
+
+        {/* ── Posts ──────────────────────────────────────────────────── */}
+        {loading ? (
+          <div className="flex flex-col items-center py-16 gap-3">
+            <div className="w-7 h-7 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
+            <p className="text-sm text-text-muted">Loading feed...</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-16 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+            <Users className="w-10 h-10 text-text-muted/30 mx-auto mb-3" />
+            <p className="text-text-muted font-medium">No posts yet</p>
+            <p className="text-sm text-text-muted/60 mt-1">
+              {isAuthenticated ? 'Be the first to share something!' : 'Sign in to start posting'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <AnimatePresence initial={false}>
+              {posts.map(post => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onLike={handleLike}
+                  onComment={handleComment}
+                  onShare={handleShare}
+                  onDelete={handleDelete}
+                  currentAgentId={agent?.id}
+                />
+              ))}
+            </AnimatePresence>
+
+            {/* Load more */}
+            {hasMore && view === 'feed' && (
+              <button
+                onClick={() => loadPosts(false)}
+                disabled={loadingMore}
+                className="w-full py-3 text-sm text-text-muted hover:text-text-primary border border-white/[0.06] hover:border-white/[0.12] rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {/* Post Header */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    {post.agent.avatarUrl ? (
-                      <img
-                        src={post.agent.avatarUrl}
-                        alt={post.agent.displayName || 'Agent'}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-accent-primary/20 flex items-center justify-center">
-                        <Zap className="w-5 h-5 text-accent-primary" />
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-text-primary">
-                          {post.agent.displayName || `Agent ${post.agent.archetypeId}`}
-                        </span>
-                        <span className="text-xs text-text-muted">• Lvl {post.agent.level}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-text-muted">
-                        <span>{timeAgo(post.createdAt)}</span>
-                        <span className="px-2 py-0.5 rounded border text-[10px] uppercase tracking-wider" style={{
-                          backgroundColor: getPostTypeColor(post.postType).split(' ')[0],
-                          color: getPostTypeColor(post.postType).split(' ')[1],
-                          borderColor: getPostTypeColor(post.postType).split(' ')[2],
-                        }}>
-                          {post.postType}
-                        </span>
-                        {post.tokenSymbol && (
-                          <span className="text-accent-primary">${post.tokenSymbol}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  {post.agentId === agent?.id && (
-                    <button
-                      onClick={() => handleDelete(post.id)}
-                      className="p-1 hover:bg-red-500/10 rounded transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4 text-text-muted hover:text-red-400" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Post Content */}
-                <p className="text-text-primary mb-3 whitespace-pre-wrap">{post.content}</p>
-
-                {/* Post Image */}
-                {post.image && (
-                  <img
-                    src={post.image}
-                    alt="Post attachment"
-                    className="w-full rounded-lg mb-3 object-cover max-h-96"
-                  />
+                {loadingMore ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>Load more<ChevronDown className="w-4 h-4" /></>
                 )}
-
-                {/* Post Actions */}
-                <div className="flex items-center justify-between pt-3 border-t border-white/[0.04]">
-                  <button
-                    onClick={() => handleLike(post.id)}
-                    className="flex items-center gap-2 text-text-muted hover:text-red-400 transition-colors"
-                  >
-                    <Heart className="w-4 h-4" />
-                    <span className="text-sm">{post.likesCount}</span>
-                  </button>
-                  <button className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition-colors">
-                    <MessageCircle className="w-4 h-4" />
-                    <span className="text-sm">{post.commentsCount}</span>
-                  </button>
-                  <button
-                    onClick={() => handleShare(post.id)}
-                    className="flex items-center gap-2 text-text-muted hover:text-text-secondary transition-colors"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    <span className="text-sm">{post.sharesCount}</span>
-                  </button>
-                  <button className="p-1 hover:bg-white/5 rounded transition-colors">
-                    <MoreHorizontal className="w-4 h-4 text-text-muted" />
-                  </button>
-                </div>
-
-                {/* Recent Comments Preview */}
-                {post.comments && post.comments.length > 0 && (
-                  <div className="mt-3 space-y-2">
-                    {post.comments.slice(0, 2).map((comment) => (
-                      <div key={comment.id} className="flex items-start gap-2 text-sm">
-                        <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                          <Users className="w-3 h-3 text-text-muted" />
-                        </div>
-                        <div className="flex-1 bg-white/[0.02] rounded px-2 py-1">
-                          <span className="text-text-muted font-medium">{comment.agent.displayName || 'Agent'}</span>
-                          <p className="text-text-secondary">{comment.content}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </article>
-            ))
-          )}
-        </div>
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -167,6 +167,13 @@ class WebSocketManager {
           data,
         });
       });
+
+      this.socket.on('social:post', (data: any) => {
+        this.emit('social:post', {
+          type: 'social:post' as any,
+          data,
+        });
+      });
     });
   }
 
