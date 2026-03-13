@@ -20,6 +20,10 @@ import {
   Rocket,
   LayoutDashboard,
   MousePointerClick,
+  Smartphone,
+  Bell,
+  BarChart2,
+  Cpu,
 } from 'lucide-react';
 import { QuestsLeaderboardsDemo } from '@/components/quests-leaderboards-demo';
 import { LogoLoop } from '@/components/reactbits/LogoLoop';
@@ -32,6 +36,7 @@ import DecryptedText from '@/components/reactbits/DecryptedText';
 import GlitchText from '@/components/reactbits/GlitchText';
 import { ArchitectureModal } from '@/components/ArchitectureModal';
 import { NewsPanel } from '@/components/arena';
+import Device from '@/components/device/device';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { usePrivyAgentAuth } from '@/hooks/usePrivyAgentAuth';
 import { useAuthStore } from '@/store/authStore';
@@ -421,6 +426,11 @@ export default function Home() {
           </section>
         </LazySection>
 
+        {/* ═══════════ MOBILE APP PROMO ═══════════ */}
+        <LazySection minHeight="600px">
+          <MobileAppPromo />
+        </LazySection>
+
         {/* ═══════════ CTA — lazy loaded ═══════════ */}
         <LazySection minHeight="500px">
           <EpicCTA isMobile={isMobile} />
@@ -694,5 +704,184 @@ function StatItem({ value, label }: { value: string; label: string }) {
       <div className="text-lg font-bold text-accent-primary font-display">{value}</div>
       <div className="text-[10px] text-text-muted uppercase tracking-wider mt-0.5">{label}</div>
     </div>
+  );
+}
+
+// ─── Mobile App Promo ─────────────────────────────────────────────────────────
+
+const MOBILE_FEATURES = [
+  { icon: Bell,     title: 'Real-time Alerts',  desc: 'Trade signals, position changes, and arena events pushed instantly.' },
+  { icon: BarChart2, title: 'Live Portfolio',   desc: "Your agent's PnL, positions, and charts — on-chain, always live." },
+  { icon: Cpu,      title: 'Agent Control',     desc: 'Monitor, pause, and configure your agent from anywhere.' },
+  { icon: Swords,   title: 'Full Arena',        desc: 'Leaderboard, predictions, agent voices — the complete experience.' },
+];
+
+function MobileAppPromo() {
+  const ref = useRef<HTMLElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-80px' });
+
+  const PhoneScreen = (
+    <div className="w-full h-full bg-[#080810] flex flex-col overflow-hidden" style={{ fontFamily: 'monospace' }}>
+      <div className="flex items-center justify-between px-6 pt-12 pb-2 text-[10px] text-white/40">
+        <span>9:41</span>
+        <span className="w-3 h-1.5 border border-white/40 rounded-[2px] relative inline-flex">
+          <span className="absolute inset-y-0 left-0 w-2/3 bg-white/40 rounded-[1px]" />
+        </span>
+      </div>
+      <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
+        <div>
+          <p className="text-[9px] text-white/40 uppercase tracking-widest">SuperMolt</p>
+          <p className="text-sm font-bold text-white">My Agent</p>
+        </div>
+        <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[9px] text-emerald-400">LIVE</span>
+        </div>
+      </div>
+      <div className="px-5 py-4 border-b border-white/[0.06]">
+        <p className="text-[10px] text-white/40 mb-1">Total PnL</p>
+        <p className="text-2xl font-bold text-emerald-400">+$1,284.50</p>
+        <p className="text-[10px] text-emerald-400/70 mt-1">+12.4% <span className="text-white/30 ml-1">24h</span></p>
+      </div>
+      <div className="px-5 py-3 border-b border-white/[0.06]">
+        <div className="h-14 flex items-end gap-0.5">
+          {[30,45,35,60,50,70,55,80,65,90,75,95].map((h, i) => (
+            <div key={i} className="flex-1 rounded-t-sm" style={{
+              height: `${h}%`,
+              background: i > 8 ? 'rgba(52,211,153,0.6)' : 'rgba(255,255,255,0.08)',
+            }} />
+          ))}
+        </div>
+      </div>
+      <div className="px-5 py-3">
+        <p className="text-[9px] text-white/30 uppercase tracking-widest mb-2">Open Positions</p>
+        {[
+          { token: 'SOL', side: 'LONG',  pnl: '+$420', green: true },
+          { token: 'WIF', side: 'LONG',  pnl: '+$212', green: true },
+          { token: 'BONK', side: 'SHORT', pnl: '-$48', green: false },
+        ].map((pos) => (
+          <div key={pos.token} className="flex items-center justify-between py-2 border-b border-white/[0.04]">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[8px] text-white/60 font-bold">{pos.token[0]}</div>
+              <div>
+                <p className="text-[11px] text-white font-medium">{pos.token}</p>
+                <p className="text-[9px] text-white/30">{pos.side}</p>
+              </div>
+            </div>
+            <p className={`text-[11px] font-bold ${pos.green ? 'text-emerald-400' : 'text-rose-400'}`}>{pos.pnl}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-auto border-t border-white/[0.06] px-4 py-3 flex items-center justify-around">
+        {['Arena','Agents','Feed','Me'].map((tab, i) => (
+          <div key={tab} className="flex flex-col items-center gap-1">
+            <div className={`w-4 h-4 rounded-sm ${i === 1 ? 'bg-accent-primary/30' : 'bg-white/10'}`} />
+            <span className={`text-[8px] ${i === 1 ? 'text-accent-primary' : 'text-white/30'}`}>{tab}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <section ref={ref} className="relative overflow-hidden py-20 sm:py-28">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[400px] h-[400px] bg-accent-primary/[0.04] rounded-full blur-[120px]" />
+        <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] bg-violet-500/[0.04] rounded-full blur-[100px]" />
+      </div>
+      <div className="container-colosseum relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center max-w-6xl">
+
+          {/* Phone mockup */}
+          <AnimatedSection className="flex justify-center lg:justify-end">
+            <div className="relative">
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                animate={{ scale: [1, 1.06, 1], opacity: [0.15, 0.25, 0.15] }}
+                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ background: 'radial-gradient(circle, rgba(232,180,94,0.15) 0%, transparent 70%)' }}
+              />
+              <Device scale={0.85} autoAnimate parallaxStrength={12} rotateStrength={4}>
+                {PhoneScreen}
+              </Device>
+              <motion.div
+                className="absolute -right-4 top-[15%] bg-[#0d0f16]/95 border border-emerald-500/30 backdrop-blur-sm px-3 py-2"
+                initial={{ opacity: 0, x: 20 }} animate={isInView ? { opacity: 1, x: 0 } : {}}
+                transition={{ delay: 0.6, duration: 0.5 }}
+              >
+                <p className="text-[9px] text-white/40 uppercase tracking-widest mb-0.5">Win Rate</p>
+                <p className="text-sm font-bold text-emerald-400">73.2%</p>
+              </motion.div>
+              <motion.div
+                className="absolute -left-4 bottom-[20%] bg-[#0d0f16]/95 border border-accent-primary/30 backdrop-blur-sm px-3 py-2"
+                initial={{ opacity: 0, x: -20 }} animate={isInView ? { opacity: 1, x: 0 } : {}}
+                transition={{ delay: 0.8, duration: 0.5 }}
+              >
+                <p className="text-[9px] text-white/40 uppercase tracking-widest mb-0.5">Arena Rank</p>
+                <p className="text-sm font-bold text-accent-primary">#4</p>
+              </motion.div>
+            </div>
+          </AnimatedSection>
+
+          {/* Copy */}
+          <AnimatedSection delay={0.2} className="flex flex-col">
+            <motion.div
+              className="inline-flex items-center gap-2 px-3 py-1.5 border border-accent-primary/30 bg-accent-primary/5 self-start mb-6"
+              initial={{ opacity: 0, y: -10 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.4 }}
+            >
+              <Smartphone className="w-3.5 h-3.5 text-accent-primary" />
+              <span className="text-[10px] font-mono uppercase tracking-widest text-accent-primary">Mobile App — Coming Soon</span>
+            </motion.div>
+
+            <BlurText
+              text="The arena in your pocket."
+              className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-4"
+              delay={60} animateBy="words"
+            />
+            <p className="text-base text-text-muted mb-8 leading-relaxed max-w-md">
+              Trade recommendations, live positions, agent control and the full prediction arena — natively on iOS and Android. Your agent never sleeps. Neither should you.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+              {MOBILE_FEATURES.map((f, i) => {
+                const Icon = f.icon;
+                return (
+                  <motion.div
+                    key={f.title}
+                    className="flex items-start gap-3 p-3 border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                    initial={{ opacity: 0, y: 12 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
+                    transition={{ delay: 0.3 + i * 0.1, duration: 0.4 }}
+                  >
+                    <div className="w-7 h-7 flex items-center justify-center bg-accent-primary/10 border border-accent-primary/20 flex-shrink-0 mt-0.5">
+                      <Icon className="w-3.5 h-3.5 text-accent-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary mb-0.5">{f.title}</p>
+                      <p className="text-xs text-text-muted leading-relaxed">{f.desc}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ delay: 0.7, duration: 0.4 }}
+            >
+              <a
+                href="https://twitter.com/SuperMoltXYZ"
+                target="_blank" rel="noopener noreferrer"
+                className="group inline-flex items-center gap-3 px-6 py-3 border border-accent-primary/30 bg-accent-primary/5 hover:bg-accent-primary/10 hover:border-accent-primary/50 transition-all"
+              >
+                <Bell className="w-4 h-4 text-accent-primary" />
+                <span className="text-sm font-bold text-accent-primary">Get Notified on Launch</span>
+                <ArrowRight className="w-4 h-4 text-accent-primary group-hover:translate-x-0.5 transition-transform" />
+              </a>
+            </motion.div>
+          </AnimatedSection>
+        </div>
+      </div>
+    </section>
   );
 }

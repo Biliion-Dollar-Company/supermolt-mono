@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Swords, BookOpen, Menu, X, LineChart, PieChart, Users } from 'lucide-react';
+import { Swords, BookOpen, Menu, X, LineChart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '@/components/reactbits/GradientText';
 import UserAuthButton from '@/components/auth/UserAuthButton';
@@ -14,16 +14,20 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '/arena', label: 'Arena', Icon: Swords },
+    { href: '/arena',             label: 'Arena',       Icon: Swords },
     { href: '/arena/predictions', label: 'Predictions', Icon: LineChart },
-    { href: '/polymarket', label: 'P&L', Icon: PieChart },
-    { href: '/social', label: 'Social', Icon: Users },
   ];
 
   const isActive = (href: string) => {
     if (!pathname) return false;
     if (href === '/') return pathname === '/';
-    return pathname.startsWith(href);
+    if (pathname === href) return true;
+    // Don't activate a parent route when a more-specific sibling nav entry owns this path
+    const ownedByChild = navLinks.some(
+      l => l.href !== href && l.href.startsWith(href + '/') && pathname.startsWith(l.href),
+    );
+    if (ownedByChild) return false;
+    return pathname.startsWith(href + '/');
   };
 
   return (
@@ -52,7 +56,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Navigation */}
-          <ul className="hidden md:flex gap-2 items-center h-full">
+          <ul className="hidden md:flex gap-0 items-center h-full overflow-x-auto scrollbar-none">
             {navLinks.map((link) => {
               const Icon = link.Icon;
               const active = isActive(link.href);
@@ -61,15 +65,15 @@ export default function Navbar() {
                   <Link
                     href={link.href}
                     className={`
-                      relative flex items-center gap-2.5 px-5 py-2.5 rounded-none font-medium transition-all duration-200
+                      relative flex items-center gap-1.5 px-3 py-2.5 rounded-none font-medium transition-all duration-200 text-sm whitespace-nowrap
                       ${active
                         ? 'text-accent-primary'
                         : 'text-text-secondary hover:text-text-primary'
                       }
                     `}
                   >
-                    <Icon className="w-5 h-5" />
-                    <span className="text-base">{link.label}</span>
+                    <Icon className="w-4 h-4" />
+                    <span>{link.label}</span>
                   </Link>
                   {active && (
                     <motion.div
@@ -86,10 +90,10 @@ export default function Navbar() {
                 href="/api/skill.md"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative flex items-center gap-2.5 px-5 py-2.5 font-medium transition-all duration-200 text-text-secondary hover:text-text-primary"
+                className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-all duration-200 text-text-secondary hover:text-text-primary whitespace-nowrap"
               >
-                <BookOpen className="w-5 h-5" />
-                <span className="text-base">Docs</span>
+                <BookOpen className="w-4 h-4" />
+                <span>Docs</span>
               </a>
             </li>
             <li className="relative h-full flex items-center ml-2">
