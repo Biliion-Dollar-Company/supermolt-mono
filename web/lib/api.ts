@@ -676,7 +676,7 @@ export async function getMarketVoices(ticker: string, limit = 20): Promise<Agent
     `/prediction/markets/${encodeURIComponent(ticker)}/voices`,
     { params: { limit } },
   );
-  return response.data.data;
+  return response.data.data || [];
 }
 
 // ── Polymarket P&L Dashboard ──

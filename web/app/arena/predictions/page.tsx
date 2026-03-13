@@ -18,6 +18,7 @@ import { connectWebSocket, getWebSocketManager } from '@/lib/websocket';
 import type {
   AgentPrediction, AgentVoice, PredictionConsensusEvent, PredictionCoordinatorStatus,
   PredictionLeaderboardEntry, PredictionMarket, PredictionSignalEvent, PredictionStats,
+  RecentPredictionEntry,
 } from '@/lib/types';
 
 /* ── Types ────────────────────────────────────────────────────────── */
@@ -208,9 +209,10 @@ export default function PredictionArenaPage() {
   const [voices,        setVoices]        = useState<AgentVoice[]>([]);
   const [voicesLoading, setVoicesLoading] = useState(false);
 
-  const [tape,       setTape]       = useState<TapeItem[]>([]);
-  const [newIds,     setNewIds]     = useState<Set<number>>(new Set());
-  const [wsConn,     setWsConn]     = useState(false);
+  const [tape,             setTape]             = useState<TapeItem[]>([]);
+  const [recentPredictions, setRecentPredictions] = useState<RecentPredictionEntry[]>([]);
+  const [newIds,           setNewIds]           = useState<Set<number>>(new Set());
+  const [wsConn,           setWsConn]           = useState(false);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [form,  setForm]  = useState<PredictionFormState>(initialForm);
   const [mTab,  setMTab]  = useState<'markets' | 'predict' | 'activity'>('markets');
@@ -237,14 +239,31 @@ export default function PredictionArenaPage() {
   useEffect(() => {
     if (!selectedTicker) return;
     setVoicesLoading(true);
-    getMarketVoices(selectedTicker, 20).then(setVoices).catch(() => setVoices([])).finally(() => setVoicesLoading(false));
-  }, [selectedTicker]);
+    getMarketVoices(selectedTicker, 20)
+      .then((v) => {
+        if (v.length > 0) { setVoices(v); return; }
+        // Fallback: map recentPredictions for this ticker into AgentVoice shape
+        const fallback = recentPredictions
+          .filter((r) => r.ticker === selectedTicker)
+          .map((r): AgentVoice => ({
+            id: r.id, agentId: r.agentId, agentName: r.agentName, avatarUrl: null,
+            side: r.side, contracts: r.contracts, avgPrice: r.avgPrice,
+            confidence: r.confidence, reasoning: null, outcome: 'PENDING', createdAt: r.createdAt,
+          }));
+        setVoices(fallback);
+      })
+      .catch(() => setVoices([]))
+      .finally(() => setVoicesLoading(false));
+  }, [selectedTicker, recentPredictions]);
 
   useEffect(() => {
-    getRecentPredictions(30).then((r) => setTape(r.map((p) => ({
-      kind: 'signal' as const, ts: new Date(p.createdAt).getTime(),
-      data: { timestamp: p.createdAt, cycleId: 'seed', agentId: p.agentId, marketId: '', ticker: p.ticker, side: p.side as 'YES' | 'NO', confidence: p.confidence ?? 50, contracts: p.contracts, avgPrice: p.avgPrice },
-    })))).catch(() => {});
+    getRecentPredictions(50).then((r) => {
+      setRecentPredictions(r);
+      setTape(r.map((p) => ({
+        kind: 'signal' as const, ts: new Date(p.createdAt).getTime(),
+        data: { timestamp: p.createdAt, cycleId: 'seed', agentId: p.agentId, marketId: '', ticker: p.ticker, side: p.side as 'YES' | 'NO', confidence: p.confidence ?? 50, contracts: p.contracts, avgPrice: p.avgPrice },
+      })));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -696,11 +715,11 @@ export default function PredictionArenaPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] text-white/60 font-semibold truncate group-hover:text-white/80 transition-colors">{row.agentName}</p>
                       {row.resolved !== false ? (
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <div className="flex-1 overflow-hidden" style={{ height: 2, background: 'rgba(255,255,255,0.06)' }}>
-                            <div className="h-full transition-all duration-700" style={{ width: `${Math.min(100, row.accuracy)}%`, background: 'rgba(74,222,128,0.6)' }} />
+                        <div className="mt-2 flex items-center gap-2.5">
+                          <div className="flex-1 overflow-hidden rounded-sm" style={{ height: 4, background: 'rgba(255,255,255,0.06)' }}>
+                            <div className="h-full rounded-sm transition-all duration-700" style={{ width: `${Math.min(100, row.accuracy)}%`, background: `rgba(232,180,94,0.55)` }} />
                           </div>
-                          <span className="text-[11px] font-mono text-white/45 flex-shrink-0">{fmtPct(row.accuracy)}</span>
+                          <span className="text-[12px] font-mono font-semibold flex-shrink-0" style={{ color: GOLD, opacity: 0.8 }}>{fmtPct(row.accuracy)}</span>
                         </div>
                       ) : (
                         <p className="text-[10px] font-mono mt-0.5 text-white/25">pending resolution</p>
