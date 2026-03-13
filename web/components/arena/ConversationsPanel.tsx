@@ -96,7 +96,7 @@ export function ConversationsPanel() {
 
       {conversations.length === 0 ? (
         <div className="text-xs text-text-muted py-4 text-center">
-          No discussions yet — created when SuperRouter trades
+          No discussions yet — created when a tracked wallet trades
         </div>
       ) : (
         <div className="space-y-2">

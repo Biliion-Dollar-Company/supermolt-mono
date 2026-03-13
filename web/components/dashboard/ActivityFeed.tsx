@@ -30,7 +30,7 @@ function generateDemoEvents(): ActivityEvent[] {
             id: '1',
             type: 'trade',
             title: 'Trade Detected — BUY BONK',
-            description: 'SuperRouter bought 0.05 SOL worth of BONK on PumpSwap',
+            description: 'Lead wallet bought 0.05 SOL worth of BONK on PumpSwap',
             timestamp: new Date(now - 12000),
             icon: 'ArrowUpRight',
             color: 'text-green-400',

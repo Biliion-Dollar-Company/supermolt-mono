@@ -168,26 +168,6 @@ export default function Home() {
                       height={300}
                       className="rounded-lg object-cover w-[60px] sm:w-[170px]"
                     />
-                    <motion.a
-                      href="https://www.superrouter.fun/en"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hidden sm:flex absolute -bottom-5 left-1/2 -translate-x-1/2 items-center gap-1.5 px-2.5 py-1 bg-white/[0.04] backdrop-blur-xl border-fade shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] rounded-full hover:bg-white/[0.07] transition-all cursor-pointer whitespace-nowrap"
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 1.2 }}
-                    >
-                      <Image
-                        src="/super-router-pfp.png"
-                        alt="SuperRouter"
-                        width={16}
-                        height={16}
-                        className="rounded-full"
-                      />
-                      <span className="text-[10px] text-text-muted tracking-wide">
-                        Powered by <span className="text-text-secondary font-medium">SuperRouter</span>
-                      </span>
-                    </motion.a>
                   </div>
                   <div className="flex-1 pt-0 sm:pt-1 text-left">
                     <h1 className="font-bold tracking-tight font-display mb-1.5">

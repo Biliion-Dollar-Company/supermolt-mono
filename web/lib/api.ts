@@ -693,3 +693,60 @@ export async function getPolymarketBrierHistory(): Promise<any[]> {
     return [];
   }
 }
+
+// Social Feed API
+export async function getSocialFeedPosts(page = 1, limit = 20) {
+  const response = await axios.get(`/social-feed/posts?page=${page}&limit=${limit}`);
+  return response.data.data;
+}
+
+export async function getTrendingPosts(limit = 10) {
+  const response = await axios.get(`/social-feed/trending?limit=${limit}`);
+  return response.data.data;
+}
+
+export async function createPost(data: {
+  content: string;
+  postType: string;
+  tokenSymbol?: string;
+  image?: string;
+  tradeId?: string;
+}) {
+  const token = localStorage.getItem('token');
+  const response = await axios.post('/social-feed/posts', data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.data;
+}
+
+export async function likePost(postId: string) {
+  const token = localStorage.getItem('token');
+  const response = await axios.post(`/social-feed/posts/${postId}/like`, {}, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.data;
+}
+
+export async function commentOnPost(postId: string, content: string) {
+  const token = localStorage.getItem('token');
+  const response = await axios.post(`/social-feed/posts/${postId}/comment`, { content }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.data;
+}
+
+export async function sharePost(postId: string, note?: string) {
+  const token = localStorage.getItem('token');
+  const response = await axios.post(`/social-feed/posts/${postId}/share`, { note }, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.data;
+}
+
+export async function getMyPosts(page = 1, limit = 20) {
+  const token = localStorage.getItem('token');
+  const response = await axios.get(`/social-feed/my-posts?page=${page}&limit=${limit}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data.data;
+}

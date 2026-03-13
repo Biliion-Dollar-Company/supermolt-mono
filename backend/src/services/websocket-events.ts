@@ -74,6 +74,14 @@ interface BroadcastEvents {
     confidence: number;
     participants: number;
   };
+  'social:post': {
+    postId: string;
+    agentId: string;
+    content: string;
+    postType: string;
+    tokenSymbol?: string;
+    createdAt: string;
+  };
 }
 
 class WebSocketEventsService {
@@ -408,6 +416,23 @@ class WebSocketEventsService {
       this.io.emit('prediction:consensus', payload);
     }
     this.broadcastRaw({ type: 'prediction:consensus', ...payload });
+  }
+
+  sendNotification(agentId: string, notification: { type: string; [key: string]: any }): void {
+    if (!this.io) return;
+    this.io.to(`agent:${agentId}`).emit('notification', notification);
+  }
+
+  broadcastSocialPost(event: BroadcastEvents['social:post']) {
+    const payload = {
+      timestamp: new Date().toISOString(),
+      ...event,
+    };
+    if (this.io) {
+      this.io.emit('social:post', payload);
+    }
+    this.broadcastRaw({ type: 'social:post', ...payload });
+    console.log(`[WebSocket] Broadcast social post: ${event.postId} by ${event.agentId}`);
   }
 
   /** Broadcast a unified feed item to a token room */

@@ -83,6 +83,11 @@ model TradingAgent {
   feedbacks       TradeFeedback[]
   trackedWallets  TrackedWallet[]
   buyTriggers     BuyTrigger[]
+  posts           AgentPost[]
+  postLikes       PostLike[]
+  postComments    PostComment[]
+  postShares      PostShare[]
+  commentLikes    CommentLike[]
 
   @@index([userId])
   @@index([status])
@@ -505,13 +510,112 @@ model AgentMessage {
   agentId        String
   message        String            @db.Text
   timestamp      DateTime          @default(now())
-  
+
   conversation AgentConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@index([conversationId])
   @@index([conversationId, timestamp])
   @@index([agentId])
   @@map("agent_messages")
+}
+
+// Social Feed Models
+model AgentPost {
+  id            String    @id @default(cuid())
+  agentId       String
+  content       String    @db.Text
+  postType      String    // TRADE, STRATEGY, INSIGHT, QUESTION, ANNOUNCEMENT
+  tokenMint     String?
+  tokenSymbol   String?
+  tradeId       String?   // Link to PaperTrade if sharing a trade
+  image         String?
+  metadata      Json      @default("{}")
+  likesCount    Int       @default(0)
+  commentsCount Int       @default(0)
+  sharesCount   Int       @default(0)
+  visibility    String    @default("public") // public, followers, private
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  agent     TradingAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  likes     PostLike[]
+  comments  PostComment[]
+  shares    PostShare[]
+
+  @@index([agentId])
+  @@index([postType])
+  @@index([tokenMint])
+  @@index([createdAt])
+  @@index([visibility])
+  @@map("agent_posts")
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  agentId   String
+  createdAt DateTime @default(now())
+
+  post   AgentPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  agent  TradingAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, agentId])
+  @@index([postId])
+  @@index([agentId])
+  @@map("post_likes")
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  agentId   String
+  content   String   @db.Text
+  parentId  String?  // For nested replies
+  likesCount Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post     AgentPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  agent    TradingAgent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  parent   PostComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  PostComment[] @relation("CommentReplies")
+  likes    CommentLike[]
+
+  @@index([postId])
+  @@index([agentId])
+  @@index([parentId])
+  @@index([createdAt])
+  @@map("post_comments")
+}
+
+model CommentLike {
+  id        String        @id @default(cuid())
+  commentId String
+  agentId   String
+  createdAt DateTime      @default(now())
+
+  comment PostComment    @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  agent   TradingAgent   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, agentId])
+  @@index([commentId])
+  @@index([agentId])
+  @@map("comment_likes")
+}
+
+model PostShare {
+  id        String        @id @default(cuid())
+  postId    String
+  agentId   String
+  note      String?       @db.Text
+  createdAt DateTime      @default(now())
+
+  post  AgentPost    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  agent TradingAgent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([agentId])
+  @@map("post_shares")
 }
 
 model VoteProposal {

@@ -52,6 +52,7 @@ import { predictionRoutes } from './routes/prediction.routes';
 import polymarketRoutes from './routes/polymarket.routes';
 import glintRoutes from './routes/glint.routes';
 import swarmRoutes from './routes/swarm.routes';
+import socialFeedRoutes from './routes/social-feed.routes';
 import { runStartupMigrations } from './lib/migrate';
 import { trading } from './routes/trading.routes';
 import { erc8004Routes } from './routes/erc8004.routes';
@@ -237,6 +238,9 @@ app.route('/prediction', predictionRoutes);
 
 // Polymarket routes (multi-agent prediction markets)
 app.route('/api/polymarket', polymarketRoutes);
+
+// Social Feed routes (agent posts, comments, likes, shares)
+app.route('/social-feed', socialFeedRoutes);
 
 // Glint routes (event-driven signal webhooks)
 app.route('/api/glint', glintRoutes);
