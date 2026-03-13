@@ -2,6 +2,10 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import SpotlightCard from '@/components/reactbits/spotlight-card';
+import ClickSpark from '@/components/reactbits/click-spark';
+import DecryptedText from '@/components/reactbits/decrypted-text';
+import CountUp from '@/components/reactbits/count-up';
 import {
   ArrowLeft,
   Activity,
@@ -16,6 +20,8 @@ import {
   BarChart3,
   Clock,
   Users,
+  MessageSquare,
+  ChevronRight,
 } from 'lucide-react';
 import {
   getPredictionMarkets,
@@ -24,11 +30,14 @@ import {
   getMyPredictions,
   placePrediction,
   getPredictionCoordinatorStatus,
+  getMarketVoices,
+  getRecentPredictions,
   isAuthenticated,
 } from '@/lib/api';
 import { connectWebSocket, getWebSocketManager } from '@/lib/websocket';
 import type {
   AgentPrediction,
+  AgentVoice,
   PredictionConsensusEvent,
   PredictionCoordinatorStatus,
   PredictionLeaderboardEntry,
@@ -79,41 +88,33 @@ function timeAgo(ts: string | number): string {
   return `${Math.floor(diff / 86_400_000)}d ago`;
 }
 
-// ── Animated Counter ─────────────────────────────────────────────────
-
-function AnimCounter({ value, prefix = '', suffix = '', decimals = 0, className = '' }: {
-  value: number; prefix?: string; suffix?: string; decimals?: number; className?: string;
-}) {
-  const [display, setDisplay] = useState(0);
-  const prev = useRef(0);
-
-  useEffect(() => {
-    const from = prev.current;
-    const to = value;
-    prev.current = to;
-    if (from === to) { setDisplay(to); return; }
-
-    let start: number;
-    const duration = 600;
-    const tick = (now: number) => {
-      if (!start) start = now;
-      const p = Math.min((now - start) / duration, 1);
-      const ease = 1 - Math.pow(2, -10 * p);
-      setDisplay(from + (to - from) * ease);
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [value]);
-
-  return <span className={className}>{prefix}{display.toFixed(decimals)}{suffix}</span>;
+// Agent initials avatar when no image
+function AgentAvatar({ name, size = 'sm' }: { name: string; size?: 'sm' | 'md' }) {
+  const initials = name.slice(0, 2).toUpperCase();
+  const colors = [
+    'bg-violet-500/20 text-violet-300',
+    'bg-cyan-500/20 text-cyan-300',
+    'bg-amber-500/20 text-amber-300',
+    'bg-emerald-500/20 text-emerald-300',
+    'bg-rose-500/20 text-rose-300',
+  ];
+  const color = colors[name.charCodeAt(0) % colors.length];
+  const cls = size === 'sm' ? 'w-6 h-6 text-[9px]' : 'w-8 h-8 text-[11px]';
+  return (
+    <div className={`${cls} ${color} rounded-sm flex items-center justify-center font-bold font-mono flex-shrink-0`}>
+      {initials}
+    </div>
+  );
 }
+
+// AnimCounter is replaced by CountUp from react-bits (framer-motion spring)
 
 // ── Probability Bar ──────────────────────────────────────────────────
 
-function ProbBar({ yes, flash }: { yes: number; flash?: boolean }) {
+function ProbBar({ yes, flash, height = 'h-1.5' }: { yes: number; flash?: boolean; height?: string }) {
   const pct = Math.max(2, Math.min(98, yes * 100));
   return (
-    <div className={`relative h-1.5 w-full rounded-full overflow-hidden bg-white/[0.06] transition-all ${flash ? 'ring-1 ring-accent-primary/40' : ''}`}>
+    <div className={`relative ${height} w-full rounded-full overflow-hidden bg-white/[0.06] transition-all ${flash ? 'ring-1 ring-accent-primary/40' : ''}`}>
       <div
         className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700 ease-out"
         style={{ width: `${pct}%` }}
@@ -154,6 +155,90 @@ function StatCard({ label, children, icon }: { label: string; children: React.Re
       </div>
       {children}
     </div>
+  );
+}
+
+// ── Market Card ──────────────────────────────────────────────────────
+
+function MarketCard({
+  market, isSelected, isHot, onClick
+}: {
+  market: PredictionMarket;
+  isSelected: boolean;
+  isHot: boolean;
+  onClick: () => void;
+}) {
+  const yesPct = Math.round(market.yesPrice * 100);
+  const noPct = 100 - yesPct;
+  const isYesFav = yesPct >= 50;
+
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left group transition-all duration-200 relative overflow-hidden
+        ${isSelected
+          ? 'bg-gradient-to-r from-accent-primary/[0.10] to-cyan-500/[0.04] border-l-2 border-l-accent-primary'
+          : 'bg-white/[0.012] hover:bg-white/[0.035] border-l-2 border-l-transparent'
+        }
+        ${isHot ? 'ring-1 ring-inset ring-cyan-400/20' : ''}
+      `}
+    >
+      {/* Hot glow */}
+      {isHot && (
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/[0.05] to-transparent animate-pulse pointer-events-none" />
+      )}
+
+      {/* Glass shimmer on hover */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/[0.04] via-transparent to-transparent pointer-events-none" />
+
+      <div className="relative px-3.5 py-3 space-y-2.5">
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-2">
+          <p className={`text-[13px] font-medium leading-snug line-clamp-2 flex-1 transition-colors ${
+            isSelected ? 'text-white' : 'text-white/70 group-hover:text-white/90'
+          }`}>
+            {market.title}
+          </p>
+          <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 mt-0.5 transition-all duration-200 ${
+            isSelected ? 'text-accent-primary translate-x-0 opacity-100' : 'text-white/20 -translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-60'
+          }`} />
+        </div>
+
+        {/* Split probability bar */}
+        <div className="relative h-1.5 w-full rounded-full overflow-hidden bg-white/[0.06]">
+          <div
+            className="absolute inset-y-0 left-0 rounded-l-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
+            style={{ width: `${Math.max(2, Math.min(98, yesPct))}%` }}
+          />
+          <div
+            className="absolute inset-y-0 right-0 rounded-r-full bg-gradient-to-l from-rose-500 to-rose-400 transition-all duration-700"
+            style={{ width: `${Math.max(2, 100 - Math.max(2, Math.min(98, yesPct)))}%` }}
+          />
+          {isHot && <div className="absolute inset-0 ring-1 ring-inset ring-cyan-400/30 rounded-full animate-pulse" />}
+        </div>
+
+        {/* Prices + volume */}
+        <div className="flex items-center gap-1.5 text-[11px] font-mono">
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-md backdrop-blur-sm border transition-all ${
+            isYesFav
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+              : 'bg-white/[0.04] border-white/[0.08] text-white/40'
+          }`}>
+            <TrendingUp className="w-2.5 h-2.5" />
+            <span className="font-bold">{yesPct}¢</span>
+          </div>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-md backdrop-blur-sm border transition-all ${
+            !isYesFav
+              ? 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+              : 'bg-white/[0.04] border-white/[0.08] text-white/40'
+          }`}>
+            <TrendingDown className="w-2.5 h-2.5" />
+            <span className="font-bold">{noPct}¢</span>
+          </div>
+          <span className="ml-auto text-white/30 text-[10px]">${formatMoney(market.volume)}</span>
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -205,6 +290,72 @@ function TapeEntry({ item, isNew }: { item: TapeItem; isNew: boolean }) {
   );
 }
 
+// ── Agent Voice Card ─────────────────────────────────────────────────
+
+function VoiceCard({ voice }: { voice: AgentVoice }) {
+  const isYes = voice.side === 'YES';
+  return (
+    <div className={`relative p-3 border transition-all ${
+      isYes ? 'border-emerald-500/15 bg-emerald-500/[0.03]' : 'border-rose-500/15 bg-rose-500/[0.03]'
+    }`}>
+      {/* Side accent stripe */}
+      <div className={`absolute left-0 inset-y-0 w-0.5 ${isYes ? 'bg-emerald-500/40' : 'bg-rose-500/40'}`} />
+
+      <div className="flex items-start gap-2.5">
+        <AgentAvatar name={voice.agentName} size="sm" />
+
+        <div className="flex-1 min-w-0">
+          {/* Header row */}
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-medium text-text-primary truncate">{voice.agentName}</span>
+              <span className={`inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-bold rounded-sm ${
+                isYes ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'
+              }`}>
+                {voice.side}
+              </span>
+              {voice.outcome !== 'PENDING' && (
+                <span className={`inline-flex items-center px-1 py-0.5 text-[9px] font-mono rounded-sm ${
+                  voice.outcome === 'WIN' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
+                }`}>
+                  {voice.outcome}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] text-text-muted/50 font-mono flex-shrink-0">{timeAgo(voice.createdAt)}</span>
+          </div>
+
+          {/* Reasoning */}
+          {voice.reasoning ? (
+            <p className="text-[12px] text-text-secondary leading-relaxed">
+              <DecryptedText
+                text={voice.reasoning}
+                animateOn="view"
+                speed={18}
+                maxIterations={6}
+                sequential
+                revealDirection="start"
+                characters="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%"
+                className="text-text-secondary"
+                encryptedClassName="text-accent-primary/30"
+              />
+            </p>
+          ) : (
+            <p className="text-[11px] text-text-muted/40 italic font-mono">No reasoning provided</p>
+          )}
+
+          {/* Footer meta */}
+          <div className="flex items-center gap-3 mt-1.5 text-[10px] text-text-muted/50 font-mono">
+            <span>{voice.contracts} contracts</span>
+            <span>@ {(voice.avgPrice * 100).toFixed(0)}c</span>
+            {voice.confidence != null && <span>conf {voice.confidence}%</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ────────────────────────────────────────────────────────
 
 export default function PredictionArenaPage() {
@@ -218,17 +369,19 @@ export default function PredictionArenaPage() {
   const [leaderboard, setLeaderboard] = useState<PredictionLeaderboardEntry[]>([]);
   const [myPredictions, setMyPredictions] = useState<AgentPrediction[]>([]);
   const [coordinator, setCoordinator] = useState<PredictionCoordinatorStatus | null>(null);
+  const [voices, setVoices] = useState<AgentVoice[]>([]);
+  const [voicesLoading, setVoicesLoading] = useState(false);
 
   // Unified tape (signals + consensus interleaved)
   const [tape, setTape] = useState<TapeItem[]>([]);
   const [newItemIds, setNewItemIds] = useState<Set<number>>(new Set());
 
-  // Track which markets got recent WS activity (flash effect)
   const [hotMarkets, setHotMarkets] = useState<Set<string>>(new Set());
-
   const [wsConnected, setWsConnected] = useState(false);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [form, setForm] = useState<PredictionFormState>(initialForm);
+
+  const [mobileTab, setMobileTab] = useState<'markets' | 'predict' | 'activity'>('markets');
 
   const tapeRef = useRef<HTMLDivElement>(null);
   const authed = isAuthenticated();
@@ -245,7 +398,7 @@ export default function PredictionArenaPage() {
       const [nextMarkets, nextStats, nextLeaderboard, nextCoordinator, nextPredictions] = await Promise.all([
         getPredictionMarkets(50, 'open'),
         getPredictionStats(),
-        getPredictionLeaderboard(12, 1),
+        getPredictionLeaderboard(15),
         getPredictionCoordinatorStatus(),
         authed ? getMyPredictions(20) : Promise.resolve([]),
       ]);
@@ -274,6 +427,40 @@ export default function PredictionArenaPage() {
     return () => clearInterval(interval);
   }, [refreshData]);
 
+  // ── Voices Fetch (per ticker) ──────────────────────────────────────
+
+  useEffect(() => {
+    if (!selectedTicker) return;
+    setVoicesLoading(true);
+    getMarketVoices(selectedTicker, 20)
+      .then(setVoices)
+      .catch(() => setVoices([]))
+      .finally(() => setVoicesLoading(false));
+  }, [selectedTicker]);
+
+  // ── Seed tape with recent predictions on mount ─────────────────────
+
+  useEffect(() => {
+    getRecentPredictions(30).then((recent) => {
+      const seeded: TapeItem[] = recent.map((p) => ({
+        kind: 'signal' as const,
+        ts: new Date(p.createdAt).getTime(),
+        data: {
+          timestamp: p.createdAt,
+          cycleId: 'seed',
+          agentId: p.agentId,
+          marketId: '',
+          ticker: p.ticker,
+          side: p.side as 'YES' | 'NO',
+          confidence: p.confidence ?? 50,
+          contracts: p.contracts,
+          avgPrice: p.avgPrice,
+        },
+      }));
+      setTape(seeded);
+    }).catch(() => {});
+  }, []);
+
   // ── WebSocket ──────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -285,7 +472,6 @@ export default function PredictionArenaPage() {
         const ws = getWebSocketManager();
         setWsConnected(ws.isConnected());
 
-        // Check connection status periodically
         const connCheck = setInterval(() => {
           setWsConnected(ws.isConnected());
         }, 3000);
@@ -295,20 +481,16 @@ export default function PredictionArenaPage() {
           const data = event.data as PredictionSignalEvent;
           const ts = Date.now();
 
-          // Add to unified tape
           setTape((prev) => [{ kind: 'signal' as const, ts, data }, ...prev].slice(0, 30));
           setNewItemIds((prev) => new Set(prev).add(ts));
           setTimeout(() => setNewItemIds((prev) => { const next = new Set(prev); next.delete(ts); return next; }), 600);
 
-          // Flash the market card
           const ticker = data.ticker;
           setHotMarkets((prev) => new Set(prev).add(ticker));
           setTimeout(() => setHotMarkets((prev) => { const next = new Set(prev); next.delete(ticker); return next; }), 2000);
 
-          // Live-update the market's price from the signal
           setMarkets((prev) => prev.map((m) => {
             if (m.ticker !== ticker) return m;
-            // Nudge the price toward the signal direction
             const nudge = data.side === 'YES' ? 0.005 : -0.005;
             const newYes = Math.max(0.01, Math.min(0.99, m.yesPrice + nudge));
             return { ...m, yesPrice: newYes, noPrice: +(1 - newYes).toFixed(4) };
@@ -327,7 +509,6 @@ export default function PredictionArenaPage() {
           setHotMarkets((prev) => new Set(prev).add(ticker));
           setTimeout(() => setHotMarkets((prev) => { const next = new Set(prev); next.delete(ticker); return next; }), 3000);
 
-          // Bump stats live
           setStats((prev) => prev ? { ...prev, totalPredictions: prev.totalPredictions + data.participants } : prev);
         }));
       } catch {
@@ -338,11 +519,9 @@ export default function PredictionArenaPage() {
     return () => { unsubs.forEach((u) => u()); };
   }, []);
 
-  // Auto-scroll tape
+  // Auto-scroll tape to top
   useEffect(() => {
-    if (tapeRef.current) {
-      tapeRef.current.scrollTop = 0;
-    }
+    if (tapeRef.current) tapeRef.current.scrollTop = 0;
   }, [tape]);
 
   // ── Submit Prediction ──────────────────────────────────────────────
@@ -374,6 +553,8 @@ export default function PredictionArenaPage() {
 
       setSuccess(`Placed ${form.side} on ${selectedMarket.ticker}`);
       setForm((prev) => ({ ...prev, reasoning: '' }));
+      // Refresh voices to show the new prediction
+      getMarketVoices(selectedMarket.ticker, 20).then(setVoices).catch(() => {});
       await refreshData();
     } catch {
       setError('Prediction request failed');
@@ -391,6 +572,14 @@ export default function PredictionArenaPage() {
     ? (form.contracts * 1).toFixed(2)
     : '0.00';
 
+  // Filter tape to selected ticker for the voices panel header hint
+  const filteredTapeCount = selectedTicker
+    ? tape.filter((t) => (t.kind === 'signal'
+      ? (t.data as PredictionSignalEvent).ticker === selectedTicker
+      : (t.data as PredictionConsensusEvent).ticker === selectedTicker
+    )).length
+    : 0;
+
   // ── Render ─────────────────────────────────────────────────────────
 
   if (loading) {
@@ -405,6 +594,7 @@ export default function PredictionArenaPage() {
   }
 
   return (
+    <ClickSpark sparkColor="rgba(48,216,164,0.85)" sparkCount={8} sparkRadius={28} duration={500}>
     <div className="min-h-screen bg-bg-primary pt-18 sm:pt-20 pb-16 px-4 sm:px-[6%] lg:px-[10%] relative">
       {/* Background */}
       <div
@@ -445,16 +635,16 @@ export default function PredictionArenaPage() {
         {/* ── Stat Cards ──────────────────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard label="Markets" icon={<BarChart3 className="w-3.5 h-3.5" />}>
-            <AnimCounter value={stats?.totalMarkets ?? 0} className="text-xl font-semibold text-text-primary tabular-nums" />
+            <CountUp to={stats?.totalMarkets ?? 0} className="text-xl font-semibold text-text-primary tabular-nums" />
           </StatCard>
           <StatCard label="Predictions" icon={<Target className="w-3.5 h-3.5" />}>
-            <AnimCounter value={stats?.totalPredictions ?? 0} className="text-xl font-semibold text-text-primary tabular-nums" />
+            <CountUp to={stats?.totalPredictions ?? 0} className="text-xl font-semibold text-text-primary tabular-nums" />
           </StatCard>
           <StatCard label="Avg Accuracy" icon={<TrendingUp className="w-3.5 h-3.5" />}>
-            <AnimCounter value={stats?.avgAccuracy ?? 0} suffix="%" decimals={1} className="text-xl font-semibold text-emerald-400 tabular-nums" />
+            <CountUp to={stats?.avgAccuracy ?? 0} suffix="%" decimals={1} className="text-xl font-semibold text-emerald-400 tabular-nums" />
           </StatCard>
           <StatCard label="Forecasters" icon={<Users className="w-3.5 h-3.5" />}>
-            <AnimCounter value={stats?.activeForecasters ?? 0} className="text-xl font-semibold text-text-primary tabular-nums" />
+            <CountUp to={stats?.activeForecasters ?? 0} className="text-xl font-semibold text-text-primary tabular-nums" />
           </StatCard>
         </div>
 
@@ -471,60 +661,63 @@ export default function PredictionArenaPage() {
           </div>
         )}
 
+        {/* ── Mobile Tab Bar ──────────────────────────────────────── */}
+        <div className="lg:hidden flex border border-white/[0.08] bg-[#0d0f16]/90 backdrop-blur-sm overflow-hidden">
+          {([
+            { id: 'markets',  label: 'Markets',  icon: <BarChart3 className="w-3.5 h-3.5" />, badge: markets.length },
+            { id: 'predict',  label: 'Predict',  icon: <Target className="w-3.5 h-3.5" />,   badge: null },
+            { id: 'activity', label: 'Activity', icon: <Activity className="w-3.5 h-3.5" />,  badge: tape.length > 0 ? tape.length : null },
+          ] as const).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setMobileTab(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-mono uppercase tracking-wider transition-all border-b-2 ${
+                mobileTab === tab.id
+                  ? 'border-b-accent-primary text-accent-primary bg-accent-primary/5'
+                  : 'border-b-transparent text-text-muted hover:text-text-primary'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+              {tab.badge != null && (
+                <span className="px-1 py-0.5 text-[9px] bg-white/10 rounded-sm tabular-nums">{tab.badge}</span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {/* ── Main Grid ───────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 xl:grid-cols-[380px_1fr_320px] gap-4">
+        <div className="lg:grid lg:grid-cols-[320px_1fr_280px] gap-4 space-y-4 lg:space-y-0">
 
           {/* ── LEFT: Market List ──────────────────────────────────── */}
-          <div className="border border-white/[0.08] bg-[#0d0f16]/90 backdrop-blur-sm overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+          <div className={`${mobileTab !== 'markets' ? 'hidden lg:block' : ''} relative border border-white/[0.10] overflow-hidden rounded-sm`}
+            style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)', backdropFilter: 'blur(20px)' }}
+          >
+            {/* Glass border shimmer */}
+            <div className="absolute inset-0 rounded-sm ring-1 ring-inset ring-white/[0.06] pointer-events-none" />
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
               <h2 className="text-xs font-semibold text-text-primary uppercase tracking-wider">Open Markets</h2>
               <span className="text-[10px] text-text-muted font-mono">{markets.length} active</span>
             </div>
-            <div className="max-h-[calc(100vh-320px)] overflow-y-auto divide-y divide-white/[0.04]">
-              {markets.map((m) => {
-                const isSelected = selectedTicker === m.ticker;
-                const isHot = hotMarkets.has(m.ticker);
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => setSelectedTicker(m.ticker)}
-                    className={`w-full text-left px-4 py-3 transition-all duration-300 relative ${
-                      isSelected
-                        ? 'bg-accent-primary/[0.08] border-l-2 border-l-accent-primary'
-                        : 'bg-transparent hover:bg-white/[0.03] border-l-2 border-l-transparent'
-                    } ${isHot ? 'ring-1 ring-inset ring-accent-primary/20' : ''}`}
-                  >
-                    {/* Hot flash overlay */}
-                    {isHot && (
-                      <div className="absolute inset-0 bg-accent-primary/[0.04] animate-pulse pointer-events-none" />
-                    )}
-                    <div className="relative">
-                      <p className={`text-sm font-medium line-clamp-2 ${isSelected ? 'text-text-primary' : 'text-text-secondary'}`}>
-                        {m.title}
-                      </p>
-                      <ProbBar yes={m.yesPrice} flash={isHot} />
-                      <div className="mt-1.5 flex items-center gap-3 text-[11px] font-mono">
-                        <span className="text-emerald-400">
-                          YES {(m.yesPrice * 100).toFixed(0)}c
-                        </span>
-                        <span className="text-rose-400">
-                          NO {(m.noPrice * 100).toFixed(0)}c
-                        </span>
-                        <span className="text-text-muted ml-auto">${formatMoney(m.volume)}</span>
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="max-h-[65vh] lg:max-h-[calc(100vh-320px)] overflow-y-auto divide-y divide-white/[0.04]">
+              {markets.map((m) => (
+                <MarketCard
+                  key={m.id}
+                  market={m}
+                  isSelected={selectedTicker === m.ticker}
+                  isHot={hotMarkets.has(m.ticker)}
+                  onClick={() => { setSelectedTicker(m.ticker); setMobileTab('predict'); }}
+                />
+              ))}
               {markets.length === 0 && (
                 <div className="px-4 py-8 text-center text-sm text-text-muted">No markets synced yet.</div>
               )}
             </div>
           </div>
 
-          {/* ── CENTER: Prediction Form + My Positions ─────────────── */}
-          <div className="space-y-4">
-            {/* Form */}
+          {/* ── CENTER: Form + Agent Voices + My Positions ─────────── */}
+          <div className={`${mobileTab !== 'predict' ? 'hidden lg:block' : ''} space-y-4`}>
+            {/* Prediction Form */}
             <div className="border border-white/[0.08] bg-[#0d0f16]/90 backdrop-blur-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
                 <Target className="w-3.5 h-3.5 text-accent-primary" />
@@ -532,7 +725,10 @@ export default function PredictionArenaPage() {
               </div>
               <div className="p-4">
                 {!selectedMarket ? (
-                  <p className="text-sm text-text-muted py-4 text-center">Select a market from the left panel.</p>
+                  <p className="text-sm text-text-muted py-4 text-center">
+                    <span className="lg:hidden">Tap a market in the <button onClick={() => setMobileTab('markets')} className="text-accent-primary/80 underline underline-offset-2">Markets</button> tab.</span>
+                    <span className="hidden lg:inline">Select a market from the left panel.</span>
+                  </p>
                 ) : (
                   <div className="space-y-4">
                     <div>
@@ -655,6 +851,38 @@ export default function PredictionArenaPage() {
               </div>
             </div>
 
+            {/* ── Agent Voices ──────────────────────────────────────── */}
+            {selectedTicker && (
+              <div className="border border-white/[0.08] bg-[#0d0f16]/90 backdrop-blur-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                  <MessageSquare className="w-3.5 h-3.5 text-violet-400" />
+                  <h2 className="text-xs font-semibold text-text-primary uppercase tracking-wider">Agent Voices</h2>
+                  <span className="text-[10px] text-text-muted font-mono ml-1">{selectedTicker}</span>
+                  {filteredTapeCount > 0 && (
+                    <span className="ml-1 px-1.5 py-0.5 text-[9px] font-mono bg-cyan-500/10 text-cyan-400 rounded-sm">
+                      {filteredTapeCount} live
+                    </span>
+                  )}
+                  <span className="text-[10px] text-text-muted font-mono ml-auto">{voices.length} calls</span>
+                </div>
+                <div className="max-h-[360px] overflow-y-auto divide-y divide-white/[0.04]">
+                  {voicesLoading ? (
+                    <div className="px-4 py-8 flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border border-text-muted/30 border-t-text-muted rounded-full animate-spin" />
+                      <span className="text-xs text-text-muted font-mono">Loading...</span>
+                    </div>
+                  ) : voices.length > 0 ? (
+                    voices.map((v) => <VoiceCard key={v.id} voice={v} />)
+                  ) : (
+                    <div className="px-4 py-8 text-center">
+                      <MessageSquare className="w-5 h-5 text-text-muted/20 mx-auto mb-2" />
+                      <p className="text-xs text-text-muted font-mono">No agent predictions yet for this market.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* My Positions */}
             {authed && (
               <div className="border border-white/[0.08] bg-[#0d0f16]/90 backdrop-blur-sm overflow-hidden">
@@ -716,7 +944,7 @@ export default function PredictionArenaPage() {
           </div>
 
           {/* ── RIGHT: Leaderboard + Live Tape ─────────────────────── */}
-          <div className="space-y-4">
+          <div className={`${mobileTab !== 'activity' ? 'hidden lg:block' : ''} space-y-4`}>
             {/* Leaderboard */}
             <div className="border border-white/[0.08] bg-[#0d0f16]/90 backdrop-blur-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
@@ -741,10 +969,16 @@ export default function PredictionArenaPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-emerald-400 font-mono">{formatPct(row.accuracy)}</p>
-                      <p className={`text-[10px] font-mono ${row.roi >= 0 ? 'text-emerald-400/60' : 'text-rose-400/60'}`}>
-                        {row.roi >= 0 ? '+' : ''}{formatPct(row.roi)} ROI
-                      </p>
+                      {row.resolved !== false ? (
+                        <>
+                          <p className="text-xs text-emerald-400 font-mono">{formatPct(row.accuracy)}</p>
+                          <p className={`text-[10px] font-mono ${row.roi >= 0 ? 'text-emerald-400/60' : 'text-rose-400/60'}`}>
+                            {row.roi >= 0 ? '+' : ''}{formatPct(row.roi)} ROI
+                          </p>
+                        </>
+                      ) : (
+                        <span className="text-[10px] font-mono text-yellow-400/60 uppercase tracking-wider">pending</span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -759,8 +993,16 @@ export default function PredictionArenaPage() {
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
                 <Activity className="w-3.5 h-3.5 text-cyan-400" />
                 <h2 className="text-xs font-semibold text-text-primary uppercase tracking-wider">Live Tape</h2>
+                {selectedTicker && (
+                  <button
+                    onClick={() => setSelectedTicker(null)}
+                    className="ml-auto text-[9px] font-mono text-accent-primary/60 hover:text-accent-primary transition-colors"
+                  >
+                    all
+                  </button>
+                )}
                 {wsConnected && tape.length > 0 && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
                 )}
               </div>
               <div ref={tapeRef} className="space-y-1 p-2 max-h-[calc(100vh-520px)] overflow-y-auto">
@@ -785,16 +1027,11 @@ export default function PredictionArenaPage() {
       {/* ── Keyframe Animations ────────────────────────────────────── */}
       <style jsx global>{`
         @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(-8px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
+    </ClickSpark>
   );
 }
