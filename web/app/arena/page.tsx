@@ -292,8 +292,15 @@ function ClassicArenaView() {
       {/* Leaderboard + Conversations | Epoch + Graduation */}
       <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
         <div className="space-y-6 animate-arena-reveal" style={{ animationDelay: '180ms' }}>
-          <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
-            <div className="flex items-center gap-1 mb-4">
+          <div className="relative overflow-hidden bg-white/[0.025] backdrop-blur-2xl border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_40px_rgba(0,0,0,0.5),0_0_80px_rgba(245,158,11,0.03)] p-4 sm:p-5">
+            {/* Gold accent glow — bleeds up from behind the podium */}
+            {leaderboardTab === 'trades' && (
+              <div
+                className="absolute top-12 left-1/2 -translate-x-1/2 w-40 h-24 pointer-events-none"
+                style={{ background: 'radial-gradient(ellipse,rgba(245,158,11,0.12) 0%,transparent 70%)', filter: 'blur(16px)' }}
+              />
+            )}
+            <div className="flex items-center gap-1 mb-4 relative">
               <button onClick={() => setLeaderboardTab('trades')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'trades' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>Trades</button>
               <button onClick={() => setLeaderboardTab('xp')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'xp' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>XP</button>
             </div>
@@ -419,8 +426,15 @@ function ConversationsView() {
           </div>
 
           <div className="animate-arena-reveal" style={{ animationDelay: '120ms' }}>
-            <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4">
-              <div className="flex items-center gap-1 mb-4">
+            <div className="relative overflow-hidden bg-white/[0.025] backdrop-blur-2xl border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_40px_rgba(0,0,0,0.5),0_0_80px_rgba(245,158,11,0.03)] p-4">
+              {/* Gold accent glow */}
+              {leaderboardTab === 'trades' && (
+                <div
+                  className="absolute top-12 left-1/2 -translate-x-1/2 w-40 h-24 pointer-events-none"
+                  style={{ background: 'radial-gradient(ellipse,rgba(245,158,11,0.12) 0%,transparent 70%)', filter: 'blur(16px)' }}
+                />
+              )}
+              <div className="flex items-center gap-1 mb-4 relative">
                 <button onClick={() => setLeaderboardTab('trades')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'trades' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>Trades</button>
                 <button onClick={() => setLeaderboardTab('xp')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'xp' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>XP</button>
               </div>
