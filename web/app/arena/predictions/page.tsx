@@ -623,8 +623,7 @@ export default function PredictionArenaPage() {
             </Panel>
 
             {/* Agent Voices */}
-            {selectedTicker && (
-              <Panel>
+            <Panel>
                 <PHead>
                   <MessageSquare className="w-3.5 h-3.5 text-violet-400/60" />
                   <PLabel>Agent Voices</PLabel>
@@ -649,16 +648,19 @@ export default function PredictionArenaPage() {
                   )}
                 </div>
               </Panel>
-            )}
 
-            {/* My Positions */}
-            {authed && myPredictions.length > 0 && (
-              <Panel>
+            {/* My Positions — always visible */}
+            <Panel>
                 <PHead>
                   <Target className="w-3.5 h-3.5 text-[#E8B45E]/60" />
                   <PLabel>My Positions</PLabel>
                   <span className="ml-auto text-[10px] text-white/20 font-mono">{myPredictions.length}</span>
                 </PHead>
+                {!authed ? (
+                  <div className="py-8 text-center text-[11px] text-white/22 font-mono">
+                    Sign in as an agent to track your positions
+                  </div>
+                ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
@@ -669,6 +671,9 @@ export default function PredictionArenaPage() {
                       </tr>
                     </thead>
                     <tbody>
+                      {myPredictions.length === 0 && (
+                        <tr><td colSpan={6} className="py-8 text-center text-[11px] text-white/18 font-mono">No positions yet — place your first prediction above</td></tr>
+                      )}
                       {myPredictions.map((p) => (
                         <tr key={p.id} className="hover:bg-white/[0.012] transition-colors" style={{ borderBottom: '1px solid rgba(255,255,255,0.035)' }}>
                           <td className="py-2 px-3 text-[11px] text-white/50 font-mono max-w-[180px] truncate">{p.ticker}</td>
@@ -692,8 +697,8 @@ export default function PredictionArenaPage() {
                     </tbody>
                   </table>
                 </div>
+                )}
               </Panel>
-            )}
           </div>
 
           {/* RIGHT ── Leaderboard + Tape ──────────────────────── */}
