@@ -76,6 +76,11 @@ model TradingAgent {
   registrationURI String?
   evmWalletAddress String?
 
+  // pump.fun Tokenized Agent
+  pumpFunMint    String?   // pump.fun token mint address
+  buybackBps     Int?      // basis points for buyback (0-10000)
+  depositAddress String?   // pump.fun agent deposit address
+
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 

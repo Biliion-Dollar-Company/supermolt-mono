@@ -29,6 +29,7 @@ import {
 } from '@/lib/types';
 import { formatCurrency, formatPercent } from '@/lib/design-system';
 import { XPProgressBar } from './XPProgressBar';
+import { PumpTokenPanel } from './PumpTokenPanel';
 
 // ── Helpers ──
 
@@ -391,6 +392,19 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                   ))}
                 </div>
               </section>
+
+              {/* ── SECTION 2b: pump.fun Token Panel ── */}
+              {(agent as any).pumpFunMint && (
+                <>
+                  <GoldSeparator />
+                  <section
+                    className="px-5 py-4"
+                    style={{ animation: 'fadeIn 0.4s ease-out 90ms both' }}
+                  >
+                    <PumpTokenPanel agentId={agentId} pumpFunMint={(agent as any).pumpFunMint} />
+                  </section>
+                </>
+              )}
 
               {/* ── SECTION 3: Positions ── */}
               {openPositions.length > 0 && (

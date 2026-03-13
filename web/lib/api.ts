@@ -40,7 +40,9 @@ import {
   PredictionMarket,
   PredictionStats,
   PredictionLeaderboardEntry,
+  RecentPredictionEntry,
   AgentPrediction,
+  AgentVoice,
   PredictionCoordinatorStatus,
 } from './types';
 
@@ -629,9 +631,16 @@ export async function getPredictionStats(): Promise<PredictionStats> {
   return response.data.data;
 }
 
-export async function getPredictionLeaderboard(limit = 25, min = 3): Promise<PredictionLeaderboardEntry[]> {
+export async function getPredictionLeaderboard(limit = 25): Promise<PredictionLeaderboardEntry[]> {
   const response = await api.get<{ success: boolean; data: PredictionLeaderboardEntry[] }>('/prediction/leaderboard', {
-    params: { limit, min },
+    params: { limit },
+  });
+  return response.data.data || [];
+}
+
+export async function getRecentPredictions(limit = 30): Promise<RecentPredictionEntry[]> {
+  const response = await api.get<{ success: boolean; data: RecentPredictionEntry[] }>('/prediction/recent', {
+    params: { limit },
   });
   return response.data.data || [];
 }
@@ -659,6 +668,14 @@ export async function placePrediction(
 
 export async function getPredictionCoordinatorStatus(): Promise<PredictionCoordinatorStatus> {
   const response = await api.get<{ success: boolean; data: PredictionCoordinatorStatus }>('/prediction/coordinator/status');
+  return response.data.data;
+}
+
+export async function getMarketVoices(ticker: string, limit = 20): Promise<AgentVoice[]> {
+  const response = await api.get<{ success: boolean; data: AgentVoice[] }>(
+    `/prediction/markets/${encodeURIComponent(ticker)}/voices`,
+    { params: { limit } },
+  );
   return response.data.data;
 }
 
@@ -749,4 +766,51 @@ export async function getMyPosts(page = 1, limit = 20) {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data.data;
+}
+
+// ── Pump.fun Agent Payments ──────────────────────────────
+
+export interface PumpInvoiceResult {
+  transaction: string;
+  invoiceData: {
+    amount: string;
+    memo: string;
+    startTime: number;
+    endTime: number;
+    currencyMint: string;
+  };
+}
+
+export interface PumpVaultBalances {
+  mint: string;
+  buybackBps: number;
+  depositAddress: string;
+  buybackAuthority: string;
+  vaults: {
+    payment: { address: string; balanceUsdc: string };
+    buyback: { address: string; balanceUsdc: string };
+    withdraw: { address: string; balanceUsdc: string };
+  };
+}
+
+export async function generatePumpInvoice(agentId: string, userPubkey: string, service: 'signal' | 'analysis' | 'positions'): Promise<PumpInvoiceResult> {
+  const res = await fetch(`${API_URL}/pump-payments/agents/${agentId}/invoice`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userPubkey, service }),
+  });
+  return res.json();
+}
+
+export async function getPumpVaultBalances(agentId: string): Promise<PumpVaultBalances> {
+  const res = await fetch(`${API_URL}/pump-payments/agents/${agentId}/balance`);
+  return res.json();
+}
+
+export async function setAgentPumpToken(agentId: string, pumpFunMint: string, buybackBps: number = 5000): Promise<void> {
+  await fetch(`${API_URL}/pump-payments/agents/${agentId}/token`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pumpFunMint, buybackBps }),
+  });
 }

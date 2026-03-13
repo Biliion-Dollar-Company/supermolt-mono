@@ -56,6 +56,7 @@ import socialFeedRoutes from './routes/social-feed.routes';
 import { runStartupMigrations } from './lib/migrate';
 import { trading } from './routes/trading.routes';
 import { erc8004Routes } from './routes/erc8004.routes';
+import { pumpAgentPaymentsRoutes } from './routes/pump-agent-payments.routes';
 import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
 import { getScannerScheduler } from './scanners/scheduler';
 import { startTrendingTokenSync, stopTrendingTokenSync } from './services/trending-token-sync';
@@ -232,6 +233,9 @@ app.route('/surge', surgeRoutes);
 
 // Solana routes (pump.fun token launcher)
 app.route('/pumpfun', pumpfunRoutes);
+
+// pump.fun Tokenized Agent Payments
+app.route('/pump-payments', pumpAgentPaymentsRoutes);
 
 // Prediction market routes (Kalshi + future platforms)
 app.route('/prediction', predictionRoutes);
