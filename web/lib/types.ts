@@ -584,10 +584,23 @@ export interface PredictionLeaderboardEntry {
   totalPredictions: number;
   correctPredictions: number;
   accuracy: number;
-  brierScore: number;
+  brierScore?: number;
   roi: number;
   streak: number;
   bestStreak: number;
+  resolved?: boolean;
+}
+
+export interface RecentPredictionEntry {
+  id: string;
+  agentId: string;
+  agentName: string;
+  ticker: string;
+  side: 'YES' | 'NO';
+  confidence: number | null;
+  contracts: number;
+  avgPrice: number;
+  createdAt: string;
 }
 
 export interface AgentPrediction {
@@ -607,6 +620,20 @@ export interface AgentPrediction {
   confidence: number | null;
   reasoning: string | null;
   realOrder?: boolean;
+  createdAt: string;
+}
+
+export interface AgentVoice {
+  id: string;
+  agentId: string;
+  agentName: string;
+  avatarUrl: string | null;
+  side: 'YES' | 'NO';
+  contracts: number;
+  avgPrice: number;
+  confidence: number | null;
+  reasoning: string | null;
+  outcome: 'PENDING' | 'WIN' | 'LOSS' | string;
   createdAt: string;
 }
 
