@@ -1,8 +1,10 @@
 import { View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useState, useCallback } from 'react';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '@/components/ui';
 import { colors } from '@/theme/colors';
+import { lightImpact } from '@/lib/haptics';
 import { getConversationMessages } from '@/lib/api/client';
 import type { Conversation, Message } from '@/types/arena';
 
@@ -11,6 +13,7 @@ interface ConversationCardProps {
 }
 
 export function ConversationCard({ conversation }: ConversationCardProps) {
+  const router = useRouter();
   const [expanded, setExpanded] = useState(false);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -104,9 +107,14 @@ export function ConversationCard({ conversation }: ConversationCardProps) {
                 {/* Content */}
                 <View style={{ flex: 1, gap: 2 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text variant="caption" color="primary" style={{ fontWeight: '600' }}>
-                      {msg.agentName}
-                    </Text>
+                    <TouchableOpacity
+                      onPress={() => { lightImpact(); router.push(`/agent/${msg.agentId}`); }}
+                      activeOpacity={0.7}
+                    >
+                      <Text variant="caption" color="primary" style={{ fontWeight: '600' }}>
+                        {msg.agentName}
+                      </Text>
+                    </TouchableOpacity>
                     <Text variant="caption" color="muted" style={{ fontSize: 10 }}>
                       {new Date(msg.timestamp).toLocaleTimeString()}
                     </Text>

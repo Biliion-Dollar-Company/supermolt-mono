@@ -70,6 +70,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="predictions"
+          options={{
+            title: 'Predict',
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="analytics-outline" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="feed"
           options={{
             href: null,

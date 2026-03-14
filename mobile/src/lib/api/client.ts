@@ -10,6 +10,89 @@ export interface SRTokens {
   refreshToken: string;
 }
 
+export interface PredictionMarket {
+  id: string;
+  platform: string;
+  ticker: string;
+  title: string;
+  category: string | null;
+  subtitle: string | null;
+  yesPrice: number;
+  noPrice: number;
+  volume: number;
+  outcome: string;
+  status: string;
+  expiresAt: string;
+}
+
+export interface PredictionStats {
+  totalMarkets: number;
+  totalPredictions: number;
+  resolvedPredictions: number;
+  pendingPredictions: number;
+  activeForecasters: number;
+  avgAccuracy: number;
+  avgBrierScore: number;
+}
+
+export interface PredictionLeaderboardEntry {
+  rank: number;
+  agentId: string;
+  agentName: string;
+  avatarUrl?: string;
+  totalPredictions: number;
+  correctPredictions: number;
+  accuracy: number;
+  brierScore?: number;
+  roi: number;
+  streak: number;
+  bestStreak: number;
+}
+
+export interface AgentVoice {
+  id: string;
+  agentId: string;
+  agentName: string;
+  avatarUrl: string | null;
+  side: 'YES' | 'NO';
+  contracts: number;
+  avgPrice: number;
+  confidence: number | null;
+  reasoning: string | null;
+  outcome: 'PENDING' | 'WIN' | 'LOSS' | string;
+  createdAt: string;
+}
+
+export interface RecentPredictionEntry {
+  id: string;
+  agentId: string;
+  agentName: string;
+  ticker: string;
+  side: 'YES' | 'NO';
+  confidence: number | null;
+  contracts: number;
+  avgPrice: number;
+  createdAt: string;
+}
+
+export interface AgentPrediction {
+  id: string;
+  ticker: string;
+  marketTitle: string;
+  category: string | null;
+  side: 'YES' | 'NO';
+  contracts: number;
+  avgPrice: number;
+  totalCost: number;
+  payout: number | null;
+  pnl: number | null;
+  outcome: 'PENDING' | 'WIN' | 'LOSS' | string;
+  marketOutcome: string;
+  confidence: number | null;
+  reasoning: string | null;
+  createdAt: string;
+}
+
 // Token storage
 export async function storeTokens(tokens: SRTokens): Promise<void> {
   await SecureStore.setItemAsync(TOKEN_KEY, tokens.accessToken);
@@ -417,4 +500,67 @@ export async function verifyTwitterLink(tweetUrl: string): Promise<{ twitterHand
     method: 'POST',
     body: JSON.stringify({ tweetUrl }),
   });
+}
+
+// ── Prediction Markets ──
+
+export async function getPredictionMarkets(limit = 30): Promise<PredictionMarket[]> {
+  const data = await apiFetch<{ success: boolean; data: PredictionMarket[] }>(`/prediction/markets?limit=${limit}&status=open`);
+  return data.data || [];
+}
+
+export async function getPredictionLeaderboard(limit = 20): Promise<PredictionLeaderboardEntry[]> {
+  const data = await apiFetch<{ success: boolean; data: PredictionLeaderboardEntry[] }>(`/prediction/leaderboard?limit=${limit}`);
+  return data.data || [];
+}
+
+export async function getPredictionStats(): Promise<PredictionStats | null> {
+  try {
+    const data = await apiFetch<{ success: boolean; data: PredictionStats }>('/prediction/stats');
+    return data.data;
+  } catch { return null; }
+}
+
+export async function getMarketVoices(ticker: string, limit = 15): Promise<AgentVoice[]> {
+  const data = await apiFetch<{ success: boolean; data: AgentVoice[] }>(`/prediction/markets/${encodeURIComponent(ticker)}/voices?limit=${limit}`);
+  return data.data || [];
+}
+
+export async function getRecentPredictions(limit = 30): Promise<RecentPredictionEntry[]> {
+  const data = await apiFetch<{ success: boolean; data: RecentPredictionEntry[] }>(`/prediction/recent?limit=${limit}`);
+  return data.data || [];
+}
+
+export async function placePrediction(ticker: string, payload: {
+  side: 'YES' | 'NO';
+  contracts: number;
+  confidence?: number;
+  reasoning?: string;
+  placeRealOrder?: boolean;
+}): Promise<{ success: boolean; data?: { predictionId: string }; error?: string }> {
+  return apiFetch(`/prediction/markets/${encodeURIComponent(ticker)}/predict`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getAgentPredictionProfile(agentId: string): Promise<{
+  agentId: string;
+  agentName: string;
+  avatarUrl: string | null;
+  stats: {
+    totalPredictions: number;
+    correctPredictions: number;
+    accuracy: number;
+    brierScore: number;
+    roi: number;
+    streak: number;
+    bestStreak: number;
+  } | null;
+  recentPredictions: AgentPrediction[];
+} | null> {
+  try {
+    const data = await apiFetch<{ success: boolean; data: any }>(`/prediction/agent/${agentId}`);
+    return data.data;
+  } catch { return null; }
 }

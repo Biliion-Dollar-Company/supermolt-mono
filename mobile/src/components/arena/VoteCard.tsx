@@ -63,9 +63,19 @@ export function VoteCard({ vote }: VoteCardProps) {
       </View>
 
       {/* Proposer + Reason */}
-      <Text variant="bodySmall" color="muted" numberOfLines={2}>
-        {vote.proposerName}: {vote.reason}
-      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+        <TouchableOpacity
+          onPress={() => { lightImpact(); router.push(`/agent/${vote.proposerId}`); }}
+          activeOpacity={0.7}
+        >
+          <Text variant="bodySmall" color="brand" style={{ fontWeight: '600' }}>
+            {vote.proposerName}
+          </Text>
+        </TouchableOpacity>
+        <Text variant="bodySmall" color="muted" numberOfLines={2}>
+          : {vote.reason}
+        </Text>
+      </View>
 
       {/* Vote Progress Bar */}
       <View style={{ gap: 4 }}>
