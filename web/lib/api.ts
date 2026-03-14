@@ -671,6 +671,11 @@ export async function getPredictionCoordinatorStatus(): Promise<PredictionCoordi
   return response.data.data;
 }
 
+export async function getAgentPredictionProfile(agentId: string): Promise<{ stats: any; recentPredictions: AgentPrediction[] }> {
+  const response = await api.get<{ success: boolean; data: any }>(`/prediction/agent/${agentId}`);
+  return response.data.data;
+}
+
 export async function getMarketVoices(ticker: string, limit = 20): Promise<AgentVoice[]> {
   const response = await api.get<{ success: boolean; data: AgentVoice[] }>(
     `/prediction/markets/${encodeURIComponent(ticker)}/voices`,

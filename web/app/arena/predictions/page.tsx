@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ClickSpark from '@/components/reactbits/click-spark';
 import DecryptedText from '@/components/reactbits/decrypted-text';
@@ -107,7 +108,7 @@ function VoiceCard({ voice }: { voice: AgentVoice }) {
         <Avatar name={voice.agentName} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[13px] font-semibold text-white/80 truncate">{voice.agentName}</span>
+            <Link href={`/agents/${voice.agentId}`} className="text-[13px] font-semibold text-white/80 truncate hover:text-white transition-colors">{voice.agentName}</Link>
             <span className="text-[10px] font-black px-2 py-0.5 rounded-sm font-mono tracking-wider flex-shrink-0"
               style={{ background: `${col}18`, color: col, border: `1px solid ${col}30` }}>
               {voice.side}
@@ -645,7 +646,7 @@ export default function PredictionArenaPage() {
             </div>
             <div className="overflow-y-auto flex-1" style={{ scrollbarWidth: 'none' }}>
               {leaderboard.slice(0, 10).map((row, i) => (
-                <div key={row.agentId} className="flex items-center gap-3 px-4 py-3.5 group transition-colors"
+                <Link key={row.agentId} href={`/agents/${row.agentId}`} className="flex items-center gap-3 px-4 py-3.5 group transition-colors cursor-pointer"
                   style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
@@ -674,7 +675,7 @@ export default function PredictionArenaPage() {
                       <p className="text-[12px] font-mono font-black" style={{ color: row.roi >= 0 ? YES_C : NO_C }}>{row.roi >= 0 ? '+' : ''}{fmtPct(row.roi)}</p>
                     </div>
                   )}
-                </div>
+                </Link>
               ))}
               {leaderboard.length === 0 && <p className="py-10 text-center text-[12px] text-white/18 font-mono">No data</p>}
             </div>
