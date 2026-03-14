@@ -5,9 +5,6 @@ import * as tradeService from '../services/trade.service';
 import { createSortinoService } from '../services/sortino.service';
 import { treasuryManager } from '../services/treasury-manager.service';
 import { db } from '../lib/db';
-import { analyzeSuperRouterTrade } from '../services/agent-analyzer';
-import { fetchTokenMetrics, analyzeSmartMoneyFlow } from '../services/token-data.service';
-import { getTwitterAPI } from '../services/twitter-api.service';
 import { agentTradeReactor } from '../services/agent-trade-reactor';
 
 const internal = new Hono();
@@ -37,25 +34,6 @@ const closeTradeSchema = z.object({
   exitPrice: z.number().positive(),
   pnl: z.number(),
   pnlPercent: z.number(),
-});
-
-const narrativeAnalyzeSchema = z.object({
-  tokenMint: z.string().min(1),
-  tokenSymbol: z.string().optional(),
-  tokenName: z.string().optional(),
-  action: z.enum(['BUY', 'SELL']).default('BUY'),
-  amount: z.number().positive().default(1),
-  includeSocial: z.boolean().optional(),
-  metrics: z.object({
-    holders: z.number().optional(),
-    liquidity: z.number().optional(),
-    volume24h: z.number().optional(),
-    priceChange24h: z.number().optional(),
-    marketCap: z.number().optional(),
-    smartMoneyFlow: z.enum(['IN', 'OUT', 'NEUTRAL']).optional(),
-    recentTweets: z.array(z.string()).optional(),
-    tweetCount: z.number().optional(),
-  }).optional(),
 });
 
 // POST /internal/trades — DevPrint creates a paper trade
@@ -108,74 +86,6 @@ internal.post('/trades/close', async (c) => {
   }
 });
 
-// POST /internal/narrative/analyze — Debug narrative analysis with live LLM
-internal.post('/narrative/analyze', async (c) => {
-  try {
-    const body = await c.req.json();
-    const input = narrativeAnalyzeSchema.parse(body);
-
-    const tokenMetrics = await fetchTokenMetrics(input.tokenMint);
-    const mergedMetrics = {
-      ...tokenMetrics,
-      ...input.metrics,
-    };
-    if (!mergedMetrics.smartMoneyFlow) {
-      mergedMetrics.smartMoneyFlow = analyzeSmartMoneyFlow(mergedMetrics);
-    }
-
-    if (input.includeSocial) {
-      try {
-        const twitter = getTwitterAPI();
-        const symbol = input.tokenSymbol || '';
-        const name = input.tokenName || '';
-        if (symbol && symbol.length > 2) {
-          const queryParts = [`$${symbol}`, '-is:retweet'];
-          if (name && name.length > 2) {
-            queryParts.push(`"${name}"`);
-          }
-          const query = queryParts.join(' ');
-          const tweets = await twitter.searchTweets(query, 8);
-          if (tweets.length > 0) {
-            mergedMetrics.recentTweets = Array.from(new Set(tweets.map(t => t.text))).slice(0, 5);
-            mergedMetrics.tweetCount = tweets.length;
-          }
-        }
-      } catch {
-        // Ignore social failures
-      }
-    }
-
-    const analyses = await analyzeSuperRouterTrade(
-      {
-        signature: 'internal-debug',
-        walletAddress: 'internal',
-        tokenMint: input.tokenMint,
-        tokenSymbol: input.tokenSymbol,
-        tokenName: input.tokenName,
-        action: input.action,
-        amount: input.amount,
-        timestamp: new Date(),
-      },
-      mergedMetrics
-    );
-
-    return c.json({ success: true, data: analyses });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid request body', details: error.errors } },
-        400
-      );
-    }
-    const message = error instanceof Error ? error.message : 'Failed to analyze narrative';
-    console.error('Internal narrative analyze error:', error);
-    return c.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message } },
-      500
-    );
-  }
-});
-
 // POST /internal/leaderboard/recalculate — Recalculate all Sortino ratios
 internal.post('/leaderboard/recalculate', async (c) => {
   try {
@@ -207,7 +117,7 @@ internal.post('/leaderboard/recalculate', async (c) => {
 // POST /internal/agents/create-observers — Create 5 observer agents
 internal.post('/agents/create-observers', async (c) => {
   try {
-    console.log('🚀 Creating 5 Observer Agents for SuperRouter Analysis...');
+    console.log('🚀 Creating 5 Observer Agents for market analysis...');
 
     const OBSERVER_AGENTS = [
       {
@@ -457,82 +367,6 @@ internal.post('/epoch/distribute', async (c) => {
     }
     const message = error instanceof Error ? error.message : 'Failed to distribute rewards';
     console.error('Distribution error:', error);
-    return c.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message } },
-      500
-    );
-  }
-});
-
-// POST /internal/cleanup/purge-non-superrouter — Delete all fake data for non-SR agents
-internal.post('/cleanup/purge-non-superrouter', async (c) => {
-  try {
-    console.log('🧹 Starting purge of non-SuperRouter agent data...');
-
-    const KEEP_IDS = [
-      'cml7389hz0000qu01djafchsn',  // SuperRouter
-      'obs_2d699d1509105cd0',        // Alpha
-      'obs_d5e20717b2f7a46d',        // Beta
-      'obs_f235dbdc98f3a578',        // Gamma
-      'obs_b66d4c1a7ee58537',        // Delta
-      'obs_b84563ff6101876e',        // Epsilon
-      'obs_6a9f8e2c1d5b4a3f',        // Zeta
-      'obs_7b8c9d3e2f6g5h4i',        // Theta
-    ];
-
-    // Count before
-    const totalAgentsBefore = await db.tradingAgent.count();
-    const keepCount = await db.tradingAgent.count({ where: { id: { in: KEEP_IDS } } });
-
-    // 1. Delete AgentStats for non-preserved agents
-    const deletedStats = await db.agentStats.deleteMany({
-      where: { agentId: { notIn: KEEP_IDS } },
-    });
-    console.log(`  Deleted ${deletedStats.count} AgentStats`);
-
-    // 2. Delete AgentPositions for non-preserved agents
-    const deletedPositions = await db.agentPosition.deleteMany({
-      where: { agentId: { notIn: KEEP_IDS } },
-    });
-    console.log(`  Deleted ${deletedPositions.count} AgentPositions`);
-
-    // 3. Delete AgentTrades for non-preserved agents
-    const deletedAgentTrades = await db.agentTrade.deleteMany({
-      where: { agentId: { notIn: KEEP_IDS } },
-    });
-    console.log(`  Deleted ${deletedAgentTrades.count} AgentTrades`);
-
-    // 4. Delete TradingAgent records (cascades PaperTrade + TradeFeedback)
-    const deletedAgents = await db.tradingAgent.deleteMany({
-      where: { id: { notIn: KEEP_IDS } },
-    });
-    console.log(`  Deleted ${deletedAgents.count} TradingAgents (+ cascaded PaperTrades & Feedback)`);
-
-    // Count after
-    const totalAgentsAfter = await db.tradingAgent.count();
-    const remainingPositions = await db.agentPosition.count();
-    const remainingTrades = await db.agentTrade.count();
-
-    const summary = {
-      before: { totalAgents: totalAgentsBefore, preserved: keepCount },
-      deleted: {
-        agentStats: deletedStats.count,
-        agentPositions: deletedPositions.count,
-        agentTrades: deletedAgentTrades.count,
-        tradingAgents: deletedAgents.count,
-      },
-      after: {
-        totalAgents: totalAgentsAfter,
-        remainingPositions,
-        remainingTrades,
-      },
-    };
-
-    console.log('🧹 Purge complete:', JSON.stringify(summary, null, 2));
-    return c.json({ success: true, data: summary });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to purge data';
-    console.error('Purge error:', error);
     return c.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message } },
       500

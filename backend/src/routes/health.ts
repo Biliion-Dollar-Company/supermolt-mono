@@ -77,7 +77,7 @@ health.post('/setup-observers', async (c) => {
   const { db } = await import('../lib/db');
 
   try {
-    console.log('🚀 Creating 5 Observer Agents for SuperRouter Analysis...');
+    console.log('🚀 Creating 5 Observer Agents for market analysis...');
 
     const OBSERVER_AGENTS = [
       {

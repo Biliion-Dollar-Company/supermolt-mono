@@ -8,7 +8,7 @@
  *   /ws/tweets   → celebrity/influencer tweets
  *   /ws/training → training progress updates
  *
- * Filtered out (SuperRouter private):
+ * Filtered out (private position events):
  *   position_opened, position_closed, price_update,
  *   take_profit_triggered, stop_loss_triggered,
  *   holdings_snapshot, stats_update, config_updated
@@ -28,7 +28,7 @@ interface StreamConfig {
   reconnectAttempts: number;
 }
 
-// SuperRouter position events — NEVER broadcast
+// Position events — never broadcast
 const FILTERED_EVENTS = new Set([
   'position_opened',
   'position_closed',
@@ -179,7 +179,7 @@ export class DevPrintFeedService {
     const eventType: string | undefined = data.type || data.event;
     if (!eventType) return;
 
-    // Filter out SuperRouter position events
+    // Filter out position events
     if (FILTERED_EVENTS.has(eventType)) return;
 
     // Route to feed channel

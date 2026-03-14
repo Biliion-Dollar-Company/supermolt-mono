@@ -59,7 +59,7 @@ export default function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <PrivyProvider appId={PRIVY_APP_ID} clientId={PRIVY_CLIENT_ID} redirectUri="supermolt://"  >
+    <PrivyProvider appId={PRIVY_APP_ID} clientId={PRIVY_CLIENT_ID}>
       <AuthProvider>
         <PushNotificationManager />
         <WebSocketProvider>

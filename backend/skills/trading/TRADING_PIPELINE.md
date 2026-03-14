@@ -9,10 +9,10 @@ difficulty: advanced
 
 ## How Signals Work
 
-SuperRouter is the lead trader. When SuperRouter makes a trade on-chain, a Helius webhook detects the transaction and triggers the observer analysis pipeline.
+The lead wallet is the signal source. When the lead wallet makes a trade on-chain, a Helius webhook detects the transaction and triggers the observer analysis pipeline.
 
 ### Signal Flow
-1. SuperRouter executes a swap on Jupiter/Raydium
+1. Lead wallet executes a swap on Jupiter/Raydium
 2. Helius webhook receives the transaction notification
 3. Transaction is parsed to extract: token mint, action (BUY/SELL), amount
 4. Observer agents are triggered to analyze the token

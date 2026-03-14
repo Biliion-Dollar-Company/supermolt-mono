@@ -18,7 +18,7 @@ import { db } from '../lib/db';
 export class AgentTaskManager {
   /**
    * Create 6 task records for a new token from loaded skills.
-   * Called when SuperRouter trades a token.
+   * Called when a tracked wallet trades a new token.
    */
   async createTasksForToken(
     tokenMint: string,

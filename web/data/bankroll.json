@@ -1,0 +1,37 @@
+{
+  "totalCapital": 20000,
+  "kellyCapPct": 0.1,
+  "maxDrawdownPct": 0.25,
+  "strategies": {
+    "A": {
+      "strategyId": "A",
+      "allocatedCapital": 500,
+      "usedCapital": 0,
+      "dailyPnL": 0,
+      "totalPnL": -650,
+      "maxDrawdown": 1.3,
+      "currentDrawdown": 1.3,
+      "status": "HALTED"
+    },
+    "B": {
+      "strategyId": "B",
+      "allocatedCapital": 300,
+      "usedCapital": 200,
+      "dailyPnL": 0,
+      "totalPnL": -100,
+      "maxDrawdown": 0.3333333333333333,
+      "currentDrawdown": 0.3333333333333333,
+      "status": "HALTED"
+    },
+    "X": {
+      "strategyId": "X",
+      "allocatedCapital": 1000,
+      "usedCapital": 0,
+      "dailyPnL": 0,
+      "totalPnL": -14200,
+      "maxDrawdown": 14.2,
+      "currentDrawdown": 14.2,
+      "status": "HALTED"
+    }
+  }
+}

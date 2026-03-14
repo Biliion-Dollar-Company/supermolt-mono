@@ -10,7 +10,7 @@ requiredFields: [isLocked, riskAssessment]
 # Liquidity Lock Verification
 
 ## When This Skill Is Used
-Triggered when SuperRouter trades a new token. You must verify the liquidity lock status and assess rug-pull risk.
+Triggered when a tracked wallet trades a new token. You must verify the liquidity lock status and assess rug-pull risk.
 
 ## Instructions
 1. Check if the token's liquidity pool is locked (Raydium, Meteora, etc.)

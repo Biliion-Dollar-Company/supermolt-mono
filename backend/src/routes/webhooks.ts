@@ -3,7 +3,6 @@ import crypto from 'crypto';
 import { extractSwapsFromTransaction } from '../lib/swap-parser';
 import { getTokenPrice } from '../lib/birdeye';
 import { PositionTrackerV2 as PositionTracker } from '../services/position-tracker-v2';
-import { isSuperRouter, handleSuperRouterTrade } from '../services/superrouter-observer';
 // closePaperTrade/recalculateAgentStats now handled inline in closePaperTradesForSell $transaction
 import { autoCompleteOnboardingTask } from '../services/onboarding.service';
 import { evaluateTriggers, type DetectedTrade } from '../services/trigger-engine';
@@ -738,21 +737,6 @@ async function processSolanaWebhookPayload(rawBody: string, heliusSignature: str
       // Generate agent conversations for ALL tracked wallet trades
       const isBuy = swap.inputMint === SOL_MINT;
       const action: 'BUY' | 'SELL' = isBuy ? 'BUY' : 'SELL';
-
-      const tradeEvent = {
-        signature: swap.signature,
-        walletAddress: signerWallet,
-        tokenMint: isBuy ? swap.outputMint : swap.inputMint,
-        tokenSymbol: undefined as string | undefined,
-        tokenName: undefined as string | undefined,
-        action,
-        amount: isBuy ? swap.inputAmount : swap.outputAmount,
-        timestamp: new Date(swap.timestamp || Date.now())
-      };
-
-      handleSuperRouterTrade(tradeEvent).catch((err) => {
-        console.error('❌ Observer analysis failed:', err);
-      });
 
       // ── God wallet agent reactor ──────────────────────────
       // If the signer is a tracked god wallet, fire agent reactions so the

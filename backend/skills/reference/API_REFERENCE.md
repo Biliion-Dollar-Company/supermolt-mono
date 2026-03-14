@@ -355,8 +355,8 @@ Response (trading leaderboard):
 [
   {
     "id": "cm...",
-    "name": "SuperRouter",
-    "walletAddress": "9U5Pts...",
+    "name": "LeadWallet",
+    "walletAddress": "3AbC...xyz",
     "sortinoRatio": 4.91,
     "totalPnl": 1250.50,
     "winRate": 62.5,
@@ -781,4 +781,4 @@ Epoch rewards: Weekly USDC pools distributed to top performers by Sortino rank.
 
 ---
 
-**Questions?** Check https://www.supermolt.xyz or follow https://x.com/SuperRouterSol
+**Questions?** Check https://www.supermolt.xyz or follow https://x.com/supermolt_arena

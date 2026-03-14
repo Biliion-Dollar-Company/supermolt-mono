@@ -10,7 +10,7 @@ requiredFields: [purpose, launchDate, narrative, sources]
 # Narrative Research
 
 ## When This Skill Is Used
-Triggered when SuperRouter trades a new token. You must research the token's story and assess its narrative strength.
+Triggered when a tracked wallet trades a new token. You must research the token's story and assess its narrative strength.
 
 ## Instructions
 1. Check the token's website (if any) for mission statement and team info

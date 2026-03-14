@@ -7,7 +7,10 @@
  */
 
 import { polymarketClient } from './polymarket.client';
+import { polymarketOrderClient } from './polymarket.order-client';
 import { db } from '../../lib/db';
+
+const REAL_ORDERS_ENABLED = process.env.POLYMARKET_REAL_ORDERS === 'true';
 
 export class PolymarketArbScanner {
   readonly ARB_THRESHOLD = 0.985;
@@ -52,6 +55,31 @@ export class PolymarketArbScanner {
         `[PolymarketArb] ${m.question} | YES=${yesPrice} NO=${noPrice} combined=${combined.toFixed(4)} spread=${spread}`,
       );
 
+      // Attempt real orders when enabled and a Polygon private key is configured
+      let realOrder = false;
+      let yesOrderId: string | undefined;
+      let noOrderId: string | undefined;
+
+      if (REAL_ORDERS_ENABLED && polymarketOrderClient.isConfigured() && m.clobTokenIds) {
+        const tokenIds = m.clobTokenIds.split(',').map((t) => t.trim());
+        if (tokenIds.length >= 2) {
+          const [yesTokenId, noTokenId] = tokenIds;
+          const BUY_AMOUNT_USDC = Number(process.env.POLYMARKET_ARB_SIZE_USDC || '1');
+          try {
+            const [yesResult, noResult] = await Promise.all([
+              polymarketOrderClient.placeMarketBuy(yesTokenId, BUY_AMOUNT_USDC, yesPrice),
+              polymarketOrderClient.placeMarketBuy(noTokenId, BUY_AMOUNT_USDC, noPrice),
+            ]);
+            yesOrderId = yesResult.orderId;
+            noOrderId = noResult.orderId;
+            realOrder = true;
+            console.log(`[PolymarketArb] Real orders placed: YES=${yesOrderId} NO=${noOrderId}`);
+          } catch (err: any) {
+            console.warn(`[PolymarketArb] Real order failed: ${err.message} — recording as paper`);
+          }
+        }
+      }
+
       // Upsert market
       const market = await db.predictionMarket.upsert({
         where: {
@@ -93,7 +121,8 @@ export class PolymarketArbScanner {
           avgPrice: yesPrice,
           totalCost: yesPrice,
           outcome: 'PENDING',
-          realOrder: false,
+          realOrder,
+          orderId: yesOrderId || null,
         },
       });
 
@@ -109,7 +138,8 @@ export class PolymarketArbScanner {
           avgPrice: noPrice,
           totalCost: noPrice,
           outcome: 'PENDING',
-          realOrder: false,
+          realOrder,
+          orderId: noOrderId || null,
         },
       });
     }

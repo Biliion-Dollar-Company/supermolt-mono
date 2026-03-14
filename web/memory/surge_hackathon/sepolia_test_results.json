@@ -1,0 +1,100 @@
+{
+  "testDate": "2026-02-27T02:54:49.179Z",
+  "mode": "simulation",
+  "network": "sepolia",
+  "status": "contracts_not_deployed",
+  "note": "This is a simulated test. To run on actual Sepolia testnet, contracts must be deployed first.",
+  "agents": [
+    {
+      "agentId": "cmlv8lizj005rs602lh076ctx",
+      "agentName": "🧠 Smart Money",
+      "onChainId": 266,
+      "ipfsUri": "ipfs://Qm0xc0e095f4mock",
+      "txHash": "0x7899cab278f6a43d3ff8c0e52836f162fa46e7cc7a61588d6e015f0747aab30c",
+      "etherscanUrl": "https://sepolia.etherscan.io/tx/0x7899cab278f6a43d3ff8c0e52836f162fa46e7cc7a61588d6e015f0747aab30c",
+      "registrationData": {
+        "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+        "name": "Smart Money",
+        "description": "AI trading agent - smart-money strategy on SOLANA",
+        "image": "https://supermolt.xyz/avatars/smart-money.png",
+        "services": [
+          {
+            "name": "web",
+            "endpoint": "https://www.supermolt.xyz/agents/cmlv8lizj005rs602lh076ctx"
+          },
+          {
+            "name": "api",
+            "endpoint": "https://sr-mobile-production.up.railway.app/arena/agents/cmlv8lizj005rs602lh076ctx"
+          }
+        ],
+        "supportedTrust": [
+          "reputation",
+          "validation"
+        ],
+        "metadata": {
+          "agentId": "cmlv8lizj005rs602lh076ctx",
+          "archetypeId": "smart-money",
+          "chain": "SOLANA",
+          "solanaWallet": "nya666pQkP3PzWxi7JngU3rRMHuc7zbLK8c8wxQ4qpT",
+          "level": 5,
+          "xp": 1250,
+          "totalTrades": 40023,
+          "winRate": "29.44",
+          "totalPnl": "4602.12"
+        }
+      },
+      "success": true
+    },
+    {
+      "agentId": "cmlv8m8zz0084s602p86fq3e6",
+      "agentName": "🚀 Degen Hunter",
+      "onChainId": 287,
+      "ipfsUri": "ipfs://Qm0xc8dde6e4mock",
+      "txHash": "0xed747bd227eeb572da73b041f75d3ee09be8bfa781faf3571b01a6211993e065",
+      "etherscanUrl": "https://sepolia.etherscan.io/tx/0xed747bd227eeb572da73b041f75d3ee09be8bfa781faf3571b01a6211993e065",
+      "registrationData": {
+        "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
+        "name": "Degen Hunter",
+        "description": "AI trading agent - degen-hunter strategy on SOLANA",
+        "image": "https://supermolt.xyz/avatars/degen-hunter.png",
+        "services": [
+          {
+            "name": "web",
+            "endpoint": "https://www.supermolt.xyz/agents/cmlv8m8zz0084s602p86fq3e6"
+          },
+          {
+            "name": "api",
+            "endpoint": "https://sr-mobile-production.up.railway.app/arena/agents/cmlv8m8zz0084s602p86fq3e6"
+          }
+        ],
+        "supportedTrust": [
+          "reputation",
+          "validation"
+        ],
+        "metadata": {
+          "agentId": "cmlv8m8zz0084s602p86fq3e6",
+          "archetypeId": "degen-hunter",
+          "chain": "SOLANA",
+          "solanaWallet": "CyaE1VxvBrahnPWkqm5VsdCvyS2QmNht2UFrKJHga54o",
+          "level": 7,
+          "xp": 2100,
+          "totalTrades": 18059,
+          "winRate": "10.61",
+          "totalPnl": "19097.59"
+        }
+      },
+      "success": true
+    }
+  ],
+  "contracts": {
+    "identityRegistry": "NOT_DEPLOYED",
+    "reputationRegistry": "NOT_DEPLOYED",
+    "validationRegistry": "NOT_DEPLOYED"
+  },
+  "nextSteps": [
+    "1. Deploy contracts to Sepolia: cd ../contracts && forge script script/Deploy.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast",
+    "2. Update ../contracts/deployments.json with deployed addresses",
+    "3. Set ETHEREUM_RPC_URL and ETHEREUM_PRIVATE_KEY in .env",
+    "4. Re-run this script with actual contract calls"
+  ]
+}

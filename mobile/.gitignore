@@ -4,3 +4,30 @@
 
 expo-env.d.ts
 # @end expo-cli
+
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+
+# Native folders (managed by EAS Build / prebuild)
+ios/
+android/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+
+# Build artifacts
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+web-build/

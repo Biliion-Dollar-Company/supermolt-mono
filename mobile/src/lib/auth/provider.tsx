@@ -242,7 +242,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Login with Twitter OAuth
   const loginWithTwitter = useCallback(async () => {
     try {
-      await oauthLogin({ provider: 'twitter' });
+      await oauthLogin({ provider: 'twitter', redirectUri: 'supermolt:///' });
     } catch (error) {
       console.error('Twitter login failed:', error);
       throw error;

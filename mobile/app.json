@@ -1,9 +1,9 @@
 {
   "expo": {
     "name": "SuperMolt",
-    "slug": "supermolt",
+    "slug": "sr-mobile",
     "owner": "henry6262",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "supermolt",
     "userInterfaceStyle": "dark",

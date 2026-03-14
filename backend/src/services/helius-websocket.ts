@@ -500,34 +500,6 @@ export class HeliusWebSocketMonitor {
     try {
       await this.createOrUpdateAgent(signer);
 
-      // 🎯 CHECK IF THIS IS SUPERROUTER - Trigger agent analysis!
-      const { isSuperRouter, handleSuperRouterTrade } = await import('./superrouter-observer.js');
-
-      if (isSuperRouter(signer)) {
-        console.log('🎯 SuperRouter trade detected via WebSocket! Fetching transaction details...');
-
-        const signature = result.signature || 'unknown';
-
-        // Fetch and parse the actual transaction to get real token data
-        const parsed = signature !== 'unknown'
-          ? await this.fetchParsedTransaction(signature)
-          : null;
-
-        if (parsed) {
-          console.log(`🎯 Parsed SuperRouter trade: ${parsed.action} ${parsed.tokenSymbol || parsed.tokenMint.slice(0, 8)} (${parsed.solAmount.toFixed(4)} SOL)`);
-          await handleSuperRouterTrade({
-            signature,
-            tokenMint: parsed.tokenMint,
-            tokenSymbol: parsed.tokenSymbol,
-            tokenName: parsed.tokenName,
-            action: parsed.action,
-            amount: parsed.solAmount,
-            timestamp: new Date(),
-          });
-        } else {
-          console.warn('⚠️ Could not parse transaction details — skipping observer trigger');
-        }
-      }
     } catch (error) {
       console.error(`❌ Failed to process transaction:`, error);
     }

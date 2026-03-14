@@ -75,13 +75,13 @@ async function linkTwitter() {
     
     console.log('📝 Verification Code:', code);
     console.log('⏰ Expires:', expiresDate);
-    console.log('\n📱 TWEET THIS FROM @superroutersol:\n');
+    console.log('\n📱 TWEET THIS FROM YOUR OFFICIAL ACCOUNT:\n');
     console.log('─'.repeat(60));
     console.log(tweetTemplate);
     console.log('─'.repeat(60));
     console.log('\n⚠️  Important: Post this tweet NOW (expires in 30 minutes)');
-    console.log('⚠️  Use the official @superroutersol account');
-    console.log('\n📋 After posting, get the tweet URL (format: https://x.com/superroutersol/status/123456)\n');
+    console.log('⚠️  Use the official account you want to link');
+    console.log('\n📋 After posting, get the tweet URL (format: https://x.com/yourhandle/status/123456)\n');
     
     // ============================================
     // STEP 3: Wait for User to Post Tweet

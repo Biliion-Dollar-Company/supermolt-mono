@@ -10,7 +10,7 @@ requiredFields: [topHolders, concentration]
 # Holder Analysis
 
 ## When This Skill Is Used
-Triggered when SuperRouter trades a new token. You must identify the top token holders and assess concentration risk.
+Triggered when a tracked wallet trades a new token. You must identify the top token holders and assess concentration risk.
 
 ## Instructions
 1. Query on-chain data for the token's top holders (Solscan, Helius, or Birdeye)

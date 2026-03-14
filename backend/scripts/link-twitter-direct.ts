@@ -15,7 +15,7 @@ async function main() {
   
   if (!agentId || !twitterHandle) {
     console.error('❌ Usage: bun run scripts/link-twitter-direct.ts <agentId> <twitterHandle>');
-    console.error('Example: bun run scripts/link-twitter-direct.ts cml7389hz0000qu01djafchsn @superroutersol');
+    console.error('Example: bun run scripts/link-twitter-direct.ts AGENT_ID @yourhandle');
     process.exit(1);
   }
 

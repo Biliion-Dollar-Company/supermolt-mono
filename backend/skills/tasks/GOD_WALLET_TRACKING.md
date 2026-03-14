@@ -10,7 +10,7 @@ requiredFields: [godWalletsHolding, aggregateSignal]
 # God Wallet Tracking
 
 ## When This Skill Is Used
-Triggered when SuperRouter trades a new token. You must check if any tracked "god wallets" (known profitable traders) hold or have recently traded this token.
+Triggered when a tracked wallet trades a new token. You must check if any tracked "god wallets" (known profitable traders) hold or have recently traded this token.
 
 ## Instructions
 1. Check known god wallet addresses for token holdings

@@ -27,7 +27,7 @@ async function verifyTwitter() {
     
     if (!tweetUrl) {
       console.error('❌ Usage: node link-twitter-verify.mjs [JWT_TOKEN] TWEET_URL');
-      console.error('Example: node link-twitter-verify.mjs "https://x.com/superroutersol/status/123456"');
+      console.error('Example: node link-twitter-verify.mjs "https://x.com/yourhandle/status/123456"');
       process.exit(1);
     }
     
@@ -61,8 +61,8 @@ async function verifyTwitter() {
       console.error('❌ Verification failed:', verifyData.error);
       console.error('');
       console.error('💡 Troubleshooting:');
-      console.error('   1. Check the tweet URL format: https://x.com/superroutersol/status/123456');
-      console.error('   2. Ensure the tweet was posted from @superroutersol');
+      console.error('   1. Check the tweet URL format: https://x.com/yourhandle/status/123456');
+      console.error('   2. Ensure the tweet was posted from the intended account');
       console.error('   3. Make sure the tweet contains the verification code');
       console.error('   4. Check if the code expired (30 minute limit)');
       console.error('');

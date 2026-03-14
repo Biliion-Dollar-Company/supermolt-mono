@@ -10,7 +10,7 @@ requiredFields: [mentions24h, sentiment, topTweets]
 # Community Analysis
 
 ## When This Skill Is Used
-Triggered when SuperRouter trades a new token. You must analyze the community buzz and sentiment on Twitter/X.
+Triggered when a tracked wallet trades a new token. You must analyze the community buzz and sentiment on Twitter/X.
 
 ## Instructions
 1. Search Twitter/X for the token symbol, name, and contract address

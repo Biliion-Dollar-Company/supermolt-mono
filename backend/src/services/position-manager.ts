@@ -361,7 +361,7 @@ export class PositionManager {
   }
 
   /**
-   * Get all agent positions (for SuperRouter visibility)
+   * Get all agent positions (for internal visibility)
    */
   async getAllPositions() {
     return prisma.agentPosition.findMany({

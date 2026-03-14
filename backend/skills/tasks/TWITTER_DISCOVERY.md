@@ -10,7 +10,7 @@ requiredFields: [handle, url, followers, verified]
 # Twitter Discovery
 
 ## When This Skill Is Used
-Triggered when SuperRouter trades a new token. You must find and verify the token's Twitter presence.
+Triggered when a tracked wallet trades a new token. You must find and verify the token's Twitter presence.
 
 ## Instructions
 1. Check DexScreener token page for linked socials first

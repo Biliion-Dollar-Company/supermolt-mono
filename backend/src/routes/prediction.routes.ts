@@ -166,50 +166,74 @@ predictionRoutes.get('/markets/:ticker/orderbook', async (c) => {
 });
 
 // GET /prediction/leaderboard — Top agents by prediction accuracy
+// Falls back to raw AgentPrediction counts when resolved stats are sparse
 predictionRoutes.get('/leaderboard', async (c) => {
   try {
     const limit = Math.min(parseInt(c.req.query('limit') || '25'), 100);
-    const minPredictions = parseInt(c.req.query('min') || '3');
 
+    // Primary: agents with resolved prediction stats
     const stats = await db.predictionStats.findMany({
-      where: {
-        totalPredictions: { gte: minPredictions },
-      },
-      orderBy: [
-        { accuracy: 'desc' },
-        { brierScore: 'asc' },
-        { totalPredictions: 'desc' },
-      ],
+      orderBy: [{ accuracy: 'desc' }, { brierScore: 'asc' }, { totalPredictions: 'desc' }],
       take: limit,
     });
 
-    // Resolve agent names
-    const agentIds = stats.map(s => s.agentId);
+    const resolvedAgentIds = new Set(stats.map(s => s.agentId));
+
+    // Supplement: agents with any predictions (including PENDING) not already in stats
+    const pending = await db.agentPrediction.groupBy({
+      by: ['agentId'],
+      _count: { id: true },
+      where: { agentId: { notIn: [...resolvedAgentIds] } },
+      orderBy: { _count: { id: 'desc' } },
+      take: Math.max(0, limit - stats.length),
+    });
+
+    // Batch-resolve all agent names
+    const allAgentIds = [...resolvedAgentIds, ...pending.map(p => p.agentId)];
     const agents = await db.tradingAgent.findMany({
-      where: { id: { in: agentIds } },
+      where: { id: { in: allAgentIds } },
       select: { id: true, name: true, displayName: true, avatarUrl: true },
     });
     const agentMap = new Map(agents.map(a => [a.id, a]));
 
-    return c.json({
-      success: true,
-      data: stats.map((s, idx) => {
-        const agent = agentMap.get(s.agentId);
-        return {
-          rank: idx + 1,
-          agentId: s.agentId,
-          agentName: agent?.displayName || agent?.name || 'Unknown',
-          avatarUrl: agent?.avatarUrl || undefined,
-          totalPredictions: s.totalPredictions,
-          correctPredictions: s.correctPredictions,
-          accuracy: Number(s.accuracy),
-          brierScore: Number(s.brierScore),
-          roi: Number(s.roi),
-          streak: s.streak,
-          bestStreak: s.bestStreak,
-        };
-      }),
+    const resolvedRows = stats.map((s) => {
+      const agent = agentMap.get(s.agentId);
+      return {
+        agentId: s.agentId,
+        agentName: agent?.displayName || agent?.name || 'Unknown',
+        avatarUrl: agent?.avatarUrl || undefined,
+        totalPredictions: s.totalPredictions,
+        correctPredictions: s.correctPredictions,
+        accuracy: Number(s.accuracy),
+        roi: Number(s.roi),
+        streak: s.streak,
+        bestStreak: s.bestStreak,
+        resolved: true,
+      };
     });
+
+    const pendingRows = pending.map((p) => {
+      const agent = agentMap.get(p.agentId);
+      return {
+        agentId: p.agentId,
+        agentName: agent?.displayName || agent?.name || 'Unknown',
+        avatarUrl: agent?.avatarUrl || undefined,
+        totalPredictions: p._count.id,
+        correctPredictions: 0,
+        accuracy: 0,
+        roi: 0,
+        streak: 0,
+        bestStreak: 0,
+        resolved: false,
+      };
+    });
+
+    const combined = [...resolvedRows, ...pendingRows].map((row, idx) => ({
+      rank: idx + 1,
+      ...row,
+    }));
+
+    return c.json({ success: true, data: combined });
   } catch (error: any) {
     console.error('[Prediction] GET /leaderboard error:', error);
     return c.json({ success: false, error: 'Failed to fetch leaderboard' }, 500);
@@ -550,6 +574,94 @@ predictionRoutes.post('/coordinator/stop', async (c) => {
   const coordinator = getPredictionCoordinator();
   coordinator.stop();
   return c.json({ success: true, data: coordinator.getStatus() });
+});
+
+// GET /prediction/recent — last N predictions across all markets (seeds the live tape)
+predictionRoutes.get('/recent', async (c) => {
+  try {
+    const limit = Math.min(parseInt(c.req.query('limit') || '30'), 100);
+
+    const predictions = await db.agentPrediction.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: {
+        agent: { select: { id: true, name: true, displayName: true } },
+        market: { select: { externalId: true } },
+      },
+    });
+
+    return c.json({
+      success: true,
+      data: predictions.map(p => ({
+        id: p.id,
+        agentId: p.agentId,
+        agentName: p.agent.displayName || p.agent.name,
+        ticker: p.market.externalId,
+        side: p.side,
+        confidence: p.confidence,
+        contracts: p.contracts,
+        avgPrice: Number(p.avgPrice),
+        createdAt: p.createdAt.toISOString(),
+      })),
+    });
+  } catch (error: any) {
+    console.error('[Prediction] GET /recent error:', error);
+    return c.json({ success: false, error: 'Failed to fetch recent predictions' }, 500);
+  }
+});
+
+// GET /prediction/markets/:ticker/voices — recent agent predictions with reasoning for a market
+predictionRoutes.get('/markets/:ticker/voices', async (c) => {
+  try {
+    const ticker = c.req.param('ticker');
+    const limit = Math.min(parseInt(c.req.query('limit') || '20'), 50);
+
+    const market = await db.predictionMarket.findFirst({
+      where: { externalId: ticker },
+      select: { id: true },
+    });
+
+    if (!market) {
+      return c.json({ success: true, data: [] });
+    }
+
+    const predictions = await db.agentPrediction.findMany({
+      where: { marketId: market.id },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    // Fetch agent names in one batch
+    const agentIds = [...new Set(predictions.map(p => p.agentId))];
+    const agents = await db.tradingAgent.findMany({
+      where: { id: { in: agentIds } },
+      select: { id: true, displayName: true, name: true, avatarUrl: true },
+    });
+    const agentMap = new Map(agents.map(a => [a.id, a]));
+
+    return c.json({
+      success: true,
+      data: predictions.map(p => {
+        const agent = agentMap.get(p.agentId);
+        return {
+          id: p.id,
+          agentId: p.agentId,
+          agentName: agent?.displayName || agent?.name || p.agentId.slice(0, 8),
+          avatarUrl: agent?.avatarUrl ?? null,
+          side: p.side,
+          contracts: p.contracts,
+          avgPrice: Number(p.avgPrice),
+          confidence: p.confidence,
+          reasoning: p.reasoning,
+          outcome: p.outcome,
+          createdAt: p.createdAt.toISOString(),
+        };
+      }),
+    });
+  } catch (error: any) {
+    console.error('[Prediction] GET /markets/:ticker/voices error:', error);
+    return c.json({ success: false, error: 'Failed to fetch voices' }, 500);
+  }
 });
 
 export { predictionRoutes };

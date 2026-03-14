@@ -4,19 +4,16 @@
  * Cron (every 10 minutes):
  *  1. Fetches recently graduated pump.fun tokens from Birdeye
  *  2. Enriches with DexScreener data for tokens without Birdeye key
- *  3. Also pulls tokens SuperRouter has traded recently (72h)
- *  4. GeckoTerminal trending as always-on fallback (returns Solana mints directly)
- *  6. Filters by quality thresholds (organic volume, liquidity)
- *  7. Maintains in-memory hot list for the discussion engine
+ *  3. GeckoTerminal trending as always-on fallback (returns Solana mints directly)
+ *  4. Filters by quality thresholds (organic volume, liquidity)
+ *  5. Maintains in-memory hot list for the discussion engine
  *
  * Sources (priority order):
  *  A. Birdeye Meme Token List (graduated=true, sorted by graduated_time) — BEST
  *  B. DexScreener trending boosts — FREE fallback (429-prone on shared IPs)
  *  C. GeckoTerminal trending — FREE always-on fallback (separate rate limits, direct mints)
- *  E. SuperRouter recent trades from DB — tokens we already have data on
  */
 
-import { db } from '../lib/db';
 import type { TokenContext } from '../lib/conversation-generator';
 import { websocketEvents } from './websocket-events';
 
@@ -426,94 +423,6 @@ async function fetchGeckoTerminalTrending(): Promise<TokenContext[]> {
   }
 }
 
-// ── SuperRouter Recent Trades (DB Source) ────────────────
-
-async function fetchSuperRouterTokens(): Promise<TokenContext[]> {
-  try {
-    const cutoff = new Date(Date.now() - QUALITY.maxAgeHours * 60 * 60 * 1000);
-
-    // Get unique tokens SuperRouter has traded recently
-    const recentTrades = await db.paperTrade.findMany({
-      where: {
-        chain: 'SOLANA',
-        action: 'BUY',
-        openedAt: { gte: cutoff },
-      },
-      select: {
-        tokenMint: true,
-        tokenSymbol: true,
-        tokenName: true,
-        marketCap: true,
-        liquidity: true,
-      },
-      orderBy: { openedAt: 'desc' },
-      take: 50,
-    });
-
-    // Deduplicate by tokenMint, keep highest marketCap entry
-    const tokenMap = new Map<string, typeof recentTrades[0]>();
-    for (const t of recentTrades) {
-      const existing = tokenMap.get(t.tokenMint);
-      if (!existing || (Number(t.marketCap) || 0) > (Number(existing.marketCap) || 0)) {
-        tokenMap.set(t.tokenMint, t);
-      }
-    }
-
-    // Filter out stablecoins and known non-meme tokens
-    const EXCLUDED_SYMBOLS = new Set(['USDC', 'USDT', 'SOL', 'WSOL', 'WETH', 'DAI', 'BUSD']);
-
-    const tokens: TokenContext[] = [];
-    for (const [mint, t] of tokenMap) {
-      if (EXCLUDED_SYMBOLS.has(t.tokenSymbol?.toUpperCase())) continue;
-      const mcap = Number(t.marketCap) || 0;
-      const liq = Number(t.liquidity) || 0;
-
-      // Light filter — we trust SuperRouter's picks more
-      if (mcap < 20_000 && liq < 10_000) continue;
-
-      tokens.push({
-        tokenMint: mint,
-        tokenSymbol: t.tokenSymbol,
-        tokenName: t.tokenName,
-        marketCap: mcap || undefined,
-        liquidity: liq || undefined,
-        chain: 'solana',
-        source: 'superrouter_trade',
-      });
-    }
-
-    console.log(`[TrendingSync] SuperRouter DB: ${tokens.length} recently traded tokens`);
-
-    // Enrich with DexScreener data (batch) so they have volume/price/image
-    if (tokens.length > 0 && consecutiveDexScreenerFailures < 3) {
-      try {
-        const enrichMints = tokens.map(t => t.tokenMint);
-        const enriched = await batchFetchPairs('solana', enrichMints);
-        for (const t of tokens) {
-          const pair = enriched.get(t.tokenMint);
-          if (!pair) continue;
-          t.priceUsd = t.priceUsd || parseFloat(pair.priceUsd || '0');
-          t.priceChange24h = t.priceChange24h ?? (pair.priceChange?.h24 || 0);
-          t.volume24h = t.volume24h || (pair.volume?.h24 || 0);
-          t.liquidity = t.liquidity || (pair.liquidity?.usd || 0);
-          t.imageUrl = t.imageUrl || pair.info?.imageUrl || undefined;
-          t.tokenName = t.tokenName || pair.baseToken?.name || '';
-        }
-        console.log(`[TrendingSync] Enriched ${enriched.size}/${tokens.length} SuperRouter tokens via DexScreener`);
-      } catch (err) {
-        console.error('[TrendingSync] SuperRouter enrichment error:', err);
-      }
-    } else if (consecutiveDexScreenerFailures >= 3) {
-      console.log(`[TrendingSync] Skipping DexScreener enrichment (${consecutiveDexScreenerFailures} consecutive failures)`);
-    }
-
-    return tokens;
-  } catch (err) {
-    console.error('[TrendingSync] SuperRouter fetch error:', err);
-    return [];
-  }
-}
-
 // ── Main Sync ────────────────────────────────────────────
 
 async function syncTrendingTokens(): Promise<void> {
@@ -547,10 +456,6 @@ async function syncTrendingTokens(): Promise<void> {
   const geckoTokens = await fetchGeckoTerminalTrending();
   addTokens(geckoTokens);
 
-  // 5. SuperRouter recent trades (tokens we've actually traded)
-  const srTokens = await fetchSuperRouterTokens();
-  addTokens(srTokens);
-
   // Sort by volume, then market cap — biggest runners first
   newHotTokens.sort((a, b) => {
     return (b.volume24h || 0) - (a.volume24h || 0)
@@ -579,7 +484,7 @@ async function syncTrendingTokens(): Promise<void> {
 
   const elapsed = Date.now() - startTime;
   console.log(`[TrendingSync] Sync complete: ${hotTokens.length} hot tokens (${elapsed}ms)`);
-  console.log(`  Sources: ${birdeyeTokens.length} birdeye, ${dexTokens.length} dex-boosts, ${migrationTokens.length} pf-migrations, ${geckoTokens.length} geckoterminal, ${srTokens.length} superrouter`);
+  console.log(`  Sources: ${birdeyeTokens.length} birdeye, ${dexTokens.length} dex-boosts, ${migrationTokens.length} pf-migrations, ${geckoTokens.length} geckoterminal`);
 
   for (const t of hotTokens.slice(0, 5)) {
     const mcap = t.marketCap ? `$${(t.marketCap / 1000).toFixed(0)}k` : '?';
