@@ -34,7 +34,13 @@ export function usePrivyAgentAuth() {
       }
 
       console.log('[auth] Exchanging Privy token for backend JWT...');
-      const loginResponse = await loginWithPrivyToken(privyToken);
+      let loginResponse;
+      try {
+        loginResponse = await loginWithPrivyToken(privyToken);
+      } catch (loginErr: any) {
+        console.error('[auth] /auth/login failed:', loginErr?.response?.data || loginErr?.message);
+        throw new Error(`Login failed: ${loginErr?.response?.data?.error?.message || loginErr?.message || 'Backend unreachable'}`);
+      }
 
       const currentUser = userRef.current;
       const twitterProfile = currentUser?.twitter;
