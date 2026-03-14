@@ -22,8 +22,7 @@
       "env": {
         "EXPO_PUBLIC_PRIVY_APP_ID": "cmkraowkw0094i50c2n696dhz",
         "EXPO_PUBLIC_PRIVY_CLIENT_ID": "client-WY6VA9CoBJ6V9Py4uTSUv9kNY3wNUDhqN15CUhcHo335R",
-        "EXPO_PUBLIC_API_URL": "https://sr-mobile-production.up.railway.app",
-        "EXPO_PUBLIC_BYPASS_AUTH": "true"
+        "EXPO_PUBLIC_API_URL": "https://sr-mobile-production.up.railway.app"
       },
       "ios": {
         "image": "latest"
@@ -34,7 +33,8 @@
     "production": {
       "ios": {
         "appleId": "henrymk20@icloud.com",
-        "appleTeamId": "A4W6U32K3F"
+        "appleTeamId": "A4W6U32K3F",
+        "ascAppId": "REPLACE_WITH_APP_STORE_CONNECT_APP_ID"
       }
     }
   }
