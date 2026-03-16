@@ -404,7 +404,7 @@ export default function PredictionArenaPage() {
           style={{ background: 'rgba(7,9,15,0.82)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
         >
           {/* Top row */}
-          <div className="flex items-center gap-4 px-5 sm:px-6 py-3 max-w-[1700px] mx-auto w-full">
+          <div className="flex items-center gap-4 px-5 sm:px-6 py-3 max-w-[1400px] mx-auto w-full px-6 sm:px-10">
             {/* Back */}
             <Link
               href="/arena"
@@ -553,7 +553,7 @@ export default function PredictionArenaPage() {
         {/* 3-col layout                                              */}
         {/* ══════════════════════════════════════════════════════════ */}
         <div
-          className="flex-1 lg:grid lg:grid-cols-[240px_1fr_280px] min-h-0 max-w-[1700px] mx-auto w-full"
+          className="flex-1 lg:grid lg:grid-cols-[240px_1fr_280px] min-h-0 max-w-[1400px] mx-auto w-full px-6 sm:px-10"
           style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
         >
 
