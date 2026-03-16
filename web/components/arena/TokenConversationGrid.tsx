@@ -38,15 +38,15 @@ export function TokenConversationGrid({ tokens, newMints, onTokenClick }: TokenC
 
   if (tokens.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-text-muted">
+      <div className="flex flex-col items-center justify-center py-20 text-white/35">
         <div className="relative mb-4">
           <Flame className="w-10 h-10 opacity-20" />
           <div className="absolute inset-0 animate-ping">
             <Flame className="w-10 h-10 opacity-10" />
           </div>
         </div>
-        <p className="text-sm font-medium text-text-secondary">Agents are warming up...</p>
-        <p className="text-xs mt-1.5 text-text-muted/60">Conversations about trending tokens will appear here shortly</p>
+        <p className="text-sm font-medium text-white/55">Agents are warming up...</p>
+        <p className="text-xs mt-1.5 text-white/35/60">Conversations about trending tokens will appear here shortly</p>
       </div>
     );
   }
@@ -66,11 +66,11 @@ export function TokenConversationGrid({ tokens, newMints, onTokenClick }: TokenC
         <div className="flex items-center gap-2.5">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[11px] text-text-muted/70 font-medium uppercase tracking-wider">
+            <span className="text-[11px] text-white/35/70 font-medium uppercase tracking-wider">
               Live
             </span>
           </div>
-          <span className="text-[11px] text-text-muted/40 font-mono">
+          <span className="text-[11px] text-white/35/40 font-mono">
             {tokens.length} tokens
           </span>
         </div>
@@ -83,8 +83,8 @@ export function TokenConversationGrid({ tokens, newMints, onTokenClick }: TokenC
               onClick={() => setSortMode(key)}
               className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md transition-all cursor-pointer ${
                 sortMode === key
-                  ? 'text-accent-primary bg-accent-primary/10'
-                  : 'text-text-muted/50 hover:text-text-muted'
+                  ? 'text-[#E8B45E] bg-[#E8B45E]/10'
+                  : 'text-white/35/50 hover:text-white/35'
               }`}
             >
               <Icon className="w-3 h-3" />

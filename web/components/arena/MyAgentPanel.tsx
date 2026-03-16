@@ -64,18 +64,18 @@ export function MyAgentPanel() {
   const xpPercent = Math.min(100, Math.round((agent.xp / Math.max(1, agent.xpForNextLevel)) * 100));
 
   return (
-    <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
+    <div className="bg-[#0C1020] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
       {/* Header — always visible */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-6 p-6 sm:p-7 cursor-pointer hover:bg-white/[0.02] transition-colors"
       >
         {/* Avatar */}
-        <div className="w-20 h-20 bg-accent-primary/10 border-2 border-accent-primary/25 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        <div className="w-20 h-20 bg-[#E8B45E]/10 border-2 border-[#E8B45E]/25 flex items-center justify-center flex-shrink-0 overflow-hidden">
           {avatarUrl ? (
             <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
           ) : (
-            <span className="text-accent-primary font-bold text-3xl">
+            <span className="text-[#E8B45E] font-bold text-3xl">
               {displayName.charAt(0).toUpperCase()}
             </span>
           )}
@@ -84,9 +84,9 @@ export function MyAgentPanel() {
         {/* Name + level + XP bar */}
         <div className="flex flex-col items-start min-w-0 flex-1">
           <div className="flex items-center gap-3">
-            <h3 className="text-2xl font-bold text-text-primary truncate">{displayName}</h3>
+            <h3 className="text-2xl font-bold text-white/80 truncate">{displayName}</h3>
             {agent.walletAddress && (
-              <span className="flex items-center gap-1.5 text-sm font-mono text-text-muted">
+              <span className="flex items-center gap-1.5 text-sm font-mono text-white/35">
                 {agent.walletAddress.slice(0, 4)}...
                 <span
                   role="button"
@@ -96,7 +96,7 @@ export function MyAgentPanel() {
                     setCopiedWallet(true);
                     setTimeout(() => setCopiedWallet(false), 1500);
                   }}
-                  className="hover:text-text-secondary transition-colors"
+                  className="hover:text-white/55 transition-colors"
                 >
                   {copiedWallet ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
                 </span>
@@ -104,7 +104,7 @@ export function MyAgentPanel() {
             )}
           </div>
           <div className="flex items-center gap-3 mt-2 w-full">
-            <span className="bg-accent-primary/15 border border-accent-primary/25 px-2 py-0.5 text-xs font-bold text-accent-primary whitespace-nowrap">
+            <span className="bg-[#E8B45E]/15 border border-[#E8B45E]/25 px-2 py-0.5 text-xs font-bold text-[#E8B45E] whitespace-nowrap">
               Lv.{agent.level}
             </span>
             <div className="flex items-center gap-3 min-w-0">
@@ -114,7 +114,7 @@ export function MyAgentPanel() {
                   style={{ width: `${xpPercent}%` }}
                 />
               </div>
-              <span className="text-xs text-text-muted font-mono whitespace-nowrap">
+              <span className="text-xs text-white/35 font-mono whitespace-nowrap">
                 {agent.xp}/{agent.xpForNextLevel} XP
               </span>
             </div>
@@ -124,19 +124,19 @@ export function MyAgentPanel() {
         {/* Quick stats */}
         <div className="hidden md:flex items-center gap-6 mr-2">
           <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-text-muted" />
-            <span className="text-lg font-mono font-bold text-text-primary">{agent.totalTrades}</span>
+            <BarChart3 className="w-5 h-5 text-white/35" />
+            <span className="text-lg font-mono font-bold text-white/80">{agent.totalTrades}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-text-muted" />
-            <span className="text-lg font-mono font-bold text-text-primary">{agent.winRate}%</span>
+            <Trophy className="w-5 h-5 text-white/35" />
+            <span className="text-lg font-mono font-bold text-white/80">{agent.winRate}%</span>
           </div>
         </div>
 
         {/* Expand toggle */}
         <div className="pl-4 border-l border-white/[0.06] ml-2 flex-shrink-0">
           <ChevronDown
-            className="w-6 h-6 text-text-muted transition-transform duration-300 ease-out"
+            className="w-6 h-6 text-white/35 transition-transform duration-300 ease-out"
             style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
           />
         </div>
@@ -173,14 +173,14 @@ export function MyAgentPanel() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer relative ${
                         isActive
-                          ? 'text-accent-primary'
-                          : 'text-text-muted hover:text-text-secondary'
+                          ? 'text-[#E8B45E]'
+                          : 'text-white/35 hover:text-white/55'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                       {tab.label}
                       {isActive && (
-                        <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-accent-primary" />
+                        <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-[#E8B45E]" />
                       )}
                     </button>
                   );

@@ -48,31 +48,31 @@ function AllocationRow({ alloc, rank, onSelect }: { alloc: AgentAllocation; rank
             </div>
           ) : (
             <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-              <span className="text-xs font-bold text-text-muted">{primaryLabel[0]?.toUpperCase() || '?'}</span>
+              <span className="text-xs font-bold text-white/35">{primaryLabel[0]?.toUpperCase() || '?'}</span>
             </div>
           )}
           <span className={`absolute -bottom-1 -right-1 text-[8px] font-bold font-mono leading-none px-1 py-0.5 rounded-full border ${
             rank === 1 ? 'bg-yellow-400 text-black border-yellow-500/50' :
             rank === 2 ? 'bg-gray-300 text-black border-gray-400/50' :
             rank === 3 ? 'bg-amber-600 text-white border-amber-700/50' :
-            'bg-white/10 text-text-muted border-white/20'
+            'bg-white/10 text-white/35 border-white/20'
           }`}>
             {rank}
           </span>
         </div>
         <div className="min-w-0">
-          <span className="text-base text-text-primary truncate block font-medium leading-tight">
+          <span className="text-base text-white/80 truncate block font-medium leading-tight">
             {primaryLabel}
           </span>
-          <span className="text-xs text-text-muted truncate block font-mono">{walletLabel}</span>
+          <span className="text-xs text-white/35 truncate block font-mono">{walletLabel}</span>
         </div>
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        <span className="text-base font-mono text-accent-primary">{Math.round(alloc.usdcAmount)}</span>
+        <span className="text-base font-mono text-[#E8B45E]">{Math.round(alloc.usdcAmount)}</span>
         <div className="relative">
           <Image src="/icons/usdc.png" alt="USDC" width={20} height={20} />
-          <span className="absolute -bottom-1.5 -right-3 text-[8px] font-mono font-bold text-accent-primary bg-[#1a1a2e] px-1 py-px rounded-full border border-accent-primary/25">{alloc.multiplier}x</span>
+          <span className="absolute -bottom-1.5 -right-3 text-[8px] font-mono font-bold text-[#E8B45E] bg-[#1a1a2e] px-1 py-px rounded-full border border-[#E8B45E]/25">{alloc.multiplier}x</span>
         </div>
       </div>
 
@@ -139,18 +139,18 @@ function EpochProgressBar({ startAt, endAt }: { startAt: string; endAt: string }
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="flex items-center gap-1.5 text-xs text-text-muted">
+        <span className="flex items-center gap-1.5 text-xs text-white/35">
           <Clock className="w-3 h-3" />
           {timeLabel}
         </span>
-        <span className={`text-[10px] font-mono ${isEnded ? 'text-yellow-400' : 'text-accent-primary'}`}>
+        <span className={`text-[10px] font-mono ${isEnded ? 'text-yellow-400' : 'text-[#E8B45E]'}`}>
           {Math.round(progress)}%
         </span>
       </div>
       <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-1000 ${
-            isEnded ? 'bg-yellow-400/60' : 'bg-accent-primary/70'
+            isEnded ? 'bg-yellow-400/60' : 'bg-[#E8B45E]/70'
           }`}
           style={{ width: `${progress}%` }}
         />
@@ -189,7 +189,7 @@ export function EpochRewardPanel() {
 
   if (loading) {
     return (
-      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+      <div className="bg-[#0C1020] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
         <div className="h-5 w-36 bg-white/[0.03] animate-pulse rounded mb-2" />
         <div className="h-3 w-28 bg-white/[0.02] animate-pulse rounded mb-4" />
         <div className="h-1.5 bg-white/[0.03] animate-pulse rounded-full mb-4" />
@@ -213,12 +213,12 @@ export function EpochRewardPanel() {
 
   if (!data?.epoch) {
     return (
-      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+      <div className="bg-[#0C1020] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
         <div className="flex items-center gap-2 mb-2">
-          <Gift className="w-4 h-4 text-text-primary" />
-          <span className="text-sm font-bold text-text-primary uppercase tracking-wider">Epoch Rewards</span>
+          <Gift className="w-4 h-4 text-white/80" />
+          <span className="text-sm font-bold text-white/80 uppercase tracking-wider">Epoch Rewards</span>
         </div>
-        <div className="text-sm text-text-muted">
+        <div className="text-sm text-white/35">
           No active reward epoch. Check back soon.
         </div>
       </div>
@@ -231,21 +231,21 @@ export function EpochRewardPanel() {
   const isEnded = new Date(epoch.endAt).getTime() <= Date.now();
 
   return (
-    <div className="relative bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+    <div className="relative bg-[#0C1020] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
       {/* Header */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <Gift className="w-4 h-4 text-text-primary" />
-            <div className="text-base font-bold text-text-primary uppercase tracking-wider">
+            <Gift className="w-4 h-4 text-white/80" />
+            <div className="text-base font-bold text-white/80 uppercase tracking-wider">
               Epoch Rewards
             </div>
           </div>
           <div className="relative group/info flex items-center gap-1.5">
-            <span className="text-xs text-text-muted">Season {epoch.number}</span>
-            <Info className="w-3.5 h-3.5 text-text-muted/50 group-hover/info:text-text-secondary transition-colors cursor-help" />
+            <span className="text-xs text-white/35">Season {epoch.number}</span>
+            <Info className="w-3.5 h-3.5 text-white/35/50 group-hover/info:text-white/55 transition-colors cursor-help" />
             <div className="absolute right-0 top-full mt-2 w-56 bg-[#1a1a2e] border border-white/[0.1] shadow-[0_8px_32px_rgba(0,0,0,0.5)] px-3 py-2.5 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible transition-all duration-200 z-50">
-              <p className="text-[11px] text-text-secondary leading-relaxed">
+              <p className="text-[11px] text-white/55 leading-relaxed">
                 Each season runs for a fixed period. Trade and complete tasks to climb the leaderboard — top performers earn USDC rewards from the pool at the end of the season.
               </p>
             </div>
@@ -264,12 +264,12 @@ export function EpochRewardPanel() {
           {/* Pool display */}
           <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
             <Image src="/icons/usdc.png" alt="USDC" width={32} height={32} />
-            <span className="text-3xl font-bold font-mono text-accent-primary">
+            <span className="text-3xl font-bold font-mono text-[#E8B45E]">
               {Math.round(epoch.usdcPool)}
             </span>
-            <span className="text-sm text-text-muted">USDC Pool</span>
+            <span className="text-sm text-white/35">USDC Pool</span>
             {treasury.balance > 0 && (
-              <span className="text-xs text-text-muted ml-auto">
+              <span className="text-xs text-white/35 ml-auto">
                 Treasury: {Math.round(treasury.balance)}
               </span>
             )}
@@ -278,10 +278,10 @@ export function EpochRewardPanel() {
           {allocations.length > 0 ? (
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs text-text-muted uppercase tracking-wider">
+                <span className="text-xs text-white/35 uppercase tracking-wider">
                   {hasDistributions ? 'Distributions' : 'Projected Allocations'}
                 </span>
-                <span className="flex items-center gap-1 text-xs font-mono text-text-muted">
+                <span className="flex items-center gap-1 text-xs font-mono text-white/35">
                   {Math.round(totalProjected)} <Image src="/icons/usdc.png" alt="USDC" width={12} height={12} className="inline-block" /> total
                 </span>
               </div>
@@ -301,21 +301,21 @@ export function EpochRewardPanel() {
 
               {allocations.length > VISIBLE_ROWS && (
                 <div className="text-center pt-2">
-                  <span className="text-[10px] text-text-muted/50">
+                  <span className="text-[10px] text-white/35/50">
                     {Math.min(visibleCount, allocations.length)} of {allocations.length} agents
                   </span>
                 </div>
               )}
             </div>
           ) : (
-            <div className="text-center py-6 text-text-muted text-sm">
+            <div className="text-center py-6 text-white/35 text-sm">
               No active agents for reward calculation
             </div>
           )}
 
           {hasDistributions && (
             <div className="pt-3 border-t border-white/[0.06]">
-              <div className="flex items-center justify-between text-xs text-text-muted">
+              <div className="flex items-center justify-between text-xs text-white/35">
                 <span>Distributed: {Math.round(treasury.distributed)} USDC</span>
                 <span>{distributions.length} transactions</span>
               </div>
@@ -326,15 +326,15 @@ export function EpochRewardPanel() {
                     href={`https://explorer.solana.com/tx/${d.txSignature}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-text-muted hover:text-accent-primary transition-colors group"
+                    className="flex items-center gap-1.5 text-xs text-white/35 hover:text-[#E8B45E] transition-colors group"
                   >
                     <ExternalLink className="w-3 h-3 flex-shrink-0" />
                     <span className="font-mono truncate">{d.txSignature.slice(0, 16)}...</span>
-                    <span className="text-accent-primary ml-auto">{Math.round(d.amount)} USDC</span>
+                    <span className="text-[#E8B45E] ml-auto">{Math.round(d.amount)} USDC</span>
                   </a>
                 ))}
                 {distributions.length > 3 && (
-                  <span className="text-xs text-text-muted">+{distributions.length - 3} more</span>
+                  <span className="text-xs text-white/35">+{distributions.length - 3} more</span>
                 )}
               </div>
             </div>

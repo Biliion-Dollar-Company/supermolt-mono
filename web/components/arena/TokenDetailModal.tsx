@@ -24,13 +24,13 @@ function TaskStatusBadge({ status }: { status: string }) {
       );
     case 'EXPIRED':
       return (
-        <span className="text-[10px] text-text-muted bg-white/[0.04] px-1 py-0.5 rounded flex-shrink-0">
+        <span className="text-[10px] text-white/35 bg-white/[0.04] px-1 py-0.5 rounded flex-shrink-0">
           Expired
         </span>
       );
     default:
       return (
-        <span className="flex items-center gap-0.5 text-[10px] text-accent-primary bg-accent-primary/10 px-1 py-0.5 rounded flex-shrink-0">
+        <span className="flex items-center gap-0.5 text-[10px] text-[#E8B45E] bg-[#E8B45E]/10 px-1 py-0.5 rounded flex-shrink-0">
           <Circle className="w-2.5 h-2.5" />
           Open
         </span>
@@ -167,8 +167,8 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
       <div className="px-6 py-4 border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
           <div className="relative w-7 h-7 flex-shrink-0">
-            <div className="w-7 h-7 rounded-full bg-accent-primary/20 flex items-center justify-center">
-              <span className="text-xs font-bold text-accent-primary">{tokenSymbol[0]}</span>
+            <div className="w-7 h-7 rounded-full bg-[#E8B45E]/20 flex items-center justify-center">
+              <span className="text-xs font-bold text-[#E8B45E]">{tokenSymbol[0]}</span>
             </div>
             {tokenMint && (
               <img
@@ -179,11 +179,11 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
               />
             )}
           </div>
-          <span className="text-2xl font-bold font-mono text-accent-primary">{tokenSymbol}</span>
+          <span className="text-2xl font-bold font-mono text-[#E8B45E]">{tokenSymbol}</span>
           <div className="flex items-center gap-3 ml-auto text-xs">
             <span className="text-green-400">{buyCount} buys</span>
             <span className="text-red-400">{sellCount} sells</span>
-            {activeVotes > 0 && <span className="text-accent-primary">{activeVotes} votes</span>}
+            {activeVotes > 0 && <span className="text-[#E8B45E]">{activeVotes} votes</span>}
             {totalPnl !== 0 && (
               <span className={`font-mono font-bold ${totalPnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {totalPnl > 0 ? '+' : '-'}{fmt(Math.abs(totalPnl))}
@@ -201,26 +201,26 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
             {/* Positions — collapsible */}
             <button
               onClick={() => setPositionsOpen(!positionsOpen)}
-              className="w-full sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-b border-white/[0.06] z-10 flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
+              className="w-full sticky top-0 bg-black/40-md px-6 py-2.5 border-b border-white/[0.06] z-10 flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
             >
-              <Bot className="w-3.5 h-3.5 text-text-secondary" />
-              <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Positions</span>
+              <Bot className="w-3.5 h-3.5 text-white/55" />
+              <span className="text-[11px] font-semibold text-white/55 uppercase tracking-wider">Positions</span>
               {positions.length > 0 && (
-                <span className="text-[10px] text-text-muted ml-auto mr-1">{positions.length}</span>
+                <span className="text-[10px] text-white/35 ml-auto mr-1">{positions.length}</span>
               )}
-              <ChevronDown className={`w-3 h-3 text-text-muted transition-transform ${positionsOpen ? '' : '-rotate-90'}`} />
+              <ChevronDown className={`w-3 h-3 text-white/35 transition-transform ${positionsOpen ? '' : '-rotate-90'}`} />
             </button>
             {positionsOpen && (
               <div className="px-6 py-2">
                 {positions.length === 0 ? (
-                  <div className="py-4 text-center text-[11px] text-text-muted">No positions yet</div>
+                  <div className="py-4 text-center text-[11px] text-white/35">No positions yet</div>
                 ) : (
                   <div className="space-y-3">
                     {positions.map((pos) => (
                       <div key={pos.positionId} className="flex items-center justify-between">
                         <div>
-                          <div className="text-sm font-medium text-text-primary">{pos.agentName}</div>
-                          <div className="text-[11px] text-text-muted font-mono mt-0.5">
+                          <div className="text-sm font-medium text-white/80">{pos.agentName}</div>
+                          <div className="text-[11px] text-white/35 font-mono mt-0.5">
                             {fmtNum(pos.quantity)} tokens &middot; {fmt(pos.currentValue)}
                           </div>
                         </div>
@@ -239,11 +239,11 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
               <>
                 <button
                   onClick={() => setActivityOpen(!activityOpen)}
-                  className="w-full sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
+                  className="w-full sticky top-0 bg-black/40-md px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
                 >
-                  <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Activity</span>
-                  <span className="text-[10px] text-text-muted ml-auto mr-1">{trades.length}</span>
-                  <ChevronDown className={`w-3 h-3 text-text-muted transition-transform ${activityOpen ? '' : '-rotate-90'}`} />
+                  <span className="text-[11px] font-semibold text-white/55 uppercase tracking-wider">Activity</span>
+                  <span className="text-[10px] text-white/35 ml-auto mr-1">{trades.length}</span>
+                  <ChevronDown className={`w-3 h-3 text-white/35 transition-transform ${activityOpen ? '' : '-rotate-90'}`} />
                 </button>
                 {activityOpen && (
                   <div className="px-6 py-2">
@@ -255,13 +255,13 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
                           }`}>
                             {trade.action}
                           </span>
-                          <span className="text-text-muted font-mono">{fmtNum(trade.quantity)}</span>
+                          <span className="text-white/35 font-mono">{fmtNum(trade.quantity)}</span>
                           {trade.pnl !== 0 && (
                             <span className={`font-mono ${trade.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
                               {trade.pnl > 0 ? '+' : ''}{Math.round(trade.pnlPercent)}%
                             </span>
                           )}
-                          <span className="text-text-muted ml-auto">
+                          <span className="text-white/35 ml-auto">
                             {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -275,19 +275,19 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
             {/* Tasks — collapsible */}
             <button
               onClick={() => setTasksOpen(!tasksOpen)}
-              className="w-full sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
+              className="w-full sticky top-0 bg-black/40-md px-6 py-2.5 border-y border-white/[0.06] z-10 flex items-center gap-2 cursor-pointer hover:bg-white/[0.02] transition-colors"
             >
-              <ClipboardCheck className="w-3.5 h-3.5 text-text-secondary" />
-              <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Tasks</span>
+              <ClipboardCheck className="w-3.5 h-3.5 text-white/55" />
+              <span className="text-[11px] font-semibold text-white/55 uppercase tracking-wider">Tasks</span>
               {tasks.length > 0 && (
-                <span className="text-[10px] text-text-muted ml-auto mr-1">{tasks.length}</span>
+                <span className="text-[10px] text-white/35 ml-auto mr-1">{tasks.length}</span>
               )}
-              <ChevronDown className={`w-3 h-3 text-text-muted transition-transform ${tasksOpen ? '' : '-rotate-90'}`} />
+              <ChevronDown className={`w-3 h-3 text-white/35 transition-transform ${tasksOpen ? '' : '-rotate-90'}`} />
             </button>
             {tasksOpen && (
               <div className="px-6 py-2">
                 {tasks.length === 0 ? (
-                  <div className="py-4 text-center text-[11px] text-text-muted">No tasks for this token</div>
+                  <div className="py-4 text-center text-[11px] text-white/35">No tasks for this token</div>
                 ) : (
                   <div className="space-y-1.5">
                     {tasks.slice(0, compact ? 5 : 10).map((task) => (
@@ -296,7 +296,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
                         className="flex items-center gap-2 py-1.5"
                       >
                         <div className="flex-1 min-w-0">
-                          <span className="text-[11px] text-text-primary truncate block">{task.title}</span>
+                          <span className="text-[11px] text-white/80 truncate block">{task.title}</span>
                           {task.completions.filter(c => c.status === 'VALIDATED').length > 0 && (
                             <div className="flex items-center gap-1 mt-0.5">
                               {task.completions
@@ -327,21 +327,21 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
         {/* Right: Chat + Votes */}
         <div className="flex flex-col overflow-hidden min-h-0">
           <div className="flex-1 overflow-y-auto min-h-0 scrollbar-custom">
-            <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-b border-white/[0.06] z-10">
-              <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Chat</span>
+            <div className="sticky top-0 bg-black/40-md px-6 py-2.5 border-b border-white/[0.06] z-10">
+              <span className="text-[11px] font-semibold text-white/55 uppercase tracking-wider">Chat</span>
             </div>
             <div className="px-6 py-3">
               {messages.length === 0 ? (
-                <div className="py-10 text-center text-sm text-text-muted">No discussions yet</div>
+                <div className="py-10 text-center text-sm text-white/35">No discussions yet</div>
               ) : (
                 <div className="space-y-4">
                   {messages.slice(0, compact ? 6 : 20).map((msg) => (
                     <div key={msg.messageId}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-semibold text-accent-soft">{msg.agentName}</span>
-                        <span className="text-[10px] text-text-muted">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-[10px] text-white/35">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
-                      <p className="text-xs text-text-muted leading-relaxed">{msg.content}</p>
+                      <p className="text-xs text-white/35 leading-relaxed">{msg.content}</p>
                     </div>
                   ))}
                 </div>
@@ -350,8 +350,8 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
 
             {votes.length > 0 && (
               <>
-                <div className="sticky top-0 bg-black/40 backdrop-blur-md px-6 py-2.5 border-y border-white/[0.06] z-10">
-                  <span className="text-[11px] font-semibold text-text-secondary uppercase tracking-wider">Votes</span>
+                <div className="sticky top-0 bg-black/40-md px-6 py-2.5 border-y border-white/[0.06] z-10">
+                  <span className="text-[11px] font-semibold text-white/55 uppercase tracking-wider">Votes</span>
                 </div>
                 <div className="px-6 py-3 space-y-3">
                   {votes.map((vote) => {
@@ -365,20 +365,20 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
                             {vote.action}
                           </span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                            vote.status === 'active' ? 'bg-accent-primary/10 text-accent-primary' :
+                            vote.status === 'active' ? 'bg-[#E8B45E]/10 text-[#E8B45E]' :
                             vote.status === 'passed' ? 'bg-green-500/10 text-green-400' :
                             'bg-red-500/10 text-red-400'
                           }`}>
                             {vote.status}
                           </span>
-                          <span className="text-[10px] text-text-muted ml-auto">by {vote.proposerName}</span>
+                          <span className="text-[10px] text-white/35 ml-auto">by {vote.proposerName}</span>
                         </div>
-                        <p className="text-xs text-text-muted mb-2">{vote.reason}</p>
+                        <p className="text-xs text-white/35 mb-2">{vote.reason}</p>
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
                             <div className="h-full bg-green-400/60 rounded-full" style={{ width: `${yesPercent}%` }} />
                           </div>
-                          <span className="text-[10px] text-text-muted">{vote.yesVotes}Y/{vote.noVotes}N</span>
+                          <span className="text-[10px] text-white/35">{vote.yesVotes}Y/{vote.noVotes}N</span>
                         </div>
                       </div>
                     );
@@ -411,7 +411,7 @@ export function TokenDetailModal({ tokenSymbol, onClose }: TokenDetailModalProps
       >
         {/* Backdrop */}
         <motion.div
-          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/70"
           onClick={onClose}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -432,7 +432,7 @@ export function TokenDetailModal({ tokenSymbol, onClose }: TokenDetailModalProps
               onClick={onClose}
               className="p-2 hover:bg-white/5 rounded transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5 text-text-muted" />
+              <X className="w-5 h-5 text-white/35" />
             </button>
           </div>
 

@@ -36,7 +36,7 @@ export function XPLeaderboard() {
 
   if (error || entries.length === 0) {
     return (
-      <div className="text-center py-6 text-text-muted text-sm">
+      <div className="text-center py-6 text-white/35 text-sm">
         No XP data available
       </div>
     );
@@ -55,24 +55,24 @@ export function XPLeaderboard() {
                   className="flex items-center gap-3 py-2.5 px-3 hover:bg-white/[0.03] transition-colors rounded group w-full text-left cursor-pointer"
                 >
                   <span className={`text-sm font-mono w-6 text-center ${
-                    rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-text-muted'
+                    rank === 1 ? 'text-yellow-400' : rank === 2 ? 'text-gray-300' : rank === 3 ? 'text-amber-600' : 'text-white/35'
                   }`}>
                     {rank <= 3 ? <Star className="w-3.5 h-3.5 inline" /> : rank}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-text-primary truncate group-hover:text-accent-primary transition-colors">
+                      <span className="text-sm font-semibold text-white/80 truncate group-hover:text-[#E8B45E] transition-colors">
                         {entry.name}
                       </span>
-                      <span className="text-[10px] font-bold text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 font-mono flex-shrink-0">
+                      <span className="text-[10px] font-bold text-[#E8B45E] bg-[#E8B45E]/10 px-1.5 py-0.5 font-mono flex-shrink-0">
                         Lv.{entry.level}
                       </span>
                     </div>
-                    <span className="text-xs text-text-muted">{entry.levelName}</span>
+                    <span className="text-xs text-white/35">{entry.levelName}</span>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-mono text-accent-primary">{entry.xp.toLocaleString()}</div>
-                    <div className="text-xs text-text-muted">XP</div>
+                    <div className="text-sm font-mono text-[#E8B45E]">{entry.xp.toLocaleString()}</div>
+                    <div className="text-xs text-white/35">XP</div>
                   </div>
                 </button>
                 {idx < entries.length - 1 && (
@@ -84,7 +84,7 @@ export function XPLeaderboard() {
         </div>
         <Link
           href="/leaderboard"
-          className="inline-flex items-center gap-2 text-sm text-text-muted hover:text-accent-soft transition-colors mt-4 group"
+          className="inline-flex items-center gap-2 text-sm text-white/35 hover:text-accent-soft transition-colors mt-4 group"
         >
           View full leaderboard
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />

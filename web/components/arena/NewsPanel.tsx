@@ -133,7 +133,7 @@ export default function NewsPanel() {
 
   if (loading) {
     return (
-      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] h-52 max-w-md animate-pulse" />
+      <div className="bg-[#0C1020] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] h-52 max-w-md animate-pulse" />
     );
   }
 
@@ -149,7 +149,7 @@ export default function NewsPanel() {
   return (
     <>
       <div
-        className="relative overflow-hidden border border-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_32px_rgba(0,0,0,0.4)] cursor-pointer transition-all duration-300 hover:border-accent-primary/40 hover:shadow-[inset_0_1px_0_rgba(59,130,246,0.1),0_8px_32px_rgba(59,130,246,0.2)] h-52 max-w-md"
+        className="relative overflow-hidden border border-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_32px_rgba(0,0,0,0.4)] cursor-pointer transition-all duration-300 hover:border-[#E8B45E]/40 hover:shadow-[inset_0_1px_0_rgba(59,130,246,0.1),0_8px_32px_rgba(59,130,246,0.2)] h-52 max-w-md"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         onClick={() => handleCTAClick(currentItem)}
@@ -182,7 +182,7 @@ export default function NewsPanel() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
-                className="absolute top-4 left-4 text-xs font-mono uppercase tracking-wider text-accent-primary bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded border border-accent-primary/20"
+                className="absolute top-4 left-4 text-xs font-mono uppercase tracking-wider text-[#E8B45E] bg-black/40 px-2 py-0.5 rounded border border-[#E8B45E]/20"
               >
                 {currentItem.category}
               </motion.span>
@@ -221,7 +221,7 @@ export default function NewsPanel() {
                   e.stopPropagation();
                   handleCTAClick(currentItem);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-primary hover:bg-accent-primary/90 text-black text-xs font-semibold rounded transition-all shadow-lg hover:shadow-accent-primary/50 w-fit"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#E8B45E] hover:bg-[#E8B45E]/90 text-black text-xs font-semibold rounded transition-all shadow-lg hover:shadow-accent-primary/50 w-fit"
               >
                 {currentItem.ctaText}
                 {currentItem.ctaType === 'EXTERNAL_LINK' ? (

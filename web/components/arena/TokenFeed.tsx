@@ -31,7 +31,7 @@ interface TokenFeedProps {
 export function TokenFeed({ tokens, onTokenClick }: TokenFeedProps) {
   if (tokens.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-text-muted">
+      <div className="flex items-center justify-center h-64 text-white/35">
         <p>No recent trading activity</p>
       </div>
     );
@@ -44,10 +44,10 @@ export function TokenFeed({ tokens, onTokenClick }: TokenFeedProps) {
           key={token.tokenSymbol}
           layout
           onClick={() => onTokenClick(token.tokenSymbol)}
-          className="text-left border border-white/[0.06] p-4 hover:bg-white/[0.03] hover:border-accent-primary/20 transition-all cursor-pointer group"
+          className="text-left border border-white/[0.06] p-4 hover:bg-white/[0.03] hover:border-[#E8B45E]/20 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-lg font-bold font-mono text-text-primary group-hover:text-accent-primary transition-colors">
+            <span className="text-lg font-bold font-mono text-white/80 group-hover:text-[#E8B45E] transition-colors">
               {token.tokenSymbol}
             </span>
             <span className={`text-sm font-mono ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -55,7 +55,7 @@ export function TokenFeed({ tokens, onTokenClick }: TokenFeedProps) {
             </span>
           </div>
 
-          <div className="flex items-center gap-4 text-xs text-text-muted">
+          <div className="flex items-center gap-4 text-xs text-white/35">
             <span className="flex items-center gap-1">
               <Users className="w-3 h-3" />
               {token.agentCount} agents

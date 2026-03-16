@@ -65,7 +65,7 @@ function GoldSeparator() {
 // ── Corner brackets (outer frame decoration) ──
 
 function CornerBrackets() {
-  const corner = 'absolute w-3 h-3 border-accent-primary/30';
+  const corner = 'absolute w-3 h-3 border-[#E8B45E]/30';
   return (
     <>
       <div className={`${corner} top-0 left-0 border-t border-l`} />
@@ -215,7 +215,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/80"
         onClick={handleClose}
       />
 
@@ -242,9 +242,9 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                 onClick={handleClose}
                 className="absolute top-3 right-3 p-2 hover:bg-white/[0.05] transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5 text-text-muted" />
+                <X className="w-5 h-5 text-white/35" />
               </button>
-              <p className="text-text-muted">Agent not found</p>
+              <p className="text-white/35">Agent not found</p>
             </div>
           ) : (
             <div>
@@ -253,7 +253,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                 onClick={handleClose}
                 className="absolute top-3 right-3 z-10 p-2 hover:bg-white/[0.05] transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4 text-text-muted hover:text-text-primary transition-colors" />
+                <X className="w-4 h-4 text-white/35 hover:text-white/80 transition-colors" />
               </button>
 
               {/* ── SECTION 1: Hero Header ── */}
@@ -271,7 +271,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                       </div>
                     ) : (
                       <div className="w-14 h-14 rounded-full ring-2 ring-accent-primary/40 bg-white/[0.04] flex items-center justify-center flex-shrink-0">
-                        <span className="text-xl font-bold text-text-muted">
+                        <span className="text-xl font-bold text-white/35">
                           {agent.agentName?.charAt(0)?.toUpperCase() || '?'}
                         </span>
                       </div>
@@ -281,7 +281,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                   <div className="min-w-0 flex-1">
                     {/* Name + badge + level */}
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-lg font-bold text-text-primary truncate">
+                      <h2 className="text-lg font-bold text-white/80 truncate">
                         {agent.twitterHandle
                           ? (agent.twitterHandle.startsWith('@')
                               ? agent.twitterHandle
@@ -298,7 +298,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                         </svg>
                       )}
                       {profile && (
-                        <span className="text-[10px] font-bold text-accent-primary bg-accent-primary/10 px-1.5 py-0.5 font-mono flex-shrink-0">
+                        <span className="text-[10px] font-bold text-[#E8B45E] bg-[#E8B45E]/10 px-1.5 py-0.5 font-mono flex-shrink-0">
                           Lv.{profile.level} {profile.levelName}
                         </span>
                       )}
@@ -307,7 +307,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                     {/* Wallet */}
                     <button
                       onClick={copyWallet}
-                      className="flex items-center gap-1 mt-1 text-xs text-text-muted font-mono hover:text-text-secondary transition-colors cursor-pointer"
+                      className="flex items-center gap-1 mt-1 text-xs text-white/35 font-mono hover:text-white/55 transition-colors cursor-pointer"
                     >
                       {shortenAddress(agent.walletAddress)}
                       {copied ? (
@@ -319,7 +319,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
 
                     {/* Bio */}
                     {profile?.bio && (
-                      <p className="text-xs text-text-muted italic mt-1.5 line-clamp-1">
+                      <p className="text-xs text-white/35 italic mt-1.5 line-clamp-1">
                         {profile.bio}
                       </p>
                     )}
@@ -351,7 +351,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                     {
                       label: 'Trades',
                       value: String(agent.trade_count || 0),
-                      color: 'text-text-primary',
+                      color: 'text-white/80',
                     },
                     {
                       label: 'Win Rate',
@@ -371,7 +371,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                     {
                       label: 'Sortino',
                       value: agent.sortino_ratio?.toFixed(2) ?? '—',
-                      color: 'text-text-primary',
+                      color: 'text-white/80',
                     },
                   ].map((stat, i) => (
                     <div key={stat.label} className="flex items-center flex-1 min-w-0">
@@ -384,7 +384,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                         >
                           {stat.value}
                         </div>
-                        <div className="text-[9px] text-text-muted uppercase tracking-wider mt-0.5">
+                        <div className="text-[9px] text-white/35 uppercase tracking-wider mt-0.5">
                           {stat.label}
                         </div>
                       </div>
@@ -414,7 +414,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                     className="px-5 py-4"
                     style={{ animation: 'fadeIn 0.4s ease-out 120ms both' }}
                   >
-                    <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3">
+                    <div className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-3">
                       Positions
                     </div>
                     <div className="space-y-0">
@@ -425,10 +425,10 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                           )}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="text-sm font-bold text-text-primary">
+                              <span className="text-sm font-bold text-white/80">
                                 {pos.tokenSymbol}
                               </span>
-                              <span className="text-xs text-text-muted font-mono">
+                              <span className="text-xs text-white/35 font-mono">
                                 {pos.quantity.toFixed(2)}
                               </span>
                             </div>
@@ -459,7 +459,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                     {openPositions.length > 5 && (
                       <a
                         href={`/agents/${agentId}`}
-                        className="inline-block text-xs text-text-muted hover:text-accent-primary transition-colors mt-2"
+                        className="inline-block text-xs text-white/35 hover:text-[#E8B45E] transition-colors mt-2"
                       >
                         View all {openPositions.length} positions →
                       </a>
@@ -475,11 +475,11 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                 className="px-5 py-4"
                 style={{ animation: 'fadeIn 0.4s ease-out 180ms both' }}
               >
-                <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3">
+                <div className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-3">
                   Recent Trades
                 </div>
                 {trades.length === 0 ? (
-                  <div className="text-sm text-text-muted text-center py-3">
+                  <div className="text-sm text-white/35 text-center py-3">
                     No trades yet
                   </div>
                 ) : (
@@ -500,10 +500,10 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                             >
                               {trade.action}
                             </span>
-                            <span className="text-sm font-medium text-text-primary truncate">
+                            <span className="text-sm font-medium text-white/80 truncate">
                               {trade.tokenSymbol}
                             </span>
-                            <span className="text-[10px] text-text-muted font-mono">
+                            <span className="text-[10px] text-white/35 font-mono">
                               {timeAgo(trade.timestamp || trade.createdAt)}
                             </span>
                           </div>
@@ -530,7 +530,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                     className="px-5 py-4"
                     style={{ animation: 'fadeIn 0.4s ease-out 240ms both' }}
                   >
-                    <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-3">
+                    <div className="text-[10px] font-semibold text-white/35 uppercase tracking-wider mb-3">
                       Activity
                     </div>
                     <div className="space-y-0">
@@ -543,20 +543,20 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                             {item.kind === 'task' ? (
                               <>
                                 <CheckCircle2 className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                                <span className="text-sm text-text-primary truncate flex-1">
+                                <span className="text-sm text-white/80 truncate flex-1">
                                   {item.title}
                                 </span>
-                                <span className="text-[10px] font-mono text-accent-primary flex-shrink-0">
+                                <span className="text-[10px] font-mono text-[#E8B45E] flex-shrink-0">
                                   +{item.xp} XP
                                 </span>
                               </>
                             ) : (
                               <>
                                 <MessageSquare className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-                                <span className="text-sm text-text-primary truncate flex-1">
+                                <span className="text-sm text-white/80 truncate flex-1">
                                   {item.topic}
                                 </span>
-                                <span className="text-[10px] text-text-muted flex-shrink-0">
+                                <span className="text-[10px] text-white/35 flex-shrink-0">
                                   {item.messageCount} msgs
                                 </span>
                               </>
@@ -577,7 +577,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
               >
                 <a
                   href={`/agents/${agentId}`}
-                  className="inline-flex items-center gap-1.5 text-xs text-text-muted hover:text-accent-primary transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs text-white/35 hover:text-[#E8B45E] transition-colors"
                 >
                   Full profile
                   <ExternalLink className="w-3 h-3" />

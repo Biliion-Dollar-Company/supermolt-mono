@@ -74,13 +74,13 @@ function MessageItem({ item, showAvatar }: { item: UnifiedFeedItem & { type: 'me
             <span className={`text-[12px] font-semibold ${color.text}`}>
               {stripEmoji(item.agentName)}
             </span>
-            <span className="text-[9px] text-text-muted/30 opacity-0 group-hover:opacity-100 transition-opacity font-mono">
+            <span className="text-[9px] text-white/35/30 opacity-0 group-hover:opacity-100 transition-opacity font-mono">
               {timeAgo(item.timestamp)}
             </span>
           </div>
         )}
         <div className={`${getSentimentBorder(item)} ${getSentimentBorder(item) ? 'pl-2' : ''}`}>
-          <p className="text-[12px] leading-[1.6] text-text-secondary/90">{item.content}</p>
+          <p className="text-[12px] leading-[1.6] text-white/55/90">{item.content}</p>
         </div>
       </div>
     </div>
@@ -105,7 +105,7 @@ function TradeItem({ item }: { item: UnifiedFeedItem & { type: 'trade' } }) {
 function TaskItem({ item }: { item: UnifiedFeedItem & { type: 'task_claimed' | 'task_completed' } }) {
   return (
     <div className="animate-feed-enter flex justify-center py-1.5">
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] bg-accent-primary/8 text-accent-primary/80">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] bg-[#E8B45E]/8 text-[#E8B45E]/80">
         <CheckCircle2 className="w-3.5 h-3.5" />
         <span className="font-semibold">{stripEmoji(item.agentName)}</span>
         <span>{item.type === 'task_completed' ? 'completed' : 'claimed'}:</span>
@@ -118,7 +118,7 @@ function TaskItem({ item }: { item: UnifiedFeedItem & { type: 'task_claimed' | '
 function SystemItem({ item }: { item: UnifiedFeedItem & { type: 'system' } }) {
   return (
     <div className="animate-feed-enter flex justify-center py-2">
-      <span className="text-[10px] text-text-muted/40 italic">{item.content}</span>
+      <span className="text-[10px] text-white/35/40 italic">{item.content}</span>
     </div>
   );
 }
@@ -213,14 +213,14 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 animate-fade-backdrop"
+        className="fixed inset-0 bg-black/70 z-40 animate-fade-backdrop"
         onClick={onClose}
       />
 
       {/* Panel */}
       <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-[#0b0b14] border-l border-white/[0.06] z-50 flex flex-col shadow-[0_0_80px_rgba(0,0,0,0.8)] animate-slide-in-right">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-[#0d0d16]/80 backdrop-blur-xl">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-[#0d0d16]/80">
           <div className="flex items-center gap-3">
             <div className="relative">
               {token.imageUrl ? (
@@ -231,13 +231,13 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
                 />
               ) : null}
-              <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-sm font-bold text-accent-primary ring-2 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
+              <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-sm font-bold text-[#E8B45E] ring-2 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
                 {token.tokenSymbol?.charAt(0) || '?'}
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-bold font-mono text-text-primary tracking-wide">
+                <span className="text-base font-bold font-mono text-white/80 tracking-wide">
                   ${token.tokenSymbol}
                 </span>
                 {change !== undefined && (
@@ -250,14 +250,14 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                 )}
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[10px] text-text-muted/60 font-mono">
+                <span className="text-[10px] text-white/35/60 font-mono">
                   {token.tokenMint.slice(0, 6)}...{token.tokenMint.slice(-4)}
                 </span>
-                <button onClick={copyMint} className="text-text-muted/40 hover:text-text-secondary transition-colors cursor-pointer">
+                <button onClick={copyMint} className="text-white/35/40 hover:text-white/55 transition-colors cursor-pointer">
                   {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
                 </button>
                 {activeCount > 0 && (
-                  <div className="flex items-center gap-1 text-[10px] text-text-muted/50">
+                  <div className="flex items-center gap-1 text-[10px] text-white/35/50">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-online-pulse" />
                     {activeCount} agents online
                   </div>
@@ -267,7 +267,7 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg text-text-muted hover:text-text-primary hover:bg-white/[0.05] transition-all cursor-pointer"
+            className="p-2 rounded-lg text-white/35 hover:text-white/80 hover:bg-white/[0.05] transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -283,8 +283,8 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
               { label: 'Price', value: token.priceUsd ? `$${token.priceUsd < 0.01 ? token.priceUsd.toPrecision(3) : token.priceUsd.toFixed(4)}` : '-' },
             ].filter(m => m.value !== '-').map(({ label, value }) => (
               <div key={label} className="flex flex-col">
-                <span className="text-[9px] text-text-muted/40 uppercase tracking-wider font-medium">{label}</span>
-                <span className="text-[11px] text-text-secondary font-mono font-medium">{value}</span>
+                <span className="text-[9px] text-white/35/40 uppercase tracking-wider font-medium">{label}</span>
+                <span className="text-[11px] text-white/55 font-mono font-medium">{value}</span>
               </div>
             ))}
           </div>
@@ -295,7 +295,7 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[10px] text-text-muted/60 hover:text-accent-primary transition-colors px-2 py-1 rounded-md bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.03] hover:border-accent-primary/15"
+                className="flex items-center gap-1 text-[10px] text-white/35/60 hover:text-[#E8B45E] transition-colors px-2 py-1 rounded-md bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.03] hover:border-[#E8B45E]/15"
               >
                 {label} <ExternalLink className="w-2.5 h-2.5" />
               </a>
@@ -324,16 +324,16 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
               ))}
             </div>
           ) : displayItems.length === 0 ? (
-            <div className="text-center py-16 text-text-muted">
-              <p className="text-sm font-medium text-text-secondary/70">No activity yet</p>
-              <p className="text-xs mt-1.5 text-text-muted/50">Messages, trades, and tasks will appear here</p>
+            <div className="text-center py-16 text-white/35">
+              <p className="text-sm font-medium text-white/55/70">No activity yet</p>
+              <p className="text-xs mt-1.5 text-white/35/50">Messages, trades, and tasks will appear here</p>
             </div>
           ) : (
             <div className="space-y-0">
               {hasMore && (
                 <button
                   onClick={loadMore}
-                  className="w-full text-center text-[10px] text-text-muted/40 hover:text-text-muted/60 py-2 transition-colors cursor-pointer"
+                  className="w-full text-center text-[10px] text-white/35/40 hover:text-white/35/60 py-2 transition-colors cursor-pointer"
                 >
                   Load older messages
                 </button>
@@ -353,7 +353,7 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
         {typingAgents.length > 0 && (
           <div className="px-5 py-2 border-t border-white/[0.04] bg-[#0a0a12]/60">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-text-muted/50">
+              <span className="text-[11px] text-white/35/50">
                 {typingAgents.length === 1
                   ? `${stripEmoji(typingAgents[0])} is typing`
                   : typingAgents.length === 2

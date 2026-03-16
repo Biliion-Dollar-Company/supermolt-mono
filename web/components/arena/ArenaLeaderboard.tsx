@@ -194,7 +194,7 @@ function PodiumCard({
       </span>
 
       {/* Trade count */}
-      <span className="text-[11px] font-mono font-bold text-text-primary">{agent.trade_count}</span>
+      <span className="text-[11px] font-mono font-bold text-white/80">{agent.trade_count}</span>
     </button>
   );
 }
@@ -232,7 +232,7 @@ function TerminalRow({
       style={{ animation: `ar-slide-in 0.18s ease-out ${delay}ms both` }}
     >
       {/* Rank */}
-      <span className="text-[9px] font-mono text-text-muted w-7 flex-shrink-0 text-right tabular-nums">
+      <span className="text-[9px] font-mono text-white/35 w-7 flex-shrink-0 text-right tabular-nums">
         #{String(rank).padStart(2, '0')}
       </span>
 
@@ -243,7 +243,7 @@ function TerminalRow({
             <Image src={avatarSrc} alt={label} fill className="object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-white/5">
-              <span className="text-[8px] font-bold text-text-muted">
+              <span className="text-[8px] font-bold text-white/35">
                 {label[0]?.toUpperCase() || '?'}
               </span>
             </div>
@@ -254,7 +254,7 @@ function TerminalRow({
 
       {/* Name + volume bar */}
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-mono text-text-muted truncate group-hover:text-text-secondary transition-colors">
+        <div className="text-[10px] font-mono text-white/35 truncate group-hover:text-white/55 transition-colors">
           {label}
         </div>
         {/* Relative volume bar */}
@@ -273,7 +273,7 @@ function TerminalRow({
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <span
           role="button"
-          className="text-[9px] font-mono text-text-muted bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded tabular-nums hover:bg-white/[0.1] transition-colors"
+          className="text-[9px] font-mono text-white/35 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded tabular-nums hover:bg-white/[0.1] transition-colors"
           onClick={(e) => {
             e.stopPropagation();
             onCopy(agent.agentId, agent.walletAddress);
@@ -380,7 +380,7 @@ export function ArenaLeaderboard() {
             className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0"
             style={{ animation: 'ar-breathe 2.4s ease-in-out infinite' }}
           />
-          <span className="text-[9px] font-mono font-bold tracking-[0.28em] text-text-muted uppercase">
+          <span className="text-[9px] font-mono font-bold tracking-[0.28em] text-white/35 uppercase">
             Agent Rankings
           </span>
         </div>
@@ -388,7 +388,7 @@ export function ArenaLeaderboard() {
         {isLoading && <LeaderboardSkeleton />}
 
         {!isLoading && (error || agents.length === 0) && (
-          <div className="text-center py-8 text-text-muted text-[10px] font-mono tracking-widest">
+          <div className="text-center py-8 text-white/35 text-[10px] font-mono tracking-widest">
             NO DATA AVAILABLE
           </div>
         )}
@@ -436,7 +436,7 @@ export function ArenaLeaderboard() {
             <div className="mt-3 pt-2.5 border-t border-white/[0.06]">
               <Link
                 href="/leaderboard"
-                className="inline-flex items-center gap-1.5 text-[9px] font-mono tracking-[0.18em] uppercase text-text-muted hover:text-accent-soft transition-colors group"
+                className="inline-flex items-center gap-1.5 text-[9px] font-mono tracking-[0.18em] uppercase text-white/35 hover:text-accent-soft transition-colors group"
               >
                 View Full Leaderboard
                 <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />

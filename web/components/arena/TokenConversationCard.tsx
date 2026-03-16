@@ -51,7 +51,7 @@ function FeedItemPreview({ item }: { item: UnifiedFeedItem }) {
           <span className={`text-[10px] font-semibold flex-shrink-0 ${getAgentColor(item.agentName)}`}>
             {stripEmoji(item.agentName).split(' ')[0]}:
           </span>
-          <span className="text-[10px] text-text-secondary/70 truncate">
+          <span className="text-[10px] text-white/55/70 truncate">
             {item.content}
           </span>
         </div>
@@ -76,11 +76,11 @@ function FeedItemPreview({ item }: { item: UnifiedFeedItem }) {
     case 'task_completed':
       return (
         <div className="flex items-center gap-1.5 min-w-0">
-          <CheckCircle2 className="w-3 h-3 text-accent-primary/70 flex-shrink-0" />
+          <CheckCircle2 className="w-3 h-3 text-[#E8B45E]/70 flex-shrink-0" />
           <span className={`text-[10px] font-semibold flex-shrink-0 ${getAgentColor(item.agentName)}`}>
             {stripEmoji(item.agentName).split(' ')[0]}
           </span>
-          <span className="text-[10px] text-text-muted/60 truncate">
+          <span className="text-[10px] text-white/35/60 truncate">
             {item.type === 'task_completed' ? 'completed' : 'claimed'} &ldquo;{item.taskTitle}&rdquo;
           </span>
         </div>
@@ -88,7 +88,7 @@ function FeedItemPreview({ item }: { item: UnifiedFeedItem }) {
     case 'system':
       return (
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-[10px] text-text-muted/50 italic truncate">{item.content}</span>
+          <span className="text-[10px] text-white/35/50 italic truncate">{item.content}</span>
         </div>
       );
     default:
@@ -128,17 +128,17 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
       onClick={onClick}
       className={`
         w-full text-left overflow-hidden transition-all duration-300 cursor-pointer group relative
-        bg-white/[0.02] backdrop-blur-xl
+        bg-white/[0.02]
         shadow-[0_2px_16px_rgba(0,0,0,0.5)]
         hover:bg-white/[0.04] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_24px_rgba(232,180,94,0.06)]
         ${isNew ? 'animate-card-pulse' : ''}
       `}
     >
       {/* Corner brackets */}
-      <span className="absolute top-0 left-0 w-5 h-5 border-t border-l border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
-      <span className="absolute top-0 right-0 w-5 h-5 border-t border-r border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
-      <span className="absolute bottom-0 left-0 w-5 h-5 border-b border-l border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
-      <span className="absolute bottom-0 right-0 w-5 h-5 border-b border-r border-accent-primary/30 group-hover:border-accent-primary/60 transition-colors duration-300" />
+      <span className="absolute top-0 left-0 w-5 h-5 border-t border-l border-[#E8B45E]/30 group-hover:border-[#E8B45E]/60 transition-colors duration-300" />
+      <span className="absolute top-0 right-0 w-5 h-5 border-t border-r border-[#E8B45E]/30 group-hover:border-[#E8B45E]/60 transition-colors duration-300" />
+      <span className="absolute bottom-0 left-0 w-5 h-5 border-b border-l border-[#E8B45E]/30 group-hover:border-[#E8B45E]/60 transition-colors duration-300" />
+      <span className="absolute bottom-0 right-0 w-5 h-5 border-b border-r border-[#E8B45E]/30 group-hover:border-[#E8B45E]/60 transition-colors duration-300" />
       <span className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
       <span className="absolute bottom-0 left-5 right-5 h-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
       <span className="absolute left-0 top-5 bottom-5 w-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
@@ -157,38 +157,38 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
                 />
               ) : null}
-              <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-xs font-bold text-accent-primary ring-1 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
+              <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-xs font-bold text-[#E8B45E] ring-1 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
                 {token.tokenSymbol?.charAt(0) || '?'}
               </div>
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-[13px] font-bold font-mono text-text-primary tracking-wide">
+                <span className="text-[13px] font-bold font-mono text-white/80 tracking-wide">
                   ${token.tokenSymbol}
                 </span>
                 {token.chain && (
-                  <span className="text-[8px] text-text-muted/60 uppercase bg-white/[0.04] px-1 py-px rounded font-medium">
+                  <span className="text-[8px] text-white/35/60 uppercase bg-white/[0.04] px-1 py-px rounded font-medium">
                     {token.chain}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-0.5 text-[10px] text-text-muted/70">
+              <div className="flex items-center gap-2 mt-0.5 text-[10px] text-white/35/70">
                 {token.marketCap ? (
                   <span className="flex items-center gap-0.5">
-                    <span className="text-text-muted/40">MC</span>
-                    <span className="text-text-secondary/80 font-medium">{formatCompact(token.marketCap)}</span>
+                    <span className="text-white/35/40">MC</span>
+                    <span className="text-white/55/80 font-medium">{formatCompact(token.marketCap)}</span>
                   </span>
                 ) : null}
                 {token.volume24h ? (
                   <span className="flex items-center gap-0.5">
-                    <span className="text-text-muted/40">Vol</span>
-                    <span className="text-text-secondary/80 font-medium">{formatCompact(token.volume24h)}</span>
+                    <span className="text-white/35/40">Vol</span>
+                    <span className="text-white/55/80 font-medium">{formatCompact(token.volume24h)}</span>
                   </span>
                 ) : null}
                 {token.liquidity ? (
                   <span className="flex items-center gap-0.5">
-                    <span className="text-text-muted/40">Liq</span>
-                    <span className="text-text-secondary/80 font-medium">{formatCompact(token.liquidity)}</span>
+                    <span className="text-white/35/40">Liq</span>
+                    <span className="text-white/55/80 font-medium">{formatCompact(token.liquidity)}</span>
                   </span>
                 ) : null}
               </div>
@@ -204,7 +204,7 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
               </div>
             )}
             {activeCount > 0 && (
-              <div className="flex items-center gap-1 text-[9px] text-text-muted/50">
+              <div className="flex items-center gap-1 text-[9px] text-white/35/50">
                 <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-online-pulse" />
                 {activeCount} online
               </div>
@@ -221,18 +221,18 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
               <FeedItemPreview key={item.id || i} item={item} />
             ))}
             {feedItems.length === 0 && token.lastMessage && (
-              <p className="text-[10px] text-text-secondary/60 truncate">{token.lastMessage}</p>
+              <p className="text-[10px] text-white/55/60 truncate">{token.lastMessage}</p>
             )}
           </div>
         </div>
       ) : (
         <div className="px-4 pb-2">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] text-text-muted/50 italic">Agents analyzing...</p>
+            <p className="text-[10px] text-white/35/50 italic">Agents analyzing...</p>
             <div className="flex gap-0.5">
-              <div className="w-1 h-1 rounded-full bg-accent-primary/30 animate-pulse" />
-              <div className="w-1 h-1 rounded-full bg-accent-primary/30 animate-pulse" style={{ animationDelay: '0.2s' }} />
-              <div className="w-1 h-1 rounded-full bg-accent-primary/30 animate-pulse" style={{ animationDelay: '0.4s' }} />
+              <div className="w-1 h-1 rounded-full bg-[#E8B45E]/30 animate-pulse" />
+              <div className="w-1 h-1 rounded-full bg-[#E8B45E]/30 animate-pulse" style={{ animationDelay: '0.2s' }} />
+              <div className="w-1 h-1 rounded-full bg-[#E8B45E]/30 animate-pulse" style={{ animationDelay: '0.4s' }} />
             </div>
           </div>
         </div>
@@ -243,23 +243,23 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
         <div className="flex-1 min-w-0">
           {typingAgents.length > 0 ? (
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-accent-primary/70 truncate">
+              <span className="text-[9px] text-[#E8B45E]/70 truncate">
                 {typingAgents.length === 1
                   ? `${stripEmoji(typingAgents[0])} typing`
                   : `${stripEmoji(typingAgents[0])}, ${stripEmoji(typingAgents[1])}${typingAgents.length > 2 ? ` +${typingAgents.length - 2}` : ''} typing`
                 }
               </span>
               <div className="flex gap-0.5 items-center">
-                <div className="w-1 h-1 rounded-full bg-accent-primary/60 animate-typing-dot" />
-                <div className="w-1 h-1 rounded-full bg-accent-primary/60 animate-typing-dot" style={{ animationDelay: '0.15s' }} />
-                <div className="w-1 h-1 rounded-full bg-accent-primary/60 animate-typing-dot" style={{ animationDelay: '0.3s' }} />
+                <div className="w-1 h-1 rounded-full bg-[#E8B45E]/60 animate-typing-dot" />
+                <div className="w-1 h-1 rounded-full bg-[#E8B45E]/60 animate-typing-dot" style={{ animationDelay: '0.15s' }} />
+                <div className="w-1 h-1 rounded-full bg-[#E8B45E]/60 animate-typing-dot" style={{ animationDelay: '0.3s' }} />
               </div>
             </div>
           ) : token.lastMessageAt ? (
-            <span className="text-[9px] text-text-muted/30 font-mono">{timeAgo(token.lastMessageAt)}</span>
+            <span className="text-[9px] text-white/35/30 font-mono">{timeAgo(token.lastMessageAt)}</span>
           ) : null}
         </div>
-        <ChevronRight className="w-3.5 h-3.5 text-text-muted/30 group-hover:text-accent-primary/50 transition-colors flex-shrink-0" />
+        <ChevronRight className="w-3.5 h-3.5 text-white/35/30 group-hover:text-[#E8B45E]/50 transition-colors flex-shrink-0" />
       </div>
     </button>
   );

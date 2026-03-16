@@ -60,7 +60,7 @@ export function PumpTokenPanel({ agentId, pumpFunMint }: { agentId: string; pump
       {/* Mint address */}
       <button
         onClick={copyMint}
-        className="flex items-center gap-2 mb-3 text-[10px] font-mono text-text-muted hover:text-text-secondary transition-colors"
+        className="flex items-center gap-2 mb-3 text-[10px] font-mono text-white/35 hover:text-white/55 transition-colors"
       >
         <Wallet className="w-3 h-3" />
         {shortMint}
@@ -77,22 +77,22 @@ export function PumpTokenPanel({ agentId, pumpFunMint }: { agentId: string; pump
       ) : balances ? (
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="bg-white/[0.04] rounded p-2">
-            <div className="text-[9px] font-mono text-text-muted uppercase tracking-wider mb-1">Revenue</div>
+            <div className="text-[9px] font-mono text-white/35 uppercase tracking-wider mb-1">Revenue</div>
             <div className="text-sm font-mono font-bold text-amber-400">${totalRevenue}</div>
-            <div className="text-[8px] text-text-muted font-mono">USDC collected</div>
+            <div className="text-[8px] text-white/35 font-mono">USDC collected</div>
           </div>
           <div className="bg-white/[0.04] rounded p-2">
-            <div className="text-[9px] font-mono text-text-muted uppercase tracking-wider mb-1">Buyback %</div>
+            <div className="text-[9px] font-mono text-white/35 uppercase tracking-wider mb-1">Buyback %</div>
             <div className="text-sm font-mono font-bold text-green-400">
               {balances.buybackBps ? (balances.buybackBps / 100).toFixed(0) : '—'}%
             </div>
-            <div className="text-[8px] text-text-muted font-mono">of revenue burned</div>
+            <div className="text-[8px] text-white/35 font-mono">of revenue burned</div>
           </div>
         </div>
       ) : null}
 
       {/* Buyback info */}
-      <div className="flex items-center gap-1.5 text-[9px] font-mono text-text-muted">
+      <div className="flex items-center gap-1.5 text-[9px] font-mono text-white/35">
         <TrendingUp className="w-3 h-3 text-amber-400/50" />
         Revenue → auto buyback + burn every hour
       </div>

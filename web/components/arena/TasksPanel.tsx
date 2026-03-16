@@ -20,10 +20,10 @@ const TASK_ICONS: Record<string, LucideIcon> = {
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  OPEN: { label: 'Open', color: 'text-accent-primary' },
+  OPEN: { label: 'Open', color: 'text-[#E8B45E]' },
   CLAIMED: { label: 'Claimed', color: 'text-yellow-400' },
   COMPLETED: { label: 'Completed', color: 'text-green-400' },
-  EXPIRED: { label: 'Expired', color: 'text-text-muted' },
+  EXPIRED: { label: 'Expired', color: 'text-white/35' },
 };
 
 function TaskCard({ task, onClick }: { task: AgentTaskType; onClick: () => void }) {
@@ -37,12 +37,12 @@ function TaskCard({ task, onClick }: { task: AgentTaskType; onClick: () => void 
       className="group text-left w-full py-2 cursor-pointer transition-all hover:bg-white/[0.03] px-1 -mx-1"
     >
       <div className="flex items-center gap-3">
-        <Icon className={`w-6 h-6 flex-shrink-0 ${isDone ? 'text-green-400' : 'text-accent-primary'}`} />
+        <Icon className={`w-6 h-6 flex-shrink-0 ${isDone ? 'text-green-400' : 'text-[#E8B45E]'}`} />
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-semibold text-text-primary truncate block">
+          <span className="text-sm font-semibold text-white/80 truncate block">
             {task.taskType.replace(/_/g, ' ')}
           </span>
-          <p className="text-xs text-text-muted truncate">{task.title}</p>
+          <p className="text-xs text-white/35 truncate">{task.title}</p>
         </div>
         <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
           <span className="flex items-center gap-1 text-xs font-mono font-bold text-yellow-400">
@@ -86,7 +86,7 @@ function TaskDetailModal({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/80 z-50"
       />
 
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none">
@@ -101,9 +101,9 @@ function TaskDetailModal({
           {/* Header */}
           <div className="bg-bg-primary border border-white/[0.1] border-b-0 px-5 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {(() => { const Icon = TASK_ICONS[task.taskType] || ClipboardCheck; return <Icon className="w-6 h-6 text-accent-primary" />; })()}
+              {(() => { const Icon = TASK_ICONS[task.taskType] || ClipboardCheck; return <Icon className="w-6 h-6 text-[#E8B45E]" />; })()}
               <div>
-                <h3 className="text-base font-bold text-text-primary">
+                <h3 className="text-base font-bold text-white/80">
                   {task.taskType.replace(/_/g, ' ')}
                 </h3>
                 <span className={`text-xs font-semibold ${statusInfo.color}`}>
@@ -115,14 +115,14 @@ function TaskDetailModal({
               onClick={onClose}
               className="p-2 hover:bg-white/[0.05] transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5 text-text-muted hover:text-text-primary transition-colors" />
+              <X className="w-5 h-5 text-white/35 hover:text-white/80 transition-colors" />
             </button>
           </div>
 
           {/* Body */}
-          <div className="bg-white/[0.08] backdrop-blur-xl border border-white/[0.1] border-t-white/[0.06]">
+          <div className="bg-white/[0.08] border border-white/[0.1] border-t-white/[0.06]">
             <div className="p-5 space-y-4">
-              <p className="text-sm text-text-primary leading-relaxed">{task.title}</p>
+              <p className="text-sm text-white/80 leading-relaxed">{task.title}</p>
 
               {/* XP Reward */}
               <div className="flex items-center gap-2 bg-yellow-400/5 border border-yellow-400/10 px-3 py-2">
@@ -130,17 +130,17 @@ function TaskDetailModal({
                 <span className="text-sm font-mono font-bold text-yellow-400">
                   {task.xpReward} XP
                 </span>
-                <span className="text-xs text-text-muted">reward</span>
+                <span className="text-xs text-white/35">reward</span>
               </div>
 
               {task.tokenSymbol && (
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-text-muted">Token:</span>
-                  <span className="font-mono font-bold text-text-primary">{task.tokenSymbol}</span>
+                  <span className="text-white/35">Token:</span>
+                  <span className="font-mono font-bold text-white/80">{task.tokenSymbol}</span>
                 </div>
               )}
 
-              <div className="flex items-center gap-2 text-xs text-text-muted">
+              <div className="flex items-center gap-2 text-xs text-white/35">
                 <Clock className="w-3 h-3" />
                 <span>Created {new Date(task.createdAt).toLocaleDateString('en-US', {
                   month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -151,8 +151,8 @@ function TaskDetailModal({
               {task.completions.length > 0 && (
                 <div>
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Users className="w-3.5 h-3.5 text-text-muted" />
-                    <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+                    <Users className="w-3.5 h-3.5 text-white/35" />
+                    <span className="text-xs font-semibold text-white/55 uppercase tracking-wider">
                       Completions ({task.completions.length})
                     </span>
                   </div>
@@ -162,7 +162,7 @@ function TaskDetailModal({
                         key={i}
                         className="flex items-center justify-between bg-white/[0.02] border border-white/[0.04] px-3 py-1.5"
                       >
-                        <span className="text-sm text-text-primary">{c.agentName}</span>
+                        <span className="text-sm text-white/80">{c.agentName}</span>
                         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
                           c.status === 'VALIDATED'
                             ? 'text-green-400 bg-green-400/10'
@@ -184,7 +184,7 @@ function TaskDetailModal({
               <div className="border-t border-white/[0.08] bg-bg-primary/60 px-5 py-4">
                 {!isWalletConnected ? (
                   <div className="space-y-3">
-                    <p className="text-xs text-text-muted leading-relaxed">
+                    <p className="text-xs text-white/35 leading-relaxed">
                       Tasks are completed by autonomous AI agents in the arena.
                       Connect your wallet or sign in with email to register your own agent and start earning XP.
                     </p>
@@ -194,7 +194,7 @@ function TaskDetailModal({
                           onClose();
                           setVisible(true);
                         }}
-                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium cursor-pointer"
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#E8B45E]/10 border border-[#E8B45E]/30 text-[#E8B45E] hover:bg-[#E8B45E]/20 transition-all text-sm font-medium cursor-pointer"
                       >
                         <Wallet className="w-4 h-4" />
                         Connect Wallet
@@ -204,7 +204,7 @@ function TaskDetailModal({
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-xs text-text-muted leading-relaxed">
+                    <p className="text-xs text-white/35 leading-relaxed">
                       Sign in with your wallet or email to register as an agent.
                       Once authenticated, your agent can claim and complete tasks to earn XP.
                     </p>
@@ -212,7 +212,7 @@ function TaskDetailModal({
                       <button
                         onClick={signIn}
                         disabled={isSigningIn}
-                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-sm font-medium disabled:opacity-50 cursor-pointer"
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#E8B45E]/10 border border-[#E8B45E]/30 text-[#E8B45E] hover:bg-[#E8B45E]/20 transition-all text-sm font-medium disabled:opacity-50 cursor-pointer"
                       >
                         {isSigningIn ? (
                           <>
@@ -271,7 +271,7 @@ export function TasksPanel() {
 
   if (loading) {
     return (
-      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+      <div className="bg-[#0C1020] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-5 h-5 bg-white/[0.03] animate-pulse rounded" />
           <div className="h-4 w-16 bg-white/[0.03] animate-pulse rounded" />
@@ -302,11 +302,11 @@ export function TasksPanel() {
 
   return (
     <>
-      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] flex flex-col h-full">
+      <div className="bg-[#0C1020] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] flex flex-col h-full">
         {/* Title + tabs on same row */}
         <div className="flex items-center justify-between p-4 sm:p-5 pb-0 mb-4 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-text-primary uppercase tracking-wider">Tasks</span>
+            <span className="text-sm font-bold text-white/80 uppercase tracking-wider">Tasks</span>
             {stats && (
               <span className="flex items-center gap-1 text-[11px] text-yellow-400 font-mono">
                 <Trophy className="w-3 h-3" />{stats.totalXPAwarded} XP
@@ -316,7 +316,7 @@ export function TasksPanel() {
           <select
             value={tab}
             onChange={(e) => { setTab(e.target.value as 'active' | 'completed'); }}
-            className="text-xs font-semibold uppercase tracking-wider px-2 py-1.5 bg-white/[0.04] border border-white/[0.1] text-text-primary cursor-pointer outline-none hover:bg-white/[0.06] transition-colors appearance-none pr-6"
+            className="text-xs font-semibold uppercase tracking-wider px-2 py-1.5 bg-white/[0.04] border border-white/[0.1] text-white/80 cursor-pointer outline-none hover:bg-white/[0.06] transition-colors appearance-none pr-6"
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}
           >
             <option value="active">Active{stats ? ` (${stats.active})` : ''}</option>
@@ -327,7 +327,7 @@ export function TasksPanel() {
         {/* Scrollable task list — fills available height */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4 sm:px-5 pb-4 sm:pb-5" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
           {allTasks.length === 0 ? (
-            <div className="flex items-center justify-center py-8 text-text-muted text-sm">
+            <div className="flex items-center justify-center py-8 text-white/35 text-sm">
               {tab === 'active' ? 'No active tasks' : 'No completed tasks yet'}
             </div>
           ) : (

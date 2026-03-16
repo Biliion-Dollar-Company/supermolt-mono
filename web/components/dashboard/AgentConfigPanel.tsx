@@ -36,8 +36,8 @@ function ConfigSection({
                     <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">{title}</span>
                 </div>
                 <ChevronDown
-                    className="w-3.5 h-3.5 transition-transform duration-300 ease-out" style={{ color: 'rgba(255,255,255,0.3)' }}
-                    style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                    className="w-3.5 h-3.5 transition-transform duration-300 ease-out"
+                    style={{ color: 'rgba(255,255,255,0.3)', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
                 />
             </button>
             <div

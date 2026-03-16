@@ -15,10 +15,10 @@ export function OnboardingChecklist({ tasks, completedTasks, totalTasks }: Onboa
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-text-secondary uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-white/55 uppercase tracking-wider">
           Onboarding
         </h3>
-        <span className="text-xs text-text-muted">
+        <span className="text-xs text-white/35">
           {completedTasks}/{totalTasks} complete
         </span>
       </div>
@@ -38,13 +38,13 @@ export function OnboardingChecklist({ tasks, completedTasks, totalTasks }: Onboa
                 {done ? (
                   <CheckCircle2 className="w-4 h-4 text-green-400 flex-shrink-0" />
                 ) : (
-                  <Circle className="w-4 h-4 text-text-muted flex-shrink-0" />
+                  <Circle className="w-4 h-4 text-white/35 flex-shrink-0" />
                 )}
-                <span className={`text-sm ${done ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                <span className={`text-sm ${done ? 'text-white/35 line-through' : 'text-white/80'}`}>
                   {task.title}
                 </span>
               </div>
-              <span className={`text-xs font-mono ${done ? 'text-green-400' : 'text-accent-primary'}`}>
+              <span className={`text-xs font-mono ${done ? 'text-green-400' : 'text-[#E8B45E]'}`}>
                 +{task.xpReward} XP
               </span>
             </div>

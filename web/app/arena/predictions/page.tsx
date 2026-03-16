@@ -233,13 +233,13 @@ export default function PredictionArenaPage() {
         unsubs.push(() => clearInterval(ci));
         unsubs.push(ws.onPredictionSignal((ev) => {
           const d = ev.data as PredictionSignalEvent; const ts = Date.now();
-          setTape((p) => [{ kind: 'signal', ts, data: d }, ...p].slice(0, 40));
+          setTape((p) => [{ kind: 'signal' as const, ts, data: d }, ...p].slice(0, 40));
           setNewIds((p) => { const n = new Set(p).add(ts); setTimeout(() => setNewIds((q) => { const r = new Set(q); r.delete(ts); return r; }), 600); return n; });
           setMarkets((p) => p.map((m) => m.ticker !== d.ticker ? m : { ...m, yesPrice: Math.max(0.01, Math.min(0.99, m.yesPrice + (d.side === 'YES' ? 0.005 : -0.005))) }));
         }));
         unsubs.push(ws.onPredictionConsensus((ev) => {
           const d = ev.data as PredictionConsensusEvent; const ts = Date.now();
-          setTape((p) => [{ kind: 'consensus', ts, data: d }, ...p].slice(0, 40));
+          setTape((p) => [{ kind: 'consensus' as const, ts, data: d }, ...p].slice(0, 40));
           setNewIds((p) => { const n = new Set(p).add(ts); setTimeout(() => setNewIds((q) => { const r = new Set(q); r.delete(ts); return r; }), 600); return n; });
           setStats((p) => p ? { ...p, totalPredictions: p.totalPredictions + d.participants } : p);
         }));

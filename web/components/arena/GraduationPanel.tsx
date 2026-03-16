@@ -21,7 +21,7 @@ function PlatformBadge({ platform }: { platform: string | null }) {
     );
   }
   return (
-    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-white/5 text-text-muted border border-white/10">
+    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-white/5 text-white/35 border border-white/10">
       BSC
     </span>
   );
@@ -37,7 +37,7 @@ function QuoteBadge({ quote }: { quote: string | null }) {
   };
 
   return (
-    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${colors[quote] || 'bg-white/5 text-text-muted border-white/10'}`}>
+    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full border ${colors[quote] || 'bg-white/5 text-white/35 border-white/10'}`}>
       {quote}
     </span>
   );
@@ -65,24 +65,24 @@ function GraduationRow({ token }: { token: BSCTokenGraduation }) {
   return (
     <div className="flex items-center gap-3 py-2.5 px-3 hover:bg-white/[0.02] transition-colors">
       {/* Rocket icon */}
-      <Rocket className="w-4 h-4 text-accent-primary flex-shrink-0" />
+      <Rocket className="w-4 h-4 text-[#E8B45E] flex-shrink-0" />
 
       {/* Token info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-mono text-text-primary truncate">
+          <span className="text-sm font-mono text-white/80 truncate">
             {token.tokenSymbol !== 'UNKNOWN' ? token.tokenSymbol : truncatedName}
           </span>
           <PlatformBadge platform={token.platform} />
           <QuoteBadge quote={token.quoteToken} />
         </div>
         {token.tokenSymbol !== 'UNKNOWN' && token.tokenName !== 'Unknown' && (
-          <span className="text-xs text-text-muted truncate block">{truncatedName}</span>
+          <span className="text-xs text-white/35 truncate block">{truncatedName}</span>
         )}
       </div>
 
       {/* Time */}
-      <span className="text-xs text-text-muted flex-shrink-0">
+      <span className="text-xs text-white/35 flex-shrink-0">
         {token.graduationTime ? timeAgo(token.graduationTime) : ''}
       </span>
 
@@ -93,7 +93,7 @@ function GraduationRow({ token }: { token: BSCTokenGraduation }) {
             href={token.pancakeSwapUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-text-muted hover:text-accent-primary transition-colors"
+            className="text-white/35 hover:text-[#E8B45E] transition-colors"
             title="Trade on PancakeSwap"
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -103,7 +103,7 @@ function GraduationRow({ token }: { token: BSCTokenGraduation }) {
           href={token.explorerUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-text-muted hover:text-text-secondary transition-colors"
+          className="text-white/35 hover:text-white/55 transition-colors"
           title="View on BSCscan"
         >
           <ExternalLink className="w-3.5 h-3.5" />
@@ -142,7 +142,7 @@ export function GraduationPanel() {
 
   if (loading) {
     return (
-      <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+      <div className="bg-[#0C1020] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
         <div className="h-5 w-44 bg-white/[0.03] animate-pulse rounded mb-3" />
         <div className="flex gap-3 mb-4">
           <div className="h-10 flex-1 bg-white/[0.03] animate-pulse rounded" />
@@ -163,17 +163,17 @@ export function GraduationPanel() {
   }
 
   return (
-    <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
+    <div className="bg-[#0C1020] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Rocket className="w-4 h-4 text-accent-primary" />
-          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+          <Rocket className="w-4 h-4 text-[#E8B45E]" />
+          <h3 className="text-sm font-semibold text-white/55 uppercase tracking-wider">
             BSC Graduations
           </h3>
         </div>
         {stats && (
-          <span className="text-xs text-text-muted">
+          <span className="text-xs text-white/35">
             {stats.totalGraduated} graduated
           </span>
         )}
@@ -183,16 +183,16 @@ export function GraduationPanel() {
       {stats && (
         <div className="grid grid-cols-3 gap-2 mb-4">
           <div className="bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-center">
-            <div className="text-lg font-bold font-mono text-text-primary">{stats.totalCreated.toLocaleString()}</div>
-            <div className="text-[10px] text-text-muted uppercase">Created</div>
+            <div className="text-lg font-bold font-mono text-white/80">{stats.totalCreated.toLocaleString()}</div>
+            <div className="text-[10px] text-white/35 uppercase">Created</div>
           </div>
           <div className="bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-center">
-            <div className="text-lg font-bold font-mono text-accent-primary">{stats.totalGraduated}</div>
-            <div className="text-[10px] text-text-muted uppercase">Graduated</div>
+            <div className="text-lg font-bold font-mono text-[#E8B45E]">{stats.totalGraduated}</div>
+            <div className="text-[10px] text-white/35 uppercase">Graduated</div>
           </div>
           <div className="bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-center">
-            <div className="text-lg font-bold font-mono text-text-primary">{stats.graduationRate}%</div>
-            <div className="text-[10px] text-text-muted uppercase">Rate</div>
+            <div className="text-lg font-bold font-mono text-white/80">{stats.graduationRate}%</div>
+            <div className="text-[10px] text-white/35 uppercase">Rate</div>
           </div>
         </div>
       )}
@@ -200,14 +200,14 @@ export function GraduationPanel() {
       {/* Platform breakdown */}
       {stats && (platformStats['four.meme'] > 0 || platformStats['flap'] > 0) && (
         <div className="flex items-center gap-3 mb-3 pb-3 border-b border-white/[0.06]">
-          <BarChart3 className="w-3 h-3 text-text-muted" />
+          <BarChart3 className="w-3 h-3 text-white/35" />
           <div className="flex items-center gap-2">
             <PlatformBadge platform="four.meme" />
-            <span className="text-xs font-mono text-text-muted">{platformStats['four.meme']}</span>
+            <span className="text-xs font-mono text-white/35">{platformStats['four.meme']}</span>
           </div>
           <div className="flex items-center gap-2">
             <PlatformBadge platform="flap" />
-            <span className="text-xs font-mono text-text-muted">{platformStats['flap']}</span>
+            <span className="text-xs font-mono text-white/35">{platformStats['flap']}</span>
           </div>
         </div>
       )}
@@ -220,7 +220,7 @@ export function GraduationPanel() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-6 text-text-muted text-sm">
+        <div className="text-center py-6 text-white/35 text-sm">
           No graduated tokens yet
         </div>
       )}

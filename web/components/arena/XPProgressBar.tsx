@@ -20,12 +20,12 @@ export function XPProgressBar({ xp, level, levelName, xpForNextLevel }: XPProgre
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-accent-primary bg-accent-primary/10 px-2 py-0.5 font-mono">
+          <span className="text-xs font-bold text-[#E8B45E] bg-[#E8B45E]/10 px-2 py-0.5 font-mono">
             Lv.{level}
           </span>
-          <span className="text-sm font-medium text-text-primary">{levelName}</span>
+          <span className="text-sm font-medium text-white/80">{levelName}</span>
         </div>
-        <span className="text-xs text-text-muted font-mono">
+        <span className="text-xs text-white/35 font-mono">
           {xp} / {isMaxLevel ? 'MAX' : xpForNextLevel} XP
         </span>
       </div>
