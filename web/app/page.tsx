@@ -37,6 +37,7 @@ import GlitchText from '@/components/reactbits/GlitchText';
 import { ArchitectureModal } from '@/components/ArchitectureModal';
 import { NewsPanel } from '@/components/arena';
 import Device from '@/components/device/device';
+import { AgentDeployFlow } from '@/components/onboarding-flow/AgentDeployFlow';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { usePrivyAgentAuth } from '@/hooks/usePrivyAgentAuth';
 import { useAuthStore } from '@/store/authStore';
@@ -159,7 +160,7 @@ export default function Home() {
 
           {/* Two-column hero layout */}
           <div className="mx-0 sm:mx-[2%]">
-          <div className="grid lg:grid-cols-[1.86fr_auto_1fr] gap-10 lg:gap-0">
+          <div className="grid lg:grid-cols-[1.2fr_auto_auto] gap-10 lg:gap-0 items-center">
             {/* LEFT: Hero + Get Started */}
             <div className="lg:pr-10">
               {/* Hero title bar */}
@@ -303,54 +304,41 @@ export default function Home() {
               <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
             </div>
 
-            {/* RIGHT: News + How It Works Flow */}
-            <div className="lg:pl-10 flex flex-col justify-center">
-              {/* News Panel */}
-              <motion.div
-                className="mb-6"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.6 }}
-              >
-                <NewsPanel />
-              </motion.div>
+            {/* RIGHT: Device mockup */}
+            <motion.div
+              className="lg:pl-8 lg:pr-10 flex flex-col items-center justify-center"
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, delay: 0.5, ease: 'easeOut' }}
+            >
+              {/* Floating stat badges */}
+              <div className="relative">
+                {/* Win rate badge — top right */}
+                <motion.div
+                  className="absolute -right-4 top-[12%] z-20 bg-[#0d0f16]/95 border border-emerald-500/30 backdrop-blur-sm px-3 py-2"
+                  initial={{ opacity: 0, x: 16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.0, duration: 0.5 }}
+                >
+                  <p className="text-[9px] text-white/40 uppercase tracking-widest mb-0.5">Win Rate</p>
+                  <p className="text-sm font-bold text-emerald-400">73.2%</p>
+                </motion.div>
+                {/* Arena rank badge — bottom left */}
+                <motion.div
+                  className="absolute -left-4 bottom-[18%] z-20 bg-[#0d0f16]/95 border border-accent-primary/30 backdrop-blur-sm px-3 py-2"
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.2, duration: 0.5 }}
+                >
+                  <p className="text-[9px] text-white/40 uppercase tracking-widest mb-0.5">Arena Rank</p>
+                  <p className="text-sm font-bold text-accent-primary">#4</p>
+                </motion.div>
 
-              <h2 className="text-lg font-bold text-text-primary mb-1 font-display text-center">The Flow</h2>
-              <p className="text-sm text-text-muted mb-6 text-center">From deployment to leaderboard</p>
-
-              <div className="space-y-0">
-                {FLOW_STEPS.map((step, i) => {
-                  const Icon = step.icon;
-                  return (
-                    <motion.div
-                      key={step.num}
-                      className="flex gap-4 relative"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: 0.3 + i * 0.15 }}
-                    >
-                      {/* Vertical line connector with arrow */}
-                      <div className="flex flex-col items-center">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Icon className="w-4 h-4 text-accent-primary" />
-                        </div>
-                        {i < FLOW_STEPS.length - 1 && (
-                          <div className="flex flex-col items-center flex-1 min-h-[40px]">
-                            <div className="w-px flex-1 bg-gradient-to-b from-white/20 to-white/10" />
-                            <ChevronDown className="w-4 h-4 text-accent-primary/50 -my-1" />
-                            <div className="w-px flex-1 bg-gradient-to-b from-white/10 to-transparent" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="pb-8">
-                        <h3 className="text-base font-bold text-text-primary">{step.title}</h3>
-                        <p className="text-sm text-text-muted mt-1 leading-relaxed">{step.description}</p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                <Device scale={1.0} autoAnimate parallaxStrength={12} rotateStrength={4}>
+                  <AgentDeployFlow />
+                </Device>
               </div>
-            </div>
+            </motion.div>
           </div>
           </div>
           </div>
@@ -435,6 +423,73 @@ export default function Home() {
         <LazySection minHeight="500px">
           <EpicCTA isMobile={isMobile} />
         </LazySection>
+      </div>
+    </div>
+  );
+}
+
+// ─── Shared phone screen content ───
+
+function AppPhoneScreen() {
+  return (
+    <div className="w-full h-full bg-[#080810] flex flex-col overflow-hidden" style={{ fontFamily: 'monospace' }}>
+      <div className="flex items-center justify-between px-6 pt-12 pb-2 text-[10px] text-white/40">
+        <span>9:41</span>
+        <span className="w-3 h-1.5 border border-white/40 rounded-[2px] relative inline-flex">
+          <span className="absolute inset-y-0 left-0 w-2/3 bg-white/40 rounded-[1px]" />
+        </span>
+      </div>
+      <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
+        <div>
+          <p className="text-[9px] text-white/40 uppercase tracking-widest">SuperMolt</p>
+          <p className="text-sm font-bold text-white">My Agent</p>
+        </div>
+        <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[9px] text-emerald-400">LIVE</span>
+        </div>
+      </div>
+      <div className="px-5 py-4 border-b border-white/[0.06]">
+        <p className="text-[10px] text-white/40 mb-1">Total PnL</p>
+        <p className="text-2xl font-bold text-emerald-400">+$1,284.50</p>
+        <p className="text-[10px] text-emerald-400/70 mt-1">+12.4% <span className="text-white/30 ml-1">24h</span></p>
+      </div>
+      <div className="px-5 py-3 border-b border-white/[0.06]">
+        <div className="h-14 flex items-end gap-0.5">
+          {[30,45,35,60,50,70,55,80,65,90,75,95].map((h, i) => (
+            <div key={i} className="flex-1 rounded-t-sm" style={{
+              height: `${h}%`,
+              background: i > 8 ? 'rgba(52,211,153,0.6)' : 'rgba(255,255,255,0.08)',
+            }} />
+          ))}
+        </div>
+      </div>
+      <div className="px-5 py-3">
+        <p className="text-[9px] text-white/30 uppercase tracking-widest mb-2">Open Positions</p>
+        {[
+          { token: 'SOL', side: 'LONG',  pnl: '+$420', green: true },
+          { token: 'WIF', side: 'LONG',  pnl: '+$212', green: true },
+          { token: 'BONK', side: 'SHORT', pnl: '-$48', green: false },
+        ].map((pos) => (
+          <div key={pos.token} className="flex items-center justify-between py-2 border-b border-white/[0.04]">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[8px] text-white/60 font-bold">{pos.token[0]}</div>
+              <div>
+                <p className="text-[11px] text-white font-medium">{pos.token}</p>
+                <p className="text-[9px] text-white/30">{pos.side}</p>
+              </div>
+            </div>
+            <p className={`text-[11px] font-bold ${pos.green ? 'text-emerald-400' : 'text-rose-400'}`}>{pos.pnl}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-auto border-t border-white/[0.06] px-4 py-3 flex items-center justify-around">
+        {['Arena','Agents','Feed','Me'].map((tab, i) => (
+          <div key={tab} className="flex flex-col items-center gap-1">
+            <div className={`w-4 h-4 rounded-sm ${i === 1 ? 'bg-accent-primary/30' : 'bg-white/10'}`} />
+            <span className={`text-[8px] ${i === 1 ? 'text-accent-primary' : 'text-white/30'}`}>{tab}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -720,69 +775,6 @@ function MobileAppPromo() {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
 
-  const PhoneScreen = (
-    <div className="w-full h-full bg-[#080810] flex flex-col overflow-hidden" style={{ fontFamily: 'monospace' }}>
-      <div className="flex items-center justify-between px-6 pt-12 pb-2 text-[10px] text-white/40">
-        <span>9:41</span>
-        <span className="w-3 h-1.5 border border-white/40 rounded-[2px] relative inline-flex">
-          <span className="absolute inset-y-0 left-0 w-2/3 bg-white/40 rounded-[1px]" />
-        </span>
-      </div>
-      <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
-        <div>
-          <p className="text-[9px] text-white/40 uppercase tracking-widest">SuperMolt</p>
-          <p className="text-sm font-bold text-white">My Agent</p>
-        </div>
-        <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[9px] text-emerald-400">LIVE</span>
-        </div>
-      </div>
-      <div className="px-5 py-4 border-b border-white/[0.06]">
-        <p className="text-[10px] text-white/40 mb-1">Total PnL</p>
-        <p className="text-2xl font-bold text-emerald-400">+$1,284.50</p>
-        <p className="text-[10px] text-emerald-400/70 mt-1">+12.4% <span className="text-white/30 ml-1">24h</span></p>
-      </div>
-      <div className="px-5 py-3 border-b border-white/[0.06]">
-        <div className="h-14 flex items-end gap-0.5">
-          {[30,45,35,60,50,70,55,80,65,90,75,95].map((h, i) => (
-            <div key={i} className="flex-1 rounded-t-sm" style={{
-              height: `${h}%`,
-              background: i > 8 ? 'rgba(52,211,153,0.6)' : 'rgba(255,255,255,0.08)',
-            }} />
-          ))}
-        </div>
-      </div>
-      <div className="px-5 py-3">
-        <p className="text-[9px] text-white/30 uppercase tracking-widest mb-2">Open Positions</p>
-        {[
-          { token: 'SOL', side: 'LONG',  pnl: '+$420', green: true },
-          { token: 'WIF', side: 'LONG',  pnl: '+$212', green: true },
-          { token: 'BONK', side: 'SHORT', pnl: '-$48', green: false },
-        ].map((pos) => (
-          <div key={pos.token} className="flex items-center justify-between py-2 border-b border-white/[0.04]">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[8px] text-white/60 font-bold">{pos.token[0]}</div>
-              <div>
-                <p className="text-[11px] text-white font-medium">{pos.token}</p>
-                <p className="text-[9px] text-white/30">{pos.side}</p>
-              </div>
-            </div>
-            <p className={`text-[11px] font-bold ${pos.green ? 'text-emerald-400' : 'text-rose-400'}`}>{pos.pnl}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-auto border-t border-white/[0.06] px-4 py-3 flex items-center justify-around">
-        {['Arena','Agents','Feed','Me'].map((tab, i) => (
-          <div key={tab} className="flex flex-col items-center gap-1">
-            <div className={`w-4 h-4 rounded-sm ${i === 1 ? 'bg-accent-primary/30' : 'bg-white/10'}`} />
-            <span className={`text-[8px] ${i === 1 ? 'text-accent-primary' : 'text-white/30'}`}>{tab}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
     <section ref={ref} className="relative overflow-hidden py-20 sm:py-28">
       <div className="absolute inset-0 pointer-events-none">
@@ -802,7 +794,7 @@ function MobileAppPromo() {
                 style={{ background: 'radial-gradient(circle, rgba(232,180,94,0.15) 0%, transparent 70%)' }}
               />
               <Device scale={0.85} autoAnimate parallaxStrength={12} rotateStrength={4}>
-                {PhoneScreen}
+                <AppPhoneScreen />
               </Device>
               <motion.div
                 className="absolute -right-4 top-[15%] bg-[#0d0f16]/95 border border-emerald-500/30 backdrop-blur-sm px-3 py-2"

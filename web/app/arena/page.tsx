@@ -6,7 +6,11 @@ const BG    = '#07090F';
 const SURF  = '#0C1020';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useIsMobile } from '@/hooks/useIsMobile';
+
+const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), { ssr: false });
 
 import { MessageSquare, Copy, Check, LayoutGrid, LineChart } from 'lucide-react';
 import { getTrendingTokens, getRecentTrades, getAllPositions, getMyAgent } from '@/lib/api';
@@ -255,7 +259,7 @@ function ClassicArenaView() {
           <TasksPanel />
         </div>
         <div className="animate-arena-reveal min-h-0 flex flex-col max-h-[400px]" style={{ animationDelay: '60ms' }}>
-          <div style={{ background: SURF, border: '1px solid rgba(255,255,255,0.06)', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' } as React.CSSProperties} className="p-4 sm:p-5 flex flex-col min-h-0 overflow-y-auto">
+          <div style={{ background: 'rgba(12,16,32,0.6)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' } as React.CSSProperties} className="p-4 sm:p-5 flex flex-col min-h-0 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Live Tokens</h2>
               <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{loading ? '' : `${tokens.length} tokens`}</span>
@@ -297,7 +301,7 @@ function ClassicArenaView() {
       {/* Leaderboard + Conversations | Epoch + Graduation */}
       <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
         <div className="space-y-6 animate-arena-reveal" style={{ animationDelay: '180ms' }}>
-          <div style={{ background: SURF, border: '1px solid rgba(255,255,255,0.06)' }} className="p-4 sm:p-5">
+          <div style={{ background: 'rgba(12,16,32,0.6)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }} className="p-4 sm:p-5">
             <div className="flex items-center gap-1 mb-4">
               {(['trades', 'xp'] as const).map((tab) => (
                 <button
@@ -429,7 +433,7 @@ function ConversationsView() {
           </div>
 
           <div className="animate-arena-reveal" style={{ animationDelay: '120ms' }}>
-            <div style={{ background: SURF, border: '1px solid rgba(255,255,255,0.06)' }} className="p-4">
+            <div style={{ background: 'rgba(12,16,32,0.6)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }} className="p-4">
               <div className="flex items-center gap-1 mb-4">
                 {(['trades', 'xp'] as const).map((tab) => (
                   <button
@@ -522,11 +526,20 @@ type ArenaView = 'discussions' | 'classic';
 
 export default function ArenaPage() {
   const [view, setView] = useState<ArenaView>('discussions');
+  const isMobile = useIsMobile();
 
   return (
-    <div className="min-h-screen" style={{ background: BG }}>
+    <>
+      {/* ── Fixed background — always visible, never scrolls ── */}
+      <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1, background: BG }} />
+      {!isMobile && (
+        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1, opacity: 0.22 }}>
+          <RisingLines color="#E8B45E" horizonColor="#E8B45E" haloColor="#F5D78E" riseSpeed={0.06} riseScale={8} riseIntensity={1.0} flowSpeed={0.12} flowDensity={3.5} flowIntensity={0.5} horizonIntensity={0.7} haloIntensity={5} horizonHeight={-0.9} circleScale={-0.5} scale={5.5} brightness={0.95} />
+        </div>
+      )}
+    <div className="min-h-screen" style={{ background: 'transparent' }}>
       {/* Sticky sub-header */}
-      <div className="sticky top-0 z-30 pt-16 sm:pt-[64px]" style={{ background: BG, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+      <div className="sticky top-0 z-30 pt-16 sm:pt-[64px]" style={{ background: 'rgba(7,9,15,0.82)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
         <div className="flex items-center gap-4 px-4 sm:px-6 py-3">
           <h1 className="text-base font-black tracking-tight text-white font-mono">ARENA</h1>
           {/* Sub-nav */}
@@ -586,5 +599,6 @@ export default function ArenaPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
