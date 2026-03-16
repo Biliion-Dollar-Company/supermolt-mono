@@ -1,7 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, Zap, BarChart2, Target, Twitter, CheckCircle } from 'lucide-react';
 
 /* ── Brand ───────────────────────────────────────────────────────── */
 const GOLD   = '#E8B45E';
@@ -11,30 +13,32 @@ const SURF2  = '#1a1a26';
 const BORDER = 'rgba(255,255,255,0.07)';
 
 /* ── Step types ──────────────────────────────────────────────────── */
-type Step = 'welcome' | 'pick_style' | 'enter_name' | 'launching' | 'success';
+type Step = 'welcome' | 'pick_style' | 'enter_name' | 'connect_twitter' | 'launching' | 'success';
 
-const STEP_ORDER: Step[] = ['welcome', 'pick_style', 'enter_name', 'launching', 'success'];
+const STEP_ORDER: Step[] = ['welcome', 'pick_style', 'enter_name', 'connect_twitter', 'launching', 'success'];
 const STEP_DURATION: Record<Step, number> = {
-  welcome:    3200,
-  pick_style: 4000,
-  enter_name: 3600,
-  launching:  2800,
-  success:    4000,
+  welcome:         3200,
+  pick_style:      4000,
+  enter_name:      3600,
+  connect_twitter: 3400,
+  launching:       2800,
+  success:         4000,
 };
 
 const STYLES = [
-  { id: 'degen',       emoji: '🔥', label: 'Degen Hunter',  desc: 'High risk memecoin plays' },
-  { id: 'smart_money', emoji: '🐋', label: 'Smart Money',   desc: 'Follow whale wallets' },
-  { id: 'sniper',      emoji: '🎯', label: 'Sniper',        desc: 'Early entries, quick exits' },
-  { id: 'conservative',emoji: '🛡️', label: 'Conservative',  desc: 'Steady accumulation' },
+  { id: 'phantom', Icon: Eye,       label: 'PHANTOM',  desc: 'Ghost-mode execution. Follows smart money silently.' },
+  { id: 'apex',    Icon: Zap,       label: 'APEX',     desc: 'Aggressive first-mover. Catches narratives at source.' },
+  { id: 'oracle',  Icon: BarChart2, label: 'ORACLE',   desc: 'Signal-driven. Waits for multi-source confirmation.' },
+  { id: 'vector',  Icon: Target,    label: 'VECTOR',   desc: 'Rapid scalper. High frequency, quick exits.' },
 ];
 
 const BUBBLES: Record<Step, string> = {
-  welcome:    "Yo! I'm Molt. Let's get your agent live — takes under a minute.",
-  pick_style: "Degen mode. High risk, high reward. Full send on memecoins.",
-  enter_name: "Give your agent a name. Make it legendary.",
-  launching:  "Deploying to the Solana battlefield...",
-  success:    "Agent live! You're officially in the arena.",
+  welcome:         "I'm Molt. Let's get your agent live — it trades and broadcasts calls while you sleep.",
+  pick_style:      "Each profile has a different edge. Pick the one that matches your strategy.",
+  enter_name:      "Give your agent a callsign. It carries this into every battle.",
+  connect_twitter: "Link your X account so your agent broadcasts calls to your followers in real time.",
+  launching:       "Deploying to the arena...",
+  success:         "Agent live. Your first call drops when the next signal hits.",
 };
 
 /* ── Typing text hook ────────────────────────────────────────────── */
@@ -76,10 +80,10 @@ function CharBubble({ msg, typing }: { msg: string; typing?: boolean }) {
   return (
     <div className="flex items-end gap-2 px-4 pb-3">
       <div
-        className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[15px]"
-        style={{ background: `${GOLD}18`, border: `1px solid ${GOLD}30` }}
+        className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden flex-shrink-0"
+        style={{ border: `1px solid ${GOLD}30` }}
       >
-        🦎
+        <Image src="/pfp.png" alt="Molt" width={32} height={32} className="w-full h-full object-cover" />
       </div>
       <div
         className="flex-1 px-3 py-2 rounded-2xl rounded-bl-sm text-[10px] leading-relaxed"
@@ -126,10 +130,10 @@ function WelcomeScreen() {
             style={{ background: `radial-gradient(circle, ${GOLD}30 0%, transparent 70%)`, filter: 'blur(8px)' }}
           />
           <div
-            className="relative w-20 h-20 rounded-full flex items-center justify-center text-3xl"
-            style={{ background: `${GOLD}15`, border: `2px solid ${GOLD}40` }}
+            className="relative w-20 h-20 rounded-full overflow-hidden"
+            style={{ border: `2px solid ${GOLD}40` }}
           >
-            🦎
+            <Image src="/pfp.png" alt="SuperMolt" width={80} height={80} className="w-full h-full object-cover" />
           </div>
         </motion.div>
 
@@ -144,7 +148,7 @@ function WelcomeScreen() {
 
         {/* Step hints */}
         <div className="w-full space-y-2">
-          {['Pick your style', 'Name your agent', 'Enter the arena'].map((label, i) => (
+          {['Pick your agent profile', 'Name your agent', 'Connect X account', 'Enter the arena'].map((label, i) => (
             <motion.div
               key={label}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
@@ -175,7 +179,7 @@ function WelcomeScreen() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, duration: 0.3 }}
         >
-          Let&apos;s go →
+          Deploy Agent →
         </motion.div>
       </div>
     </div>
@@ -184,9 +188,8 @@ function WelcomeScreen() {
 
 /* ── SCREEN: Pick Style ──────────────────────────────────────────── */
 function PickStyleScreen() {
-  const [selected, setSelected] = useState('degen');
+  const [selected, setSelected] = useState('phantom');
   useEffect(() => {
-    // Auto-cycle selection
     let i = 0;
     const t = setInterval(() => {
       i = (i + 1) % STYLES.length;
@@ -199,16 +202,16 @@ function PickStyleScreen() {
     <div className="flex flex-col h-full">
       <StatusBar />
       <div className="px-5 pt-2 pb-3">
-        <div className="text-sm font-black text-white" style={{ fontFamily: 'monospace' }}>Trading Style</div>
-        <div className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Shape your agent&apos;s strategy</div>
+        <div className="text-sm font-black text-white" style={{ fontFamily: 'monospace' }}>Agent Profile</div>
+        <div className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Choose your operational mode</div>
       </div>
 
       <div className="flex-1 px-4 space-y-2 overflow-hidden">
-        {STYLES.map((style, i) => {
-          const active = selected === style.id;
+        {STYLES.map(({ id, Icon, label, desc }, i) => {
+          const active = selected === id;
           return (
             <motion.div
-              key={style.id}
+              key={id}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
               initial={{ opacity: 0, x: 16 }}
               animate={{ opacity: 1, x: 0 }}
@@ -219,10 +222,15 @@ function PickStyleScreen() {
                 transition: 'all 0.3s ease',
               }}
             >
-              <span className="text-xl flex-shrink-0 w-8 text-center">{style.emoji}</span>
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: active ? `${GOLD}20` : 'rgba(255,255,255,0.04)', border: `1px solid ${active ? `${GOLD}40` : BORDER}` }}
+              >
+                <Icon size={14} style={{ color: active ? GOLD : 'rgba(255,255,255,0.35)' }} />
+              </div>
               <div className="flex-1 min-w-0">
-                <div className="text-[11px] font-bold" style={{ color: active ? '#fff' : 'rgba(255,255,255,0.6)' }}>{style.label}</div>
-                <div className="text-[9px] truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>{style.desc}</div>
+                <div className="text-[11px] font-black tracking-wide" style={{ color: active ? '#fff' : 'rgba(255,255,255,0.55)', fontFamily: 'monospace' }}>{label}</div>
+                <div className="text-[9px] truncate mt-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>{desc}</div>
               </div>
               <div
                 className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center"
@@ -250,22 +258,21 @@ function PickStyleScreen() {
 
 /* ── SCREEN: Enter Name ──────────────────────────────────────────── */
 function EnterNameScreen() {
-  const typed = useTypedText('AlphaHunter', true, 110);
+  const typed = useTypedText('GhostOp', true, 110);
   return (
     <div className="flex flex-col h-full">
       <StatusBar />
       <div className="px-5 pt-2 pb-3">
-        <div className="text-sm font-black text-white" style={{ fontFamily: 'monospace' }}>Name Your Agent</div>
-        <div className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>This is how the arena will know you</div>
+        <div className="text-sm font-black text-white" style={{ fontFamily: 'monospace' }}>Agent Callsign</div>
+        <div className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Your identity in the arena</div>
       </div>
 
       <div className="flex-1 px-4 pt-2">
-        {/* Input */}
         <div
           className="w-full px-4 py-3 rounded-xl flex items-center gap-2"
           style={{ background: SURF, border: `1.5px solid ${typed ? `${GOLD}60` : BORDER}`, transition: 'border-color 0.3s' }}
         >
-          <span className="text-[14px] font-semibold text-white tracking-wide flex-1">
+          <span className="text-[14px] font-semibold text-white tracking-wide flex-1" style={{ fontFamily: 'monospace' }}>
             {typed}
             <motion.span
               className="inline-block w-[2px] h-[14px] ml-0.5 align-middle"
@@ -277,12 +284,11 @@ function EnterNameScreen() {
           <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.2)' }}>{typed.length}/24</span>
         </div>
 
-        {/* Suggestion chips */}
         <div className="flex flex-wrap gap-1.5 mt-3">
-          {['SolAlpha', 'MoltMaxi', 'Phantom', 'DegenBot'].map((name, i) => (
+          {['GhostOp', 'Apex7', 'OracleX', 'VectorMX'].map((name, i) => (
             <motion.div
               key={name}
-              className="px-2.5 py-1 rounded-lg text-[9px]"
+              className="px-2.5 py-1 rounded-lg text-[9px] font-mono"
               style={{ background: SURF, border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.45)' }}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
@@ -298,10 +304,111 @@ function EnterNameScreen() {
         <CharBubble msg={BUBBLES.enter_name} />
         <div
           className="w-full py-3 rounded-xl text-[13px] font-black text-center"
-          style={{ background: typed.length > 0 ? GOLD : 'rgba(232,180,94,0.15)', color: typed.length > 0 ? '#08080F' : `${GOLD}40`, fontFamily: 'monospace', transition: 'all 0.4s ease' }}
+          style={{
+            background: typed.length > 0 ? GOLD : 'rgba(232,180,94,0.15)',
+            color: typed.length > 0 ? '#08080F' : `${GOLD}40`,
+            fontFamily: 'monospace',
+            transition: 'all 0.4s ease',
+          }}
         >
-          Deploy Agent
+          Next →
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── SCREEN: Connect Twitter ─────────────────────────────────────── */
+function ConnectTwitterScreen() {
+  const [connected, setConnected] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setConnected(true), 1800);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div className="flex flex-col h-full">
+      <StatusBar />
+      <div className="px-5 pt-2 pb-3">
+        <div className="text-sm font-black text-white" style={{ fontFamily: 'monospace' }}>Connect X Account</div>
+        <div className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>Your agent broadcasts calls to your followers</div>
+      </div>
+
+      <div className="flex-1 px-4 pt-2 flex flex-col gap-3">
+        {/* Twitter connect card */}
+        <motion.div
+          className="w-full px-4 py-4 rounded-xl flex items-center gap-3"
+          style={{ background: SURF, border: `1.5px solid ${connected ? 'rgba(29,155,240,0.4)' : BORDER}`, transition: 'border-color 0.4s' }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: connected ? 'rgba(29,155,240,0.12)' : 'rgba(255,255,255,0.04)', border: `1px solid ${connected ? 'rgba(29,155,240,0.3)' : BORDER}`, transition: 'all 0.4s' }}
+          >
+            <Twitter size={16} style={{ color: connected ? '#1D9BF0' : 'rgba(255,255,255,0.35)' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            {connected ? (
+              <>
+                <div className="text-[11px] font-bold text-white">@soltrader</div>
+                <div className="text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>2.4K followers · Connected</div>
+              </>
+            ) : (
+              <>
+                <div className="text-[11px] font-bold" style={{ color: 'rgba(255,255,255,0.55)' }}>Not connected</div>
+                <div className="text-[9px] mt-0.5" style={{ color: 'rgba(255,255,255,0.28)' }}>Tap to link your account</div>
+              </>
+            )}
+          </div>
+          {connected && (
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 300 }}>
+              <CheckCircle size={16} style={{ color: '#1D9BF0', flexShrink: 0 }} />
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* What your agent will post */}
+        <motion.div
+          className="w-full px-4 py-3 rounded-xl space-y-2"
+          style={{ background: SURF, border: `1px solid ${BORDER}` }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <div className="text-[9px] font-black tracking-wider uppercase" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>Agent will post</div>
+          {['Trade signals & entries', 'PnL updates', 'Arena rankings'].map((item, i) => (
+            <div key={item} className="flex items-center gap-2">
+              <div className="w-1 h-1 rounded-full flex-shrink-0" style={{ background: GOLD }} />
+              <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{item}</span>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Skip */}
+        <motion.div
+          className="text-center text-[9px]"
+          style={{ color: 'rgba(255,255,255,0.25)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          Skip for now — connect later in settings
+        </motion.div>
+      </div>
+
+      <div className="px-5 pb-4">
+        <CharBubble msg={BUBBLES.connect_twitter} />
+        <motion.div
+          className="w-full py-3 rounded-xl text-[13px] font-black text-center"
+          style={{ background: connected ? GOLD : 'rgba(29,155,240,0.85)', color: '#fff', fontFamily: 'monospace', transition: 'background 0.4s' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          {connected ? 'Deploy Agent →' : 'Connect X Account'}
+        </motion.div>
       </div>
     </div>
   );
@@ -330,10 +437,10 @@ function LaunchingScreen() {
             />
           ))}
           <div
-            className="relative w-20 h-20 rounded-full flex items-center justify-center text-3xl z-10"
-            style={{ background: `${GOLD}15`, border: `2px solid ${GOLD}50` }}
+            className="relative w-20 h-20 rounded-full overflow-hidden z-10"
+            style={{ border: `2px solid ${GOLD}50` }}
           >
-            🦎
+            <Image src="/pfp.png" alt="SuperMolt" width={80} height={80} className="w-full h-full object-cover" />
           </div>
         </div>
 
@@ -344,27 +451,26 @@ function LaunchingScreen() {
 
         <DotLoader />
 
-        {/* Progress lines */}
-        <div className="w-48 space-y-1.5">
-          {['Wallet initialized', 'Strategy loaded', 'Entering arena...'].map((label, i) => (
+        <div className="w-52 space-y-1.5">
+          {['Identity verified', 'Strategy compiled', 'X account linked', 'Entering arena...'].map((label, i) => (
             <motion.div
               key={label}
               className="flex items-center gap-2"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 + i * 0.5 }}
+              transition={{ delay: 0.3 + i * 0.45 }}
             >
               <motion.div
                 className="w-3 h-3 rounded-full flex-shrink-0 flex items-center justify-center"
                 style={{ border: `1.5px solid ${GOLD}` }}
                 animate={{ background: [`${GOLD}00`, GOLD] }}
-                transition={{ delay: 0.6 + i * 0.5, duration: 0.3 }}
+                transition={{ delay: 0.6 + i * 0.45, duration: 0.3 }}
               >
                 <motion.div
                   className="w-1.5 h-1.5 rounded-full"
                   style={{ background: BG }}
                   animate={{ opacity: [0, 1] }}
-                  transition={{ delay: 0.7 + i * 0.5 }}
+                  transition={{ delay: 0.7 + i * 0.45 }}
                 />
               </motion.div>
               <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.45)' }}>{label}</span>
@@ -386,17 +492,16 @@ function SuccessScreen() {
     <div className="flex flex-col h-full">
       <StatusBar />
       <div className="flex-1 flex flex-col items-center justify-center gap-4 px-5">
-        {/* Check ring */}
         <motion.div
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 250, damping: 18 }}
         >
           <div
-            className="w-20 h-20 rounded-full flex items-center justify-center text-4xl"
+            className="w-20 h-20 rounded-full flex items-center justify-center"
             style={{ background: 'rgba(52,211,153,0.12)', border: '2px solid rgba(52,211,153,0.4)' }}
           >
-            ✓
+            <CheckCircle size={32} style={{ color: 'rgba(52,211,153,0.9)' }} />
           </div>
         </motion.div>
 
@@ -406,13 +511,12 @@ function SuccessScreen() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
         >
-          <div className="text-base font-black text-white mb-1" style={{ fontFamily: 'monospace' }}>Agent Deployed!</div>
+          <div className="text-base font-black text-white mb-1" style={{ fontFamily: 'monospace' }}>Agent Deployed</div>
           <div className="text-[10px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            You&apos;re officially in the SuperMolt arena.
+            Operational. First signal drops automatically.
           </div>
         </motion.div>
 
-        {/* Stats */}
         <motion.div
           className="grid grid-cols-3 gap-2 w-full"
           initial={{ opacity: 0, y: 8 }}
@@ -420,9 +524,9 @@ function SuccessScreen() {
           transition={{ delay: 0.45 }}
         >
           {[
-            { label: 'Rank',   value: '#—' },
-            { label: 'Trades', value: '0' },
-            { label: 'XP',     value: '0' },
+            { label: 'Rank',      value: '#—' },
+            { label: 'Signals',   value: '0' },
+            { label: 'XP',        value: '0' },
           ].map((s) => (
             <div
               key={s.label}
@@ -443,11 +547,15 @@ function SuccessScreen() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
         >
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-xl flex-shrink-0"
-               style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}30` }}>🦎</div>
+          <div
+            className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}30` }}
+          >
+            <Eye size={16} style={{ color: GOLD }} />
+          </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] font-bold text-white">AlphaHunter</div>
-            <div className="text-[9px]" style={{ color: 'rgba(255,255,255,0.35)' }}>Degen Hunter • Solana</div>
+            <div className="text-[11px] font-bold text-white font-mono">GhostOp</div>
+            <div className="text-[9px]" style={{ color: 'rgba(255,255,255,0.35)' }}>PHANTOM · @soltrader</div>
           </div>
           <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.3)' }}>
             <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
@@ -465,7 +573,7 @@ function SuccessScreen() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
         >
-          Show me around →
+          Enter the Arena →
         </motion.div>
       </div>
     </div>
@@ -474,11 +582,12 @@ function SuccessScreen() {
 
 /* ── Main component ──────────────────────────────────────────────── */
 const SCREENS: Record<Step, React.FC> = {
-  welcome:    WelcomeScreen,
-  pick_style: PickStyleScreen,
-  enter_name: EnterNameScreen,
-  launching:  LaunchingScreen,
-  success:    SuccessScreen,
+  welcome:         WelcomeScreen,
+  pick_style:      PickStyleScreen,
+  enter_name:      EnterNameScreen,
+  connect_twitter: ConnectTwitterScreen,
+  launching:       LaunchingScreen,
+  success:         SuccessScreen,
 };
 
 export function AgentDeployFlow() {

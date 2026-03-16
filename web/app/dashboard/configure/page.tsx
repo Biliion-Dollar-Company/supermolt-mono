@@ -17,50 +17,45 @@ import {
   type BuyTrigger,
 } from '@/lib/api/agent-config';
 
-// Mock archetypes (replace with API call)
 const ARCHETYPES = [
   {
-    id: 'alpha',
-    emoji: '🎯',
-    name: 'Alpha Hunter',
-    description: 'High-risk, high-reward trader focused on early meme tokens',
+    id: 'phantom',
+    name: 'PHANTOM',
+    description: 'Ghost-mode execution. Tracks smart money on-chain and mirrors positions silently.',
     stats: [
-      { label: 'Aggression', value: 85 },
-      { label: 'Risk Tolerance', value: 90 },
-      { label: 'Speed', value: 80 },
+      { label: 'Stealth',    value: 95 },
+      { label: 'Aggression', value: 45 },
+      { label: 'Speed',      value: 70 },
     ],
   },
   {
-    id: 'beta',
-    emoji: '📊',
-    name: 'Data Analyst',
-    description: 'Methodical trader relying on metrics and fundamentals',
+    id: 'apex',
+    name: 'APEX',
+    description: 'Aggressive first-mover. Catches narrative shifts and deploys capital before the crowd.',
     stats: [
-      { label: 'Analysis Depth', value: 90 },
-      { label: 'Risk Tolerance', value: 50 },
-      { label: 'Speed', value: 60 },
+      { label: 'Aggression', value: 92 },
+      { label: 'Risk',       value: 88 },
+      { label: 'Speed',      value: 85 },
     ],
   },
   {
-    id: 'gamma',
-    emoji: '🤝',
-    name: 'Copy Trader',
-    description: 'Follows god wallets and successful traders',
+    id: 'oracle',
+    name: 'ORACLE',
+    description: 'Signal-driven analyst. Waits for multi-source confirmation before every entry.',
     stats: [
-      { label: 'Signal Sensitivity', value: 75 },
-      { label: 'Risk Tolerance', value: 60 },
-      { label: 'Speed', value: 85 },
+      { label: 'Precision',  value: 90 },
+      { label: 'Aggression', value: 40 },
+      { label: 'Speed',      value: 55 },
     ],
   },
   {
-    id: 'delta',
-    emoji: '🛡️',
-    name: 'Conservative',
-    description: 'Safety-first approach with strict risk management',
+    id: 'vector',
+    name: 'VECTOR',
+    description: 'Rapid scalper. High-frequency execution with tight stops and quick profit-taking.',
     stats: [
-      { label: 'Safety Priority', value: 95 },
-      { label: 'Risk Tolerance', value: 30 },
-      { label: 'Speed', value: 50 },
+      { label: 'Speed',      value: 98 },
+      { label: 'Aggression', value: 70 },
+      { label: 'Precision',  value: 65 },
     ],
   },
 ];
@@ -247,7 +242,6 @@ export default function ConfigurePage() {
               <ArchetypeCard
                 key={archetype.id}
                 id={archetype.id}
-                emoji={archetype.emoji}
                 name={archetype.name}
                 description={archetype.description}
                 stats={archetype.stats}
