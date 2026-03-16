@@ -2,12 +2,48 @@
 
 import useSWR from 'swr';
 import Link from 'next/link';
-import { Trophy, TrendingUp, Users, Target, Medal, Crown, Award } from 'lucide-react';
+import { Trophy, TrendingUp, Users, Target } from 'lucide-react';
 import { getLeaderboard } from '@/lib/api';
 import { Agent } from '@/lib/types';
 import { formatPercent, formatCurrency } from '@/lib/design-system';
 
-const glass = 'bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)]';
+const GOLD  = '#E8B45E';
+const YES_C = '#4ade80';
+const NO_C  = '#f87171';
+const BG    = '#07090F';
+const SURF  = '#0C1020';
+
+function RankBadge({ rank }: { rank: number }) {
+  const isTop3 = rank <= 3;
+  return (
+    <div
+      className="w-7 h-7 flex-shrink-0 flex items-center justify-center text-[11px] font-black font-mono"
+      style={{
+        background: isTop3 ? `rgba(232,180,94,${0.15 - (rank - 1) * 0.04})` : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${isTop3 ? `rgba(232,180,94,${0.3 - (rank - 1) * 0.08})` : 'rgba(255,255,255,0.07)'}`,
+        color: isTop3 ? GOLD : 'rgba(255,255,255,0.22)',
+      }}
+    >
+      {rank}
+    </div>
+  );
+}
+
+function Avatar({ name }: { name: string }) {
+  const hue = ((name.charCodeAt(0) ?? 0) * 41 + (name.charCodeAt(1) ?? 0) * 17) % 360;
+  return (
+    <div
+      className="w-8 h-8 flex-shrink-0 flex items-center justify-center text-[11px] font-bold font-mono"
+      style={{
+        background: `hsl(${hue},35%,10%)`,
+        border: `1px solid hsl(${hue},35%,20%)`,
+        color: `hsl(${hue},60%,58%)`,
+      }}
+    >
+      {name.slice(0, 2).toUpperCase()}
+    </div>
+  );
+}
 
 export default function Leaderboard() {
   const { data: agents = [], isLoading } = useSWR('/arena/leaderboard', getLeaderboard, {
@@ -15,13 +51,6 @@ export default function Leaderboard() {
     revalidateOnFocus: false,
     dedupingInterval: 5000,
   });
-
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Crown className="w-6 h-6 text-yellow-400" />;
-    if (rank === 2) return <Medal className="w-6 h-6 text-gray-300" />;
-    if (rank === 3) return <Award className="w-6 h-6 text-amber-600" />;
-    return null;
-  };
 
   const stats = [
     { label: 'Total Agents', value: agents.length, icon: Users },
@@ -32,162 +61,125 @@ export default function Leaderboard() {
 
   if (isLoading && agents.length === 0) {
     return (
-      <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative">
-        <div className="fixed inset-0 z-0">
-          <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/bg.png)' }} />
-          <div className="absolute inset-0 bg-black/80" />
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)' }} />
-        </div>
-        <div className="relative z-10 animate-pulse space-y-8">
-          <div className="h-16 bg-white/[0.02] rounded-xl w-1/3" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-32 bg-white/[0.02] rounded-xl" />
-            ))}
-          </div>
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="h-20 bg-white/[0.02] rounded-xl" />
-            ))}
-          </div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: BG }}>
+        <div className="flex flex-col items-center gap-5">
+          <div className="w-8 h-8 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'rgba(232,180,94,0.15)', borderTopColor: GOLD }} />
+          <p className="text-[10px] font-mono uppercase tracking-[0.35em] opacity-40" style={{ color: GOLD }}>
+            Loading leaderboard
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative">
-      {/* Background */}
-      <div className="fixed inset-0 z-0">
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" style={{ backgroundImage: 'url(/bg.png)' }} />
-        <div className="absolute inset-0 bg-black/80" />
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)' }} />
-      </div>
+    <div className="min-h-screen" style={{ background: BG }}>
 
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="text-center mb-10 sm:mb-16">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-accent-primary" />
-            <h1 className="text-3xl sm:text-5xl font-bold text-text-primary">
-              Leaderboard
-            </h1>
+      {/* Sticky header */}
+      <div className="sticky top-0 z-30 pt-16 sm:pt-[64px]"
+        style={{ background: BG, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center gap-4 px-4 sm:px-6 py-3">
+          <Trophy className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(232,180,94,0.55)' }} />
+          <h1 className="text-base font-black tracking-tight text-white font-mono">LEADERBOARD</h1>
+          <div className="flex items-center gap-1.5 ml-2">
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: YES_C }} />
+            <span className="text-[10px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.3)' }}>Live</span>
           </div>
-          <p className="text-text-muted text-sm sm:text-base">
-            {agents.length} agents competing
-          </p>
-          <div className="flex items-center justify-center gap-2 mt-3">
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-xs text-text-muted uppercase tracking-wide">Live</span>
-          </div>
+          <span className="ml-auto text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.2)' }}>{agents.length} agents</span>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-10 sm:mb-16">
-          {stats.map((stat, index) => {
+        {/* Stat strip */}
+        <div className="grid grid-cols-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          {stats.map((stat, i) => {
             const Icon = stat.icon;
             return (
-              <div key={index} className={`${glass} p-4 text-center rounded-none`}>
-                <div className="flex justify-center mb-2">
-                  <div className="p-2 rounded-lg bg-accent-primary/10">
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-accent-primary" />
-                  </div>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-text-primary mb-1">
+              <div key={i} className="flex flex-col items-center py-3 px-2"
+                style={{ borderRight: i < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                <div className="text-[15px] font-black font-mono tabular-nums" style={{ color: GOLD }}>
                   {stat.value}
                 </div>
-                <div className="text-[10px] sm:text-xs text-text-muted uppercase tracking-wide">
+                <div className="text-[9px] font-mono uppercase tracking-[0.15em] mt-0.5"
+                  style={{ color: 'rgba(255,255,255,0.22)' }}>
                   {stat.label}
                 </div>
               </div>
             );
           })}
         </div>
+      </div>
 
-        {/* Agents List */}
-        <div className="space-y-2">
-          {agents.length === 0 ? (
-            <div className={`${glass} text-center py-16 rounded-none`}>
-              <h3 className="text-xl font-bold text-text-primary mb-2">No Agents Yet</h3>
-              <p className="text-text-muted text-sm">Be the first to compete!</p>
-            </div>
-          ) : (
-            agents.map((agent, index) => {
-              const rankIcon = getRankIcon(index + 1);
-              return (
-                <Link key={agent.agentId} href={`/agents/${agent.agentId}`}>
-                  <div className={`${glass} p-4 sm:p-5 group cursor-pointer hover:bg-white/[0.06] transition-colors rounded-none`}>
-                    <div className="flex items-center gap-4 sm:gap-6">
-                      {/* Rank */}
-                      <div className="flex-shrink-0 w-10 sm:w-14 text-center">
-                        {rankIcon || (
-                          <div className="text-xl sm:text-2xl font-bold text-text-muted">
-                            #{index + 1}
-                          </div>
-                        )}
-                      </div>
+      {/* Agent rows */}
+      <div>
+        {agents.length === 0 ? (
+          <div className="py-20 text-center">
+            <Trophy className="w-8 h-8 mx-auto mb-4 opacity-8 text-white" />
+            <p className="text-[13px] font-mono" style={{ color: 'rgba(255,255,255,0.2)' }}>No agents yet — be first</p>
+          </div>
+        ) : (
+          agents.map((agent, index) => (
+            <Link key={agent.agentId} href={`/agents/${agent.agentId}`}>
+              <div
+                className="flex items-center gap-3 px-4 sm:px-6 py-4 group transition-colors"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <RankBadge rank={index + 1} />
+                <Avatar name={agent.agentName || agent.walletAddress} />
 
-                      {/* Agent Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-base sm:text-lg font-bold text-text-primary truncate group-hover:text-accent-primary transition-colors">
-                            {agent.agentName || `Agent ${agent.walletAddress.slice(0, 8)}`}
-                          </h3>
-                          {index === 0 && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-accent-primary/10 text-accent-primary border border-accent-primary/20 rounded-full font-mono">
-                              LEADER
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-text-muted font-mono truncate">
-                          {agent.walletAddress}
-                        </p>
-                      </div>
-
-                      {/* Desktop Stats */}
-                      <div className="hidden md:flex items-center gap-6">
-                        <div className="text-center">
-                          <div className="text-[10px] text-text-muted uppercase tracking-wide mb-1">Sortino</div>
-                          <div className="text-sm font-bold text-text-primary font-mono">
-                            {agent.sortino_ratio?.toFixed(2) || '—'}
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-[10px] text-text-muted uppercase tracking-wide mb-1">Win Rate</div>
-                          <div className={`text-sm font-bold font-mono ${agent.win_rate >= 60 ? 'text-green-400' : 'text-text-primary'}`}>
-                            {formatPercent(agent.win_rate)}
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-[10px] text-text-muted uppercase tracking-wide mb-1">P&L</div>
-                          <div className={`text-sm font-bold font-mono ${agent.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {formatCurrency(agent.total_pnl)}
-                          </div>
-                        </div>
-                        <div className="text-center min-w-[60px]">
-                          <div className="text-[10px] text-text-muted uppercase tracking-wide mb-1">Trades</div>
-                          <div className="text-sm font-bold text-text-primary font-mono">
-                            {agent.trade_count || 0}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Mobile Stats */}
-                      <div className="md:hidden flex flex-col items-end gap-1">
-                        <span className={`text-xs font-mono ${agent.win_rate >= 60 ? 'text-green-400' : 'text-text-muted'}`}>
-                          {formatPercent(agent.win_rate)} WR
-                        </span>
-                        <span className={`text-xs font-mono ${agent.total_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                          {formatCurrency(agent.total_pnl)}
-                        </span>
-                      </div>
-                    </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-[13px] font-semibold text-white/75 truncate group-hover:text-white/95 transition-colors">
+                      {agent.agentName || `Agent ${agent.walletAddress.slice(0, 8)}`}
+                    </p>
+                    {index === 0 && (
+                      <span className="text-[9px] font-black font-mono px-1.5 py-0.5 flex-shrink-0 tracking-wider"
+                        style={{ color: GOLD, background: 'rgba(232,180,94,0.1)', border: '1px solid rgba(232,180,94,0.25)' }}>
+                        LEADER
+                      </span>
+                    )}
                   </div>
-                </Link>
-              );
-            })
-          )}
-        </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 max-w-[100px] overflow-hidden"
+                      style={{ height: 3, background: 'rgba(255,255,255,0.06)' }}>
+                      <div className="h-full transition-all duration-700"
+                        style={{ width: `${Math.min(100, agent.win_rate || 0)}%`, background: 'rgba(232,180,94,0.5)' }} />
+                    </div>
+                    <span className="text-[10px] font-mono" style={{ color: 'rgba(232,180,94,0.55)' }}>
+                      {formatPercent(agent.win_rate)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Desktop stats */}
+                <div className="hidden md:flex items-center gap-6">
+                  {[
+                    { label: 'Sortino', val: agent.sortino_ratio?.toFixed(2) || '—', color: undefined },
+                    { label: 'P&L', val: formatCurrency(agent.total_pnl), color: agent.total_pnl >= 0 ? YES_C : NO_C },
+                    { label: 'Trades', val: String(agent.trade_count || 0), color: undefined },
+                  ].map((s) => (
+                    <div key={s.label} className="text-right">
+                      <div className="text-[13px] font-black font-mono"
+                        style={{ color: s.color || 'rgba(255,255,255,0.7)' }}>{s.val}</div>
+                      <div className="text-[9px] font-mono uppercase tracking-[0.15em] mt-0.5"
+                        style={{ color: 'rgba(255,255,255,0.2)' }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mobile: just P&L */}
+                <div className="md:hidden text-right flex-shrink-0">
+                  <div className="text-[13px] font-black font-mono"
+                    style={{ color: agent.total_pnl >= 0 ? YES_C : NO_C }}>
+                    {formatCurrency(agent.total_pnl)}
+                  </div>
+                  <div className="text-[9px] font-mono mt-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>P&L</div>
+                </div>
+              </div>
+            </Link>
+          ))
+        )}
       </div>
     </div>
   );
