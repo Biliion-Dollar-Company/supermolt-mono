@@ -56,6 +56,22 @@ const NO_C = '#f87171';
 const BG = '#07090F';
 const SURF = '#0C1020';
 
+function Avatar({ name }: { name: string }) {
+  const hue = ((name.charCodeAt(0) ?? 0) * 41 + (name.charCodeAt(1) ?? 0) * 17) % 360;
+  return (
+    <div
+      className="w-16 h-16 flex-shrink-0 flex items-center justify-center text-xl font-black font-mono"
+      style={{
+        background: `hsl(${hue},35%,10%)`,
+        border: `1px solid hsl(${hue},35%,22%)`,
+        color: `hsl(${hue},60%,58%)`,
+      }}
+    >
+      {(name.slice(0, 2)).toUpperCase()}
+    </div>
+  );
+}
+
 const TASK_ICONS: Record<string, string> = {
   TWITTER_DISCOVERY: '🐦',
   COMMUNITY_ANALYSIS: '👥',
@@ -170,26 +186,13 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%]"
-        style={{ backgroundColor: BG }}
-      >
-        <div className="fixed inset-0 z-0">
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: 'url(/bg.png)' }}
-          />
-          <div className="absolute inset-0 bg-black/80" />
-        </div>
-        <div className="relative z-10 animate-pulse space-y-6">
-          <div className="h-8 w-40" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
-          <div className="h-48" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
-          <div className="grid grid-cols-5 gap-0 border" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-20" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }} />
-            ))}
-          </div>
-          <div className="h-80" style={{ backgroundColor: 'rgba(255,255,255,0.04)' }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: BG }}>
+        <div className="flex flex-col items-center gap-5">
+          <div className="w-8 h-8 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'rgba(232,180,94,0.15)', borderTopColor: GOLD }} />
+          <p className="text-[10px] font-mono uppercase tracking-[0.35em] opacity-40" style={{ color: GOLD }}>
+            Loading agent
+          </p>
         </div>
       </div>
     );
@@ -197,28 +200,14 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
   if (!agent) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center relative"
-        style={{ backgroundColor: BG }}
-      >
-        <div className="fixed inset-0 z-0">
-          <div
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: 'url(/bg.png)' }}
-          />
-          <div className="absolute inset-0 bg-black/80" />
-        </div>
-        <div
-          className="relative z-10 p-8 text-center max-w-md"
-          style={{ backgroundColor: SURF, border: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          <h2 className="text-2xl font-bold text-white mb-4">Agent Not Found</h2>
-          <button
-            onClick={() => router.back()}
-            style={{ color: GOLD }}
-            className="hover:opacity-80 transition-opacity"
-          >
-            Go Back
+      <div className="min-h-screen flex items-center justify-center" style={{ background: BG }}>
+        <div className="p-8 text-center max-w-md"
+          style={{ background: SURF, border: '1px solid rgba(255,255,255,0.08)' }}>
+          <h2 className="text-xl font-bold text-white mb-4 font-mono">Agent Not Found</h2>
+          <button onClick={() => router.back()}
+            className="text-[13px] font-mono hover:opacity-80 transition-opacity"
+            style={{ color: GOLD }}>
+            ← Go Back
           </button>
         </div>
       </div>
@@ -243,39 +232,26 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const recentPredictions = predictionProfile?.recentPredictions ?? [];
 
   return (
-    <div
-      className="min-h-screen pt-20 sm:pt-24 pb-16 px-4 sm:px-[8%] lg:px-[15%] relative"
-      style={{ backgroundColor: BG }}
-    >
-      {/* Background */}
-      <div className="fixed inset-0 z-0">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: 'url(/bg.png)' }}
-        />
-        <div className="absolute inset-0 bg-black/80" />
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.9) 100%)',
-          }}
-        />
-      </div>
-
-      <div className="relative z-10">
-        {/* Back Button */}
-        <div className="mb-6">
+    <div className="min-h-screen" style={{ background: BG }}>
+      {/* Sticky sub-header with back button */}
+      <div className="sticky top-0 z-30 pt-16 sm:pt-[64px]"
+        style={{ background: BG, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center gap-3 px-4 sm:px-6 py-3">
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-sm transition-opacity hover:opacity-70 cursor-pointer"
-            style={{ color: 'rgba(255,255,255,0.4)' }}
+            className="w-8 h-8 flex items-center justify-center flex-shrink-0 transition-all"
+            style={{ border: '1px solid rgba(232,180,94,0.18)', color: 'rgba(232,180,94,0.4)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(232,180,94,0.5)'; e.currentTarget.style.color = GOLD; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(232,180,94,0.18)'; e.currentTarget.style.color = 'rgba(232,180,94,0.4)'; }}
           >
-            <ArrowLeft className="w-4 h-4" />
-            Back
+            <ArrowLeft className="w-3.5 h-3.5" />
           </button>
+          <span className="text-[10px] font-mono uppercase tracking-[0.25em]"
+            style={{ color: 'rgba(255,255,255,0.25)' }}>Agent Profile</span>
         </div>
+      </div>
 
+      <div>
         {/* Hero Banner */}
         <div
           className="mb-0"
@@ -287,14 +263,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
           <div className="p-6 flex items-start gap-5">
             {/* Avatar */}
             <div className="flex-shrink-0">
-              <div
-                className="w-20 h-20 flex items-center justify-center rounded-full"
-                style={{ backgroundColor: GOLD }}
-              >
-                <span className="text-3xl font-bold text-black">
-                  {agent.agentName?.charAt(0) || 'A'}
-                </span>
-              </div>
+              <Avatar name={agent.agentName || agent.walletAddress.slice(0, 4)} />
             </div>
 
             {/* Info */}
@@ -407,7 +376,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className="flex items-center gap-1.5 px-5 py-3.5 text-sm font-medium transition-colors border-b-2 cursor-pointer"
+              className="flex items-center gap-1.5 px-5 py-3.5 text-[11px] font-mono font-bold uppercase tracking-wider transition-colors border-b-2 cursor-pointer"
               style={{
                 borderBottomColor: activeTab === tab.id ? GOLD : 'transparent',
                 color: activeTab === tab.id ? GOLD : 'rgba(255,255,255,0.35)',
@@ -951,3 +920,4 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     </div>
   );
 }
+
