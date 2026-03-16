@@ -99,10 +99,10 @@ function MarketRow({ market, selected, onClick }: { market: PredictionMarket; se
         {/* Ticker + prob inline */}
         <div className="flex items-center justify-between mb-1.5">
           <span
-            className="text-[11px] font-black font-mono uppercase tracking-wider"
-            style={{ color: selected ? GOLD : 'rgba(255,255,255,0.35)' }}
+            className="text-[9px] font-mono px-1.5 py-0.5 rounded uppercase tracking-wider"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)' }}
           >
-            {market.ticker}
+            {market.platform}
           </span>
           <span
             className="text-[12px] font-black font-mono tabular-nums"
@@ -404,7 +404,7 @@ export default function PredictionArenaPage() {
           style={{ background: 'rgba(7,9,15,0.82)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
         >
           {/* Top row */}
-          <div className="flex items-center gap-4 px-5 sm:px-6 py-3 max-w-[1400px] mx-auto w-full px-6 sm:px-10">
+          <div className="flex items-center gap-4 px-8 sm:px-12 py-3 max-w-[1280px] mx-auto w-full">
             {/* Back */}
             <Link
               href="/arena"
@@ -528,7 +528,7 @@ export default function PredictionArenaPage() {
 
         {/* ── Alerts ──────────────────────────────────────────────── */}
         {(error || success) && (
-          <div className="px-5 sm:px-6 pt-3 flex-shrink-0 z-10 relative">
+          <div className="px-8 sm:px-12 pt-3 flex-shrink-0 z-10 relative max-w-[1280px] mx-auto w-full">
             {error && (
               <div
                 className="px-4 py-3 text-[11px] font-mono mb-2 rounded-lg"
@@ -553,7 +553,7 @@ export default function PredictionArenaPage() {
         {/* 3-col layout                                              */}
         {/* ══════════════════════════════════════════════════════════ */}
         <div
-          className="flex-1 lg:grid lg:grid-cols-[240px_1fr_280px] min-h-0 max-w-[1400px] mx-auto w-full px-6 sm:px-10"
+          className="flex-1 lg:grid lg:grid-cols-[240px_1fr_280px] min-h-0 max-w-[1280px] mx-auto w-full"
           style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
         >
 
@@ -642,14 +642,8 @@ export default function PredictionArenaPage() {
                   {/* Top meta row */}
                   <div className="flex items-center gap-2.5 mb-4">
                     <span
-                      className="text-[12px] font-black font-mono uppercase tracking-wider"
-                      style={{ color: GOLD }}
-                    >
-                      {market.ticker}
-                    </span>
-                    <span
-                      className="text-[9px] font-mono px-1.5 py-0.5 rounded"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.28)' }}
+                      className="text-[9px] font-black font-mono uppercase tracking-wider px-2 py-0.5 rounded"
+                      style={{ background: `${GOLD}15`, border: `1px solid ${GOLD}30`, color: GOLD }}
                     >
                       {market.platform}
                     </span>
