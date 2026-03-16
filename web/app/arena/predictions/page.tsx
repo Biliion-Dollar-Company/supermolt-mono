@@ -718,7 +718,7 @@ export default function PredictionArenaPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     {[
                       { label: 'Vol', val: `$${fmt$(market.volume)}` },
-                      { label: 'Predictions', val: fmt$(market.totalPredictions ?? 0) },
+                      { label: 'Predictions', val: fmt$(stats?.totalPredictions ?? 0) },
                     ].map((chip) => (
                       <span
                         key={chip.label}

@@ -1,11 +1,11 @@
 'use client';
 
-import { Eye, Zap, BarChart2, Target } from 'lucide-react';
+import { Eye, Zap, BarChart2, Target, type LucideProps } from 'lucide-react';
 import { StatBar } from './StatBar';
 
 const GOLD = '#E8B45E';
 
-const ICONS: Record<string, React.ElementType> = {
+const ICONS: Record<string, React.FC<LucideProps>> = {
   phantom: Eye,
   apex:    Zap,
   oracle:  BarChart2,
@@ -27,7 +27,7 @@ interface ArchetypeCardProps {
 }
 
 export function ArchetypeCard({ id, name, description, stats, selected, onSelect }: ArchetypeCardProps) {
-  const Icon = ICONS[id] ?? Target;
+  const Icon: React.FC<LucideProps> = ICONS[id] ?? Target;
 
   return (
     <button
