@@ -1,5 +1,8 @@
 'use client';
 
+const GOLD = '#E8B45E';
+const BG   = '#07090F';
+
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuthStore } from '@/store/authStore';
@@ -11,7 +14,7 @@ const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines')
 // ── Skeleton ─────────────────────────────────────────────────────
 
 function SkeletonBlock({ className = '' }: { className?: string }) {
-    return <div className={`bg-white/[0.03] animate-pulse rounded ${className}`} />;
+    return <div className={`bg-white/[0.03] animate-pulse ${className}`} />;
 }
 
 function DashboardSkeleton() {
@@ -52,7 +55,7 @@ export default function DashboardPage() {
 
     if (!_hasHydrated || loading) {
         return (
-            <div className="min-h-screen pt-16 sm:pt-20 pb-8 px-4 sm:px-[8%] lg:px-[12%] relative">
+            <div className="min-h-screen pt-16 sm:pt-20 pb-8 px-4 sm:px-[8%] lg:px-[12%] relative" style={{ background: BG }}>
                 <BackgroundLayer />
                 <div className="relative z-10">
                     <DashboardSkeleton />
@@ -62,15 +65,15 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="min-h-screen pt-16 sm:pt-20 pb-8 px-4 sm:px-[8%] lg:px-[12%] relative">
+        <div className="min-h-screen pt-16 sm:pt-20 pb-8 px-4 sm:px-[8%] lg:px-[12%] relative" style={{ background: BG }}>
             <BackgroundLayer />
 
             <div className="relative z-10">
                 {/* Page Header */}
                 <div className="flex items-center gap-4 mb-6">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Command Center</h1>
-                        <p className="text-xs sm:text-sm text-text-muted mt-0.5">Your agent&apos;s data ingestion pipeline — each source is fully configurable and feeds real-time signals into your trading strategy.</p>
+                        <h1 className="text-lg font-black font-mono text-white tracking-tight">COMMAND CENTER</h1>
+                        <p className="text-[11px] font-mono mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Your agent&apos;s data ingestion pipeline — each source feeds real-time signals into your strategy.</p>
                     </div>
                 </div>
 
@@ -121,11 +124,6 @@ function BackgroundLayer() {
                         brightness={0.9}
                     />
                 </div>
-            </div>
-            <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none">
-                <div className="absolute top-[10%] left-[15%] w-[700px] h-[700px] rounded-full bg-[radial-gradient(circle,rgba(59,130,246,0.05)_0%,transparent_70%)]" />
-                <div className="absolute top-[45%] right-[10%] w-[550px] h-[550px] rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.04)_0%,transparent_70%)]" />
-                <div className="absolute bottom-[5%] left-[35%] w-[500px] h-[500px] rounded-full bg-[radial-gradient(circle,rgba(6,182,212,0.03)_0%,transparent_70%)]" />
             </div>
         </>
     );

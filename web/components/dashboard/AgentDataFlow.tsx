@@ -1,5 +1,8 @@
 'use client';
 
+const GOLD = '#E8B45E';
+const SURF = '#0C1020';
+
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Pill, Crosshair, Swords, Drama, Rocket, Zap, ChevronDown, ListChecks, MessageSquare, TrendingUp, Clock, ArrowUpRight, ArrowDownRight, Activity, Eye, BarChart3, Users, Flame, Sparkles, Target, Globe } from 'lucide-react';
 import { usePrivy } from '@privy-io/react-auth';
@@ -89,7 +92,7 @@ const FEED_DETAILS: Record<string, {
 const AGENT_STATUS: Record<string, { label: string; color: string; dot: string }> = {
     TRAINING: { label: 'Training', color: 'text-yellow-400', dot: 'bg-yellow-400' },
     ACTIVE: { label: 'Active', color: 'text-emerald-400', dot: 'bg-emerald-400' },
-    PAUSED: { label: 'Paused', color: 'text-text-muted', dot: 'bg-text-muted' },
+    PAUSED: { label: 'Paused', color: 'rgba(255,255,255,0.35)', dot: 'bg-white/30' },
 };
 
 // ── Pulse animation engine ──────────────────────────────────────
@@ -420,8 +423,8 @@ export function AgentDataFlow() {
                                         <div className="flex items-center gap-3">
                                             <Icon className="w-6 h-6 flex-shrink-0" style={{ color: feed.color }} />
                                             <div className="min-w-0 text-left">
-                                                <div className="text-sm font-bold text-text-primary leading-tight">{feed.label}</div>
-                                                <div className="text-[10px] text-text-muted">{feed.desc}</div>
+                                                <div className="text-sm font-bold text-white leading-tight">{feed.label}</div>
+                                                <div className="text-[10px] text-white/35">{feed.desc}</div>
                                             </div>
                                         </div>
                                     </button>
@@ -484,19 +487,19 @@ export function AgentDataFlow() {
                             onClick={() => setExpanded(!expanded)}
                             className="w-full px-4 py-4 flex items-center gap-3.5 cursor-pointer active:bg-white/[0.04] transition-colors"
                         >
-                            <div className="w-11 h-11 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <div className="w-11 h-11 rounded-full bg-[rgba(232,180,94,0.08)] border-2 border-[rgba(232,180,94,0.30)] flex items-center justify-center overflow-hidden flex-shrink-0">
                                 {avatarUrl ? (
                                     <img src={avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
                                 ) : (
-                                    <span className="text-accent-primary font-bold text-lg">
+                                    <span className="text-[#E8B45E] font-bold text-lg">
                                         {agent.name?.charAt(0)?.toUpperCase() ?? '?'}
                                     </span>
                                 )}
                             </div>
                             <div className="flex-1 min-w-0 text-left">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-sm font-bold text-text-primary truncate">{agent.name}</span>
-                                    <span className="bg-accent-primary/15 border border-accent-primary/25 px-1.5 py-0.5 text-[10px] font-bold text-accent-primary">
+                                    <span className="text-sm font-bold text-white truncate">{agent.name}</span>
+                                    <span className="bg-[rgba(232,180,94,0.12)] border border-[rgba(232,180,94,0.25)] px-1.5 py-0.5 text-[10px] font-bold text-[#E8B45E]">
                                         Lv.{agent.level}
                                     </span>
                                     <div className={`flex items-center gap-1 text-[10px] font-semibold ${statusInfo.color}`}>
@@ -511,13 +514,13 @@ export function AgentDataFlow() {
                                             style={{ width: `${xpPercent}%` }}
                                         />
                                     </div>
-                                    <span className="text-[10px] text-text-muted font-mono whitespace-nowrap">
+                                    <span className="text-[10px] text-white/35 font-mono whitespace-nowrap">
                                         {agent.xp}/{agent.xpForNextLevel}
                                     </span>
                                 </div>
                             </div>
                             <ChevronDown
-                                className="w-4 h-4 text-text-muted flex-shrink-0 transition-transform duration-300"
+                                className="w-4 h-4 text-white/35 flex-shrink-0 transition-transform duration-300"
                                 style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                             />
                         </button>
@@ -530,7 +533,7 @@ export function AgentDataFlow() {
                             <div className="overflow-hidden">
                                 <div className="bg-white/[0.06] backdrop-blur-xl border-t border-white/[0.06]">
                                     <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-xs font-bold text-text-primary">
+                                        <span className="text-xs font-bold text-white">
                                             {DETAIL_TABS.find(t => t.id === activeTab)?.label}
                                         </span>
                                         <div className="flex items-center gap-1">
@@ -546,14 +549,14 @@ export function AgentDataFlow() {
                                                         onClick={() => setActiveTab(tab.id)}
                                                         className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
                                                             isActive
-                                                                ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                                                                : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.03] border border-transparent'
+                                                                ? 'text-[#E8B45E] bg-[rgba(232,180,94,0.08)] border border-[rgba(232,180,94,0.20)]'
+                                                                : 'text-white/35 hover:text-white/55 hover:bg-white/[0.03] border border-transparent'
                                                         }`}
                                                     >
                                                         <Icon className="w-3.5 h-3.5" />
                                                         {count > 0 && (
                                                             <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                                                                isActive ? 'bg-accent-primary/20 text-accent-primary' : 'bg-white/[0.06] text-text-muted'
+                                                                isActive ? 'bg-[rgba(232,180,94,0.16)] text-[#E8B45E]' : 'bg-white/[0.06] text-white/35'
                                                             }`}>
                                                                 {count}
                                                             </span>
@@ -566,7 +569,7 @@ export function AgentDataFlow() {
                                     <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
                                         {detailLoading ? (
                                             <div className="flex items-center justify-center py-8">
-                                                <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
+                                                <div className="w-5 h-5 border-2 border-[rgba(232,180,94,0.30)] border-t-accent-primary rounded-full animate-spin" />
                                             </div>
                                         ) : activeTab === 'tasks' ? (
                                             <TasksSection tasks={activeTasks} />
@@ -591,10 +594,10 @@ export function AgentDataFlow() {
 
                             <div className="relative px-4 py-5">
                                 {/* Title row — full width */}
-                                <h3 className="text-base font-bold text-text-primary text-center w-full">
+                                <h3 className="text-base font-bold text-white text-center w-full">
                                     {authenticated ? 'Deploy Your Agent' : 'Deploy Your Agent'}
                                 </h3>
-                                <p className="text-[11px] text-text-muted text-center mt-1 leading-relaxed">
+                                <p className="text-[11px] text-white/35 text-center mt-1 leading-relaxed">
                                     {authenticated
                                         ? 'All data feeds are live. Configure your strategy and start trading.'
                                         : 'All data feeds converge here. Sign in to activate your AI trading agent.'}
@@ -603,9 +606,9 @@ export function AgentDataFlow() {
                                 {/* CTA button */}
                                 <div className="mt-4">
                                     <div className="relative">
-                                        <div className="absolute -inset-1 bg-accent-primary/20 blur-lg" />
-                                        <div className="relative w-full py-3 bg-accent-primary/15 border border-accent-primary/40 flex items-center justify-center">
-                                            <span className="text-base font-bold text-accent-primary tracking-wide">
+                                        <div className="absolute -inset-1 bg-[rgba(232,180,94,0.16)] blur-lg" />
+                                        <div className="relative w-full py-3 bg-[rgba(232,180,94,0.12)] border border-[rgba(232,180,94,0.40)] flex items-center justify-center">
+                                            <span className="text-base font-bold text-[#E8B45E] tracking-wide">
                                                 {authenticated ? 'Create' : 'Create'}
                                             </span>
                                         </div>
@@ -668,8 +671,8 @@ export function AgentDataFlow() {
                                 <div className="flex items-center gap-2">
                                     <Icon className="w-4 h-4 flex-shrink-0" style={{ color: feed.color }} />
                                     <div className="flex flex-col">
-                                        <span className="text-xs font-bold text-text-primary whitespace-nowrap leading-tight">{feed.label}</span>
-                                        <span className="text-[9px] text-text-muted whitespace-nowrap">{feed.desc}</span>
+                                        <span className="text-xs font-bold text-white whitespace-nowrap leading-tight">{feed.label}</span>
+                                        <span className="text-[9px] text-white/35 whitespace-nowrap">{feed.desc}</span>
                                     </div>
                                 </div>
                             </div>
@@ -689,21 +692,21 @@ export function AgentDataFlow() {
                             className="relative cursor-pointer group"
                         >
                             {/* Glow */}
-                            <div className="absolute -inset-3 bg-accent-primary/[0.06] blur-xl pointer-events-none group-hover:bg-accent-primary/[0.1] transition-all duration-300" />
+                            <div className="absolute -inset-3 bg-[rgba(232,180,94,0.06)] blur-xl pointer-events-none group-hover:bg-[rgba(232,180,94,0.08)] transition-all duration-300" />
 
                             <div className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-4 py-2.5 flex items-center gap-3 shadow-[0_0_40px_rgba(232,180,94,0.06)] group-hover:bg-[#0e0e18] transition-colors duration-200">
                                 {/* Corner brackets */}
-                                <span className="absolute top-0 left-0 w-3 h-3 border-t border-l border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
-                                <span className="absolute top-0 right-0 w-3 h-3 border-t border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
-                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
-                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-accent-primary/40 group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute top-0 left-0 w-3 h-3 border-t border-l border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute top-0 right-0 w-3 h-3 border-t border-r border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/60 transition-colors" />
 
                                 {/* Avatar */}
-                                <div className="w-9 h-9 rounded-full bg-accent-primary/10 border-2 border-accent-primary/30 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <div className="w-9 h-9 rounded-full bg-[rgba(232,180,94,0.08)] border-2 border-[rgba(232,180,94,0.30)] flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarUrl ? (
                                         <img src={avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
                                     ) : (
-                                        <span className="text-accent-primary font-bold text-base">
+                                        <span className="text-[#E8B45E] font-bold text-base">
                                             {agent.name?.charAt(0)?.toUpperCase() ?? '?'}
                                         </span>
                                     )}
@@ -712,8 +715,8 @@ export function AgentDataFlow() {
                                 {/* Info */}
                                 <div className="flex flex-col gap-1 min-w-0 text-left">
                                     <div className="flex items-center gap-2">
-                                        <h3 className="text-sm font-bold text-text-primary truncate">{agent.name}</h3>
-                                        <span className="bg-accent-primary/15 border border-accent-primary/25 px-1.5 py-0.5 text-[10px] font-bold text-accent-primary whitespace-nowrap">
+                                        <h3 className="text-sm font-bold text-white truncate">{agent.name}</h3>
+                                        <span className="bg-[rgba(232,180,94,0.12)] border border-[rgba(232,180,94,0.25)] px-1.5 py-0.5 text-[10px] font-bold text-[#E8B45E] whitespace-nowrap">
                                             Lv.{agent.level}
                                         </span>
                                         <div className={`flex items-center gap-1 text-[9px] font-semibold ${statusInfo.color}`}>
@@ -730,7 +733,7 @@ export function AgentDataFlow() {
                                                 style={{ width: `${xpPercent}%` }}
                                             />
                                         </div>
-                                        <span className="text-[10px] text-text-muted font-mono whitespace-nowrap">
+                                        <span className="text-[10px] text-white/35 font-mono whitespace-nowrap">
                                             {agent.xp}/{agent.xpForNextLevel}
                                         </span>
                                     </div>
@@ -739,7 +742,7 @@ export function AgentDataFlow() {
                                 {/* Expand chevron */}
                                 <div className="pl-2 border-l border-white/[0.06] ml-1 flex-shrink-0">
                                     <ChevronDown
-                                        className="w-4 h-4 text-text-muted transition-transform duration-300 ease-out"
+                                        className="w-4 h-4 text-white/35 transition-transform duration-300 ease-out"
                                         style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
                                     />
                                 </div>
@@ -752,7 +755,7 @@ export function AgentDataFlow() {
                             <div className="overflow-hidden">
                                 <div className="bg-[#0e0e18]/95 backdrop-blur-xl border-t border-white/[0.06]">
                                     <div className="flex items-center justify-between px-4 py-2.5">
-                                        <span className="text-xs font-bold text-text-primary">
+                                        <span className="text-xs font-bold text-white">
                                             {DETAIL_TABS.find(t => t.id === activeTab)?.label}
                                         </span>
                                         <div className="flex items-center gap-1">
@@ -768,15 +771,15 @@ export function AgentDataFlow() {
                                                         onClick={() => setActiveTab(tab.id)}
                                                         className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
                                                             isActive
-                                                                ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20'
-                                                                : 'text-text-muted hover:text-text-secondary hover:bg-white/[0.03] border border-transparent'
+                                                                ? 'text-[#E8B45E] bg-[rgba(232,180,94,0.08)] border border-[rgba(232,180,94,0.20)]'
+                                                                : 'text-white/35 hover:text-white/55 hover:bg-white/[0.03] border border-transparent'
                                                         }`}
                                                     >
                                                         <Icon className="w-3.5 h-3.5" />
                                                         <span className="hidden sm:inline">{tab.label}</span>
                                                         {count > 0 && (
                                                             <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                                                                isActive ? 'bg-accent-primary/20 text-accent-primary' : 'bg-white/[0.06] text-text-muted'
+                                                                isActive ? 'bg-[rgba(232,180,94,0.16)] text-[#E8B45E]' : 'bg-white/[0.06] text-white/35'
                                                             }`}>
                                                                 {count}
                                                             </span>
@@ -789,7 +792,7 @@ export function AgentDataFlow() {
                                     <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
                                         {detailLoading ? (
                                             <div className="flex items-center justify-center py-8">
-                                                <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
+                                                <div className="w-5 h-5 border-2 border-[rgba(232,180,94,0.30)] border-t-accent-primary rounded-full animate-spin" />
                                             </div>
                                         ) : activeTab === 'tasks' ? (
                                             <TasksSection tasks={activeTasks} />
@@ -806,25 +809,25 @@ export function AgentDataFlow() {
                     ) : (
                         /* No agent — CTA */
                         <div className="relative group">
-                            <div className="absolute -inset-4 bg-accent-primary/[0.06] blur-2xl pointer-events-none group-hover:bg-accent-primary/[0.1] transition-all duration-500" />
+                            <div className="absolute -inset-4 bg-[rgba(232,180,94,0.06)] blur-2xl pointer-events-none group-hover:bg-[rgba(232,180,94,0.08)] transition-all duration-500" />
                             <button
                                 onClick={() => { if (!authenticated) login(); }}
                                 className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-6 py-3 max-w-sm cursor-pointer hover:bg-[#0e0e18] transition-all duration-300"
                             >
                                 {/* Corner brackets */}
-                                <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
-                                <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
-                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
-                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-accent-primary/40 group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
 
                                 {/* Inline: title + button side by side */}
                                 <div className="flex items-center gap-4">
-                                    <h3 className="text-sm font-bold text-text-primary whitespace-nowrap">
+                                    <h3 className="text-sm font-bold text-white whitespace-nowrap">
                                         {authenticated ? 'Create Your Agent' : 'Deploy Your Agent'}
                                     </h3>
-                                    <div className="flex items-center gap-1.5 px-4 py-2 bg-accent-primary/10 border border-accent-primary/30 group-hover:bg-accent-primary/20 group-hover:border-accent-primary/50 transition-all duration-300">
-                                        <Zap className="w-3.5 h-3.5 text-accent-primary" />
-                                        <span className="text-xs font-bold text-accent-primary">
+                                    <div className="flex items-center gap-1.5 px-4 py-2 bg-[rgba(232,180,94,0.08)] border border-[rgba(232,180,94,0.30)] group-hover:bg-[rgba(232,180,94,0.16)] group-hover:border-[rgba(232,180,94,0.50)] transition-all duration-300">
+                                        <Zap className="w-3.5 h-3.5 text-[#E8B45E]" />
+                                        <span className="text-xs font-bold text-[#E8B45E]">
                                             {authenticated ? 'Start' : 'Create'}
                                         </span>
                                     </div>
@@ -869,15 +872,15 @@ function FeedDetailSheet({ feedId, open, onClose, isMobile }: { feedId: string |
                             <Icon className="w-5 h-5" style={{ color: feed.color }} />
                         </div>
                         <div>
-                            <SheetTitle className="text-lg font-bold text-text-primary">{feed.label}</SheetTitle>
-                            <SheetDescription className="text-xs text-text-muted mt-0">{details.tagline}</SheetDescription>
+                            <SheetTitle className="text-lg font-bold text-white">{feed.label}</SheetTitle>
+                            <SheetDescription className="text-xs text-white/35 mt-0">{details.tagline}</SheetDescription>
                         </div>
                     </div>
                 </SheetHeader>
 
                 <div className="mt-5 space-y-6 px-1">
                     {/* Description */}
-                    <p className="text-sm text-text-secondary leading-relaxed">
+                    <p className="text-sm text-white/55 leading-relaxed">
                         {details.description}
                     </p>
 
@@ -886,14 +889,14 @@ function FeedDetailSheet({ feedId, open, onClose, isMobile }: { feedId: string |
                         {details.stats.map((stat) => (
                             <div key={stat.label} className="bg-white/[0.03] border border-white/[0.06] px-3 py-2.5 text-center">
                                 <div className="text-base font-bold font-mono" style={{ color: feed.color }}>{stat.value}</div>
-                                <div className="text-[10px] text-text-muted mt-0.5">{stat.label}</div>
+                                <div className="text-[10px] text-white/35 mt-0.5">{stat.label}</div>
                             </div>
                         ))}
                     </div>
 
                     {/* Features */}
                     <div>
-                        <h4 className="text-xs font-bold text-text-primary uppercase tracking-wider mb-3">How it works</h4>
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3">How it works</h4>
                         <div className="space-y-3">
                             {details.features.map((feature) => {
                                 const FeatureIcon = feature.icon;
@@ -906,8 +909,8 @@ function FeedDetailSheet({ feedId, open, onClose, isMobile }: { feedId: string |
                                             <FeatureIcon className="w-4 h-4" style={{ color: feed.color }} />
                                         </div>
                                         <div>
-                                            <h5 className="text-sm font-semibold text-text-primary">{feature.title}</h5>
-                                            <p className="text-xs text-text-muted leading-relaxed mt-0.5">{feature.desc}</p>
+                                            <h5 className="text-sm font-semibold text-white">{feature.title}</h5>
+                                            <p className="text-xs text-white/35 leading-relaxed mt-0.5">{feature.desc}</p>
                                         </div>
                                     </div>
                                 );
@@ -918,7 +921,7 @@ function FeedDetailSheet({ feedId, open, onClose, isMobile }: { feedId: string |
                     {/* Status indicator */}
                     <div className="flex items-center gap-2 px-3 py-2.5 bg-white/[0.02] border border-white/[0.06]">
                         <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-xs text-text-muted">Feed active — delivering signals to your agent</span>
+                        <span className="text-xs text-white/35">Feed active — delivering signals to your agent</span>
                     </div>
                 </div>
             </SheetContent>
@@ -933,7 +936,7 @@ function TasksSection({ tasks }: { tasks: AgentTaskType[] }) {
         return (
             <div className="text-center py-6">
                 <ListChecks className="w-6 h-6 text-white/10 mx-auto mb-2" />
-                <p className="text-xs text-text-muted">No active tasks</p>
+                <p className="text-xs text-white/35">No active tasks</p>
             </div>
         );
     }
@@ -943,17 +946,17 @@ function TasksSection({ tasks }: { tasks: AgentTaskType[] }) {
                 <div key={task.taskId} className="flex items-center gap-3 px-3 py-2.5 bg-white/[0.02] border border-white/[0.06] hover:border-white/[0.1] transition-colors">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${task.status === 'CLAIMED' ? 'bg-yellow-400' : 'bg-emerald-400'}`} />
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-text-primary truncate">{task.title}</p>
+                        <p className="text-xs font-semibold text-white truncate">{task.title}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[10px] text-text-muted uppercase">{task.taskType}</span>
+                            <span className="text-[10px] text-white/35 uppercase">{task.taskType}</span>
                             {task.tokenSymbol && (
-                                <span className="text-[10px] text-accent-primary font-mono">${task.tokenSymbol}</span>
+                                <span className="text-[10px] text-[#E8B45E] font-mono">${task.tokenSymbol}</span>
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-1 px-2 py-0.5 bg-accent-primary/10 border border-accent-primary/20 flex-shrink-0">
-                        <Zap className="w-3 h-3 text-accent-primary" />
-                        <span className="text-[10px] font-bold text-accent-primary">+{task.xpReward} XP</span>
+                    <div className="flex items-center gap-1 px-2 py-0.5 bg-[rgba(232,180,94,0.08)] border border-[rgba(232,180,94,0.20)] flex-shrink-0">
+                        <Zap className="w-3 h-3 text-[#E8B45E]" />
+                        <span className="text-[10px] font-bold text-[#E8B45E]">+{task.xpReward} XP</span>
                     </div>
                 </div>
             ))}
@@ -966,7 +969,7 @@ function PositionsSection({ positions }: { positions: Position[] }) {
         return (
             <div className="text-center py-6">
                 <TrendingUp className="w-6 h-6 text-white/10 mx-auto mb-2" />
-                <p className="text-xs text-text-muted">No open positions</p>
+                <p className="text-xs text-white/35">No open positions</p>
             </div>
         );
     }
@@ -984,13 +987,13 @@ function PositionsSection({ positions }: { positions: Position[] }) {
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-text-primary">${pos.tokenSymbol}</p>
+                            <p className="text-xs font-bold text-white">${pos.tokenSymbol}</p>
                             <div className="flex items-center gap-2 mt-0.5">
-                                <span className="text-[10px] text-text-muted font-mono">
+                                <span className="text-[10px] text-white/35 font-mono">
                                     Entry: ${pos.entryPrice.toFixed(6)}
                                 </span>
-                                <span className="text-[10px] text-text-muted">→</span>
-                                <span className="text-[10px] text-text-muted font-mono">
+                                <span className="text-[10px] text-white/35">→</span>
+                                <span className="text-[10px] text-white/35 font-mono">
                                     Now: ${pos.currentPrice.toFixed(6)}
                                 </span>
                             </div>
@@ -999,7 +1002,7 @@ function PositionsSection({ positions }: { positions: Position[] }) {
                             <p className={`text-xs font-bold font-mono ${isProfit ? 'text-emerald-400' : 'text-red-400'}`}>
                                 {isProfit ? '+' : ''}{pos.pnlPercent.toFixed(1)}%
                             </p>
-                            <p className="text-[10px] text-text-muted font-mono">
+                            <p className="text-[10px] text-white/35 font-mono">
                                 ${pos.currentValue.toFixed(2)}
                             </p>
                         </div>
@@ -1015,7 +1018,7 @@ function ChatsSection({ chats }: { chats: AgentConversationSummary[] }) {
         return (
             <div className="text-center py-6">
                 <MessageSquare className="w-6 h-6 text-white/10 mx-auto mb-2" />
-                <p className="text-xs text-text-muted">No conversations yet</p>
+                <p className="text-xs text-white/35">No conversations yet</p>
             </div>
         );
     }
@@ -1027,16 +1030,16 @@ function ChatsSection({ chats }: { chats: AgentConversationSummary[] }) {
                         <MessageSquare className="w-4 h-4 text-[#818CF8]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-text-primary truncate">{chat.topic}</p>
+                        <p className="text-xs font-semibold text-white truncate">{chat.topic}</p>
                         {chat.lastMessage && (
-                            <p className="text-[10px] text-text-muted truncate mt-0.5">{chat.lastMessage}</p>
+                            <p className="text-[10px] text-white/35 truncate mt-0.5">{chat.lastMessage}</p>
                         )}
                     </div>
                     <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
                         <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-text-muted">{chat.agentMessageCount} msgs</span>
+                            <span className="text-[10px] text-white/35">{chat.agentMessageCount} msgs</span>
                         </div>
-                        <div className="flex items-center gap-1 text-[10px] text-text-muted">
+                        <div className="flex items-center gap-1 text-[10px] text-white/35">
                             <Clock className="w-3 h-3" />
                             <span>{new Date(chat.lastMessageAt).toLocaleDateString()}</span>
                         </div>

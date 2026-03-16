@@ -1,5 +1,7 @@
 'use client';
 
+const GOLD = '#E8B45E';
+
 import { useState, useCallback } from 'react';
 import { Settings, Shield, TrendingUp, Save, Loader2, CheckCircle2, AlertTriangle, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,11 +32,11 @@ function ConfigSection({
                 className="w-full flex items-center justify-between px-3 py-2.5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer"
             >
                 <div className="flex items-center gap-2">
-                    <Icon className="w-3.5 h-3.5 text-accent-primary" />
-                    <span className="text-xs font-bold text-text-primary uppercase tracking-wider">{title}</span>
+                    <Icon className="w-3.5 h-3.5" style={{ color: GOLD }} />
+                    <span className="text-xs font-bold text-white font-mono uppercase tracking-wider">{title}</span>
                 </div>
                 <ChevronDown
-                    className="w-3.5 h-3.5 text-text-muted transition-transform duration-300 ease-out"
+                    className="w-3.5 h-3.5 transition-transform duration-300 ease-out" style={{ color: 'rgba(255,255,255,0.3)' }}
                     style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
                 />
             </button>
@@ -79,8 +81,8 @@ function SliderField({
     return (
         <div>
             <div className="flex items-center justify-between mb-1">
-                <label className="text-[10px] text-text-muted uppercase tracking-wider">{label}</label>
-                <span className="text-xs font-mono font-bold text-accent-primary">
+                <label className="text-[10px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.35)' }}>{label}</label>
+                <span className="text-xs font-mono font-bold" style={{ color: GOLD }}>
                     {value}{unit}
                 </span>
             </div>
@@ -91,9 +93,10 @@ function SliderField({
                 step={step}
                 value={value}
                 onChange={(e) => onChange(Number(e.target.value))}
-                className="w-full h-1 bg-white/[0.08] rounded appearance-none cursor-pointer accent-accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent-primary [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(232,180,94,0.4)]"
+                className="w-full h-1 bg-white/[0.08] rounded appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(232,180,94,0.4)]"
+                style={{ accentColor: GOLD }}
             />
-            {description && <p className="text-[10px] text-text-muted mt-0.5">{description}</p>}
+            {description && <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{description}</p>}
         </div>
     );
 }
@@ -145,8 +148,8 @@ export function AgentConfigPanel() {
         <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden">
             {/* Header */}
             <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
-                <Settings className="w-4 h-4 text-accent-primary" />
-                <h3 className="text-sm font-bold text-text-primary">Agent Configuration</h3>
+                <Settings className="w-4 h-4" style={{ color: GOLD }} />
+                <h3 className="text-sm font-bold text-white">Agent Configuration</h3>
             </div>
 
             <div className="p-3 space-y-3">
@@ -192,7 +195,8 @@ export function AgentConfigPanel() {
                     <button
                         onClick={handleSaveConfig}
                         disabled={savingConfig}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary hover:bg-accent-primary/20 transition-all text-xs font-semibold disabled:opacity-50 cursor-pointer rounded"
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 border transition-all text-xs font-semibold disabled:opacity-50 cursor-pointer rounded"
+                        style={{ background: 'rgba(232,180,94,0.08)', borderColor: 'rgba(232,180,94,0.3)', color: GOLD }}
                     >
                         {savingConfig ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                         {savingConfig ? 'Saving…' : 'Save Config'}
@@ -201,7 +205,7 @@ export function AgentConfigPanel() {
 
                 {/* Data Sources */}
                 <ConfigSection title="Data Feeds" icon={Shield} defaultOpen={false}>
-                    <p className="text-[10px] text-text-muted mb-2">
+                    <p className="text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>
                         Toggle which data streams your agent listens to for analysis and trade decisions.
                     </p>
                     {Object.entries({
@@ -215,8 +219,8 @@ export function AgentConfigPanel() {
                             className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0"
                         >
                             <div className="min-w-0">
-                                <span className="text-xs font-semibold text-text-primary block">{label}</span>
-                                <span className="text-[10px] text-text-muted">{desc}</span>
+                                <span className="text-xs font-semibold text-white block">{label}</span>
+                                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.35)' }}>{desc}</span>
                             </div>
                             <button
                                 onClick={() => toggleFeed(key as keyof typeof enabledFeeds)}
@@ -228,7 +232,7 @@ export function AgentConfigPanel() {
                                 <div
                                     className={`absolute top-0.5 w-3.5 h-3.5 rounded-full transition-all ${enabledFeeds[key as keyof typeof enabledFeeds]
                                         ? 'left-4 bg-emerald-400'
-                                        : 'left-0.5 bg-text-muted'
+                                        : 'left-0.5 bg-white/30'
                                         }`}
                                 />
                             </button>
