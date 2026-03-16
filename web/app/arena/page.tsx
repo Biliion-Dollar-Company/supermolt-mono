@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+const GOLD  = '#E8B45E';
+const YES_C = '#4ade80';
+const BG    = '#07090F';
+const SURF  = '#0C1020';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 
-import { Swords, MessageSquare, Copy, Check, LayoutGrid, Zap, LineChart } from 'lucide-react';
+import { MessageSquare, Copy, Check, LayoutGrid, LineChart } from 'lucide-react';
 import { getTrendingTokens, getRecentTrades, getAllPositions, getMyAgent } from '@/lib/api';
 import type { TrendingToken, Trade, Position } from '@/lib/types';
 import {
@@ -180,13 +185,12 @@ function TokenChip({ token, isSelected, onSelect }: { token: ArenaToken; isSelec
   return (
     <button
       onClick={onSelect}
-      className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 border transition-all cursor-pointer ${
-        isSelected
-          ? 'border-accent-primary/50 bg-accent-primary/5'
-          : 'border-white/[0.06] hover:bg-white/[0.03]'
-      }`}
+      className="flex-shrink-0 flex items-center gap-2 px-3 py-2 border transition-all cursor-pointer"
+      style={isSelected
+        ? { borderColor: 'rgba(232,180,94,0.5)', background: 'rgba(232,180,94,0.06)' }
+        : { borderColor: 'rgba(255,255,255,0.07)', background: 'transparent' }}
     >
-      <span className="text-sm font-bold font-mono text-text-primary whitespace-nowrap">
+      <span className="text-sm font-bold font-mono text-white/80 whitespace-nowrap">
         {token.tokenSymbol}
       </span>
       {token.tokenMint && (
@@ -199,7 +203,8 @@ function TokenChip({ token, isSelected, onSelect }: { token: ArenaToken; isSelec
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           }}
-          className="text-text-muted hover:text-text-secondary transition-colors ml-0.5 cursor-pointer"
+          className="transition-colors ml-0.5 cursor-pointer"
+          style={{ color: 'rgba(255,255,255,0.35)' }}
         >
           {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
         </span>
@@ -250,23 +255,23 @@ function ClassicArenaView() {
           <TasksPanel />
         </div>
         <div className="animate-arena-reveal min-h-0 flex flex-col max-h-[400px]" style={{ animationDelay: '60ms' }}>
-          <div className="bg-[#12121a]/50 backdrop-blur-xl border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.4)] p-4 sm:p-5 flex flex-col min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+          <div style={{ background: SURF, border: '1px solid rgba(255,255,255,0.06)', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' } as React.CSSProperties} className="p-4 sm:p-5 flex flex-col min-h-0 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold text-text-primary uppercase tracking-wider">Live Tokens</h2>
-              <span className="text-xs text-text-muted">{loading ? '' : `${tokens.length} tokens`}</span>
+              <h2 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Live Tokens</h2>
+              <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>{loading ? '' : `${tokens.length} tokens`}</span>
             </div>
             {loading ? (
               <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <div className="w-5 h-5 border-2 border-accent-primary/30 border-t-accent-primary rounded-full animate-spin" />
-                <span className="text-xs text-text-muted/60">Loading tokens...</span>
+                <div className="w-5 h-5 border-2 border-t-white/60 rounded-full animate-spin" style={{ borderColor: 'rgba(232,180,94,0.3)', borderTopColor: GOLD }} />
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Loading tokens...</span>
               </div>
             ) : tokens.length === 0 ? (
-              <div className="flex items-center justify-center py-8 text-text-muted text-sm">No recent trading activity</div>
+              <div className="flex items-center justify-center py-8 text-sm" style={{ color: 'rgba(255,255,255,0.35)' }}>No recent trading activity</div>
             ) : (
               <>
                 <div className="relative overflow-hidden mb-4" onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)}>
-                  <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#12121a]/50 to-transparent z-10 pointer-events-none" />
-                  <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#12121a]/50 to-transparent z-10 pointer-events-none" />
+                  <div className="absolute left-0 top-0 bottom-0 w-8 z-10 pointer-events-none" style={{ background: `linear-gradient(to right, ${SURF}, transparent)` }} />
+                  <div className="absolute right-0 top-0 bottom-0 w-8 z-10 pointer-events-none" style={{ background: `linear-gradient(to left, ${SURF}, transparent)` }} />
                   <div className={`flex gap-2 animate-marquee ${isPaused ? '[animation-play-state:paused]' : ''}`}>
                     {tokens.map((token) => (
                       <TokenChip key={token.tokenSymbol} token={token} isSelected={selectedToken === token.tokenSymbol} onSelect={() => setSelectedToken(token.tokenSymbol)} />
@@ -292,26 +297,26 @@ function ClassicArenaView() {
       {/* Leaderboard + Conversations | Epoch + Graduation */}
       <div className="grid grid-cols-1 lg:grid-cols-[350px_auto_1fr] gap-6">
         <div className="space-y-6 animate-arena-reveal" style={{ animationDelay: '180ms' }}>
-          <div className="relative overflow-hidden bg-white/[0.025] backdrop-blur-2xl border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_40px_rgba(0,0,0,0.5),0_0_80px_rgba(245,158,11,0.03)] p-4 sm:p-5">
-            {/* Gold accent glow — bleeds up from behind the podium */}
-            {leaderboardTab === 'trades' && (
-              <div
-                className="absolute top-12 left-1/2 -translate-x-1/2 w-40 h-24 pointer-events-none"
-                style={{ background: 'radial-gradient(ellipse,rgba(245,158,11,0.12) 0%,transparent 70%)', filter: 'blur(16px)' }}
-              />
-            )}
-            <div className="flex items-center gap-1 mb-4 relative">
-              <button onClick={() => setLeaderboardTab('trades')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'trades' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>Trades</button>
-              <button onClick={() => setLeaderboardTab('xp')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'xp' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>XP</button>
+          <div style={{ background: SURF, border: '1px solid rgba(255,255,255,0.06)' }} className="p-4 sm:p-5">
+            <div className="flex items-center gap-1 mb-4">
+              {(['trades', 'xp'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setLeaderboardTab(tab)}
+                  className="text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer font-mono"
+                  style={leaderboardTab === tab
+                    ? { color: GOLD, background: 'rgba(232,180,94,0.08)', border: '1px solid rgba(232,180,94,0.2)' }
+                    : { color: 'rgba(255,255,255,0.3)', border: '1px solid transparent' }}
+                >
+                  {tab === 'trades' ? 'Trades' : 'XP'}
+                </button>
+              ))}
             </div>
             {leaderboardTab === 'trades' ? <ArenaLeaderboard /> : <XPLeaderboard />}
           </div>
-          <div className="h-px bg-gradient-to-r from-transparent via-accent-primary/30 to-transparent" />
           <ConversationsPanel />
         </div>
-        <div className="hidden lg:flex justify-center">
-          <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
-        </div>
+        <div className="hidden lg:block w-px self-stretch" style={{ background: 'rgba(255,255,255,0.06)' }} />
         <div className="min-w-0 space-y-6">
           <div className="animate-arena-reveal" style={{ animationDelay: '180ms' }}>
             <EpochRewardPanel />
@@ -415,9 +420,7 @@ function ConversationsView() {
         </div>
 
         {/* Vertical divider */}
-        <div className="hidden lg:flex justify-center">
-          <div className="w-px h-full bg-gradient-to-b from-transparent via-accent-primary/30 to-transparent" />
-        </div>
+        <div className="hidden lg:block w-px self-stretch" style={{ background: 'rgba(255,255,255,0.06)' }} />
 
         {/* Right sidebar */}
         <div className="space-y-5">
@@ -426,17 +429,20 @@ function ConversationsView() {
           </div>
 
           <div className="animate-arena-reveal" style={{ animationDelay: '120ms' }}>
-            <div className="relative overflow-hidden bg-white/[0.025] backdrop-blur-2xl border border-white/[0.07] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_40px_rgba(0,0,0,0.5),0_0_80px_rgba(245,158,11,0.03)] p-4">
-              {/* Gold accent glow */}
-              {leaderboardTab === 'trades' && (
-                <div
-                  className="absolute top-12 left-1/2 -translate-x-1/2 w-40 h-24 pointer-events-none"
-                  style={{ background: 'radial-gradient(ellipse,rgba(245,158,11,0.12) 0%,transparent 70%)', filter: 'blur(16px)' }}
-                />
-              )}
-              <div className="flex items-center gap-1 mb-4 relative">
-                <button onClick={() => setLeaderboardTab('trades')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'trades' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>Trades</button>
-                <button onClick={() => setLeaderboardTab('xp')} className={`text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer ${leaderboardTab === 'xp' ? 'text-accent-primary bg-accent-primary/10 border border-accent-primary/20' : 'text-text-muted hover:text-text-secondary'}`}>XP</button>
+            <div style={{ background: SURF, border: '1px solid rgba(255,255,255,0.06)' }} className="p-4">
+              <div className="flex items-center gap-1 mb-4">
+                {(['trades', 'xp'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setLeaderboardTab(tab)}
+                    className="text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer font-mono"
+                    style={leaderboardTab === tab
+                      ? { color: GOLD, background: 'rgba(232,180,94,0.08)', border: '1px solid rgba(232,180,94,0.2)' }
+                      : { color: 'rgba(255,255,255,0.3)', border: '1px solid transparent' }}
+                  >
+                    {tab === 'trades' ? 'Trades' : 'XP'}
+                  </button>
+                ))}
               </div>
               {leaderboardTab === 'trades' ? <ArenaLeaderboard /> : <XPLeaderboard />}
             </div>
@@ -457,10 +463,6 @@ function ConversationsView() {
     </>
   );
 }
-
-// ── Main Arena Page ──
-
-type ArenaView = 'discussions' | 'classic';
 
 // ── Command Center Section (moved from /dashboard) ──
 
@@ -496,6 +498,12 @@ function CommandCenterSection() {
 
   return (
     <div className="space-y-6 animate-arena-reveal">
+      <div className="mb-2">
+        <h1 className="text-base font-black font-mono text-white tracking-tight">COMMAND CENTER</h1>
+        <p className="text-[11px] font-mono mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          Your agent&apos;s data ingestion pipeline — each source feeds real-time signals into your strategy.
+        </p>
+      </div>
       <AgentDataFlow />
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
         <div className="space-y-6">
@@ -510,74 +518,65 @@ function CommandCenterSection() {
 
 // ── Main Arena Page ──
 
+type ArenaView = 'discussions' | 'classic';
+
 export default function ArenaPage() {
   const [view, setView] = useState<ArenaView>('discussions');
 
   return (
-    <div className="min-h-screen bg-bg-primary pt-18 sm:pt-20 pb-16 px-4 sm:px-[6%] lg:px-[10%] relative">
-      {/* Background — simple CSS gradient (no WebGL) */}
-      <div
-        className="fixed inset-0 z-0"
-        style={{
-          background: 'radial-gradient(ellipse at 50% 0%, rgba(232,180,94,0.06) 0%, transparent 50%), radial-gradient(ellipse at center, rgba(10,10,18,1) 0%, rgba(5,5,12,1) 100%)',
-        }}
-      />
-
-      {/* Subtle grid overlay */}
-      <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none bg-grid-pattern opacity-30" />
-
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 sm:mb-8 gap-2">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="relative">
-              <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-accent-primary" />
-              <div className="absolute inset-0 blur-md">
-                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-accent-primary/40" />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold text-text-primary tracking-wide" style={{ fontFamily: 'var(--font-display), Orbitron, sans-serif' }}>Arena</h1>
-              <p className="text-[10px] text-text-muted/40 font-mono hidden sm:block">Real-time agent alpha on trending tokens</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-3">
+    <div className="min-h-screen" style={{ background: BG }}>
+      {/* Sticky sub-header */}
+      <div className="sticky top-0 z-30 pt-16 sm:pt-[64px]" style={{ background: BG, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center gap-4 px-4 sm:px-6 py-3">
+          <h1 className="text-base font-black tracking-tight text-white font-mono">ARENA</h1>
+          {/* Sub-nav */}
+          <div className="flex items-center gap-1 ml-4">
             <Link
               href="/arena/predictions"
-              className="hidden sm:flex items-center gap-2 text-xs font-medium px-3 py-2 border border-cyan-400/30 text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/15 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors"
+              style={{ border: '1px solid rgba(232,180,94,0.15)', color: 'rgba(232,180,94,0.45)' }}
+              onMouseEnter={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.borderColor = 'rgba(232,180,94,0.4)'; el.style.color = GOLD; }}
+              onMouseLeave={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.borderColor = 'rgba(232,180,94,0.15)'; el.style.color = 'rgba(232,180,94,0.45)'; }}
             >
-              <LineChart className="w-3.5 h-3.5" />
-              Prediction Arena
+              Predictions
             </Link>
-            {/* View Toggle */}
-            <div className="flex items-center bg-white/[0.03] border border-white/[0.06] rounded-lg overflow-hidden p-1">
-              <button
-                onClick={() => setView('discussions')}
-                className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-md transition-all cursor-pointer ${
-                  view === 'discussions'
-                    ? 'text-accent-primary bg-accent-primary/10 shadow-sm'
-                    : 'text-text-muted/50 hover:text-text-secondary'
-                }`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span>Discussions</span>
-              </button>
-              <button
-                onClick={() => setView('classic')}
-                className={`flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-md transition-all cursor-pointer ${
-                  view === 'classic'
-                    ? 'text-accent-primary bg-accent-primary/10 shadow-sm'
-                    : 'text-text-muted/50 hover:text-text-secondary'
-                }`}
-              >
-                <LayoutGrid className="w-4 h-4" />
-                <span>Classic</span>
-              </button>
-            </div>
+            <Link
+              href="/arena/map"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors"
+              style={{ border: '1px solid rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.3)' }}
+              onMouseEnter={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.borderColor = 'rgba(255,255,255,0.15)'; el.style.color = 'rgba(255,255,255,0.65)'; }}
+              onMouseLeave={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.borderColor = 'rgba(255,255,255,0.07)'; el.style.color = 'rgba(255,255,255,0.3)'; }}
+            >
+              Map
+            </Link>
+          </div>
+          {/* View toggle — right side */}
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              onClick={() => setView('discussions')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              style={view === 'discussions'
+                ? { color: GOLD, background: 'rgba(232,180,94,0.08)', border: '1px solid rgba(232,180,94,0.2)' }
+                : { color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <MessageSquare className="w-3 h-3" />
+              Discussions
+            </button>
+            <button
+              onClick={() => setView('classic')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
+              style={view === 'classic'
+                ? { color: GOLD, background: 'rgba(232,180,94,0.08)', border: '1px solid rgba(232,180,94,0.2)' }
+                : { color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <LayoutGrid className="w-3 h-3" />
+              Classic
+            </button>
           </div>
         </div>
+      </div>
 
+      <div className="px-4 sm:px-6 lg:px-8 py-6">
         {/* Content — both views stay mounted, toggle visibility to preserve state */}
         <div className={view === 'discussions' ? '' : 'hidden'}>
           <ConversationsView />
