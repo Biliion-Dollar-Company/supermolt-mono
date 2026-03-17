@@ -226,7 +226,7 @@ export default function Home() {
                     transition={{ delay: 1.0, duration: 0.4 }}
                     className="inline-flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.06] transition-all text-xs font-mono text-white/60 hover:text-white/80"
                   >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 12l2 2 4-4" /></svg>
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
                     DexScreener
                   </motion.a>
                   <motion.a
@@ -238,7 +238,7 @@ export default function Home() {
                     transition={{ delay: 1.1, duration: 0.4 }}
                     className="inline-flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.06] transition-all text-xs font-mono text-white/60 hover:text-white/80"
                   >
-                    𝕏
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" /></svg>
                   </motion.a>
                 </div>
               </div>

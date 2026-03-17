@@ -11,9 +11,17 @@ import UserAuthButton from '@/components/auth/UserAuthButton';
 
 function DexScreenerIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M8 12l2 2 4-4" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
     </svg>
   );
 }
@@ -125,7 +133,7 @@ export default function Navbar() {
                 className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-all duration-200 text-text-secondary hover:text-text-primary whitespace-nowrap"
                 title="X / Twitter"
               >
-                <span className="text-base leading-none">𝕏</span>
+                <XIcon className="w-4 h-4" />
               </a>
             </li>
             <li className="relative h-full flex items-center ml-2">
@@ -217,7 +225,7 @@ export default function Navbar() {
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200 text-text-secondary hover:text-text-primary hover:bg-white/5"
                   >
-                    <span className="text-lg leading-none">𝕏</span>
+                    <XIcon className="w-5 h-5" />
                     <span>Twitter</span>
                   </a>
                 </motion.li>
