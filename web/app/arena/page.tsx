@@ -558,7 +558,7 @@ export default function ArenaPage() {
     <div className="min-h-screen" style={{ background: 'transparent' }}>
       {/* Sticky sub-header */}
       <div className="sticky top-0 z-30 pt-16 sm:pt-[64px]" style={{ background: 'rgba(7,9,15,0.82)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div className="flex items-center gap-4 px-4 sm:px-6 py-3">
+        <div className="flex items-center gap-4 px-6 sm:px-10 lg:px-20 xl:px-28 py-3">
           <h1 className="text-base font-black tracking-tight text-white font-mono">ARENA</h1>
           {/* Sub-nav */}
           <div className="flex items-center gap-1 ml-4">
@@ -607,7 +607,7 @@ export default function ArenaPage() {
         </div>
       </div>
 
-      <div className="px-4 sm:px-8 lg:px-16 xl:px-24 py-6">
+      <div className="px-6 sm:px-10 lg:px-20 xl:px-28 py-6">
         {/* Content — both views stay mounted, toggle visibility to preserve state */}
         <div className={view === 'discussions' ? '' : 'hidden'}>
           <ConversationsView />
