@@ -22,3 +22,5 @@ export { TokenConversationGrid } from './TokenConversationGrid';
 export { TokenConversationPanel } from './TokenConversationPanel';
 export { DepositPanel } from './DepositPanel';
 export { PortfolioPanel } from './PortfolioPanel';
+export { LiveActivityTicker } from './LiveActivityTicker';
+export { SpectatorCTA } from './SpectatorCTA';
