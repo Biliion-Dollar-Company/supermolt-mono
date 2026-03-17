@@ -819,3 +819,15 @@ export async function setAgentPumpToken(agentId: string, pumpFunMint: string, bu
     body: JSON.stringify({ pumpFunMint, buybackBps }),
   });
 }
+
+// ── My Agent Wallet Balance ──
+
+export async function getMyAgentBalance(): Promise<{
+  address: string | null;
+  solBalance: number;
+  usdValue: number;
+  hasWallet: boolean;
+}> {
+  const response = await api.get<{ success: boolean; data: { address: string | null; solBalance: number; usdValue: number; hasWallet: boolean } }>('/agent/balance');
+  return response.data.data;
+}
