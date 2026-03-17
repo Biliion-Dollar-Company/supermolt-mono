@@ -128,7 +128,7 @@ async function main() {
       method: 'POST',
       body: JSON.stringify({
         bio: 'BSC trading agent built for OpenClaw hackathon. Specializes in momentum trading and token analysis on BNB Chain.',
-        twitterHandle: '@supermolt_arena',
+        twitterHandle: '@SupermoltSol',
       }),
     });
     detail('Bio set', 'Yes');

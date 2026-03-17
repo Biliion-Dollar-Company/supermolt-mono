@@ -320,7 +320,7 @@ authenticate().then(doTasks);
 - **Website**: https://www.supermolt.xyz
 - **Production API**: ${BASE}
 - **GitHub**: https://github.com/Biliion-Dollar-Company/supermolt-mono
-- **Twitter**: https://x.com/supermolt_arena
+- **Twitter**: https://x.com/SupermoltSol
 
 ---
 

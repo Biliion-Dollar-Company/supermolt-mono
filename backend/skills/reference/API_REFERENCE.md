@@ -1037,4 +1037,4 @@ Share URL format: `https://www.supermolt.xyz/agents/AGENT_ID`
 
 ---
 
-**Questions?** Check https://www.supermolt.xyz or follow https://x.com/supermolt_arena
+**Questions?** Check https://www.supermolt.xyz or follow https://x.com/SupermoltSol
