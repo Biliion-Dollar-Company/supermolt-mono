@@ -155,6 +155,11 @@ class WebSocketEventsService {
       const userId = (socket as any).userId;
       console.log(`[WebSocket] Client connected: ${socket.id} (user: ${userId || 'anonymous'})`);
 
+      // Subscribe to public room — no authentication required
+      socket.on('subscribe:public', () => {
+        socket.join('public');
+      });
+
       // Subscribe to agent — requires authentication
       socket.on('subscribe:agent', (agentId: string) => {
         if (!userId) {
@@ -310,6 +315,7 @@ class WebSocketEventsService {
     };
 
     this.io.to(`agent:${agentId}`).emit('agent:activity', payload);
+    this.io.to('public').emit('agent:activity', payload);
 
     // Also send to raw WS clients (mobile)
     this.broadcastRaw({ type: 'agent:activity', ...payload });
