@@ -26,21 +26,14 @@ skills.get('/pack', (c) => {
   }
 });
 
-// List all skills (summary without full instructions)
+// Full skill pack — one call gets everything
 skills.get('/', (c) => {
   try {
-    const all = loadSkills().map(s => ({
-      name: s.name,
-      title: s.title,
-      description: s.description,
-      category: s.category,
-      xpReward: s.xpReward,
-      difficulty: s.difficulty,
-    }));
-    return c.json({ skills: all });
+    const pack = getSkillPack();
+    return c.json(pack);
   } catch (error: any) {
-    console.error('Skills list error:', error);
-    return c.json({ skills: [] });
+    console.error('Skill pack error:', error);
+    return c.json({ version: '1.0', tasks: [], trading: [], onboarding: [], reference: [], openclaw: [], prediction: [] });
   }
 });
 
