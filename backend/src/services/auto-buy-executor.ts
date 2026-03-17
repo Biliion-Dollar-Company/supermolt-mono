@@ -73,10 +73,24 @@ let intervalId: ReturnType<typeof setInterval> | null = null;
 
 // ── Lifecycle ────────────────────────────────────────────
 
+/**
+ * Lazily initialize and return the Jupiter executor.
+ * Safe to call from any module — caches the instance.
+ */
+export function getOrInitExecutor(): TradingExecutor | null {
+  if (!executor) {
+    const rpcUrl = process.env.HELIUS_RPC_URL;
+    if (rpcUrl) {
+      executor = createTradingExecutor(rpcUrl);
+      console.log('[AutoBuyExecutor] Lazy-initialized Jupiter executor');
+    }
+  }
+  return executor;
+}
+
 export function startAutoBuyExecutor() {
-  const rpcUrl = process.env.HELIUS_RPC_URL;
-  if (rpcUrl) {
-    executor = createTradingExecutor(rpcUrl);
+  getOrInitExecutor();
+  if (executor) {
     console.log('[AutoBuyExecutor] Jupiter executor ready');
   } else {
     console.log('[AutoBuyExecutor] No HELIUS_RPC_URL — recommendation-only mode');
@@ -417,7 +431,7 @@ async function getAgentPrivyWalletId(agentId: string): Promise<string | null> {
   return agent?.privyWalletId ?? null;
 }
 
-async function executeDirectBuyWithPrivy(request: AutoBuyRequest, privyWalletId: string) {
+export async function executeDirectBuyWithPrivy(request: AutoBuyRequest, privyWalletId: string) {
   if (!executor) return;
 
   console.log(`[AutoBuyExecutor] PRIVY BUY: ${request.agentName} → ${request.solAmount} SOL of ${request.tokenSymbol}`);

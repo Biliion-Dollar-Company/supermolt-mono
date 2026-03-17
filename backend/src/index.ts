@@ -78,6 +78,7 @@ import taskRoutes from './modules/tasks/tasks.routes';
 import newsRoutes from './modules/news/news.routes';
 import { systemRoutes, setDevPrintFeedGetter } from './routes/system.routes';
 import notificationRoutes from './routes/notifications.routes';
+import { agentBalanceRoutes } from './routes/agent-balance.routes';
 
 const app = new Hono();
 
@@ -209,6 +210,7 @@ app.route('/positions', positions); // Position tracking
 app.route('/messaging', messaging); // Agent messaging
 app.route('/voting', voting); // Voting system
 app.route('/agent-auth', agentAuth); // Twitter auth + task verification
+app.route('/agent', agentBalanceRoutes); // Agent wallet balance
 
 // Trading routes (Agent trade execution via Jupiter)
 app.route('/trading', trading);

@@ -10,6 +10,8 @@
 
 import { db } from '../lib/db';
 import { scoreTokenForAgent, type TokenData } from '../lib/token-scorer';
+import { getOrInitExecutor, executeDirectBuyWithPrivy } from './auto-buy-executor';
+import type { AutoBuyRequest } from './trigger-engine';
 
 const BIRDEYE_API_URL = process.env.BIRDEYE_API_URL || 'https://public-api.birdeye.so';
 const BIRDEYE_API_KEY = process.env.BIRDEYE_API_KEY || '';
@@ -167,6 +169,8 @@ async function selectRandomAgents(count: number): Promise<any[]> {
         totalTrades: true,
         winRate: true,
         totalPnl: true,
+        privyWalletId: true,
+        config: true,
       },
     });
 
@@ -250,8 +254,8 @@ async function executeTradingCycle(config: TradingLoopConfig): Promise<void> {
           `score=${best.score.confidence}, reason="${best.score.reasoning}"`
         );
 
-        // Execute paper trade
-        await createPaperTrade(agent, best.token, best.score.confidence, best.score.reasoning, config);
+        // Execute trade (real if Privy wallet, paper otherwise)
+        await executeAgentTrade(agent, best.token, best.score.confidence, best.score.reasoning, config);
         
         tradesThisCycle++;
         totalTradesCreated++;
@@ -265,6 +269,45 @@ async function executeTradingCycle(config: TradingLoopConfig): Promise<void> {
 
   } catch (error) {
     console.error('[TradingLoop] Cycle failed:', error);
+  }
+}
+
+/**
+ * Route trade to real execution (Privy wallet) or paper trade (fallback).
+ */
+async function executeAgentTrade(
+  agent: any,
+  token: TokenData,
+  confidence: number,
+  reasoning: string,
+  config: TradingLoopConfig
+): Promise<void> {
+  const jupiterExecutor = getOrInitExecutor();
+  const hasRealWallet = agent.privyWalletId && jupiterExecutor;
+
+  if (hasRealWallet) {
+    console.log(`[TradingLoop] REAL TRADE: ${agent.displayName || agent.name} → ${token.symbol}`);
+    const request: AutoBuyRequest = {
+      agentId: agent.id,
+      agentName: agent.displayName || agent.name,
+      tokenMint: token.mint,
+      tokenSymbol: token.symbol,
+      solAmount: config.positionSizeSOL,
+      chain: 'SOLANA',
+      triggeredBy: 'trading_loop',
+      sourceWallet: '',
+      reason: reasoning,
+    };
+
+    try {
+      await executeDirectBuyWithPrivy(request, agent.privyWalletId);
+    } catch (error) {
+      console.error(`[TradingLoop] Real trade failed, falling back to paper:`, error);
+      await createPaperTrade(agent, token, confidence, reasoning, config);
+    }
+  } else {
+    console.log(`[TradingLoop] PAPER TRADE: ${agent.displayName || agent.name} → ${token.symbol}`);
+    await createPaperTrade(agent, token, confidence, reasoning, config);
   }
 }
 
