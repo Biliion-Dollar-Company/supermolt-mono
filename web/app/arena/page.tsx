@@ -27,6 +27,8 @@ import {
   XPLeaderboard,
   ConversationsPanel,
   TradeRecommendationBanner,
+  DepositPanel,
+  PortfolioPanel,
 } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
 import { AgentConfigPanel, AgentDataFlow, TrackedWalletsPanel, BuyTriggersPanel } from '@/components/dashboard';
@@ -344,6 +346,7 @@ function ConversationsView() {
   const [ready, setReady] = useState(false);
   const [newMints, setNewMints] = useState<Set<string>>(new Set());
   const [leaderboardTab, setLeaderboardTab] = useState<'trades' | 'xp'>('trades');
+  const { isAuthenticated } = useAuthStore();
 
   const fetchData = useCallback(async () => {
     try {
@@ -431,6 +434,17 @@ function ConversationsView() {
           <div className="animate-arena-reveal" style={{ animationDelay: '60ms' }}>
             <MyAgentPanel />
           </div>
+
+          {isAuthenticated && (
+            <>
+              <div className="animate-arena-reveal" style={{ animationDelay: '90ms' }}>
+                <DepositPanel />
+              </div>
+              <div className="animate-arena-reveal" style={{ animationDelay: '105ms' }}>
+                <PortfolioPanel />
+              </div>
+            </>
+          )}
 
           <div className="animate-arena-reveal" style={{ animationDelay: '120ms' }}>
             <div style={{ background: 'rgba(12,16,32,0.6)', backdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }} className="p-4">

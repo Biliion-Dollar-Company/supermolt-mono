@@ -20,3 +20,5 @@ export type { FeedEntry } from './AgentMapFeed';
 export { TokenConversationCard } from './TokenConversationCard';
 export { TokenConversationGrid } from './TokenConversationGrid';
 export { TokenConversationPanel } from './TokenConversationPanel';
+export { DepositPanel } from './DepositPanel';
+export { PortfolioPanel } from './PortfolioPanel';
