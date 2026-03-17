@@ -2,6 +2,7 @@ import { prisma } from '../lib/db';
 import { getArchetype } from '../lib/archetypes';
 import type { AgentStatus } from '@prisma/client';
 import { ensureOnboardingForAgent, ensureScannerForAgent } from './agent-session.service';
+import { triggerAgentIntroduction } from './agent-introduction.service';
 import * as surgeApi from './surge-api.service';
 
 // Dynamic import to avoid circular dependency issues
@@ -87,6 +88,11 @@ export async function createAgent(
   } catch (error) {
     console.error('Failed to create scanner record:', error);
   }
+
+  // Fire-and-forget: post intro to social feed + join active conversation
+  triggerAgentIntroduction(agent.id).catch((error) => {
+    console.error('Failed to trigger agent introduction:', error);
+  });
 
   return agent;
 }
