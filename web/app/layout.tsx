@@ -5,6 +5,8 @@ import Navbar from './navbar';
 import SmoothScroll from '@/components/SmoothScroll';
 import AppProviders from '@/providers/AppProviders';
 import { Toaster } from '@/components/ui/toaster';
+import { Suspense } from 'react';
+import { ReferralCapture } from '@/components/ReferralCapture';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -41,6 +43,9 @@ export default function RootLayout({
     >
       <body className="bg-void-black text-white min-h-screen font-sans">
         <SmoothScroll />
+        <Suspense fallback={null}>
+          <ReferralCapture />
+        </Suspense>
         <AppProviders>
         <Navbar />
         {children}

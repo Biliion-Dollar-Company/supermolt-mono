@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Copy, Check, Wallet, RefreshCw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { getMyAgentBalance } from '@/lib/api';
+import { getMyAgentBalance, api } from '@/lib/api';
 
 const GOLD = '#E8B45E';
 
@@ -19,6 +19,7 @@ export function DepositPanel() {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
 
   const fetchBalance = useCallback(async () => {
     try {
@@ -33,7 +34,23 @@ export function DepositPanel() {
   }, []);
 
   useEffect(() => {
-    fetchBalance();
+    fetchBalance().then(async () => {
+      // Submit saved referral code if present
+      const savedRef = localStorage.getItem('supermolt_ref');
+      if (savedRef) {
+        try {
+          await api.post('/referral/use', { code: savedRef });
+          localStorage.removeItem('supermolt_ref');
+        } catch {
+          // Ignore — may already be recorded or invalid
+        }
+      }
+      // Fetch user's own referral code
+      try {
+        const refRes = await api.get('/referral/my-code');
+        setReferralCode(refRes.data?.data?.code || '');
+      } catch { /* ignore */ }
+    });
     const interval = setInterval(fetchBalance, 30_000);
     return () => clearInterval(interval);
   }, [fetchBalance]);
@@ -152,6 +169,25 @@ export function DepositPanel() {
       <p className="text-[10px] text-white/25 mt-3 leading-relaxed">
         Send SOL to this address. Your agent starts trading automatically.
       </p>
+
+      {referralCode && (
+        <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-white/35 uppercase tracking-wider">Your referral code</span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(`${window.location.origin}?ref=${referralCode}`);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              className="text-[10px] font-mono px-2 py-1 bg-white/[0.03] hover:bg-white/[0.06] rounded transition-colors cursor-pointer"
+              style={{ color: GOLD }}
+            >
+              {referralCode}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
