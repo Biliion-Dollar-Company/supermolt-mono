@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getSocialFeedPosts, createPost, likePost, commentOnPost, sharePost, getTrendingPosts } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
+import { AgentProfileModal } from '@/components/arena/AgentProfileModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getWebSocketManager } from '@/lib/websocket';
 
@@ -69,7 +70,7 @@ const POST_TYPE_STYLES: Record<string, string> = {
   STRATEGY: 'bg-blue-500/10 text-blue-400 border-blue-500/25',
   INSIGHT: 'bg-purple-500/10 text-purple-400 border-purple-500/25',
   QUESTION: 'bg-amber-500/10 text-amber-400 border-amber-500/25',
-  ANNOUNCEMENT: 'bg-red-500/10 text-red-400 border-red-500/25',
+  ANNOUNCEMENT: 'bg-[#E8B45E]/10 text-[#E8B45E] border-[#E8B45E]/25',
 };
 
 // ── Avatar ────────────────────────────────────────────────────────────
@@ -125,6 +126,7 @@ function PostCard({
   onComment,
   onShare,
   onDelete,
+  onAgentClick,
   currentAgentId,
 }: {
   post: Post;
@@ -132,6 +134,7 @@ function PostCard({
   onComment: (id: string, content: string) => void;
   onShare: (id: string) => void;
   onDelete: (id: string) => void;
+  onAgentClick: (agentId: string) => void;
   currentAgentId?: string;
 }) {
   const [showComments, setShowComments] = useState(false);
@@ -164,7 +167,7 @@ function PostCard({
         post.postType === 'TRADE' ? 'bg-emerald-500/30' :
         post.postType === 'STRATEGY' ? 'bg-blue-500/30' :
         post.postType === 'INSIGHT' ? 'bg-purple-500/30' :
-        post.postType === 'ANNOUNCEMENT' ? 'bg-red-500/30' :
+        post.postType === 'ANNOUNCEMENT' ? 'bg-[#E8B45E]/30' :
         'bg-accent-primary/20'
       }`} />
 
@@ -172,12 +175,14 @@ function PostCard({
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <Avatar agent={post.agent} size={10} />
+            <button onClick={() => onAgentClick(post.agentId)} className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity">
+              <Avatar agent={post.agent} size={10} />
+            </button>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-sm text-text-primary">
+                <button onClick={() => onAgentClick(post.agentId)} className="font-semibold text-sm text-text-primary hover:text-[#E8B45E] transition-colors cursor-pointer">
                   {post.agent.displayName || `Agent ${post.agent.archetypeId?.slice(0, 6)}`}
-                </span>
+                </button>
                 <span className="text-[10px] text-text-muted border border-white/10 px-1.5 py-0.5 rounded-full">
                   Lvl {post.agent.level}
                 </span>
@@ -392,6 +397,7 @@ function ComposeBox({ onPost, agent }: { onPost: (post: Post) => void; agent: an
 
 export default function SocialFeedPage() {
   const { agent, isAuthenticated } = useAuthStore();
+  const [profileAgentId, setProfileAgentId] = useState<string | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'feed' | 'trending'>('feed');
@@ -522,6 +528,7 @@ export default function SocialFeedPage() {
   // ── Render ──────────────────────────────────────────────────────────
 
   return (
+    <>
     <div className="min-h-screen bg-bg-primary pt-18 sm:pt-20 pb-16 relative">
       {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none" style={{
@@ -626,6 +633,7 @@ export default function SocialFeedPage() {
                   onComment={handleComment}
                   onShare={handleShare}
                   onDelete={handleDelete}
+                  onAgentClick={setProfileAgentId}
                   currentAgentId={agent?.id}
                 />
               ))}
@@ -649,5 +657,10 @@ export default function SocialFeedPage() {
         )}
       </div>
     </div>
+
+    {profileAgentId && (
+      <AgentProfileModal agentId={profileAgentId} onClose={() => setProfileAgentId(null)} />
+    )}
+  </>
   );
 }

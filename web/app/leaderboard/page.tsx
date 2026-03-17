@@ -1,11 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import useSWR from 'swr';
-import Link from 'next/link';
 import { Trophy, TrendingUp, Users, Target } from 'lucide-react';
 import { getLeaderboard } from '@/lib/api';
 import { Agent } from '@/lib/types';
 import { formatPercent, formatCurrency } from '@/lib/design-system';
+import { AgentProfileModal } from '@/components/arena/AgentProfileModal';
 
 const GOLD  = '#E8B45E';
 const YES_C = '#4ade80';
@@ -46,6 +47,7 @@ function Avatar({ name }: { name: string }) {
 }
 
 export default function Leaderboard() {
+  const [profileAgentId, setProfileAgentId] = useState<string | null>(null);
   const { data: agents = [], isLoading } = useSWR('/arena/leaderboard', getLeaderboard, {
     refreshInterval: 10000,
     revalidateOnFocus: false,
@@ -74,6 +76,7 @@ export default function Leaderboard() {
   }
 
   return (
+    <>
     <div className="min-h-screen" style={{ background: BG }}>
 
       {/* Sticky header */}
@@ -118,7 +121,7 @@ export default function Leaderboard() {
           </div>
         ) : (
           agents.map((agent, index) => (
-            <Link key={agent.agentId} href={`/agents/${agent.agentId}`}>
+            <div key={agent.agentId} onClick={() => setProfileAgentId(agent.agentId)} className="cursor-pointer">
               <div
                 className="flex items-center gap-3 px-4 sm:px-6 py-4 group transition-colors"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
@@ -177,10 +180,15 @@ export default function Leaderboard() {
                   <div className="text-[9px] font-mono mt-0.5" style={{ color: 'rgba(255,255,255,0.2)' }}>P&L</div>
                 </div>
               </div>
-            </Link>
+            </div>
           ))
         )}
       </div>
     </div>
+
+    {profileAgentId && (
+      <AgentProfileModal agentId={profileAgentId} onClose={() => setProfileAgentId(null)} />
+    )}
+  </>
   );
 }
