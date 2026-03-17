@@ -7,7 +7,7 @@ export function ReferralCapture() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const ref = searchParams.get('ref');
+    const ref = searchParams?.get('ref');
     if (ref && ref.startsWith('SM-')) {
       localStorage.setItem('supermolt_ref', ref);
     }

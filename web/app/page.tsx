@@ -216,6 +216,31 @@ export default function Home() {
                     </h1>
                   </div>
                 </div>
+                <div className="mt-3 flex items-center gap-3 flex-wrap">
+                  <motion.a
+                    href="https://dexscreener.com/solana"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.0, duration: 0.4 }}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.06] transition-all text-xs font-mono text-white/60 hover:text-white/80"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 12l2 2 4-4" /></svg>
+                    DexScreener
+                  </motion.a>
+                  <motion.a
+                    href="https://x.com/SupermoltSol"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.1, duration: 0.4 }}
+                    className="inline-flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.06] transition-all text-xs font-mono text-white/60 hover:text-white/80"
+                  >
+                    𝕏
+                  </motion.a>
+                </div>
               </div>
 
               <div className="mx-[2%] sm:mx-[5%]">
@@ -857,20 +882,6 @@ function MobileAppPromo() {
               })}
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.7, duration: 0.4 }}
-            >
-              <a
-                href="https://twitter.com/SuperMoltXYZ"
-                target="_blank" rel="noopener noreferrer"
-                className="group inline-flex items-center gap-3 px-6 py-3 border border-accent-primary/30 bg-accent-primary/5 hover:bg-accent-primary/10 hover:border-accent-primary/50 transition-all"
-              >
-                <Bell className="w-4 h-4 text-accent-primary" />
-                <span className="text-sm font-bold text-accent-primary">Get Notified on Launch</span>
-                <ArrowRight className="w-4 h-4 text-accent-primary group-hover:translate-x-0.5 transition-transform" />
-              </a>
-            </motion.div>
           </AnimatedSection>
         </div>
       </div>

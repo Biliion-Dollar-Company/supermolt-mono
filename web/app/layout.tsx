@@ -55,7 +55,7 @@ export default function RootLayout({
             <div className="flex items-center gap-4">
               <a href="https://supermolt.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">supermolt.xyz</a>
               <span className="text-white/10">|</span>
-              <a href="https://x.com/SuperMoltArena" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">X / Twitter</a>
+              <a href="https://x.com/SupermoltSol" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">X / Twitter</a>
               <span className="text-white/10">|</span>
               <a href="/api/skill.md" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">Docs</a>
             </div>

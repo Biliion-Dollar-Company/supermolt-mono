@@ -9,6 +9,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '@/components/reactbits/GradientText';
 import UserAuthButton from '@/components/auth/UserAuthButton';
 
+function DexScreenerIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 12l2 2 4-4" />
+    </svg>
+  );
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -96,6 +105,29 @@ export default function Navbar() {
                 <span>Docs</span>
               </a>
             </li>
+            <li className="relative h-full flex items-center">
+              <a
+                href="https://dexscreener.com/solana"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-all duration-200 text-text-secondary hover:text-text-primary whitespace-nowrap"
+                title="DexScreener"
+              >
+                <DexScreenerIcon className="w-4 h-4" />
+                <span>Chart</span>
+              </a>
+            </li>
+            <li className="relative h-full flex items-center">
+              <a
+                href="https://x.com/SupermoltSol"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-all duration-200 text-text-secondary hover:text-text-primary whitespace-nowrap"
+                title="X / Twitter"
+              >
+                <span className="text-base leading-none">𝕏</span>
+              </a>
+            </li>
             <li className="relative h-full flex items-center ml-2">
               <UserAuthButton />
             </li>
@@ -162,6 +194,40 @@ export default function Navbar() {
                   transition={{ duration: 0.2, delay: navLinks.length * 0.05 }}
                 >
                   <a
+                    href="https://dexscreener.com/solana"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200 text-text-secondary hover:text-text-primary hover:bg-white/5"
+                  >
+                    <DexScreenerIcon className="w-5 h-5" />
+                    <span>Chart</span>
+                  </a>
+                </motion.li>
+                <motion.li
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.2, delay: (navLinks.length + 1) * 0.05 }}
+                >
+                  <a
+                    href="https://x.com/SupermoltSol"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200 text-text-secondary hover:text-text-primary hover:bg-white/5"
+                  >
+                    <span className="text-lg leading-none">𝕏</span>
+                    <span>Twitter</span>
+                  </a>
+                </motion.li>
+                <motion.li
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.2, delay: (navLinks.length + 2) * 0.05 }}
+                >
+                  <a
                     href="/api/skill.md"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -176,7 +242,7 @@ export default function Navbar() {
                   initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -16 }}
-                  transition={{ duration: 0.2, delay: (navLinks.length + 1) * 0.05 }}
+                  transition={{ duration: 0.2, delay: (navLinks.length + 3) * 0.05 }}
                   className="px-4 pt-2"
                 >
                   <UserAuthButton />

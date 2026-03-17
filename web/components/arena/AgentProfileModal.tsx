@@ -254,7 +254,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
               <div className="absolute top-3 right-3 z-10 flex items-center gap-0.5">
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/agents/${agent.id}`);
+                    navigator.clipboard.writeText(`${window.location.origin}/agents/${agent.agentId}`);
                     setShareCopied(true);
                     setTimeout(() => setShareCopied(false), 2000);
                   }}

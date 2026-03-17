@@ -607,7 +607,7 @@ export default function ArenaPage() {
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="px-4 sm:px-8 lg:px-16 xl:px-24 py-6">
         {/* Content — both views stay mounted, toggle visibility to preserve state */}
         <div className={view === 'discussions' ? '' : 'hidden'}>
           <ConversationsView />

@@ -38,12 +38,12 @@ export function PortfolioPanel() {
   useEffect(() => {
     async function load() {
       try {
-        const agent = await getMyAgent();
-        if (!agent?.id) return;
+        const me = await getMyAgent();
+        if (!me?.agent?.id) return;
 
         const [tradesRes, positionsRes] = await Promise.all([
-          fetch(`${API_BASE}/arena/agents/${agent.id}/trades?limit=20`).then(r => r.json()),
-          fetch(`${API_BASE}/arena/agents/${agent.id}/positions`).then(r => r.json()),
+          fetch(`${API_BASE}/arena/agents/${me.agent.id}/trades?limit=20`).then(r => r.json()),
+          fetch(`${API_BASE}/arena/agents/${me.agent.id}/positions`).then(r => r.json()),
         ]);
 
         setTrades(tradesRes.trades || tradesRes.data || []);
