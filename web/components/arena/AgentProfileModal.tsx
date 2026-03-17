@@ -10,6 +10,7 @@ import {
   ExternalLink,
   MessageSquare,
   CheckCircle2,
+  Share2,
 } from 'lucide-react';
 import {
   getAgent,
@@ -122,6 +123,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
   const [conversations, setConversations] = useState<AgentConversationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -248,13 +250,26 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
             </div>
           ) : (
             <div>
-              {/* Close button */}
-              <button
-                onClick={handleClose}
-                className="absolute top-3 right-3 z-10 p-2 hover:bg-white/[0.05] transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4 text-white/35 hover:text-white/80 transition-colors" />
-              </button>
+              {/* Share + Close buttons */}
+              <div className="absolute top-3 right-3 z-10 flex items-center gap-0.5">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/agents/${agent.id}`);
+                    setShareCopied(true);
+                    setTimeout(() => setShareCopied(false), 2000);
+                  }}
+                  className="p-1.5 hover:bg-white/5 rounded transition-colors cursor-pointer"
+                  title="Share agent profile"
+                >
+                  {shareCopied ? <Check size={14} style={{ color: '#E8B45E' }} /> : <Share2 size={14} className="text-white/35" />}
+                </button>
+                <button
+                  onClick={handleClose}
+                  className="p-2 hover:bg-white/[0.05] transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4 text-white/35 hover:text-white/80 transition-colors" />
+                </button>
+              </div>
 
               {/* ── SECTION 1: Hero Header ── */}
               <section
