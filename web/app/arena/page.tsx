@@ -29,6 +29,8 @@ import {
   TradeRecommendationBanner,
   DepositPanel,
   PortfolioPanel,
+  LiveActivityTicker,
+  SpectatorCTA,
 } from '@/components/arena';
 import type { ArenaToken } from '@/components/arena';
 import { AgentConfigPanel, AgentDataFlow, TrackedWalletsPanel, BuyTriggersPanel } from '@/components/dashboard';
@@ -414,6 +416,8 @@ function ConversationsView() {
 
   return (
     <>
+      <LiveActivityTicker />
+
       {/* Split layout: tokens left, divider, sidebar right */}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_auto_minmax(360px,1fr)] gap-6">
         {/* Left — Command center + Token cards grid */}
@@ -432,7 +436,7 @@ function ConversationsView() {
         {/* Right sidebar */}
         <div className="space-y-5">
           <div className="animate-arena-reveal" style={{ animationDelay: '60ms' }}>
-            <MyAgentPanel />
+            {isAuthenticated ? <MyAgentPanel /> : <SpectatorCTA />}
           </div>
 
           {isAuthenticated && (
