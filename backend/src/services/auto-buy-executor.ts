@@ -31,6 +31,7 @@ import { getBnbPrice, getBscTokenPrice } from '../lib/bsc-prices';
 import { getEthPrice, getBaseTokenPrice } from '../lib/base-prices';
 import * as surgeApi from './surge-api.service';
 import { privySignAndSendTransaction } from '../lib/privy';
+import { createTradePost } from './trade-post.service';
 
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
 
@@ -555,6 +556,16 @@ export async function executeDirectBuyWithPrivy(request: AutoBuyRequest, privyWa
         executionMs,
         signingMethod: 'privy',
       },
+    });
+
+    // Fire-and-forget: auto-post to social feed
+    void createTradePost(request.agentId, {
+      tokenSymbol: request.tokenSymbol,
+      tokenMint: request.tokenMint,
+      solAmount: request.solAmount,
+      action: 'BUY',
+      signature,
+      reason: request.reason,
     });
 
     console.log(`[AutoBuyExecutor] PRIVY EXECUTED: ${request.agentName} bought ${tokensReceived} ${request.tokenSymbol} for ${request.solAmount} SOL (${executionMs}ms)`);
