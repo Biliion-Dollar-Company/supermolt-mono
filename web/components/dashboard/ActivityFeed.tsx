@@ -112,7 +112,7 @@ function generateDemoEvents(): ActivityEvent[] {
         {
             id: '10',
             type: 'analysis',
-            title: 'Narrative Validated — "AI Memecoins"',
+            title: 'Narrative Validated — "RWA Tokenization"',
             description: 'LLM Engine: High mindshare density (73%) for AI-themed tokens across Twitter',
             timestamp: new Date(now - 9000000),
             icon: 'Brain',

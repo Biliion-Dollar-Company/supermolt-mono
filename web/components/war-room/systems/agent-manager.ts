@@ -35,7 +35,7 @@ export class AgentManager {
     this.agentStates = await Promise.all(
       agents.map(async (ag, i) => {
         const trustScore = ag.trustScore ?? 0.5;
-        const color = ag.color ?? (trustScore > 0.95 ? 0xe8b45e : 0xffffff);
+        const color = ag.color ?? (trustScore > 0.95 ? 0x2563eb : 0xffffff);
 
         const homeStation = i % stations.length;
         const sx = stations[homeStation]?.container.x ?? 100 + i * 80;
@@ -55,7 +55,7 @@ export class AgentManager {
         ring.circle(0, 0, 24);
         ring.setStrokeStyle({
           width: trustScore > 0.95 ? 2.5 : 1.5,
-          color: trustScore > 0.95 ? 0xe8b45e : 0x444444,
+          color: trustScore > 0.95 ? 0x2563eb : 0x444444,
         });
         ring.stroke();
 
@@ -90,7 +90,7 @@ export class AgentManager {
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: 16,
             fontWeight: '900',
-            fill: trustScore > 0.95 ? 0xe8b45e : 0xffffff,
+            fill: trustScore > 0.95 ? 0x2563eb : 0xffffff,
           }),
         });
         rankText.anchor.set(0.5, 0.5);
@@ -104,7 +104,7 @@ export class AgentManager {
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: 11,
             fontWeight: '700',
-            fill: trustScore > 0.95 ? 0xe8b45e : 0xffffff,
+            fill: trustScore > 0.95 ? 0x2563eb : 0xffffff,
           }),
         });
         label.anchor.set(0.5, 0);

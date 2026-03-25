@@ -918,3 +918,201 @@ model GlintSignal {
   @@index([receivedAt])
   @@map("glint_signals")
 }
+
+// ─── Referral System ──────────────────────────────────
+
+model Referral {
+  id          String    @id @default(cuid())
+  referrerId  String
+  refereeId   String
+  code        String
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  convertedAt DateTime?
+
+  @@index([referrerId])
+  @@index([code])
+  @@unique([referrerId, refereeId])
+}
+
+// ─── Compliance Layer (StableHacks 2026) ─────────────
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ComplianceAction {
+  APPROVED
+  BLOCKED
+  FLAGGED
+  PENDING_REVIEW
+}
+
+model KycRecord {
+  id            String    @id @default(cuid())
+  entityId      String
+  entityType    String    // "agent" | "user"
+  walletAddress String
+  chain         Chain     @default(SOLANA)
+  status        KycStatus @default(PENDING)
+  riskLevel     RiskLevel @default(LOW)
+  verifiedAt    DateTime?
+  expiresAt     DateTime?
+  provider      String    @default("mock")
+  providerRef   String?
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([entityId, entityType])
+  @@index([walletAddress])
+  @@index([status])
+  @@map("kyc_records")
+}
+
+model KytAlert {
+  id              String    @id @default(cuid())
+  transactionHash String?
+  walletAddress   String
+  chain           String
+  alertType       String    // "large_tx" | "structuring" | "velocity" | "sanctions_hit"
+  riskScore       Int       // 0-100
+  riskLevel       RiskLevel
+  amount          Decimal   @db.Decimal(18, 6)
+  details         Json      @default("{}")
+  resolved        Boolean   @default(false)
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  @@index([walletAddress])
+  @@index([riskLevel])
+  @@index([resolved])
+  @@index([createdAt])
+  @@map("kyt_alerts")
+}
+
+model AmlScreening {
+  id            String           @id @default(cuid())
+  walletAddress String
+  chain         String
+  screeningType String           // "sanctions" | "pep" | "adverse_media"
+  riskLevel     RiskLevel        @default(LOW)
+  result        ComplianceAction
+  matchDetails  Json             @default("{}")
+  provider      String           @default("mock")
+  createdAt     DateTime         @default(now())
+
+  @@index([walletAddress])
+  @@index([result])
+  @@map("aml_screenings")
+}
+
+model TravelRuleMessage {
+  id                  String   @id @default(cuid())
+  transferId          String
+  sourceChain         String
+  destinationChain    String
+  amount              Decimal  @db.Decimal(18, 6)
+  currency            String   @default("USDC")
+  senderName          String
+  senderWallet        String
+  senderInstitution   String?
+  receiverName        String
+  receiverWallet      String
+  receiverInstitution String?
+  ivms101Payload      Json
+  status              String   @default("generated") // "generated" | "sent" | "acknowledged"
+  thresholdUsd        Decimal  @default(3000) @db.Decimal(10, 2)
+  createdAt           DateTime @default(now())
+
+  @@index([transferId])
+  @@index([senderWallet])
+  @@index([receiverWallet])
+  @@map("travel_rule_messages")
+}
+
+model ComplianceAuditLog {
+  id          String           @id @default(cuid())
+  action      String           // "kyc_check" | "kyt_scan" | "aml_screen" | "travel_rule" | "distribution_gate"
+  entityId    String?
+  entityType  String?          // "agent" | "wallet" | "epoch" | "transfer"
+  result      ComplianceAction
+  riskLevel   RiskLevel?
+  details     Json             @default("{}")
+  performedBy String?          // "system" | admin userId
+  createdAt   DateTime         @default(now())
+
+  @@index([action])
+  @@index([entityId])
+  @@index([result])
+  @@index([createdAt])
+  @@map("compliance_audit_log")
+}
+
+// ─── RWA Portfolio Models ─────────────────────────────────
+
+enum AssetClass {
+  CRYPTO
+  TREASURY_BILLS
+  EQUITIES
+  GOLD
+  REAL_ESTATE
+  FIXED_INCOME
+  GOVERNMENT_BONDS
+}
+
+model RwaToken {
+  id           String     @id @default(cuid())
+  symbol       String     @unique
+  name         String
+  mint         String     @unique
+  assetClass   AssetClass
+  issuer       String
+  currentYield Float?
+  marketCap    Float?
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model PortfolioAllocation {
+  id           String     @id @default(cuid())
+  agentId      String
+  tokenMint    String
+  assetClass   AssetClass
+  symbol       String
+  quantity     Float
+  entryPrice   Float
+  currentPrice Float?
+  weight       Float
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([agentId])
+}
+
+model RebalanceEvent {
+  id          String   @id @default(cuid())
+  agentId     String
+  fromToken   String
+  toToken     String
+  fromAmount  Float
+  toAmount    Float
+  txSignature String?
+  status      String   @default("PENDING")
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  @@index([agentId])
+}

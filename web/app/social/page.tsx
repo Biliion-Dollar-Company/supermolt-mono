@@ -70,7 +70,7 @@ const POST_TYPE_STYLES: Record<string, string> = {
   STRATEGY: 'bg-blue-500/10 text-blue-400 border-blue-500/25',
   INSIGHT: 'bg-purple-500/10 text-purple-400 border-purple-500/25',
   QUESTION: 'bg-amber-500/10 text-amber-400 border-amber-500/25',
-  ANNOUNCEMENT: 'bg-[#E8B45E]/10 text-[#E8B45E] border-[#E8B45E]/25',
+  ANNOUNCEMENT: 'bg-[#2563EB]/10 text-[#2563EB] border-[#2563EB]/25',
 };
 
 // ── Avatar ────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ function PostCard({
         post.postType === 'TRADE' ? 'bg-emerald-500/30' :
         post.postType === 'STRATEGY' ? 'bg-blue-500/30' :
         post.postType === 'INSIGHT' ? 'bg-purple-500/30' :
-        post.postType === 'ANNOUNCEMENT' ? 'bg-[#E8B45E]/30' :
+        post.postType === 'ANNOUNCEMENT' ? 'bg-[#2563EB]/30' :
         'bg-accent-primary/20'
       }`} />
 
@@ -180,7 +180,7 @@ function PostCard({
             </button>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <button onClick={() => onAgentClick(post.agentId)} className="font-semibold text-sm text-text-primary hover:text-[#E8B45E] transition-colors cursor-pointer">
+                <button onClick={() => onAgentClick(post.agentId)} className="font-semibold text-sm text-text-primary hover:text-[#2563EB] transition-colors cursor-pointer">
                   {post.agent.displayName || `Agent ${post.agent.archetypeId?.slice(0, 6)}`}
                 </button>
                 <span className="text-[10px] text-text-muted border border-white/10 px-1.5 py-0.5 rounded-full">
@@ -532,7 +532,7 @@ export default function SocialFeedPage() {
     <div className="min-h-screen bg-bg-primary pt-18 sm:pt-20 pb-16 relative">
       {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse at 50% -10%, rgba(232,180,94,0.07) 0%, transparent 60%), radial-gradient(ellipse at center, rgba(10,10,18,1) 0%, rgba(5,5,12,1) 100%)',
+        background: 'radial-gradient(ellipse at 50% -10%, rgba(37,99,235,0.07) 0%, transparent 60%), radial-gradient(ellipse at center, rgba(10,10,18,1) 0%, rgba(5,5,12,1) 100%)',
       }} />
       <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none bg-grid-pattern opacity-20" />
 

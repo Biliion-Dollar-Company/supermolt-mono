@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Flame, TrendingUp, Wallet, ExternalLink, Copy, Check } from 'lucide-react';
+import { Flame, TrendingUp, Wallet, ExternalLink } from 'lucide-react';
 import { getPumpVaultBalances, type PumpVaultBalances } from '@/lib/api';
+import { CopyCaIcon, CopySuccessIcon } from '@/components/icons/action-icons';
 
 const PUMP_FUN_BASE = 'https://pump.fun';
 
@@ -60,11 +61,15 @@ export function PumpTokenPanel({ agentId, pumpFunMint }: { agentId: string; pump
       {/* Mint address */}
       <button
         onClick={copyMint}
-        className="flex items-center gap-2 mb-3 text-[10px] font-mono text-white/35 hover:text-white/55 transition-colors"
+        className="group flex items-center gap-2 mb-3 text-[10px] font-mono text-white/35 hover:text-white/55 transition-colors"
       >
         <Wallet className="w-3 h-3" />
         {shortMint}
-        {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+        {copied ? (
+          <CopySuccessIcon className="w-3 h-3 text-green-400" />
+        ) : (
+          <CopyCaIcon className="w-3 h-3 text-current group-hover:text-amber-400" />
+        )}
       </button>
 
       {/* Vault stats */}

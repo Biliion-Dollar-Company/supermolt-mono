@@ -2,7 +2,7 @@
  * Agent Alpha — Multi-Strategy
  *
  * Runs multiple complementary strategies in parallel and emits high-conviction
- * EV signals to the Supermolt Signals channel.
+ * EV signals to the TreasuryOS Signals channel.
  *
  * Strategies:
  *   - ev-kelly: Pure EV + Kelly Criterion sizing

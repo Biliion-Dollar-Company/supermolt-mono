@@ -3,7 +3,7 @@
 import { Eye, Zap, BarChart2, Target, type LucideProps } from 'lucide-react';
 import { StatBar } from './StatBar';
 
-const GOLD = '#E8B45E';
+const GOLD = '#2563EB';
 
 const ICONS: Record<string, React.FC<LucideProps>> = {
   phantom: Eye,
@@ -36,7 +36,7 @@ export function ArchetypeCard({ id, name, description, stats, selected, onSelect
         flex-1 rounded-2xl p-4 transition-all duration-200
         min-h-[240px] flex flex-col
         ${selected
-          ? 'border-2 border-[#E8B45E] bg-[#E8B45E]/10'
+          ? 'border-2 border-[#2563EB] bg-[#2563EB]/10'
           : 'border-2 border-transparent bg-white/[0.04] hover:bg-white/[0.06]'
         }
       `}
@@ -72,8 +72,8 @@ export function ArchetypeCard({ id, name, description, stats, selected, onSelect
       </div>
 
       {selected && (
-        <div className="mt-3 bg-[#E8B45E]/20 rounded-lg py-1">
-          <span className="text-[#E8B45E] text-xs font-semibold text-center block tracking-widest" style={{ fontFamily: 'monospace' }}>
+        <div className="mt-3 bg-[#2563EB]/20 rounded-lg py-1">
+          <span className="text-[#2563EB] text-xs font-semibold text-center block tracking-widest" style={{ fontFamily: 'monospace' }}>
             SELECTED
           </span>
         </div>

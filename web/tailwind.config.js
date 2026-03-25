@@ -25,9 +25,9 @@ export default {
   			
   			// Luxury Gold Accent (Colosseum Brand)
   			accent: {
-  				primary: '#E8B45E',
-  				soft: '#F5C978',
-  				dark: '#D6A04B',
+  				primary: '#2563EB',
+  				soft: '#60A5FA',
+  				dark: '#1D4ED8',
   			},
   			
   			// Border System
@@ -52,7 +52,7 @@ export default {
   			warning: '#ffaa00',
   			
   			// Keep backward compatibility
-  			'brand-primary': '#E8B45E',
+  			'brand-primary': '#2563EB',
   			'matrix-green': '#00ff41',
   			'solana-purple': '#9945ff',
   		},
@@ -103,7 +103,7 @@ export default {
   		// ✨ Shadows
   		boxShadow: {
   			glow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-  			'glow-gold': '0 20px 60px rgba(232, 180, 94, 0.3)',
+  			'glow-blue': '0 20px 60px rgba(37, 99, 235, 0.3)',
   			'card-hover': '0 8px 32px rgba(0, 0, 0, 0.4)',
   		},
   		
@@ -149,8 +149,8 @@ export default {
   		
   		// 🎨 Background Gradients
   		backgroundImage: {
-  			'accent-gradient': 'linear-gradient(135deg, #F5C978, #E8B45E)',
-  			'glow-radial': 'radial-gradient(circle at 50% 0%, rgba(232, 180, 94, 0.25), transparent 60%)',
+  			'accent-gradient': 'linear-gradient(135deg, #60A5FA, #2563EB)',
+  			'glow-radial': 'radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.25), transparent 60%)',
   		},
   	}
   },

@@ -141,12 +141,12 @@ export class StationManager {
       container.eventMode = 'static';
       container.cursor = 'pointer';
 
-      const brandColor = def.isNew ? 0xffcc00 : 0xe8b45e;
+      const brandColor = def.isNew ? 0x60a5fa : 0x2563eb;
       const borderAlpha = def.isOld ? 0.3 : def.isNew ? 1.0 : 0.7;
       const lineW = def.isNew ? 1.8 : 1.2;
 
       // ── Glow (around image only, not old container) ───────────────────────
-      const glowColor = def.isNew ? 0xffcc00 : 0xe8b45e;
+      const glowColor = def.isNew ? 0x60a5fa : 0x2563eb;
       const glowAlpha = def.isNew ? 0.22 : def.isOld ? 0.03 : 0.08;  // Slightly stronger since smaller
       const glow = new Graphics();
       const glowSize = C_IMG + 10;  // Just around the image
@@ -177,7 +177,7 @@ export class StationManager {
           fontFamily: MONO_FONT,
           fontSize: 13,
           fontWeight: '800',
-          fill: def.isNew ? 0xffcc00 : def.isOld ? 0x888888 : 0xe8b45e,
+          fill: def.isNew ? 0x60a5fa : def.isOld ? 0x888888 : 0x2563eb,
           letterSpacing: 0.8,
         }),
       });
@@ -202,7 +202,7 @@ export class StationManager {
       if (def.isNew) {
         const cNewBg = new Graphics();
         cNewBg.rect(cImgX + C_IMG - 30, cImgY - 16, 30, 14);
-        cNewBg.fill({ color: 0xffcc00 });
+        cNewBg.fill({ color: 0x60a5fa });
         const cNewText = new Text({
           text: 'NEW',
           style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 8, fontWeight: '900', fill: 0x000000 }),
@@ -270,7 +270,7 @@ export class StationManager {
 
       const eTickerText = new Text({
         text: def.ticker,
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 14, fontWeight: '800', fill: def.isNew ? 0xffcc00 : def.isOld ? 0x888888 : 0xe8b45e, letterSpacing: 1 }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 14, fontWeight: '800', fill: def.isNew ? 0x60a5fa : def.isOld ? 0x888888 : 0x2563eb, letterSpacing: 1 }),
       });
       eTickerText.x = eTextX;
       eTickerText.y = eImgY + 2;
@@ -285,7 +285,7 @@ export class StationManager {
 
       const eTimeText = new Text({
         text: fmtMinsAgo(def.detectedAt),
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 9, fill: def.isNew ? 0xffcc00 : def.isOld ? 0x444444 : 0x555555 }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 9, fill: def.isNew ? 0x60a5fa : def.isOld ? 0x444444 : 0x555555 }),
       });
       eTimeText.x = leftX;
       eTimeText.y = E_BH - E_PAD - 12;
@@ -308,14 +308,14 @@ export class StationManager {
 
       const metricHoldersText = new Text({
         text: '—',
-        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 12, fontWeight: '800', fill: 0xe8b45e }),
+        style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 12, fontWeight: '800', fill: 0x2563eb }),
       });
       metricHoldersText.x = mX; metricHoldersText.y = -E_BH + E_PAD + 48;
 
       if (def.isNew) {
         const eNewBg = new Graphics();
         eNewBg.rect(E_BW - E_PAD - 30, -E_BH + 2, 32, 16);
-        eNewBg.fill({ color: 0xffcc00 });
+        eNewBg.fill({ color: 0x60a5fa });
         const eNewText = new Text({
           text: 'NEW',
           style: new TextStyle({ fontFamily: MONO_FONT, fontSize: 9, fontWeight: '900', fill: 0x000000 }),
@@ -355,7 +355,7 @@ export class StationManager {
       const dot = new Graphics();
       const dotY = C_IMG / 2 + 4;  // Position below image (no container anymore)
       dot.rect(-2, dotY, 4, 4);
-      dot.fill({ color: def.isNew ? 0xffcc00 : 0xffaa00 });
+      dot.fill({ color: def.isNew ? 0x60a5fa : 0xffaa00 });
 
       const coordinationRing = new Graphics();
       coordinationRing.visible = false;
@@ -483,7 +483,7 @@ export class StationManager {
       const collapsedGlowHalf = (C_IMG + 10) / 2;  // Half of collapsed glow size
       const gHW = collapsedGlowHalf + t * (E_BW + 6 - collapsedGlowHalf);  // half-width
       const gHH = collapsedGlowHalf + t * (E_BH + 6 - collapsedGlowHalf);  // half-height
-      const glowColor = st.isNew ? 0xffcc00 : 0xe8b45e;
+      const glowColor = st.isNew ? 0x60a5fa : 0x2563eb;
       const glowAlpha = (st.isNew ? 0.22 : st.isOld ? 0.03 : 0.08) + t * 0.06;
       st.glowGraphics.rect(-gHW, -gHH, gHW * 2, gHH * 2);
       st.glowGraphics.fill({ color: glowColor, alpha: glowAlpha });
@@ -494,7 +494,7 @@ export class StationManager {
       const dotY = collapsedDotY + t * (expandedDotY - collapsedDotY);
       st.dot.clear();
       st.dot.rect(-2, dotY, 4, 4);
-      st.dot.fill({ color: st.isNew ? 0xffcc00 : 0xffaa00 });
+      st.dot.fill({ color: st.isNew ? 0x60a5fa : 0xffaa00 });
     });
   }
 
@@ -654,14 +654,14 @@ export class StationManager {
         st.coordinationRing.clear();
         const rW = (st.expanded ? E_BW + 6 : C_IMG / 2 + 10) * ringScale;
         const rH = (st.expanded ? E_BH + 6 : C_IMG / 2 + 10) * ringScale;
-        drawFancyBorder(st.coordinationRing, -rW, -rH, rW * 2, rH * 2, 14, 6, 4, 0xe8b45e, 0.5 + 0.3 * Math.sin(now / 300), 2.0);
+        drawFancyBorder(st.coordinationRing, -rW, -rH, rW * 2, rH * 2, 14, 6, 4, 0x2563eb, 0.5 + 0.3 * Math.sin(now / 300), 2.0);
         st.coordinationRing.visible = true;
         st.glowGraphics.alpha = 0.25 + 0.1 * Math.sin(now / 400);
 
         const lineAlpha = 0.4 + 0.2 * Math.sin(now / 300);
         for (let a = 0; a < occupants.length - 1; a++) {
           for (let b = a + 1; b < occupants.length; b++) {
-            this.coordLinesGraphics!.setStrokeStyle({ width: 1, color: 0xe8b45e, alpha: lineAlpha });
+            this.coordLinesGraphics!.setStrokeStyle({ width: 1, color: 0x2563eb, alpha: lineAlpha });
             drawDashedLine(this.coordLinesGraphics!, occupants[a].container.x, occupants[a].container.y, occupants[b].container.x, occupants[b].container.y, 6, 4);
             this.coordLinesGraphics!.stroke();
           }
@@ -770,7 +770,7 @@ export class StationManager {
     });
 
     // Draw horizontal lines spanning each row
-    g.setStrokeStyle({ width: 0.5, color: 0xe8b45e, alpha: 0.06 });
+    g.setStrokeStyle({ width: 0.5, color: 0x2563eb, alpha: 0.06 });
     rows.forEach((row) => {
       const pad = 40;
       g.moveTo(row.minX - pad, row.y);

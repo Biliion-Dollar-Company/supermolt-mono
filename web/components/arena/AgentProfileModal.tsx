@@ -66,7 +66,7 @@ function GoldSeparator() {
 // ── Corner brackets (outer frame decoration) ──
 
 function CornerBrackets() {
-  const corner = 'absolute w-3 h-3 border-[#E8B45E]/30';
+  const corner = 'absolute w-3 h-3 border-[#2563EB]/30';
   return (
     <>
       <div className={`${corner} top-0 left-0 border-t border-l`} />
@@ -225,7 +225,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
       <div className="relative flex items-center justify-center h-full p-4 pointer-events-none">
         <div
           ref={panelRef}
-          className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-custom pointer-events-auto bg-bg-primary border border-white/[0.06] shadow-[0_0_80px_-16px_rgba(232,180,94,0.12)]"
+          className="relative w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-custom pointer-events-auto bg-bg-primary border border-white/[0.06] shadow-[0_0_80px_-16px_rgba(37,99,235,0.12)]"
           style={{
             opacity: 0,
             transform: 'scale(0.95) translateY(16px)',
@@ -261,7 +261,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                   className="p-1.5 hover:bg-white/5 rounded transition-colors cursor-pointer"
                   title="Share agent profile"
                 >
-                  {shareCopied ? <Check size={14} style={{ color: '#E8B45E' }} /> : <Share2 size={14} className="text-white/35" />}
+                  {shareCopied ? <Check size={14} style={{ color: '#2563EB' }} /> : <Share2 size={14} className="text-white/35" />}
                 </button>
                 <button
                   onClick={handleClose}
@@ -313,7 +313,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                         </svg>
                       )}
                       {profile && (
-                        <span className="text-[10px] font-bold text-[#E8B45E] bg-[#E8B45E]/10 px-1.5 py-0.5 font-mono flex-shrink-0">
+                        <span className="text-[10px] font-bold text-[#2563EB] bg-[#2563EB]/10 px-1.5 py-0.5 font-mono flex-shrink-0">
                           Lv.{profile.level} {profile.levelName}
                         </span>
                       )}
@@ -474,7 +474,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                     {openPositions.length > 5 && (
                       <a
                         href={`/agents/${agentId}`}
-                        className="inline-block text-xs text-white/35 hover:text-[#E8B45E] transition-colors mt-2"
+                        className="inline-block text-xs text-white/35 hover:text-[#2563EB] transition-colors mt-2"
                       >
                         View all {openPositions.length} positions →
                       </a>
@@ -561,7 +561,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                                 <span className="text-sm text-white/80 truncate flex-1">
                                   {item.title}
                                 </span>
-                                <span className="text-[10px] font-mono text-[#E8B45E] flex-shrink-0">
+                                <span className="text-[10px] font-mono text-[#2563EB] flex-shrink-0">
                                   +{item.xp} XP
                                 </span>
                               </>
@@ -592,7 +592,7 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
               >
                 <a
                   href={`/agents/${agentId}`}
-                  className="inline-flex items-center gap-1.5 text-xs text-white/35 hover:text-[#E8B45E] transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs text-white/35 hover:text-[#2563EB] transition-colors"
                 >
                   Full profile
                   <ExternalLink className="w-3 h-3" />

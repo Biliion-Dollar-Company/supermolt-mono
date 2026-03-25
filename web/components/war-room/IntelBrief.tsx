@@ -263,7 +263,7 @@ function BlinkingCursor() {
         display: 'inline-block',
         width: '7px',
         height: '12px',
-        background: '#E8B45E',
+        background: '#2563EB',
         marginLeft: '2px',
         verticalAlign: 'middle',
         animation: 'blink-cursor 1s step-end infinite',
@@ -364,7 +364,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
 
   const signalColor =
     signalLevel === 'high'
-      ? '#E8B45E'
+      ? '#2563EB'
       : signalLevel === 'medium'
       ? '#ffaa00'
       : 'rgba(255,255,255,0.45)';
@@ -400,7 +400,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
         style={{
           height: '40%',
           minHeight: '160px',
-          borderBottom: '1px solid rgba(232,180,94,0.25)',
+          borderBottom: '1px solid rgba(37,99,235,0.25)',
           background: '#080808',
           position: 'relative',
           overflow: 'hidden',
@@ -410,7 +410,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
         <div
           className="flex items-center gap-2 px-4 py-2 flex-shrink-0"
           style={{
-            borderBottom: '1px solid rgba(232,180,94,0.15)',
+            borderBottom: '1px solid rgba(37,99,235,0.15)',
             background: '#050505',
           }}
         >
@@ -436,7 +436,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
               fontSize: '10px',
               fontWeight: '800',
               letterSpacing: '2px',
-              color: '#E8B45E',
+              color: '#2563EB',
               flex: 1,
             }}
           >
@@ -468,7 +468,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
                 position: 'absolute',
                 inset: 0,
                 background:
-                  'radial-gradient(ellipse at 50% 50%, rgba(232,180,94,0.04) 0%, transparent 70%)',
+                  'radial-gradient(ellipse at 50% 50%, rgba(37,99,235,0.04) 0%, transparent 70%)',
                 pointerEvents: 'none',
               }}
             />
@@ -494,7 +494,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
         <div
           className="flex items-center justify-between px-4 py-1.5 flex-shrink-0"
           style={{
-            borderTop: '1px solid rgba(232,180,94,0.08)',
+            borderTop: '1px solid rgba(37,99,235,0.08)',
             background: '#040404',
           }}
         >
@@ -512,7 +512,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
             style={{
               fontFamily: 'JetBrains Mono, monospace',
               fontSize: '8px',
-              color: 'rgba(232,180,94,0.3)',
+              color: 'rgba(37,99,235,0.3)',
               letterSpacing: '0.5px',
             }}
           >

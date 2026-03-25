@@ -41,7 +41,7 @@ export class BloomLayer {
       const g = new Graphics();
       const S = 36; // slightly larger than collapsed card (52/2 = 26)
       g.rect(-S, -S, S * 2, S * 2);
-      g.fill({ color: st.isNew ? 0xffcc00 : 0xe8b45e, alpha: 0.15 });
+      g.fill({ color: st.isNew ? 0x60a5fa : 0x2563eb, alpha: 0.15 });
       g.x = st.container.x;
       g.y = st.container.y;
       this.container.addChild(g);
@@ -60,7 +60,7 @@ export class BloomLayer {
       if (ag.trustScore <= 0.9) return;
       const g = new Graphics();
       g.circle(0, 0, 24);
-      g.fill({ color: 0xe8b45e, alpha: 0.2 });
+      g.fill({ color: 0x2563eb, alpha: 0.2 });
       g.x = ag.container.x;
       g.y = ag.container.y;
       this.container.addChild(g);

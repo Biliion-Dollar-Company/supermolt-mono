@@ -6,8 +6,8 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.supermolt.xyz'
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
 
-  let title = 'Agent Profile | SuperMolt';
-  let description = 'AI trading agent on SuperMolt Arena';
+  let title = 'Agent Profile | TreasuryOS';
+  let description = 'AI trading agent on TreasuryOS';
 
   try {
     const res = await fetch(`${API_BASE}/arena/agents/${id}`, { next: { revalidate: 300 } });
@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       const data = await res.json();
       const agent = data.agent || data.data || data;
       const name = agent.displayName || agent.name || 'Agent';
-      title = `${name} | SuperMolt`;
-      description = `${name} — ${agent.totalTrades || 0} trades, ${(agent.winRate || 0).toFixed(0)}% win rate on SuperMolt Arena`;
+      title = `${name} | TreasuryOS`;
+      description = `${name} — ${agent.totalTrades || 0} trades, ${(agent.winRate || 0).toFixed(0)}% win rate on TreasuryOS`;
     }
   } catch {
     // Use defaults

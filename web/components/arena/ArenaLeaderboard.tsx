@@ -75,9 +75,9 @@ const ANIMATIONS = `
     0%, 100% { opacity: 1;   transform: scale(1);    }
     50%       { opacity: 0.3; transform: scale(0.65); }
   }
-  @keyframes ar-gold-pulse {
-    0%, 100% { box-shadow: 0 0 18px rgba(245,158,11,0.35), 0 0 50px rgba(245,158,11,0.08); }
-    50%       { box-shadow: 0 0 30px rgba(245,158,11,0.55), 0 0 80px rgba(245,158,11,0.14); }
+  @keyframes ar-blue-pulse {
+    0%, 100% { box-shadow: 0 0 18px rgba(37,99,235,0.35), 0 0 50px rgba(37,99,235,0.08); }
+    50%       { box-shadow: 0 0 30px rgba(37,99,235,0.55), 0 0 80px rgba(37,99,235,0.14); }
   }
   @keyframes ar-slide-in {
     from { opacity: 0; transform: translateY(-6px); }
@@ -151,7 +151,7 @@ function PodiumCard({
         background: m.cardBg,
         borderColor: m.border,
         minHeight: isFirst ? 108 : 86,
-        animation: isFirst ? 'ar-gold-pulse 3s ease-in-out infinite' : undefined,
+        animation: isFirst ? 'ar-blue-pulse 3s ease-in-out infinite' : undefined,
       }}
     >
       {/* Shimmer sweep — gold only */}

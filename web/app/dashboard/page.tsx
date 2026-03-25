@@ -1,6 +1,6 @@
 'use client';
 
-const GOLD = '#E8B45E';
+const GOLD = '#2563EB';
 const BG   = '#07090F';
 
 import { useEffect, useState } from 'react';
@@ -107,8 +107,8 @@ function BackgroundLayer() {
                 />
                 <div className="absolute inset-0 opacity-40">
                     <RisingLines
-                        color="#E8B45E"
-                        horizonColor="#E8B45E"
+                        color="#2563EB"
+                        horizonColor="#2563EB"
                         haloColor="#F5D78E"
                         riseSpeed={0.05}
                         riseScale={8.0}

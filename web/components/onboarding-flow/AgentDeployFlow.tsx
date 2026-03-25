@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Zap, BarChart2, Target, Twitter, CheckCircle } from 'lucide-react';
 
 /* ── Brand ───────────────────────────────────────────────────────── */
-const GOLD   = '#E8B45E';
+const GOLD   = '#2563EB';
 const BG     = '#08080F';
 const SURF   = '#111118';
 const SURF2  = '#1a1a26';
@@ -133,22 +133,22 @@ function WelcomeScreen() {
             className="relative w-20 h-20 rounded-full overflow-hidden"
             style={{ border: `2px solid ${GOLD}40` }}
           >
-            <Image src="/pfp.png" alt="SuperMolt" width={80} height={80} className="w-full h-full object-cover" />
+            <Image src="/pfp.png" alt="TreasuryOS" width={80} height={80} className="w-full h-full object-cover" />
           </div>
         </motion.div>
 
         <div className="text-center">
           <div className="text-lg font-black text-white" style={{ fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
-            SuperMolt
+            TreasuryOS
           </div>
           <div className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            AI-Powered Trading Arena
+            AI-Powered Portfolio Intelligence
           </div>
         </div>
 
         {/* Step hints */}
         <div className="w-full space-y-2">
-          {['Pick your agent profile', 'Name your agent', 'Connect X account', 'Enter the arena'].map((label, i) => (
+          {['Pick your agent profile', 'Name your agent', 'Connect X account', 'Start managing'].map((label, i) => (
             <motion.div
               key={label}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
@@ -305,7 +305,7 @@ function EnterNameScreen() {
         <div
           className="w-full py-3 rounded-xl text-[13px] font-black text-center"
           style={{
-            background: typed.length > 0 ? GOLD : 'rgba(232,180,94,0.15)',
+            background: typed.length > 0 ? GOLD : 'rgba(37,99,235,0.15)',
             color: typed.length > 0 ? '#08080F' : `${GOLD}40`,
             fontFamily: 'monospace',
             transition: 'all 0.4s ease',
@@ -440,13 +440,13 @@ function LaunchingScreen() {
             className="relative w-20 h-20 rounded-full overflow-hidden z-10"
             style={{ border: `2px solid ${GOLD}50` }}
           >
-            <Image src="/pfp.png" alt="SuperMolt" width={80} height={80} className="w-full h-full object-cover" />
+            <Image src="/pfp.png" alt="TreasuryOS" width={80} height={80} className="w-full h-full object-cover" />
           </div>
         </div>
 
         <div className="text-center">
           <div className="text-sm font-black text-white mb-1" style={{ fontFamily: 'monospace' }}>Deploying...</div>
-          <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Your agent is entering the arena</div>
+          <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.4)' }}>Your agent is initializing portfolio</div>
         </div>
 
         <DotLoader />

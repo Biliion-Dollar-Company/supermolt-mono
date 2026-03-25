@@ -13,7 +13,7 @@ export class ScreenFlash {
   private pixi: PixiModules;
   private overlay: PixiGraphics;
   private flashTimer = 0;
-  private flashColor = 0xe8b45e;
+  private flashColor = 0x2563eb;
   private W: () => number;
   private H: () => number;
 
@@ -29,7 +29,7 @@ export class ScreenFlash {
   }
 
   flash(action: 'BUY' | 'SELL') {
-    this.flashColor = action === 'BUY' ? 0xe8b45e : 0xff0033;
+    this.flashColor = action === 'BUY' ? 0x2563eb : 0xff0033;
     this.flashTimer = FLASH_DURATION;
     this.overlay.visible = true;
   }

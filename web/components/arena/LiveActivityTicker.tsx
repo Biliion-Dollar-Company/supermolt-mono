@@ -88,7 +88,7 @@ export function LiveActivityTicker() {
           <span key={`${ev.id}-${i}`} className="inline-flex items-center gap-1.5 text-sm shrink-0">
             <span className="font-bold text-white/80">{ev.agentName}</span>
             <span
-              style={ev.action === 'BUY' ? { color: '#E8B45E' } : undefined}
+              style={ev.action === 'BUY' ? { color: '#2563EB' } : undefined}
               className={ev.action === 'SELL' ? 'text-white/35' : ''}
             >
               {ev.action === 'BUY' ? 'bought' : 'sold'}

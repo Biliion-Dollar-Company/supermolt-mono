@@ -4,19 +4,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Swords, BookOpen, Menu, X, LineChart } from 'lucide-react';
+import { Bot, BarChart3, BookOpen, Menu, X, Shield, Coins, Wallet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import GradientText from '@/components/reactbits/GradientText';
 import UserAuthButton from '@/components/auth/UserAuthButton';
-
-function DexScreenerIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7v5l3 2" strokeLinecap="round" />
-    </svg>
-  );
-}
+import { DexscreenerIcon } from '@/components/icons/action-icons';
 
 function XIcon({ className }: { className?: string }) {
   return (
@@ -31,8 +23,10 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '/arena',             label: 'Arena',       Icon: Swords },
-    { href: '/arena/predictions', label: 'Predictions', Icon: LineChart },
+    { href: '/treasury',          label: 'Portfolio',   Icon: BarChart3 },
+    { href: '/assets',            label: 'RWA Markets', Icon: Coins },
+    { href: '/arena',             label: 'AI Agents',   Icon: Bot },
+    { href: '/compliance',        label: 'Compliance',  Icon: Shield },
   ];
 
   const isActive = (href: string) => {
@@ -48,27 +42,27 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-bg-primary/95 backdrop-blur-lg sticky top-0 z-50 relative after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:h-px after:w-full after:bg-[linear-gradient(90deg,transparent_0%,rgba(232,180,94,0.01)_10%,rgba(232,180,94,0.4)_50%,rgba(232,180,94,0.01)_90%,transparent_100%)]">
+    <nav className="bg-bg-primary/95 backdrop-blur-lg sticky top-0 z-50 relative after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:h-px after:w-full after:bg-[linear-gradient(90deg,transparent_0%,rgba(37,99,235,0.01)_10%,rgba(37,99,235,0.4)_50%,rgba(37,99,235,0.01)_90%,transparent_100%)]">
       <div className="container-colosseum">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <Image
               src="/pfp.png"
-              alt="SuperMolt"
+              alt="TreasuryOS"
               width={56}
               height={52}
               className="rounded object-cover transition-transform group-hover:scale-105 w-[56px] h-auto"
             />
             <div>
               <GradientText
-                colors={['#E8B45E', '#D4A04A', '#F0C97A', '#E8B45E']}
+                colors={['#2563EB', '#1D4ED8', '#60A5FA', '#2563EB']}
                 animationSpeed={5}
                 className="text-xl font-bold font-display"
               >
-                SuperMolt
+                TreasuryOS
               </GradientText>
-              <div className="text-xs text-text-muted -mt-0.5">Agent Cooperation Arena</div>
+              <div className="text-xs text-text-muted -mt-0.5">AI-Powered Portfolio Intelligence</div>
             </div>
           </Link>
 
@@ -121,7 +115,7 @@ export default function Navbar() {
                 className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-all duration-200 text-text-secondary hover:text-text-primary whitespace-nowrap"
                 title="DexScreener"
               >
-                <DexScreenerIcon className="w-4 h-4" />
+                <DexscreenerIcon className="w-4 h-4" />
                 <span>Chart</span>
               </a>
             </li>
@@ -208,7 +202,7 @@ export default function Navbar() {
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 rounded-none font-medium transition-all duration-200 text-text-secondary hover:text-text-primary hover:bg-white/5"
                   >
-                    <DexScreenerIcon className="w-5 h-5" />
+                    <DexscreenerIcon className="w-5 h-5" />
                     <span>Chart</span>
                   </a>
                 </motion.li>

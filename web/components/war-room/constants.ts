@@ -24,7 +24,7 @@ export const ACTIONS: FeedEvent['action'][] = ['BUY', 'SELL', 'ANALYZING'];
 
 /** Scanner-specific colors (Pixi hex) keyed by scanner name */
 export const SCANNER_COLORS: Record<string, number> = {
-  alpha:   0xe8b45e,  // gold
+  alpha:   0x2563eb,  // blue
   beta:    0x00d4ff,  // cyan
   gamma:   0x00ff41,  // green
   delta:   0xb388ff,  // purple

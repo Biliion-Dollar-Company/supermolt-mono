@@ -1,4 +1,4 @@
-// Colosseum Design System Components for SuperMolt
+// Colosseum Design System Components for TreasuryOS
 export { Button, buttonVariants, type ButtonProps } from './Button';
 export { Card, cardVariants, type CardProps } from './Card';
 export { Badge, badgeVariants, type BadgeProps } from './Badge';

@@ -71,11 +71,11 @@ export function MyAgentPanel() {
         className="w-full flex items-center gap-6 p-6 sm:p-7 cursor-pointer hover:bg-white/[0.02] transition-colors"
       >
         {/* Avatar */}
-        <div className="w-20 h-20 bg-[#E8B45E]/10 border-2 border-[#E8B45E]/25 flex items-center justify-center flex-shrink-0 overflow-hidden">
+        <div className="w-20 h-20 bg-[#2563EB]/10 border-2 border-[#2563EB]/25 flex items-center justify-center flex-shrink-0 overflow-hidden">
           {avatarUrl ? (
             <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
           ) : (
-            <span className="text-[#E8B45E] font-bold text-3xl">
+            <span className="text-[#2563EB] font-bold text-3xl">
               {displayName.charAt(0).toUpperCase()}
             </span>
           )}
@@ -104,7 +104,7 @@ export function MyAgentPanel() {
             )}
           </div>
           <div className="flex items-center gap-3 mt-2 w-full">
-            <span className="bg-[#E8B45E]/15 border border-[#E8B45E]/25 px-2 py-0.5 text-xs font-bold text-[#E8B45E] whitespace-nowrap">
+            <span className="bg-[#2563EB]/15 border border-[#2563EB]/25 px-2 py-0.5 text-xs font-bold text-[#2563EB] whitespace-nowrap">
               Lv.{agent.level}
             </span>
             <div className="flex items-center gap-3 min-w-0">
@@ -173,14 +173,14 @@ export function MyAgentPanel() {
                       onClick={() => setActiveTab(tab.id)}
                       className={`flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer relative ${
                         isActive
-                          ? 'text-[#E8B45E]'
+                          ? 'text-[#2563EB]'
                           : 'text-white/35 hover:text-white/55'
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                       {tab.label}
                       {isActive && (
-                        <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-[#E8B45E]" />
+                        <span className="absolute bottom-0 left-1 right-1 h-[2px] bg-[#2563EB]" />
                       )}
                     </button>
                   );

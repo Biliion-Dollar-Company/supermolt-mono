@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 🌑 Colosseum Design System - SuperMolt Web */
+/* 🌑 Colosseum Design System - TreasuryOS Web */
 
 @layer base {
   * {
@@ -87,7 +87,7 @@
 
   .card-hover {
     @apply card-base;
-    @apply hover:-translate-y-1 hover:border-accent-primary/35 hover:shadow-glow-gold;
+    @apply hover:-translate-y-1 hover:border-accent-primary/35 hover:shadow-glow-blue;
   }
 
   .card-elevated {
@@ -175,7 +175,7 @@
   /* ✨ Glow Divider Line */
   .glow-divider {
     @apply h-px w-full;
-    background: linear-gradient(90deg, transparent, #E8B45E, transparent);
+    background: linear-gradient(90deg, transparent, #2563EB, transparent);
     opacity: 0.4;
   }
 
@@ -220,7 +220,7 @@
   /* 📜 Custom Scrollbar (Gold Accent) */
   .scrollbar-custom {
     scrollbar-width: thin;
-    scrollbar-color: #E8B45E #0A0A0A;
+    scrollbar-color: #2563EB #0A0A0A;
   }
 
   .scrollbar-custom::-webkit-scrollbar {
@@ -277,7 +277,7 @@
 
   /* 🌟 Hero Background FX */
   .hero-glow {
-    background-image: radial-gradient(circle at 50% 0%, rgba(232, 180, 94, 0.25), transparent 60%);
+    background-image: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.25), transparent 60%);
   }
 
   /* 🔥 Responsive Grid Patterns */
@@ -286,12 +286,12 @@
   }
 
   /* 💫 Hover Glow Effects */
-  .hover-glow-gold {
+  .hover-glow-blue {
     @apply transition-all duration-250;
   }
 
-  .hover-glow-gold:hover {
-    box-shadow: 0 8px 32px rgba(232, 180, 94, 0.2);
+  .hover-glow-blue:hover {
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.2);
   }
 
   /* 🏟️ Grid pattern background */
@@ -333,7 +333,7 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(232,180,94,0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(37,99,235,0.3), transparent);
     background-size: 200% 100%;
     animation: shimmer 3s ease-in-out infinite;
   }
@@ -341,7 +341,7 @@
   /* Step connector line */
   .step-connector {
     @apply h-px w-full;
-    background: linear-gradient(90deg, rgba(232,180,94,0.4), rgba(232,180,94,0.1));
+    background: linear-gradient(90deg, rgba(37,99,235,0.4), rgba(37,99,235,0.1));
   }
 
   /* 🎰 Vertical marquee / carousel */
@@ -417,9 +417,9 @@
 
   /* Token card pulse — new message highlight */
   @keyframes card-pulse {
-    0% { border-color: rgba(232, 180, 94, 0.4); box-shadow: 0 0 16px rgba(232, 180, 94, 0.1); }
-    50% { border-color: rgba(232, 180, 94, 0.15); box-shadow: 0 0 8px rgba(232, 180, 94, 0.05); }
-    100% { border-color: rgba(232, 180, 94, 0.4); box-shadow: 0 0 16px rgba(232, 180, 94, 0.1); }
+    0% { border-color: rgba(37, 99, 235, 0.4); box-shadow: 0 0 16px rgba(37, 99, 235, 0.1); }
+    50% { border-color: rgba(37, 99, 235, 0.15); box-shadow: 0 0 8px rgba(37, 99, 235, 0.05); }
+    100% { border-color: rgba(37, 99, 235, 0.4); box-shadow: 0 0 16px rgba(37, 99, 235, 0.1); }
   }
 
   .animate-card-pulse {
@@ -476,18 +476,18 @@
     animation: fade-backdrop 0.2s ease-out;
   }
 
-  /* 🔲 Gold fading border variant */
-  .border-fade-gold {
+  /* 🔲 Blue fading border variant */
+  .border-fade-blue {
     position: relative;
     border: none !important;
   }
 
-  .border-fade-gold::before {
+  .border-fade-blue::before {
     content: '';
     position: absolute;
     inset: 0;
     pointer-events: none;
-    border: 1px solid rgba(232, 180, 94, 0.25);
+    border: 1px solid rgba(37, 99, 235, 0.25);
     -webkit-mask-image:
       linear-gradient(to right, transparent, white 25%, white 75%, transparent),
       linear-gradient(to bottom, transparent, white 25%, white 75%, transparent);

@@ -27,8 +27,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'SuperMolt Arena - Transparent Agent Cooperation on Solana',
-  description: 'Autonomous agents authenticate with SIWS, trade on-chain, and cooperate transparently. Real blockchain data. Verifiable decisions.',
+  title: 'TreasuryOS - AI-Powered Portfolio Intelligence on Solana',
+  description: 'AI agents managing diversified portfolios across crypto and real-world assets on Solana. Fully compliance-gated.',
 };
 
 export default function RootLayout({
@@ -51,7 +51,7 @@ export default function RootLayout({
         {children}
         <footer className="border-t border-white/[0.04] py-4 px-6 mt-auto">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-text-muted">
-            <span>&copy; {new Date().getFullYear()} SuperMolt</span>
+            <span>&copy; {new Date().getFullYear()} TreasuryOS</span>
             <div className="flex items-center gap-4">
               <a href="https://supermolt.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">supermolt.xyz</a>
               <span className="text-white/10">|</span>

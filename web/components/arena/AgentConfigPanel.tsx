@@ -193,7 +193,7 @@ export function AgentConfigPanel() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 text-[#E8B45E] animate-spin" />
+        <Loader2 className="w-6 h-6 text-[#2563EB] animate-spin" />
       </div>
     );
   }
@@ -230,7 +230,7 @@ export function AgentConfigPanel() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-white font-semibold text-base flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-[#E8B45E]" />
+              <Wallet className="w-4 h-4 text-[#2563EB]" />
               Tracked Wallets
             </h3>
             <p className="text-white/40 text-xs mt-1">
@@ -286,7 +286,7 @@ export function AgentConfigPanel() {
                   <Button variant="outline" onClick={() => setWalletDialogOpen(false)} className="text-white/70 border-white/[0.12]">
                     Cancel
                   </Button>
-                  <Button onClick={handleAddWallet} disabled={!newAddress.trim()} className="bg-[#E8B45E] hover:bg-[#E8B45E]/80 text-black">
+                  <Button onClick={handleAddWallet} disabled={!newAddress.trim()} className="bg-[#2563EB] hover:bg-[#2563EB]/80 text-black">
                     Add Wallet
                   </Button>
                 </div>
@@ -327,7 +327,7 @@ export function AgentConfigPanel() {
       <div className="bg-[#0C1020] border border-white/[0.08] rounded-lg p-5">
         <div className="mb-4">
           <h3 className="text-white font-semibold text-base flex items-center gap-2">
-            <Zap className="w-4 h-4 text-[#E8B45E]" />
+            <Zap className="w-4 h-4 text-[#2563EB]" />
             Buy Triggers
           </h3>
           <p className="text-white/40 text-xs mt-1">
@@ -464,7 +464,7 @@ export function AgentConfigPanel() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className="bg-[#E8B45E] hover:bg-[#E8B45E]/80 text-black font-medium px-6"
+          className="bg-[#2563EB] hover:bg-[#2563EB]/80 text-black font-medium px-6"
         >
           {saving ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -494,7 +494,7 @@ function TriggerCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className={`border rounded-lg p-4 transition-colors ${enabled ? 'border-[#E8B45E]/30 bg-[#E8B45E]/[0.02]' : 'border-white/[0.06]'}`}>
+    <div className={`border rounded-lg p-4 transition-colors ${enabled ? 'border-[#2563EB]/30 bg-[#2563EB]/[0.02]' : 'border-white/[0.06]'}`}>
       <button onClick={onToggle} className="flex items-start gap-3 w-full text-left mb-2">
         {enabled ? (
           <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />

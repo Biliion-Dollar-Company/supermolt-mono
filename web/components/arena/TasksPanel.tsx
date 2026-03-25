@@ -20,7 +20,7 @@ const TASK_ICONS: Record<string, LucideIcon> = {
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  OPEN: { label: 'Open', color: 'text-[#E8B45E]' },
+  OPEN: { label: 'Open', color: 'text-[#2563EB]' },
   CLAIMED: { label: 'Claimed', color: 'text-yellow-400' },
   COMPLETED: { label: 'Completed', color: 'text-green-400' },
   EXPIRED: { label: 'Expired', color: 'text-white/35' },
@@ -37,7 +37,7 @@ function TaskCard({ task, onClick }: { task: AgentTaskType; onClick: () => void 
       className="group text-left w-full py-2 cursor-pointer transition-all hover:bg-white/[0.03] px-1 -mx-1"
     >
       <div className="flex items-center gap-3">
-        <Icon className={`w-6 h-6 flex-shrink-0 ${isDone ? 'text-green-400' : 'text-[#E8B45E]'}`} />
+        <Icon className={`w-6 h-6 flex-shrink-0 ${isDone ? 'text-green-400' : 'text-[#2563EB]'}`} />
         <div className="flex-1 min-w-0">
           <span className="text-sm font-semibold text-white/80 truncate block">
             {task.taskType.replace(/_/g, ' ')}
@@ -101,7 +101,7 @@ function TaskDetailModal({
           {/* Header */}
           <div className="bg-bg-primary border border-white/[0.1] border-b-0 px-5 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {(() => { const Icon = TASK_ICONS[task.taskType] || ClipboardCheck; return <Icon className="w-6 h-6 text-[#E8B45E]" />; })()}
+              {(() => { const Icon = TASK_ICONS[task.taskType] || ClipboardCheck; return <Icon className="w-6 h-6 text-[#2563EB]" />; })()}
               <div>
                 <h3 className="text-base font-bold text-white/80">
                   {task.taskType.replace(/_/g, ' ')}
@@ -194,7 +194,7 @@ function TaskDetailModal({
                           onClose();
                           setVisible(true);
                         }}
-                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#E8B45E]/10 border border-[#E8B45E]/30 text-[#E8B45E] hover:bg-[#E8B45E]/20 transition-all text-sm font-medium cursor-pointer"
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#2563EB]/10 border border-[#2563EB]/30 text-[#2563EB] hover:bg-[#2563EB]/20 transition-all text-sm font-medium cursor-pointer"
                       >
                         <Wallet className="w-4 h-4" />
                         Connect Wallet
@@ -212,7 +212,7 @@ function TaskDetailModal({
                       <button
                         onClick={signIn}
                         disabled={isSigningIn}
-                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#E8B45E]/10 border border-[#E8B45E]/30 text-[#E8B45E] hover:bg-[#E8B45E]/20 transition-all text-sm font-medium disabled:opacity-50 cursor-pointer"
+                        className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#2563EB]/10 border border-[#2563EB]/30 text-[#2563EB] hover:bg-[#2563EB]/20 transition-all text-sm font-medium disabled:opacity-50 cursor-pointer"
                       >
                         {isSigningIn ? (
                           <>

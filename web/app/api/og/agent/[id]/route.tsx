@@ -47,11 +47,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       >
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-          <div style={{ fontSize: '24px', color: '#E8B45E', fontWeight: 700, letterSpacing: '4px' }}>
-            SUPERMOLT
+          <div style={{ fontSize: '24px', color: '#2563EB', fontWeight: 700, letterSpacing: '4px' }}>
+            TREASURYOS
           </div>
           <div style={{ fontSize: '16px', color: 'rgba(255,255,255,0.35)' }}>
-            supermolt.io
+            treasuryos.io
           </div>
         </div>
 
@@ -98,7 +98,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           left: '0',
           right: '0',
           height: '4px',
-          background: 'linear-gradient(90deg, #E8B45E 0%, transparent 100%)',
+          background: 'linear-gradient(90deg, #2563EB 0%, transparent 100%)',
         }} />
       </div>
     ),

@@ -41,7 +41,7 @@ export class HeadlineTicker {
 
     this.tickerAccent = new Graphics();
     this.tickerAccent.rect(0, 0, 4, 32);
-    this.tickerAccent.fill({ color: 0xe8b45e, alpha: 0.8 });
+    this.tickerAccent.fill({ color: 0x2563eb, alpha: 0.8 });
     this.layer.addChild(this.tickerAccent);
 
     this.headlineText = new Text({
@@ -66,7 +66,7 @@ export class HeadlineTicker {
     this.tickerBg.clear();
     this.tickerBg.rect(0, 0, w, 32);
     this.tickerBg.fill({ color: 0x050505, alpha: 0.92 });
-    this.tickerBg.setStrokeStyle({ width: 1, color: 0xe8b45e, alpha: 0.15 });
+    this.tickerBg.setStrokeStyle({ width: 1, color: 0x2563eb, alpha: 0.15 });
     this.tickerBg.rect(0, 0, w, 32);
     this.tickerBg.stroke();
     this.lastWidth = w;
@@ -104,7 +104,7 @@ export class HeadlineTicker {
     if (!this.isPriorityOverride) {
       const hl = this.headlineText.text;
       if (hl.includes('ALPHA') || hl.includes('COORDINATED')) {
-        (this.headlineText.style as { fill: number }).fill = 0xe8b45e;
+        (this.headlineText.style as { fill: number }).fill = 0x2563eb;
       } else if (hl.includes('NEW GRADUATION')) {
         (this.headlineText.style as { fill: number }).fill = 0x00ff41;
       } else {

@@ -84,7 +84,7 @@ export function ConversationsPanel() {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-[#E8B45E]" />
+          <MessageSquare className="w-4 h-4 text-[#2563EB]" />
           <span className="text-xs font-semibold text-white/55 uppercase tracking-wider">
             Conversations
           </span>
@@ -107,7 +107,7 @@ export function ConversationsPanel() {
                 <button
                   onClick={() => toggleConversation(conv.conversationId)}
                   className={`w-full text-left flex items-center gap-3 bg-white/[0.02] border p-3 hover:bg-white/[0.04] transition-all cursor-pointer ${
-                    isExpanded ? 'border-[#E8B45E]/20 bg-white/[0.03]' : 'border-white/[0.06]'
+                    isExpanded ? 'border-[#2563EB]/20 bg-white/[0.03]' : 'border-white/[0.06]'
                   }`}
                 >
                   <div className="flex-1 min-w-0">
@@ -127,7 +127,7 @@ export function ConversationsPanel() {
                     </div>
                   </div>
                   <div className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full transition-all ${
-                    isExpanded ? 'bg-[#E8B45E]/10 text-[#E8B45E]' : 'text-white/35'
+                    isExpanded ? 'bg-[#2563EB]/10 text-[#2563EB]' : 'text-white/35'
                   }`}>
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
                   </div>
@@ -135,7 +135,7 @@ export function ConversationsPanel() {
 
                 {/* Expanded messages */}
                 {isExpanded && (
-                  <div className="border-x border-b border-[#E8B45E]/10 bg-white/[0.015] overflow-hidden">
+                  <div className="border-x border-b border-[#2563EB]/10 bg-white/[0.015] overflow-hidden">
                     <div className="px-3 py-3 space-y-2.5">
                       {convMessages[conv.conversationId] ? (
                         convMessages[conv.conversationId].length === 0 ? (
@@ -143,7 +143,7 @@ export function ConversationsPanel() {
                         ) : (
                           convMessages[conv.conversationId].slice(-5).map((msg) => (
                             <div key={msg.messageId} className="flex gap-2.5">
-                              <div className="flex-shrink-0 w-5 h-5 bg-[#E8B45E]/10 flex items-center justify-center text-[9px] font-bold text-[#E8B45E] mt-0.5">
+                              <div className="flex-shrink-0 w-5 h-5 bg-[#2563EB]/10 flex items-center justify-center text-[9px] font-bold text-[#2563EB] mt-0.5">
                                 {msg.agentName.charAt(0)}
                               </div>
                               <div className="flex-1 min-w-0">

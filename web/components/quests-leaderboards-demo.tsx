@@ -145,9 +145,9 @@ function Toast({
             )}
             animate={{
               boxShadow: [
-                '0 0 0 0 rgba(232, 180, 94, 0.2)',
-                '0 0 20px 4px rgba(232, 180, 94, 0.3)',
-                '0 0 0 0 rgba(232, 180, 94, 0.2)',
+                '0 0 0 0 rgba(37, 99, 235, 0.2)',
+                '0 0 20px 4px rgba(37, 99, 235, 0.3)',
+                '0 0 0 0 rgba(37, 99, 235, 0.2)',
               ],
             }}
             transition={{ duration: 1.5, repeat: 1 }}
@@ -427,14 +427,14 @@ function SlotMachineLeaderboard({
               hasLanded
                 ? {
                     boxShadow: [
-                      '0 0 0px rgba(232,180,94,0)',
-                      '0 0 40px rgba(232,180,94,0.6)',
-                      '0 0 25px rgba(232,180,94,0.3)',
+                      '0 0 0px rgba(37,99,235,0)',
+                      '0 0 40px rgba(37,99,235,0.6)',
+                      '0 0 25px rgba(37,99,235,0.3)',
                     ],
                   }
                 : isClimbing
-                  ? { boxShadow: '0 0 25px rgba(232,180,94,0.4)' }
-                  : { boxShadow: '0 0 0px rgba(232,180,94,0)' }
+                  ? { boxShadow: '0 0 25px rgba(37,99,235,0.4)' }
+                  : { boxShadow: '0 0 0px rgba(37,99,235,0)' }
             }
             transition={{ duration: 0.5 }}
           />
@@ -444,8 +444,8 @@ function SlotMachineLeaderboard({
             className="absolute left-0 top-0 bottom-0 w-6 lg:w-10"
             style={{
               background: isClimbing
-                ? 'linear-gradient(to right, rgba(232,180,94,0.25) 0%, rgba(232,180,94,0.08) 40%, transparent 100%)'
-                : 'linear-gradient(to right, rgba(232,180,94,0.15) 0%, transparent 100%)',
+                ? 'linear-gradient(to right, rgba(37,99,235,0.25) 0%, rgba(37,99,235,0.08) 40%, transparent 100%)'
+                : 'linear-gradient(to right, rgba(37,99,235,0.15) 0%, transparent 100%)',
             }}
             animate={
               isClimbing
@@ -460,8 +460,8 @@ function SlotMachineLeaderboard({
             className="absolute right-0 top-0 bottom-0 w-6 lg:w-10"
             style={{
               background: isClimbing
-                ? 'linear-gradient(to left, rgba(232,180,94,0.25) 0%, rgba(232,180,94,0.08) 40%, transparent 100%)'
-                : 'linear-gradient(to left, rgba(232,180,94,0.15) 0%, transparent 100%)',
+                ? 'linear-gradient(to left, rgba(37,99,235,0.25) 0%, rgba(37,99,235,0.08) 40%, transparent 100%)'
+                : 'linear-gradient(to left, rgba(37,99,235,0.15) 0%, transparent 100%)',
             }}
             animate={
               isClimbing
@@ -497,7 +497,7 @@ function SlotMachineLeaderboard({
             )}
 
             <motion.div
-              className="flex h-7 w-7 items-center justify-center rounded-sm border border-accent-primary/40 bg-accent-primary/[0.1] text-accent-primary shadow-[0_0_12px_rgba(232,180,94,0.2)] backdrop-blur-sm lg:h-9 lg:w-9"
+              className="flex h-7 w-7 items-center justify-center rounded-sm border border-accent-primary/40 bg-accent-primary/[0.1] text-accent-primary shadow-[0_0_12px_rgba(37,99,235,0.2)] backdrop-blur-sm lg:h-9 lg:w-9"
               animate={hasLanded ? { scale: [1, 1.15, 1] } : {}}
               transition={{ duration: 0.4, delay: 0.1 }}
             >
@@ -536,7 +536,7 @@ function PodiumSpot({
     1: 'bg-amber-400/[0.08] border-amber-400/40 shadow-[0_0_24px_rgba(251,191,36,0.25),inset_0_1px_0_rgba(251,191,36,0.15)]',
     2: 'bg-white/[0.05] border-white/[0.2] shadow-[0_0_18px_rgba(255,255,255,0.1),inset_0_1px_0_rgba(255,255,255,0.1)]',
     3: isYou
-      ? 'bg-accent-primary/[0.1] border-accent-primary/40 shadow-[0_0_24px_rgba(232,180,94,0.3),inset_0_1px_0_rgba(232,180,94,0.15)]'
+      ? 'bg-accent-primary/[0.1] border-accent-primary/40 shadow-[0_0_24px_rgba(37,99,235,0.3),inset_0_1px_0_rgba(37,99,235,0.15)]'
       : 'bg-orange-400/[0.06] border-orange-400/30 shadow-[0_0_16px_rgba(251,146,60,0.15),inset_0_1px_0_rgba(251,146,60,0.1)]',
   };
   const staggerDelays: Record<1 | 2 | 3, number> = { 1: 0.15, 2: 0.05, 3: 0.25 };
@@ -934,9 +934,9 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                       animate={{
                         opacity: 1,
                         boxShadow: [
-                          '0 0 20px rgba(232, 180, 94, 0.3), 0 0 40px rgba(232, 180, 94, 0.15)',
-                          '0 0 25px rgba(232, 180, 94, 0.4), 0 0 50px rgba(232, 180, 94, 0.2)',
-                          '0 0 20px rgba(232, 180, 94, 0.3), 0 0 40px rgba(232, 180, 94, 0.15)',
+                          '0 0 20px rgba(37, 99, 235, 0.3), 0 0 40px rgba(37, 99, 235, 0.15)',
+                          '0 0 25px rgba(37, 99, 235, 0.4), 0 0 50px rgba(37, 99, 235, 0.2)',
+                          '0 0 20px rgba(37, 99, 235, 0.3), 0 0 40px rgba(37, 99, 235, 0.15)',
                         ],
                       }}
                       transition={{
@@ -989,7 +989,7 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                 className="absolute -top-2 left-1/2 z-10 -translate-x-1/2"
               >
                 <motion.span
-                  className="text-accent-primary flex items-center gap-1 text-lg font-bold drop-shadow-[0_0_12px_rgba(232,180,94,0.8)]"
+                  className="text-accent-primary flex items-center gap-1 text-lg font-bold drop-shadow-[0_0_12px_rgba(37,99,235,0.8)]"
                   animate={!floatingPointsMerging ? { y: [0, -3, 0] } : {}}
                   transition={{ duration: 0.6, repeat: Infinity }}
                 >
@@ -1014,9 +1014,9 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                 ? {
                     scale: [1, 1.02, 1],
                     boxShadow: [
-                      '0 0 0 0 rgba(232, 180, 94, 0.2)',
-                      '0 0 20px 4px rgba(232, 180, 94, 0.4)',
-                      '0 0 0 0 rgba(232, 180, 94, 0.2)',
+                      '0 0 0 0 rgba(37, 99, 235, 0.2)',
+                      '0 0 20px 4px rgba(37, 99, 235, 0.4)',
+                      '0 0 0 0 rgba(37, 99, 235, 0.2)',
                     ],
                   }
                 : floatingPointsMerging
@@ -1043,7 +1043,7 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
               className={cn(
                 'text-base font-bold tabular-nums transition-all lg:text-xl',
                 isClimbing || floatingPointsMerging
-                  ? 'text-accent-primary drop-shadow-[0_0_8px_rgba(232,180,94,0.6)]'
+                  ? 'text-accent-primary drop-shadow-[0_0_8px_rgba(37,99,235,0.6)]'
                   : 'text-accent-primary'
               )}
             >
@@ -1100,7 +1100,7 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                   'relative rounded-sm border p-3 transition-all duration-500 lg:p-5',
                   questPhase === 'quest_available' && 'border-white/[0.08] bg-white/[0.03] backdrop-blur-xl',
                   isQuestReady &&
-                    'border-accent-primary/50 bg-accent-primary/[0.06] shadow-[0_0_20px_rgba(232,180,94,0.15)] backdrop-blur-xl',
+                    'border-accent-primary/50 bg-accent-primary/[0.06] shadow-[0_0_20px_rgba(37,99,235,0.15)] backdrop-blur-xl',
                   isClaiming && 'border-accent-primary bg-accent-primary/[0.1] backdrop-blur-xl',
                   isCelebrating && 'border-accent-primary/20 bg-white/[0.02] backdrop-blur-xl'
                 )}
@@ -1181,7 +1181,7 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                         className={cn(
                           'rounded-sm px-3 py-2 text-xs font-bold transition-all duration-300 lg:px-5 lg:py-3 lg:text-base',
                           questPhase === 'quest_available' && 'bg-white/[0.06] text-text-muted',
-                          isQuestReady && 'bg-accent-primary/[0.15] border border-accent-primary/50 cursor-pointer text-accent-primary shadow-[0_0_16px_rgba(232,180,94,0.2)]',
+                          isQuestReady && 'bg-accent-primary/[0.15] border border-accent-primary/50 cursor-pointer text-accent-primary shadow-[0_0_16px_rgba(37,99,235,0.2)]',
                           isClaiming && 'bg-accent-primary/[0.1] border border-accent-primary/30 text-accent-primary/60'
                         )}
                       >
@@ -1306,11 +1306,11 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                   y: 0,
                   boxShadow: rewardsPhase === 'distribute' || rewardsPhase === 'celebrate'
                     ? [
-                        '0 0 0 0 rgba(232, 180, 94, 0.2)',
-                        '0 0 40px 8px rgba(232, 180, 94, 0.4)',
-                        '0 0 0 0 rgba(232, 180, 94, 0.2)',
+                        '0 0 0 0 rgba(37, 99, 235, 0.2)',
+                        '0 0 40px 8px rgba(37, 99, 235, 0.4)',
+                        '0 0 0 0 rgba(37, 99, 235, 0.2)',
                       ]
-                    : '0 0 20px rgba(232, 180, 94, 0.2)'
+                    : '0 0 20px rgba(37, 99, 235, 0.2)'
                 }}
                 transition={{ 
                   type: 'spring', 
@@ -1371,7 +1371,7 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                       opacity: 1, 
                       x: 0, 
                       scale: 1,
-                      backgroundColor: agent.isYou ? 'rgba(232, 180, 94, 0.1)' : 'rgba(255, 255, 255, 0.02)'
+                      backgroundColor: agent.isYou ? 'rgba(37, 99, 235, 0.1)' : 'rgba(255, 255, 255, 0.02)'
                     }}
                     transition={{ 
                       delay: i * 0.15,
@@ -1381,7 +1381,7 @@ export function QuestsLeaderboardsDemo({ className }: QuestsLeaderboardsDemoProp
                     }}
                     className={cn(
                       'flex items-center justify-between rounded-sm border px-4 py-3 backdrop-blur-xl',
-                      agent.isYou ? 'border-accent-primary/40 shadow-[0_0_20px_rgba(232,180,94,0.2)]' : 'border-white/[0.08]'
+                      agent.isYou ? 'border-accent-primary/40 shadow-[0_0_20px_rgba(37,99,235,0.2)]' : 'border-white/[0.08]'
                     )}
                   >
                     <div className="flex items-center gap-3">

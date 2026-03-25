@@ -48,7 +48,7 @@ const FALLBACK_AGENTS: AgentData[] = [
     totalTrades: 71,
     trustScore: 0.994,
     bestTradePct: 38153,
-    color: 0xe8b45e,
+    color: 0x2563eb,
     pfpUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=alpha-whale&backgroundColor=0a0a0a&radius=50',
     notes: '$210k profit, 1619 SOL balance ($261k portfolio). Selective whale.',
   },
@@ -128,7 +128,7 @@ function walletsToAgents(wallets: DevPrintWallet[]): AgentData[] {
       pnl: w.avg_return_pct,
       totalTrades: w.total_trades,
       trustScore: w.trust_score,
-      color: isGold ? 0xe8b45e : 0xffffff,
+      color: isGold ? 0x2563eb : 0xffffff,
       pfpUrl: pfp,
       twitterHandle: w.twitter_handle ?? undefined,
       notes: w.notes ?? undefined,
@@ -333,7 +333,7 @@ export default function ArenaPage() {
       <div
         className="relative z-10 flex items-center gap-3 px-4 sm:px-6 py-3 flex-shrink-0"
         style={{
-          borderBottom: '1px solid rgba(232,180,94,0.2)',
+          borderBottom: '1px solid rgba(37,99,235,0.2)',
           background: 'rgba(0,0,0,0.8)',
           backdropFilter: 'blur(12px)',
         }}
@@ -343,7 +343,7 @@ export default function ArenaPage() {
           <h1 className="text-lg font-bold text-text-primary leading-tight">Arena</h1>
           <p
             className="text-xs uppercase tracking-widest"
-            style={{ color: 'rgba(232,180,94,0.6)', fontFamily: 'JetBrains Mono, monospace' }}
+            style={{ color: 'rgba(37,99,235,0.6)', fontFamily: 'JetBrains Mono, monospace' }}
           >
             WAR ROOM — Observer Mode
           </p>
@@ -361,9 +361,9 @@ export default function ArenaPage() {
                 className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider transition-colors"
                 style={{
                   fontFamily: 'JetBrains Mono, monospace',
-                  color: isActive ? '#E8B45E' : 'rgba(255,255,255,0.3)',
-                  background: isActive ? 'rgba(232,180,94,0.12)' : 'transparent',
-                  border: `1px solid ${isActive ? 'rgba(232,180,94,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                  color: isActive ? '#2563EB' : 'rgba(255,255,255,0.3)',
+                  background: isActive ? 'rgba(37,99,235,0.12)' : 'transparent',
+                  border: `1px solid ${isActive ? 'rgba(37,99,235,0.3)' : 'rgba(255,255,255,0.08)'}`,
                   cursor: 'pointer',
                 }}
               >
@@ -435,7 +435,7 @@ export default function ArenaPage() {
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              boxShadow: 'inset 0 0 60px rgba(232,180,94,0.04), inset 0 0 120px rgba(232,180,94,0.02)',
+              boxShadow: 'inset 0 0 60px rgba(37,99,235,0.04), inset 0 0 120px rgba(37,99,235,0.02)',
             }}
           />
 
@@ -451,8 +451,8 @@ export default function ArenaPage() {
               className={`absolute ${c.pos} pointer-events-none`}
               style={{ width: 32, height: 32, animation: 'hud-breathe 4s ease-in-out infinite', animationDelay: `${i * 0.5}s` }}
             >
-              <div style={{ position: 'absolute', ...c.anchorH, width: 32, height: 2, background: 'rgba(232,180,94,0.35)', boxShadow: '0 0 6px rgba(232,180,94,0.15)' }} />
-              <div style={{ position: 'absolute', ...c.anchorV, width: 2, height: 32, background: 'rgba(232,180,94,0.35)', boxShadow: '0 0 6px rgba(232,180,94,0.15)' }} />
+              <div style={{ position: 'absolute', ...c.anchorH, width: 32, height: 2, background: 'rgba(37,99,235,0.35)', boxShadow: '0 0 6px rgba(37,99,235,0.15)' }} />
+              <div style={{ position: 'absolute', ...c.anchorV, width: 2, height: 32, background: 'rgba(37,99,235,0.35)', boxShadow: '0 0 6px rgba(37,99,235,0.15)' }} />
             </div>
           ))}
 
@@ -463,7 +463,7 @@ export default function ArenaPage() {
               fontFamily: 'JetBrains Mono, monospace',
               fontSize: '8px',
               letterSpacing: '2px',
-              color: 'rgba(232,180,94,0.25)',
+              color: 'rgba(37,99,235,0.25)',
             }}
           >
             SECTOR MAP
@@ -476,7 +476,7 @@ export default function ArenaPage() {
               fontFamily: 'JetBrains Mono, monospace',
               fontSize: '8px',
               letterSpacing: '1px',
-              color: 'rgba(232,180,94,0.2)',
+              color: 'rgba(37,99,235,0.2)',
             }}
           >
             {stations.length} STATIONS &middot; {agents.length} WALLETS
@@ -499,14 +499,14 @@ export default function ArenaPage() {
           style={{
             width: 'clamp(340px, 24vw, 480px)',
             background: '#0A0A0A',
-            borderLeft: '1px solid rgba(232, 180, 94, 0.3)',
+            borderLeft: '1px solid rgba(37, 99, 235, 0.3)',
           }}
         >
           {/* Token selector tabs */}
           <div
             className="flex items-center gap-1 px-3 py-2 flex-shrink-0 overflow-x-auto"
             style={{
-              borderBottom: '1px solid rgba(232,180,94,0.15)',
+              borderBottom: '1px solid rgba(37,99,235,0.15)',
               background: '#050505',
               scrollbarWidth: 'none',
             }}
@@ -521,9 +521,9 @@ export default function ArenaPage() {
                   className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap flex-shrink-0"
                   style={{
                     fontFamily: 'JetBrains Mono, monospace',
-                    color: isActive ? '#E8B45E' : 'rgba(255,255,255,0.35)',
-                    background: isActive ? 'rgba(232,180,94,0.12)' : 'transparent',
-                    border: `1px solid ${isActive ? 'rgba(232,180,94,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                    color: isActive ? '#2563EB' : 'rgba(255,255,255,0.35)',
+                    background: isActive ? 'rgba(37,99,235,0.12)' : 'transparent',
+                    border: `1px solid ${isActive ? 'rgba(37,99,235,0.3)' : 'rgba(255,255,255,0.06)'}`,
                     cursor: 'pointer',
                   }}
                 >
@@ -536,10 +536,10 @@ export default function ArenaPage() {
           {/* Top ~65%: Token Detail (positions, activity, tasks, chat) */}
           <div
             className="flex flex-col overflow-hidden"
-            style={{ flex: '2 1 0%', minHeight: 0, borderBottom: '1px solid rgba(232,180,94,0.2)' }}
+            style={{ flex: '2 1 0%', minHeight: 0, borderBottom: '1px solid rgba(37,99,235,0.2)' }}
           >
             {selectedToken ? (
-              <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(232,180,94,0.2) transparent' }}>
+              <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(37,99,235,0.2) transparent' }}>
                 <TokenDetailContent tokenSymbol={selectedToken} compact />
               </div>
             ) : (
@@ -560,7 +560,7 @@ export default function ArenaPage() {
             {/* Live Feed header */}
             <div
               className="flex items-center gap-2 px-4 py-3 flex-shrink-0"
-              style={{ borderBottom: '1px solid rgba(232, 180, 94, 0.2)' }}
+              style={{ borderBottom: '1px solid rgba(37, 99, 235, 0.2)' }}
             >
               <span
                 className="inline-block w-2 h-2 rounded-full"
@@ -572,7 +572,7 @@ export default function ArenaPage() {
               />
               <h2
                 className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: '#E8B45E', fontFamily: 'JetBrains Mono, monospace' }}
+                style={{ color: '#2563EB', fontFamily: 'JetBrains Mono, monospace' }}
               >
                 Live Feed
               </h2>
@@ -609,10 +609,10 @@ export default function ArenaPage() {
             transition: 'opacity 0.4s ease-out',
           }}
         >
-          <Swords className="w-8 h-8 mb-6" style={{ color: '#E8B45E', opacity: 0.8 }} />
+          <Swords className="w-8 h-8 mb-6" style={{ color: '#2563EB', opacity: 0.8 }} />
           <h2
             className="text-sm font-bold uppercase tracking-[0.25em] mb-8"
-            style={{ color: '#E8B45E', fontFamily: 'JetBrains Mono, monospace' }}
+            style={{ color: '#2563EB', fontFamily: 'JetBrains Mono, monospace' }}
           >
             War Room
           </h2>
@@ -621,14 +621,14 @@ export default function ArenaPage() {
           <div className="w-64 sm:w-80 mb-6">
             <div
               className="w-full h-1 rounded-full overflow-hidden"
-              style={{ background: 'rgba(232,180,94,0.15)' }}
+              style={{ background: 'rgba(37,99,235,0.15)' }}
             >
               <div
                 className="h-full rounded-full"
                 style={{
                   width: `${Math.max(8, (completedStages.size / LOADING_STAGES.length) * 100)}%`,
-                  background: 'linear-gradient(90deg, #E8B45E, #f0c96e)',
-                  boxShadow: '0 0 12px rgba(232,180,94,0.4)',
+                  background: 'linear-gradient(90deg, #2563EB, #f0c96e)',
+                  boxShadow: '0 0 12px rgba(37,99,235,0.4)',
                   transition: 'width 0.5s ease-out',
                 }}
               />
@@ -636,13 +636,13 @@ export default function ArenaPage() {
             <div className="flex justify-between mt-2">
               <span
                 className="text-[10px] uppercase tracking-wider"
-                style={{ color: 'rgba(232,180,94,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
+                style={{ color: 'rgba(37,99,235,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
               >
                 {completedStages.size}/{LOADING_STAGES.length}
               </span>
               <span
                 className="text-[10px] uppercase tracking-wider"
-                style={{ color: 'rgba(232,180,94,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
+                style={{ color: 'rgba(37,99,235,0.5)', fontFamily: 'JetBrains Mono, monospace' }}
               >
                 {Math.round((completedStages.size / LOADING_STAGES.length) * 100)}%
               </span>
@@ -671,13 +671,13 @@ export default function ArenaPage() {
                     ) : isActive ? (
                       <span
                         className="inline-block w-2 h-2 rounded-full animate-pulse"
-                        style={{ background: '#E8B45E', boxShadow: '0 0 8px #E8B45E' }}
+                        style={{ background: '#2563EB', boxShadow: '0 0 8px #2563EB' }}
                       />
                     ) : (
                       <span style={{ color: 'rgba(255,255,255,0.2)' }}>&#8226;</span>
                     )}
                   </span>
-                  <span style={{ color: isDone ? '#00ff41' : isActive ? '#E8B45E' : 'rgba(255,255,255,0.3)' }}>
+                  <span style={{ color: isDone ? '#00ff41' : isActive ? '#2563EB' : 'rgba(255,255,255,0.3)' }}>
                     {stage.label}
                   </span>
                 </div>
@@ -693,14 +693,14 @@ export default function ArenaPage() {
           className="relative z-10 flex-shrink-0"
           style={{
             height: '120px',
-            borderTop: '1px solid rgba(232,180,94,0.2)',
+            borderTop: '1px solid rgba(37,99,235,0.2)',
             background: '#0A0A0A',
             overflowY: 'auto',
           }}
         >
           <div
             className="px-3 py-1 text-xs font-bold uppercase tracking-widest"
-            style={{ color: '#E8B45E', fontFamily: 'JetBrains Mono, monospace' }}
+            style={{ color: '#2563EB', fontFamily: 'JetBrains Mono, monospace' }}
           >
             Live Feed
           </div>
@@ -720,7 +720,7 @@ export default function ArenaPage() {
               >
                 {evt.action === 'SCANNER_CALL' ? 'CALL' : evt.action === 'ANALYZING' ? 'WATCH' : evt.action}
               </span>
-              <span style={{ color: '#E8B45E' }}>{evt.agentName}</span>
+              <span style={{ color: '#2563EB' }}>{evt.agentName}</span>
               <span style={{ color: 'rgba(255,255,255,0.5)' }}>{evt.token}</span>
               {evt.detail && <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '8px' }}>{evt.detail}</span>}
             </div>

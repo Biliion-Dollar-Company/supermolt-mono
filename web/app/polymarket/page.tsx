@@ -326,7 +326,7 @@ export default function PolymarketDashboard() {
         className="fixed inset-0 z-0"
         style={{
           background:
-            'radial-gradient(ellipse at 20% 0%, rgba(16,185,129,0.05) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(232,180,94,0.04) 0%, transparent 50%), radial-gradient(ellipse at center, rgba(10,10,18,1) 0%, rgba(5,5,12,1) 100%)',
+            'radial-gradient(ellipse at 20% 0%, rgba(16,185,129,0.05) 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, rgba(37,99,235,0.04) 0%, transparent 50%), radial-gradient(ellipse at center, rgba(10,10,18,1) 0%, rgba(5,5,12,1) 100%)',
         }}
       />
       <div className="fixed inset-0 z-[1] overflow-hidden pointer-events-none bg-grid-pattern opacity-[0.15]" />
@@ -513,8 +513,8 @@ export default function PolymarketDashboard() {
                           <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                         </linearGradient>
                         <linearGradient id="sharpeGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#E8B45E" stopOpacity={0.15} />
-                          <stop offset="95%" stopColor="#E8B45E" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#2563EB" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#2563EB" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
@@ -545,11 +545,11 @@ export default function PolymarketDashboard() {
                         type="monotone"
                         dataKey="sharpe"
                         name="Sharpe"
-                        stroke="#E8B45E"
+                        stroke="#2563EB"
                         strokeWidth={1.5}
                         strokeDasharray="4 4"
                         dot={false}
-                        activeDot={{ r: 3, fill: '#E8B45E', stroke: '#0d0f16', strokeWidth: 2 }}
+                        activeDot={{ r: 3, fill: '#2563EB', stroke: '#0d0f16', strokeWidth: 2 }}
                       />
                     </AreaChart>
                   </ResponsiveContainer>

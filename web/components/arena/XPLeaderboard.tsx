@@ -61,17 +61,17 @@ export function XPLeaderboard() {
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-white/80 truncate group-hover:text-[#E8B45E] transition-colors">
+                      <span className="text-sm font-semibold text-white/80 truncate group-hover:text-[#2563EB] transition-colors">
                         {entry.name}
                       </span>
-                      <span className="text-[10px] font-bold text-[#E8B45E] bg-[#E8B45E]/10 px-1.5 py-0.5 font-mono flex-shrink-0">
+                      <span className="text-[10px] font-bold text-[#2563EB] bg-[#2563EB]/10 px-1.5 py-0.5 font-mono flex-shrink-0">
                         Lv.{entry.level}
                       </span>
                     </div>
                     <span className="text-xs text-white/35">{entry.levelName}</span>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-mono text-[#E8B45E]">{entry.xp.toLocaleString()}</div>
+                    <div className="text-sm font-mono text-[#2563EB]">{entry.xp.toLocaleString()}</div>
                     <div className="text-xs text-white/35">XP</div>
                   </div>
                 </button>

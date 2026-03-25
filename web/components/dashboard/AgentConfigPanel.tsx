@@ -1,6 +1,6 @@
 'use client';
 
-const GOLD = '#E8B45E';
+const GOLD = '#2563EB';
 
 import { useState, useCallback } from 'react';
 import { Settings, Shield, TrendingUp, Save, Loader2, CheckCircle2, AlertTriangle, ChevronDown } from 'lucide-react';
@@ -93,7 +93,7 @@ function SliderField({
                 step={step}
                 value={value}
                 onChange={(e) => onChange(Number(e.target.value))}
-                className="w-full h-1 bg-white/[0.08] rounded appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(232,180,94,0.4)]"
+                className="w-full h-1 bg-white/[0.08] rounded appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_0_6px_rgba(37,99,235,0.4)]"
                 style={{ accentColor: GOLD }}
             />
             {description && <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{description}</p>}
@@ -196,7 +196,7 @@ export function AgentConfigPanel() {
                         onClick={handleSaveConfig}
                         disabled={savingConfig}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 border transition-all text-xs font-semibold disabled:opacity-50 cursor-pointer rounded"
-                        style={{ background: 'rgba(232,180,94,0.08)', borderColor: 'rgba(232,180,94,0.3)', color: GOLD }}
+                        style={{ background: 'rgba(37,99,235,0.08)', borderColor: 'rgba(37,99,235,0.3)', color: GOLD }}
                     >
                         {savingConfig ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                         {savingConfig ? 'Saving…' : 'Save Config'}

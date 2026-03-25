@@ -114,8 +114,8 @@ export default function NewsModal({ newsId, onClose, initialItem = null }: NewsM
           {/* Title Overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-[#E8B45E]" />
-              <span className="text-xs font-mono uppercase tracking-wider text-[#E8B45E]">
+              <Sparkles className="w-4 h-4 text-[#2563EB]" />
+              <span className="text-xs font-mono uppercase tracking-wider text-[#2563EB]">
                 {newsItem.category}
               </span>
             </div>
@@ -175,14 +175,14 @@ export default function NewsModal({ newsId, onClose, initialItem = null }: NewsM
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#E8B45E] hover:text-[#E8B45E]/80 underline inline-flex items-center gap-1"
+                      className="text-[#2563EB] hover:text-[#2563EB]/80 underline inline-flex items-center gap-1"
                     >
                       {children}
                       <ExternalLink className="w-3 h-3 inline" />
                     </a>
                   ),
                   code: ({ children }) => (
-                    <code className="bg-white/[0.05] px-1.5 py-0.5 rounded text-[#E8B45E] font-mono text-sm">
+                    <code className="bg-white/[0.05] px-1.5 py-0.5 rounded text-[#2563EB] font-mono text-sm">
                       {children}
                     </code>
                   ),

@@ -20,7 +20,7 @@ const ACTION_ICONS: Record<string, string> = {
   SOLD: '\u25BC',
 };
 
-const BRAND = 0xe8b45e;
+const BRAND = 0x2563eb;
 
 export class PopupManager {
   private pixi: PixiModules;

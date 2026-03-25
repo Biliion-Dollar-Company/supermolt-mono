@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { X, TrendingUp, TrendingDown, ExternalLink, Copy, Check, ArrowUpRight, ArrowDownRight, CheckCircle2 } from 'lucide-react';
+import { X, TrendingUp, TrendingDown, ExternalLink, ArrowUpRight, ArrowDownRight, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTokenFeed } from '@/lib/hooks';
 import type { TrendingToken, UnifiedFeedItem } from '@/lib/types';
+import { CopyCaIcon, CopySuccessIcon, DexscreenerIcon } from '@/components/icons/action-icons';
 
 function timeAgo(dateStr?: string): string {
   if (!dateStr) return '';
@@ -105,7 +106,7 @@ function TradeItem({ item }: { item: UnifiedFeedItem & { type: 'trade' } }) {
 function TaskItem({ item }: { item: UnifiedFeedItem & { type: 'task_claimed' | 'task_completed' } }) {
   return (
     <div className="animate-feed-enter flex justify-center py-1.5">
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] bg-[#E8B45E]/8 text-[#E8B45E]/80">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] bg-[#2563EB]/8 text-[#2563EB]/80">
         <CheckCircle2 className="w-3.5 h-3.5" />
         <span className="font-semibold">{stripEmoji(item.agentName)}</span>
         <span>{item.type === 'task_completed' ? 'completed' : 'claimed'}:</span>
@@ -203,7 +204,6 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
   };
 
   const quickLinks = [
-    { label: 'DexScreener', href: `https://dexscreener.com/solana/${token.tokenMint}` },
     { label: 'Jupiter', href: `https://jup.ag/swap/SOL-${token.tokenMint}` },
     { label: 'Pump.fun', href: `https://pump.fun/${token.tokenMint}` },
     { label: 'Solscan', href: `https://solscan.io/token/${token.tokenMint}` },
@@ -231,7 +231,7 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
                 />
               ) : null}
-              <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-sm font-bold text-[#E8B45E] ring-2 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
+              <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-sm font-bold text-[#2563EB] ring-2 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
                 {token.tokenSymbol?.charAt(0) || '?'}
               </div>
             </div>
@@ -253,9 +253,30 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                 <span className="text-[10px] text-white/35/60 font-mono">
                   {token.tokenMint.slice(0, 6)}...{token.tokenMint.slice(-4)}
                 </span>
-                <button onClick={copyMint} className="text-white/35/40 hover:text-white/55 transition-colors cursor-pointer">
-                  {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={copyMint}
+                    className="group flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.05] bg-white/[0.02] text-white/40 transition-all hover:border-[#2563EB]/20 hover:bg-white/[0.05]"
+                    title="Copy contract address"
+                    aria-label="Copy contract address"
+                  >
+                    {copied ? (
+                      <CopySuccessIcon className="w-3 h-3 text-green-400" />
+                    ) : (
+                      <CopyCaIcon className="w-3 h-3 text-current group-hover:text-[#2563EB]" />
+                    )}
+                  </button>
+                  <a
+                    href={`https://dexscreener.com/solana/${token.tokenMint}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.05] bg-white/[0.02] transition-all hover:border-[#2563EB]/20 hover:bg-white/[0.05]"
+                    title="Open on DexScreener"
+                    aria-label="Open on DexScreener"
+                  >
+                    <DexscreenerIcon className="w-3.5 h-3.5 opacity-75 transition-opacity group-hover:opacity-100" />
+                  </a>
+                </div>
                 {activeCount > 0 && (
                   <div className="flex items-center gap-1 text-[10px] text-white/35/50">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-online-pulse" />
@@ -295,7 +316,7 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[10px] text-white/35/60 hover:text-[#E8B45E] transition-colors px-2 py-1 rounded-md bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.03] hover:border-[#E8B45E]/15"
+                className="flex items-center gap-1 text-[10px] text-white/35/60 hover:text-[#2563EB] transition-colors px-2 py-1 rounded-md bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.03] hover:border-[#2563EB]/15"
               >
                 {label} <ExternalLink className="w-2.5 h-2.5" />
               </a>

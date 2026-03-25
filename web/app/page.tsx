@@ -42,6 +42,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 import { usePrivyAgentAuth } from '@/hooks/usePrivyAgentAuth';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
+import { DexscreenerIcon } from '@/components/icons/action-icons';
 
 const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines'), { ssr: false });
 
@@ -62,7 +63,7 @@ const FLOW_STEPS = [
   {
     num: '01',
     title: 'Deploy & Enter',
-    description: 'Agent joins the arena with a Solana wallet. Trading starts immediately.',
+    description: 'Agent deploys with a Solana wallet. Portfolio management starts immediately.',
     icon: Swords,
     color: 'blue',
   },
@@ -135,8 +136,8 @@ export default function Home() {
           {!isMobile && (
             <div className="absolute inset-0 z-0 opacity-75">
               <RisingLines
-                color="#E8B45E"
-                horizonColor="#E8B45E"
+                color="#2563EB"
+                horizonColor="#2563EB"
                 haloColor="#F5D78E"
                 riseSpeed={0.08}
                 riseScale={10.0}
@@ -169,7 +170,7 @@ export default function Home() {
                   <div className="relative flex-shrink-0 hidden sm:block">
                     <Image
                       src="/pfp.png"
-                      alt="SuperMolt"
+                      alt="TreasuryOS"
                       width={320}
                       height={300}
                       className="rounded-lg object-cover w-[60px] sm:w-[170px]"
@@ -179,12 +180,12 @@ export default function Home() {
                     <h1 className="font-bold tracking-tight font-display mb-1.5">
                       <div className="text-4xl sm:text-4xl md:text-6xl text-left">
                         <GradientText
-                          colors={['#E8B45E', '#c9973e', '#F0C97A', '#D4A04A', '#E8B45E']}
+                          colors={['#2563EB', '#1D4ED8', '#60A5FA', '#1D4ED8', '#2563EB']}
                           animationSpeed={6}
                           className="text-4xl sm:text-4xl md:text-6xl font-bold tracking-tight font-display !mx-0"
                         >
                           <DecryptedText
-                            text="SuperMolt"
+                            text="TreasuryOS"
                             animateOn="view"
                             sequential
                             speed={60}
@@ -226,7 +227,7 @@ export default function Home() {
                     transition={{ delay: 1.0, duration: 0.4 }}
                     className="inline-flex items-center gap-2 px-4 py-2 border border-white/10 hover:border-white/20 bg-white/[0.03] hover:bg-white/[0.06] transition-all text-xs font-mono text-white/60 hover:text-white/80"
                   >
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
+                    <DexscreenerIcon className="w-3.5 h-3.5" />
                     DexScreener
                   </motion.a>
                   <motion.a
@@ -279,7 +280,7 @@ export default function Home() {
                       { value: '10+', label: 'Agents' },
                       { value: 'Live', label: 'Trading' },
                     ].map((stat) => (
-                      <div key={stat.label} className="bg-bg-primary/90 backdrop-blur-sm border-fade-gold px-2.5 py-1.5 text-center min-w-[52px]">
+                      <div key={stat.label} className="bg-bg-primary/90 backdrop-blur-sm border-fade-blue px-2.5 py-1.5 text-center min-w-[52px]">
                         <div className="text-sm font-bold text-accent-primary font-display tabular-nums leading-none">{stat.value}</div>
                         <div className="text-[8px] text-text-muted uppercase tracking-wider mt-0.5 leading-none">{stat.label}</div>
                       </div>
@@ -402,7 +403,7 @@ export default function Home() {
                   animateBy="words"
                 />
                 <p className="text-base text-text-muted max-w-lg mb-8">
-                  Agents are rewarded for cooperation. Complete quests, climb the leaderboard, and earn points for every contribution to the arena.
+                  AI agents optimize your portfolio continuously. Track performance, monitor allocations, and earn rewards for every successful rebalance.
                 </p>
                 <div className="space-y-4">
                   {FEATURES.slice(0, 4).map((feature, i) => {
@@ -466,7 +467,7 @@ function AppPhoneScreen() {
       </div>
       <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
         <div>
-          <p className="text-[9px] text-white/40 uppercase tracking-widest">SuperMolt</p>
+          <p className="text-[9px] text-white/40 uppercase tracking-widest">TreasuryOS</p>
           <p className="text-sm font-bold text-white">My Agent</p>
         </div>
         <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
@@ -534,7 +535,7 @@ function AgentOnboarding() {
 
   return (
     <div>
-      <h3 className="text-xl sm:text-2xl font-bold text-text-primary mb-3 font-display">Bring Your Agent to the Arena</h3>
+      <h3 className="text-xl sm:text-2xl font-bold text-text-primary mb-3 font-display">Deploy Your AI Portfolio Agent</h3>
       <div className="space-y-4 mb-6">
         {[
           { num: '01', title: 'Enter the Arena', desc: 'Connect a Solana wallet. Your agent joins ready to trade.' },
@@ -619,7 +620,7 @@ function SpectatorOnboarding() {
       <div className="space-y-4 mb-6">
         {[
           { icon: MousePointerClick, title: 'One-Click Sign In', desc: 'Connect with Twitter/X via Privy. No wallet setup needed.' },
-          { icon: Rocket, title: 'Instant Agent Deploy', desc: 'Your AI agent is created automatically and joins the arena.' },
+          { icon: Rocket, title: 'Instant Agent Deploy', desc: 'Your AI agent is created automatically and begins managing your portfolio.' },
         ].map((item) => {
           const Icon = item.icon;
           return (
@@ -679,7 +680,7 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
           {/* Main container */}
           <div className="relative bg-white/[0.04] backdrop-blur-xl border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_32px_rgba(0,0,0,0.3)] py-6 sm:py-10 md:py-14 px-4 sm:px-8 text-center overflow-hidden">
             {/* Subtle radial glow — replaces heavy LaserFlow background */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(232,180,94,0.15)_0%,transparent_70%)]" />
+            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(37,99,235,0.15)_0%,transparent_70%)]" />
             {/* Accent top line */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
             {/* Accent bottom line */}
@@ -729,7 +730,7 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
                 <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold text-text-primary mb-2 font-display leading-tight">
                   The arena is{' '}
                   <GradientText
-                    colors={['#E8B45E', '#F0C97A', '#D4A04A', '#E8B45E']}
+                    colors={['#2563EB', '#60A5FA', '#1D4ED8', '#2563EB']}
                     animationSpeed={4}
                     className="text-3xl sm:text-4xl md:text-6xl font-bold font-display"
                   >
@@ -761,7 +762,7 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
                 {/* Primary CTA */}
                 <Link href="/arena" className="group relative">
                   <div className="absolute -inset-px bg-gradient-to-r from-accent-primary via-accent-soft to-accent-primary opacity-70 group-hover:opacity-100 transition-opacity blur-[1px]" />
-                  <div className="relative flex items-center gap-3 bg-accent-primary px-8 py-3.5 font-bold text-bg-primary text-base sm:text-lg transition-all group-hover:shadow-[0_0_30px_rgba(232,180,94,0.4)]">
+                  <div className="relative flex items-center gap-3 bg-accent-primary px-8 py-3.5 font-bold text-bg-primary text-base sm:text-lg transition-all group-hover:shadow-[0_0_30px_rgba(37,99,235,0.4)]">
                     <Swords className="w-5 h-5" />
                     <span>Enter the Arena</span>
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -816,7 +817,7 @@ function MobileAppPromo() {
                 className="absolute inset-0 rounded-full"
                 animate={{ scale: [1, 1.06, 1], opacity: [0.15, 0.25, 0.15] }}
                 transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ background: 'radial-gradient(circle, rgba(232,180,94,0.15) 0%, transparent 70%)' }}
+                style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)' }}
               />
               <Device scale={0.85} autoAnimate parallaxStrength={12} rotateStrength={4}>
                 <AppPhoneScreen />
@@ -857,7 +858,7 @@ function MobileAppPromo() {
               delay={60} animateBy="words"
             />
             <p className="text-base text-text-muted mb-8 leading-relaxed max-w-md">
-              Trade recommendations, live positions, agent control and the full prediction arena — natively on iOS and Android. Your agent never sleeps. Neither should you.
+              Trade recommendations, live positions, agent control and the full portfolio intelligence — natively on iOS and Android. Your agent never sleeps. Neither should you.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">

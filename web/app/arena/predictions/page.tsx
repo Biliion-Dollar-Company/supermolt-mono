@@ -27,11 +27,12 @@ import type {
 } from '@/lib/types';
 
 /* ── Constants ────────────────────────────────────────────────────── */
-const GOLD  = '#E8B45E';
+const GOLD  = '#2563EB';
 const YES_C = '#4ade80';
 const NO_C  = '#f87171';
 const BG    = '#07090F';
 const SURF  = '#0C1020';
+const PREDICTIONS_SHELL_CLASS = 'mx-auto w-full max-w-[1260px] px-6 sm:px-10 lg:px-16 xl:px-20 2xl:px-24';
 
 interface PredictionFormState {
   side: 'YES' | 'NO';
@@ -91,7 +92,7 @@ function MarketRow({ market, selected, onClick }: { market: PredictionMarket; se
       style={{
         borderBottom: '1px solid rgba(255,255,255,0.05)',
         borderLeft: `3px solid ${selected ? GOLD : 'transparent'}`,
-        background: selected ? 'rgba(232,180,94,0.07)' : 'transparent',
+        background: selected ? 'rgba(37,99,235,0.07)' : 'transparent',
         backdropFilter: selected ? 'blur(6px)' : undefined,
       }}
     >
@@ -212,15 +213,15 @@ function TapeRow({ item, isNew }: { item: TapeItem; isNew: boolean }) {
       className={`flex items-center gap-3 px-4 py-2.5 ${isNew ? 'animate-[pa-in_0.3s_ease-out]' : ''}`}
       style={{
         borderBottom: '1px solid rgba(255,255,255,0.03)',
-        borderLeft: `2px solid rgba(232,180,94,${isSig ? 0.35 : 0.15})`,
+        borderLeft: `2px solid rgba(37,99,235,${isSig ? 0.35 : 0.15})`,
       }}
     >
       <span
         className="text-[9px] font-black font-mono tracking-wider flex-shrink-0 px-1.5 py-0.5 rounded"
         style={{
-          background: isSig ? 'rgba(255,255,255,0.05)' : 'rgba(232,180,94,0.08)',
-          color: isSig ? 'rgba(255,255,255,0.4)' : 'rgba(232,180,94,0.7)',
-          border: `1px solid ${isSig ? 'rgba(255,255,255,0.08)' : 'rgba(232,180,94,0.2)'}`,
+          background: isSig ? 'rgba(255,255,255,0.05)' : 'rgba(37,99,235,0.08)',
+          color: isSig ? 'rgba(255,255,255,0.4)' : 'rgba(37,99,235,0.7)',
+          border: `1px solid ${isSig ? 'rgba(255,255,255,0.08)' : 'rgba(37,99,235,0.2)'}`,
         }}
       >
         {isSig ? 'SIG' : 'CON'}
@@ -365,13 +366,13 @@ export default function PredictionArenaPage() {
       <div className="min-h-screen flex items-center justify-center" style={{ background: BG }}>
         {!isMobile && (
           <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, opacity: 0.22 }}>
-            <RisingLines color="#E8B45E" horizonColor="#E8B45E" haloColor="#F5D78E" riseSpeed={0.06} riseScale={8} riseIntensity={1.0} flowSpeed={0.12} flowDensity={3.5} flowIntensity={0.5} horizonIntensity={0.7} haloIntensity={5} horizonHeight={-0.9} circleScale={-0.5} scale={5.5} brightness={0.95} />
+            <RisingLines color="#2563EB" horizonColor="#2563EB" haloColor="#F5D78E" riseSpeed={0.06} riseScale={8} riseIntensity={1.0} flowSpeed={0.12} flowDensity={3.5} flowIntensity={0.5} horizonIntensity={0.7} haloIntensity={5} horizonHeight={-0.9} circleScale={-0.5} scale={5.5} brightness={0.95} />
           </div>
         )}
         <div className="relative z-10 flex flex-col items-center gap-5">
           <div
             className="w-8 h-8 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'rgba(232,180,94,0.12)', borderTopColor: GOLD }}
+            style={{ borderColor: 'rgba(37,99,235,0.12)', borderTopColor: GOLD }}
           />
           <p className="text-[10px] font-mono uppercase tracking-[0.4em] opacity-35" style={{ color: GOLD }}>
             Loading arena
@@ -388,11 +389,11 @@ export default function PredictionArenaPage() {
       <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1, background: BG }} />
       {!isMobile && (
         <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1, opacity: 0.22 }}>
-          <RisingLines color="#E8B45E" horizonColor="#E8B45E" haloColor="#F5D78E" riseSpeed={0.06} riseScale={8} riseIntensity={1.0} flowSpeed={0.12} flowDensity={3.5} flowIntensity={0.5} horizonIntensity={0.7} haloIntensity={5} horizonHeight={-0.9} circleScale={-0.5} scale={5.5} brightness={0.95} />
+          <RisingLines color="#2563EB" horizonColor="#2563EB" haloColor="#F5D78E" riseSpeed={0.06} riseScale={8} riseIntensity={1.0} flowSpeed={0.12} flowDensity={3.5} flowIntensity={0.5} horizonIntensity={0.7} haloIntensity={5} horizonHeight={-0.9} circleScale={-0.5} scale={5.5} brightness={0.95} />
         </div>
       )}
 
-    <ClickSpark sparkColor="rgba(232,180,94,0.55)" sparkCount={8} sparkRadius={22} duration={380}>
+    <ClickSpark sparkColor="rgba(37,99,235,0.55)" sparkCount={8} sparkRadius={22} duration={380}>
       <div
         className="flex flex-col"
         style={{ minHeight: '100vh', height: '100vh', overflow: 'hidden' }}
@@ -404,14 +405,14 @@ export default function PredictionArenaPage() {
           style={{ background: 'rgba(7,9,15,0.82)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}
         >
           {/* Top row */}
-          <div className="flex items-center gap-4 px-8 sm:px-12 py-3 max-w-[1280px] mx-auto w-full">
+          <div className={`${PREDICTIONS_SHELL_CLASS} flex items-center gap-4 py-3`}>
             {/* Back */}
             <Link
               href="/arena"
               className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-150"
-              style={{ border: '1px solid rgba(232,180,94,0.16)', color: 'rgba(232,180,94,0.38)' }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(232,180,94,0.45)'; e.currentTarget.style.color = GOLD; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(232,180,94,0.16)'; e.currentTarget.style.color = 'rgba(232,180,94,0.38)'; }}
+              style={{ border: '1px solid rgba(37,99,235,0.16)', color: 'rgba(37,99,235,0.38)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(37,99,235,0.45)'; e.currentTarget.style.color = GOLD; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(37,99,235,0.16)'; e.currentTarget.style.color = 'rgba(37,99,235,0.38)'; }}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
             </Link>
@@ -424,8 +425,8 @@ export default function PredictionArenaPage() {
               <span
                 className="hidden sm:flex items-center gap-1.5 text-[9px] font-mono font-black uppercase tracking-[0.2em] px-2 py-1 rounded-md flex-shrink-0"
                 style={{
-                  background: coordinator?.running ? 'rgba(232,180,94,0.08)' : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${coordinator?.running ? 'rgba(232,180,94,0.22)' : 'rgba(255,255,255,0.07)'}`,
+                  background: coordinator?.running ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${coordinator?.running ? 'rgba(37,99,235,0.22)' : 'rgba(255,255,255,0.07)'}`,
                   color: coordinator?.running ? GOLD : 'rgba(255,255,255,0.22)',
                 }}
               >
@@ -471,7 +472,7 @@ export default function PredictionArenaPage() {
           {tape.length > 0 && (
             <div
               className="relative overflow-hidden"
-              style={{ height: 26, background: 'rgba(232,180,94,0.015)', borderTop: '1px solid rgba(232,180,94,0.065)' }}
+              style={{ height: 26, background: 'rgba(37,99,235,0.015)', borderTop: '1px solid rgba(37,99,235,0.065)' }}
             >
               <div
                 className="absolute left-0 top-0 bottom-0 z-10 w-12 pointer-events-none"
@@ -528,7 +529,7 @@ export default function PredictionArenaPage() {
 
         {/* ── Alerts ──────────────────────────────────────────────── */}
         {(error || success) && (
-          <div className="px-8 sm:px-12 pt-3 flex-shrink-0 z-10 relative max-w-[1280px] mx-auto w-full">
+          <div className={`${PREDICTIONS_SHELL_CLASS} pt-3 flex-shrink-0 z-10 relative`}>
             {error && (
               <div
                 className="px-4 py-3 text-[11px] font-mono mb-2 rounded-lg"
@@ -553,7 +554,7 @@ export default function PredictionArenaPage() {
         {/* 3-col layout                                              */}
         {/* ══════════════════════════════════════════════════════════ */}
         <div
-          className="flex-1 lg:grid lg:grid-cols-[240px_1fr_280px] min-h-0 max-w-[1280px] mx-auto w-full"
+          className={`${PREDICTIONS_SHELL_CLASS} flex-1 lg:grid lg:grid-cols-[240px_1fr_280px] min-h-0`}
           style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}
         >
 
@@ -571,7 +572,7 @@ export default function PredictionArenaPage() {
             >
               <span
                 className="text-[9px] font-mono font-black uppercase tracking-[0.25em]"
-                style={{ color: 'rgba(232,180,94,0.45)' }}
+                style={{ color: 'rgba(37,99,235,0.45)' }}
               >
                 Open Markets
               </span>
@@ -611,9 +612,9 @@ export default function PredictionArenaPage() {
               <div className="flex-1 flex flex-col items-center justify-center gap-4">
                 <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ background: 'rgba(232,180,94,0.05)', border: '1px solid rgba(232,180,94,0.12)' }}
+                  style={{ background: 'rgba(37,99,235,0.05)', border: '1px solid rgba(37,99,235,0.12)' }}
                 >
-                  <Target className="w-6 h-6" style={{ color: 'rgba(232,180,94,0.35)' }} />
+                  <Target className="w-6 h-6" style={{ color: 'rgba(37,99,235,0.35)' }} />
                 </div>
                 <p className="text-[12px] text-white/20 font-mono">
                   <span className="lg:hidden">
@@ -638,7 +639,7 @@ export default function PredictionArenaPage() {
                   style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
                 >
                   {/* Top accent line */}
-                  <div className="absolute top-0 left-8 right-8 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(232,180,94,0.18), transparent)' }} />
+                  <div className="absolute top-0 left-8 right-8 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(37,99,235,0.18), transparent)' }} />
                   {/* Top meta row */}
                   <div className="flex items-center gap-2.5 mb-4">
                     <span
@@ -773,7 +774,7 @@ export default function PredictionArenaPage() {
                       <div key={key}>
                         <span
                           className="block text-[8px] font-mono font-black uppercase tracking-[0.25em] mb-1.5"
-                          style={{ color: 'rgba(232,180,94,0.45)' }}
+                          style={{ color: 'rgba(37,99,235,0.45)' }}
                         >
                           {label}
                         </span>
@@ -795,7 +796,7 @@ export default function PredictionArenaPage() {
                             onChange={(e) => setForm((p) => ({ ...p, [key]: Number(e.target.value || min) }))}
                             className="flex-1 h-9 text-center text-[13px] text-white font-mono font-bold focus:outline-none rounded-lg transition-colors"
                             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                            onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(232,180,94,0.38)')}
+                            onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(37,99,235,0.38)')}
                             onBlur={(e)  => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)')}
                           />
                           <button
@@ -815,7 +816,7 @@ export default function PredictionArenaPage() {
                   {/* Confidence slider */}
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[8px] font-mono font-black uppercase tracking-[0.25em]" style={{ color: 'rgba(232,180,94,0.45)' }}>
+                      <span className="text-[8px] font-mono font-black uppercase tracking-[0.25em]" style={{ color: 'rgba(37,99,235,0.45)' }}>
                         Confidence slider
                       </span>
                       <span className="text-[11px] font-mono font-black" style={{ color: GOLD }}>
@@ -836,7 +837,7 @@ export default function PredictionArenaPage() {
 
                   {/* Reasoning */}
                   <div className="mb-4">
-                    <span className="block text-[8px] font-mono font-black uppercase tracking-[0.25em] mb-1.5" style={{ color: 'rgba(232,180,94,0.45)' }}>
+                    <span className="block text-[8px] font-mono font-black uppercase tracking-[0.25em] mb-1.5" style={{ color: 'rgba(37,99,235,0.45)' }}>
                       Reasoning
                     </span>
                     <textarea
@@ -844,7 +845,7 @@ export default function PredictionArenaPage() {
                       onChange={(e) => setForm((p) => ({ ...p, reasoning: e.target.value }))}
                       className="w-full px-3 py-2.5 text-[11px] text-white/50 min-h-[54px] resize-none font-mono focus:outline-none transition-colors placeholder:text-white/12 rounded-lg"
                       style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(232,180,94,0.35)')}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = 'rgba(37,99,235,0.35)')}
                       onBlur={(e)  => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)')}
                       placeholder="Your rationale..."
                     />
@@ -867,7 +868,7 @@ export default function PredictionArenaPage() {
                       <button
                         onClick={() => setForm((p) => ({ ...p, placeRealOrder: !p.placeRealOrder }))}
                         className="relative w-8 h-4 rounded-full transition-colors flex-shrink-0"
-                        style={{ background: form.placeRealOrder ? 'rgba(232,180,94,0.5)' : 'rgba(255,255,255,0.1)' }}
+                        style={{ background: form.placeRealOrder ? 'rgba(37,99,235,0.5)' : 'rgba(255,255,255,0.1)' }}
                       >
                         <div
                           className="absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all duration-150"
@@ -884,8 +885,8 @@ export default function PredictionArenaPage() {
                     disabled={submitting || !authed}
                     className="w-full py-4 rounded-xl text-[13px] font-black font-mono uppercase tracking-[0.12em] transition-all duration-150 disabled:cursor-not-allowed"
                     style={authed && !submitting
-                      ? { background: GOLD, color: '#060A14', boxShadow: '0 0 28px rgba(232,180,94,0.22)', opacity: 1 }
-                      : { background: 'rgba(232,180,94,0.07)', border: '1px solid rgba(232,180,94,0.14)', color: 'rgba(232,180,94,0.25)', opacity: 1 }
+                      ? { background: GOLD, color: '#060A14', boxShadow: '0 0 28px rgba(37,99,235,0.22)', opacity: 1 }
+                      : { background: 'rgba(37,99,235,0.07)', border: '1px solid rgba(37,99,235,0.14)', color: 'rgba(37,99,235,0.25)', opacity: 1 }
                     }
                   >
                     {submitting ? (
@@ -909,8 +910,8 @@ export default function PredictionArenaPage() {
                     className="px-7 py-2.5 flex items-center gap-2.5"
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(12,16,32,0.55)', backdropFilter: 'blur(10px)' }}
                   >
-                    <MessageSquare className="w-3.5 h-3.5" style={{ color: 'rgba(232,180,94,0.4)' }} />
-                    <span className="text-[9px] font-mono font-black uppercase tracking-[0.22em]" style={{ color: 'rgba(232,180,94,0.5)' }}>
+                    <MessageSquare className="w-3.5 h-3.5" style={{ color: 'rgba(37,99,235,0.4)' }} />
+                    <span className="text-[9px] font-mono font-black uppercase tracking-[0.22em]" style={{ color: 'rgba(37,99,235,0.5)' }}>
                       Agent Intelligence
                     </span>
                     <span
@@ -945,8 +946,8 @@ export default function PredictionArenaPage() {
                     className="px-7 py-2.5 flex items-center gap-2.5"
                     style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(12,16,32,0.55)', backdropFilter: 'blur(10px)' }}
                   >
-                    <Target className="w-3.5 h-3.5" style={{ color: 'rgba(232,180,94,0.4)' }} />
-                    <span className="text-[9px] font-mono font-black uppercase tracking-[0.22em]" style={{ color: 'rgba(232,180,94,0.5)' }}>
+                    <Target className="w-3.5 h-3.5" style={{ color: 'rgba(37,99,235,0.4)' }} />
+                    <span className="text-[9px] font-mono font-black uppercase tracking-[0.22em]" style={{ color: 'rgba(37,99,235,0.5)' }}>
                       My Positions
                     </span>
                     <span
@@ -967,7 +968,7 @@ export default function PredictionArenaPage() {
                               <th
                                 key={h}
                                 className="py-2.5 px-5 text-left text-[8px] font-mono font-black uppercase tracking-[0.22em]"
-                                style={{ color: 'rgba(232,180,94,0.35)' }}
+                                style={{ color: 'rgba(37,99,235,0.35)' }}
                               >
                                 {h}
                               </th>
@@ -1005,7 +1006,7 @@ export default function PredictionArenaPage() {
                               <td className="py-3 px-5 text-[11px] text-white/35 font-mono">{p.contracts}</td>
                               <td className="py-3 px-5 text-[11px] text-white/35 font-mono">{(p.avgPrice * 100).toFixed(0)}¢</td>
                               <td className="py-3 px-5 text-[10px] font-mono font-bold">
-                                <span style={{ color: p.outcome === 'PENDING' ? 'rgba(232,180,94,0.6)' : p.outcome === 'WIN' ? YES_C : NO_C }}>
+                                <span style={{ color: p.outcome === 'PENDING' ? 'rgba(37,99,235,0.6)' : p.outcome === 'WIN' ? YES_C : NO_C }}>
                                   {p.outcome}
                                 </span>
                               </td>
@@ -1040,8 +1041,8 @@ export default function PredictionArenaPage() {
                 className="flex-shrink-0 px-4 py-2.5 flex items-center gap-2"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(12,16,32,0.6)', backdropFilter: 'blur(10px)' }}
               >
-                <Trophy className="w-3.5 h-3.5" style={{ color: 'rgba(232,180,94,0.4)' }} />
-                <span className="text-[9px] font-mono font-black uppercase tracking-[0.22em]" style={{ color: 'rgba(232,180,94,0.5)' }}>
+                <Trophy className="w-3.5 h-3.5" style={{ color: 'rgba(37,99,235,0.4)' }} />
+                <span className="text-[9px] font-mono font-black uppercase tracking-[0.22em]" style={{ color: 'rgba(37,99,235,0.5)' }}>
                   Top Forecasters
                 </span>
               </div>
@@ -1082,7 +1083,7 @@ export default function PredictionArenaPage() {
                                 style={{ width: `${Math.min(100, row.accuracy)}%`, background: GOLD, opacity: 0.55 }}
                               />
                             </div>
-                            <span className="text-[9px] font-mono flex-shrink-0" style={{ color: 'rgba(232,180,94,0.55)' }}>
+                            <span className="text-[9px] font-mono flex-shrink-0" style={{ color: 'rgba(37,99,235,0.55)' }}>
                               {fmtPct(row.accuracy)}
                             </span>
                           </div>
@@ -1118,8 +1119,8 @@ export default function PredictionArenaPage() {
                 className="flex-shrink-0 px-4 py-2.5 flex items-center gap-2"
                 style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(12,16,32,0.6)', backdropFilter: 'blur(10px)' }}
               >
-                <Activity className="w-3.5 h-3.5" style={{ color: 'rgba(232,180,94,0.4)' }} />
-                <span className="text-[9px] font-mono font-black uppercase tracking-[0.22em]" style={{ color: 'rgba(232,180,94,0.5)' }}>
+                <Activity className="w-3.5 h-3.5" style={{ color: 'rgba(37,99,235,0.4)' }} />
+                <span className="text-[9px] font-mono font-black uppercase tracking-[0.22em]" style={{ color: 'rgba(37,99,235,0.5)' }}>
                   Live Signals
                 </span>
                 {wsConn && (

@@ -66,6 +66,9 @@ import { getPredictionCoordinator } from './services/prediction-coordinator';
 // TEMPORARY: Admin fix for Epic Reward scanner
 import adminFix from './routes/admin-scanner-fix';
 
+// Circle Gateway — cross-chain USDC distribution
+import { gatewayRoutes } from './routes/gateway.routes';
+
 // USDC Hackathon Routes (Standardized Modules)
 import treasuryModule from './modules/treasury/treasury.routes';
 import leaderboard from './modules/leaderboard/leaderboard.routes';
@@ -79,6 +82,7 @@ import newsRoutes from './modules/news/news.routes';
 import { systemRoutes, setDevPrintFeedGetter } from './routes/system.routes';
 import notificationRoutes from './routes/notifications.routes';
 import { agentBalanceRoutes } from './routes/agent-balance.routes';
+import { referralRoutes } from './routes/referral.routes';
 
 const app = new Hono();
 
@@ -217,6 +221,7 @@ app.route('/trading', trading);
 
 // Treasury routes (USDC reward distribution)
 app.route('/treasury', treasuryModule); // Treasury management and USDC distribution
+app.route('/gateway', gatewayRoutes);   // Circle Gateway cross-chain USDC distribution
 
 // Internal routes (API key required — DevPrint → SR-Mobile)
 app.route('/internal', internal);
@@ -271,6 +276,17 @@ app.route('/notifications', notificationRoutes);
 
 // News routes (platform announcements, updates, partnerships)
 app.route('/news', newsRoutes);
+
+// Referral routes (referral codes, tracking, stats)
+app.route('/referral', referralRoutes);
+
+// Compliance routes (KYC, KYT, AML, Travel Rule — StableHacks 2026)
+import { complianceRoutes } from './routes/compliance.routes';
+app.route('/compliance', complianceRoutes);
+
+// RWA Portfolio Management
+import { rwaRoutes } from './routes/rwa.routes';
+app.route('/rwa', rwaRoutes);
 
 // System routes (pipeline status, agent config)
 app.route('/api/system', systemRoutes);

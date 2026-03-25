@@ -198,7 +198,7 @@ export default function ConfigurePage() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-[#E8B45E] hover:bg-[#D4A04A] text-black"
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-black"
             >
               {saving ? (
                 <>
@@ -270,7 +270,7 @@ export default function ConfigurePage() {
             onClick={handleSave}
             disabled={saving}
             size="lg"
-            className="bg-[#E8B45E] hover:bg-[#D4A04A] text-black px-8"
+            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-black px-8"
           >
             {saving ? (
               <>

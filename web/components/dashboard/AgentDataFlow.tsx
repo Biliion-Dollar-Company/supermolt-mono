@@ -1,6 +1,6 @@
 'use client';
 
-const GOLD = '#E8B45E';
+const GOLD = '#2563EB';
 const SURF = '#0C1020';
 
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
@@ -15,7 +15,7 @@ import { useIsMobile } from '@/hooks/useIsMobile';
 // ── Feed node definitions ───────────────────────────────────────
 
 const FEEDS = [
-    { id: 'pumpfun', label: 'PumpFun', desc: 'New token launches', icon: Pill, color: '#E8B45E' },
+    { id: 'pumpfun', label: 'PumpFun', desc: 'New token launches', icon: Pill, color: '#2563EB' },
     { id: 'wallets', label: 'Tracker', desc: 'Smart money moves', icon: Crosshair, color: '#818CF8' },
     { id: 'blitz', label: 'Blitzkrieg', desc: 'Community buy signals', icon: Swords, color: '#34D399' },
     { id: 'narrative', label: 'Narratives', desc: 'Trends & rising themes', icon: Drama, color: '#F472B6' },
@@ -203,7 +203,7 @@ function PulseLayer({
                     id: pulse.id,
                     d: `M ${pts[0].x} ${pts[0].y}` + pts.slice(1).map(p => ` L ${p.x} ${p.y}`).join(''),
                     opacity,
-                    color: FEEDS[pulse.feedIndex]?.color ?? '#E8B45E',
+                    color: FEEDS[pulse.feedIndex]?.color ?? '#2563EB',
                 });
             }
 
@@ -487,11 +487,11 @@ export function AgentDataFlow() {
                             onClick={() => setExpanded(!expanded)}
                             className="w-full px-4 py-4 flex items-center gap-3.5 cursor-pointer active:bg-white/[0.04] transition-colors"
                         >
-                            <div className="w-11 h-11 rounded-full bg-[rgba(232,180,94,0.08)] border-2 border-[rgba(232,180,94,0.30)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                            <div className="w-11 h-11 rounded-full bg-[rgba(37,99,235,0.08)] border-2 border-[rgba(37,99,235,0.30)] flex items-center justify-center overflow-hidden flex-shrink-0">
                                 {avatarUrl ? (
                                     <img src={avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
                                 ) : (
-                                    <span className="text-[#E8B45E] font-bold text-lg">
+                                    <span className="text-[#2563EB] font-bold text-lg">
                                         {agent.name?.charAt(0)?.toUpperCase() ?? '?'}
                                     </span>
                                 )}
@@ -499,7 +499,7 @@ export function AgentDataFlow() {
                             <div className="flex-1 min-w-0 text-left">
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-bold text-white truncate">{agent.name}</span>
-                                    <span className="bg-[rgba(232,180,94,0.12)] border border-[rgba(232,180,94,0.25)] px-1.5 py-0.5 text-[10px] font-bold text-[#E8B45E]">
+                                    <span className="bg-[rgba(37,99,235,0.12)] border border-[rgba(37,99,235,0.25)] px-1.5 py-0.5 text-[10px] font-bold text-[#2563EB]">
                                         Lv.{agent.level}
                                     </span>
                                     <div className={`flex items-center gap-1 text-[10px] font-semibold ${statusInfo.color}`}>
@@ -549,14 +549,14 @@ export function AgentDataFlow() {
                                                         onClick={() => setActiveTab(tab.id)}
                                                         className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
                                                             isActive
-                                                                ? 'text-[#E8B45E] bg-[rgba(232,180,94,0.08)] border border-[rgba(232,180,94,0.20)]'
+                                                                ? 'text-[#2563EB] bg-[rgba(37,99,235,0.08)] border border-[rgba(37,99,235,0.20)]'
                                                                 : 'text-white/35 hover:text-white/55 hover:bg-white/[0.03] border border-transparent'
                                                         }`}
                                                     >
                                                         <Icon className="w-3.5 h-3.5" />
                                                         {count > 0 && (
                                                             <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                                                                isActive ? 'bg-[rgba(232,180,94,0.16)] text-[#E8B45E]' : 'bg-white/[0.06] text-white/35'
+                                                                isActive ? 'bg-[rgba(37,99,235,0.16)] text-[#2563EB]' : 'bg-white/[0.06] text-white/35'
                                                             }`}>
                                                                 {count}
                                                             </span>
@@ -569,7 +569,7 @@ export function AgentDataFlow() {
                                     <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
                                         {detailLoading ? (
                                             <div className="flex items-center justify-center py-8">
-                                                <div className="w-5 h-5 border-2 border-[rgba(232,180,94,0.30)] border-t-accent-primary rounded-full animate-spin" />
+                                                <div className="w-5 h-5 border-2 border-[rgba(37,99,235,0.30)] border-t-accent-primary rounded-full animate-spin" />
                                             </div>
                                         ) : activeTab === 'tasks' ? (
                                             <TasksSection tasks={activeTasks} />
@@ -606,9 +606,9 @@ export function AgentDataFlow() {
                                 {/* CTA button */}
                                 <div className="mt-4">
                                     <div className="relative">
-                                        <div className="absolute -inset-1 bg-[rgba(232,180,94,0.16)] blur-lg" />
-                                        <div className="relative w-full py-3 bg-[rgba(232,180,94,0.12)] border border-[rgba(232,180,94,0.40)] flex items-center justify-center">
-                                            <span className="text-base font-bold text-[#E8B45E] tracking-wide">
+                                        <div className="absolute -inset-1 bg-[rgba(37,99,235,0.16)] blur-lg" />
+                                        <div className="relative w-full py-3 bg-[rgba(37,99,235,0.12)] border border-[rgba(37,99,235,0.40)] flex items-center justify-center">
+                                            <span className="text-base font-bold text-[#2563EB] tracking-wide">
                                                 {authenticated ? 'Create' : 'Create'}
                                             </span>
                                         </div>
@@ -692,21 +692,21 @@ export function AgentDataFlow() {
                             className="relative cursor-pointer group"
                         >
                             {/* Glow */}
-                            <div className="absolute -inset-3 bg-[rgba(232,180,94,0.06)] blur-xl pointer-events-none group-hover:bg-[rgba(232,180,94,0.08)] transition-all duration-300" />
+                            <div className="absolute -inset-3 bg-[rgba(37,99,235,0.06)] blur-xl pointer-events-none group-hover:bg-[rgba(37,99,235,0.08)] transition-all duration-300" />
 
-                            <div className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-4 py-2.5 flex items-center gap-3 shadow-[0_0_40px_rgba(232,180,94,0.06)] group-hover:bg-[#0e0e18] transition-colors duration-200">
+                            <div className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-4 py-2.5 flex items-center gap-3 shadow-[0_0_40px_rgba(37,99,235,0.06)] group-hover:bg-[#0e0e18] transition-colors duration-200">
                                 {/* Corner brackets */}
-                                <span className="absolute top-0 left-0 w-3 h-3 border-t border-l border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/60 transition-colors" />
-                                <span className="absolute top-0 right-0 w-3 h-3 border-t border-r border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/60 transition-colors" />
-                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/60 transition-colors" />
-                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute top-0 left-0 w-3 h-3 border-t border-l border-[rgba(37,99,235,0.40)] group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute top-0 right-0 w-3 h-3 border-t border-r border-[rgba(37,99,235,0.40)] group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-[rgba(37,99,235,0.40)] group-hover:border-accent-primary/60 transition-colors" />
+                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-[rgba(37,99,235,0.40)] group-hover:border-accent-primary/60 transition-colors" />
 
                                 {/* Avatar */}
-                                <div className="w-9 h-9 rounded-full bg-[rgba(232,180,94,0.08)] border-2 border-[rgba(232,180,94,0.30)] flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <div className="w-9 h-9 rounded-full bg-[rgba(37,99,235,0.08)] border-2 border-[rgba(37,99,235,0.30)] flex items-center justify-center overflow-hidden flex-shrink-0">
                                     {avatarUrl ? (
                                         <img src={avatarUrl} alt={agent.name} className="w-full h-full rounded-full object-cover" />
                                     ) : (
-                                        <span className="text-[#E8B45E] font-bold text-base">
+                                        <span className="text-[#2563EB] font-bold text-base">
                                             {agent.name?.charAt(0)?.toUpperCase() ?? '?'}
                                         </span>
                                     )}
@@ -716,7 +716,7 @@ export function AgentDataFlow() {
                                 <div className="flex flex-col gap-1 min-w-0 text-left">
                                     <div className="flex items-center gap-2">
                                         <h3 className="text-sm font-bold text-white truncate">{agent.name}</h3>
-                                        <span className="bg-[rgba(232,180,94,0.12)] border border-[rgba(232,180,94,0.25)] px-1.5 py-0.5 text-[10px] font-bold text-[#E8B45E] whitespace-nowrap">
+                                        <span className="bg-[rgba(37,99,235,0.12)] border border-[rgba(37,99,235,0.25)] px-1.5 py-0.5 text-[10px] font-bold text-[#2563EB] whitespace-nowrap">
                                             Lv.{agent.level}
                                         </span>
                                         <div className={`flex items-center gap-1 text-[9px] font-semibold ${statusInfo.color}`}>
@@ -771,7 +771,7 @@ export function AgentDataFlow() {
                                                         onClick={() => setActiveTab(tab.id)}
                                                         className={`relative flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-semibold transition-all cursor-pointer ${
                                                             isActive
-                                                                ? 'text-[#E8B45E] bg-[rgba(232,180,94,0.08)] border border-[rgba(232,180,94,0.20)]'
+                                                                ? 'text-[#2563EB] bg-[rgba(37,99,235,0.08)] border border-[rgba(37,99,235,0.20)]'
                                                                 : 'text-white/35 hover:text-white/55 hover:bg-white/[0.03] border border-transparent'
                                                         }`}
                                                     >
@@ -779,7 +779,7 @@ export function AgentDataFlow() {
                                                         <span className="hidden sm:inline">{tab.label}</span>
                                                         {count > 0 && (
                                                             <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
-                                                                isActive ? 'bg-[rgba(232,180,94,0.16)] text-[#E8B45E]' : 'bg-white/[0.06] text-white/35'
+                                                                isActive ? 'bg-[rgba(37,99,235,0.16)] text-[#2563EB]' : 'bg-white/[0.06] text-white/35'
                                                             }`}>
                                                                 {count}
                                                             </span>
@@ -792,7 +792,7 @@ export function AgentDataFlow() {
                                     <div className="px-4 pb-4 min-h-[120px] max-h-[280px] overflow-y-auto">
                                         {detailLoading ? (
                                             <div className="flex items-center justify-center py-8">
-                                                <div className="w-5 h-5 border-2 border-[rgba(232,180,94,0.30)] border-t-accent-primary rounded-full animate-spin" />
+                                                <div className="w-5 h-5 border-2 border-[rgba(37,99,235,0.30)] border-t-accent-primary rounded-full animate-spin" />
                                             </div>
                                         ) : activeTab === 'tasks' ? (
                                             <TasksSection tasks={activeTasks} />
@@ -809,25 +809,25 @@ export function AgentDataFlow() {
                     ) : (
                         /* No agent — CTA */
                         <div className="relative group">
-                            <div className="absolute -inset-4 bg-[rgba(232,180,94,0.06)] blur-2xl pointer-events-none group-hover:bg-[rgba(232,180,94,0.08)] transition-all duration-500" />
+                            <div className="absolute -inset-4 bg-[rgba(37,99,235,0.06)] blur-2xl pointer-events-none group-hover:bg-[rgba(37,99,235,0.08)] transition-all duration-500" />
                             <button
                                 onClick={() => { if (!authenticated) login(); }}
                                 className="relative bg-[#0e0e18]/95 backdrop-blur-xl px-6 py-3 max-w-sm cursor-pointer hover:bg-[#0e0e18] transition-all duration-300"
                             >
                                 {/* Corner brackets */}
-                                <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
-                                <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
-                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
-                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[rgba(232,180,94,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[rgba(37,99,235,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[rgba(37,99,235,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[rgba(37,99,235,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
+                                <span className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[rgba(37,99,235,0.40)] group-hover:border-accent-primary/70 transition-colors duration-300" />
 
                                 {/* Inline: title + button side by side */}
                                 <div className="flex items-center gap-4">
                                     <h3 className="text-sm font-bold text-white whitespace-nowrap">
                                         {authenticated ? 'Create Your Agent' : 'Deploy Your Agent'}
                                     </h3>
-                                    <div className="flex items-center gap-1.5 px-4 py-2 bg-[rgba(232,180,94,0.08)] border border-[rgba(232,180,94,0.30)] group-hover:bg-[rgba(232,180,94,0.16)] group-hover:border-[rgba(232,180,94,0.50)] transition-all duration-300">
-                                        <Zap className="w-3.5 h-3.5 text-[#E8B45E]" />
-                                        <span className="text-xs font-bold text-[#E8B45E]">
+                                    <div className="flex items-center gap-1.5 px-4 py-2 bg-[rgba(37,99,235,0.08)] border border-[rgba(37,99,235,0.30)] group-hover:bg-[rgba(37,99,235,0.16)] group-hover:border-[rgba(37,99,235,0.50)] transition-all duration-300">
+                                        <Zap className="w-3.5 h-3.5 text-[#2563EB]" />
+                                        <span className="text-xs font-bold text-[#2563EB]">
                                             {authenticated ? 'Start' : 'Create'}
                                         </span>
                                     </div>
@@ -950,13 +950,13 @@ function TasksSection({ tasks }: { tasks: AgentTaskType[] }) {
                         <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-white/35 uppercase">{task.taskType}</span>
                             {task.tokenSymbol && (
-                                <span className="text-[10px] text-[#E8B45E] font-mono">${task.tokenSymbol}</span>
+                                <span className="text-[10px] text-[#2563EB] font-mono">${task.tokenSymbol}</span>
                             )}
                         </div>
                     </div>
-                    <div className="flex items-center gap-1 px-2 py-0.5 bg-[rgba(232,180,94,0.08)] border border-[rgba(232,180,94,0.20)] flex-shrink-0">
-                        <Zap className="w-3 h-3 text-[#E8B45E]" />
-                        <span className="text-[10px] font-bold text-[#E8B45E]">+{task.xpReward} XP</span>
+                    <div className="flex items-center gap-1 px-2 py-0.5 bg-[rgba(37,99,235,0.08)] border border-[rgba(37,99,235,0.20)] flex-shrink-0">
+                        <Zap className="w-3 h-3 text-[#2563EB]" />
+                        <span className="text-[10px] font-bold text-[#2563EB]">+{task.xpReward} XP</span>
                     </div>
                 </div>
             ))}

@@ -5,7 +5,7 @@ import { Copy, Check, Wallet, RefreshCw } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getMyAgentBalance, api } from '@/lib/api';
 
-const GOLD = '#E8B45E';
+const GOLD = '#2563EB';
 
 interface BalanceData {
   address: string | null;
