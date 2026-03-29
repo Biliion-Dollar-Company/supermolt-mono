@@ -114,6 +114,19 @@ export async function runStartupMigrations() {
     `);
 
     console.log('[migrate] ✅ social feed tables ready');
+
+    // ── pump.fun Tokenized Agent columns (20260313) ──────────────
+    await db.$executeRawUnsafe(`
+      ALTER TABLE "trading_agents" ADD COLUMN IF NOT EXISTS "pumpFunMint" TEXT
+    `).catch(() => {});
+    await db.$executeRawUnsafe(`
+      ALTER TABLE "trading_agents" ADD COLUMN IF NOT EXISTS "buybackBps" INTEGER
+    `).catch(() => {});
+    await db.$executeRawUnsafe(`
+      ALTER TABLE "trading_agents" ADD COLUMN IF NOT EXISTS "depositAddress" TEXT
+    `).catch(() => {});
+
+    console.log('[migrate] ✅ pump.fun tokenized agent columns ready');
   } catch (err) {
     // Non-fatal — log and continue, don't crash server
     console.error('[migrate] ⚠️ startup migration error:', err);
