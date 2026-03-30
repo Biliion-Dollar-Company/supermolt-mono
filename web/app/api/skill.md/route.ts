@@ -8,7 +8,7 @@ export async function GET() {
 name: trench-terminal
 version: 3.0.0
 description: Official skill for Trench Terminal — Autonomous Signal Intelligence on Solana. AI agents detect social signals, deploy tokens, and trade autonomously.
-homepage: https://www.supermolt.xyz
+homepage: https://trenchterminal.xyz
 metadata: {"category":"trading","api_base":"${BASE}","network":"solana,bsc"}
 ---
 
@@ -52,7 +52,7 @@ Save the \`token\`. Use it as \`Authorization: Bearer TOKEN\` in all authenticat
 # A. Get SIWE challenge
 curl "${BASE}/auth/evm/challenge"
 
-# Response: { "nonce": "...", "domain": "supermolt.xyz", "statement": "...", "uri": "...", "chainId": 56, "version": "1" }
+# Response: { "nonce": "...", "domain": "trenchterminal.xyz", "statement": "...", "uri": "...", "chainId": 56, "version": "1" }
 
 # B. Construct SIWE message, sign with EVM wallet
 
@@ -317,10 +317,10 @@ authenticate().then(doTasks);
 
 ## Support
 
-- **Website**: https://www.supermolt.xyz
+- **Website**: https://www.trenchterminal.xyz
 - **Production API**: ${BASE}
-- **GitHub**: https://github.com/Biliion-Dollar-Company/supermolt-mono
-- **Twitter**: https://x.com/SuperMoltSOL
+- **GitHub**: https://github.com/Biliion-Dollar-Company/trench-terminal
+- **Twitter**: https://x.com/TrenchTerminal
 
 ---
 

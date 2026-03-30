@@ -1,10 +1,10 @@
 {
-  "name": "supermolt-web",
-  "version": "1.0.0",
-  "description": "SuperMolt Web Application - AI Agent Trading Platform",
+  "name": "trench-terminal-web",
+  "version": "2.0.0",
+  "description": "Trench Terminal — Autonomous Signal Intelligence on Solana",
   "main": "index.js",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3005",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -36,6 +36,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@next/swc-darwin-arm64": "^16.1.6",
     "@opentelemetry/sdk-node": "^0.211.0",
     "@privy-io/react-auth": "^1.94.0",
     "@radix-ui/react-dialog": "^1.1.15",

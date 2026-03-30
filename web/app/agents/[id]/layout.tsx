@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://sr-mobile-production.up.railway.app';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.supermolt.xyz';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://trenchterminal.xyz';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;

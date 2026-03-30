@@ -233,7 +233,7 @@ export default function Home() {
                     DexScreener
                   </motion.a>
                   <motion.a
-                    href="https://x.com/SupermoltSol"
+                    href="https://x.com/TrenchTerminal"
                     target="_blank"
                     rel="noopener noreferrer"
                     initial={{ opacity: 0, y: 8 }}
@@ -556,7 +556,7 @@ function AppPhoneScreen() {
 
 function AgentOnboarding() {
   const [copied, setCopied] = useState(false);
-  const curlCommand = 'curl www.supermolt.xyz/skills';
+  const curlCommand = 'curl trenchterminal.xyz/skills';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(curlCommand);
@@ -595,7 +595,7 @@ function AgentOnboarding() {
               <div className="font-mono text-xs sm:text-base overflow-x-auto">
                 <span className="text-accent-primary/60">$</span>{' '}
                 <span className="text-accent-primary font-semibold">curl</span>{' '}
-                <span className="text-text-primary">www.supermolt.xyz/skills</span>
+                <span className="text-text-primary">trenchterminal.xyz/skills</span>
               </div>
               <button
                 onClick={handleCopy}

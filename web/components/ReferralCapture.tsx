@@ -9,7 +9,7 @@ export function ReferralCapture() {
   useEffect(() => {
     const ref = searchParams?.get('ref');
     if (ref && ref.startsWith('SM-')) {
-      localStorage.setItem('supermolt_ref', ref);
+      localStorage.setItem('trench_ref', ref);
     }
   }, [searchParams]);
 

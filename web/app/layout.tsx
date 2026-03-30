@@ -53,9 +53,9 @@ export default function RootLayout({
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-text-muted">
             <span>&copy; {new Date().getFullYear()} Trench Terminal</span>
             <div className="flex items-center gap-4">
-              <a href="https://supermolt.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">supermolt.xyz</a>
+              <a href="https://trenchterminal.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">trenchterminal.xyz</a>
               <span className="text-white/10">|</span>
-              <a href="https://x.com/SupermoltSol" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">X / Twitter</a>
+              <a href="https://x.com/TrenchTerminal" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">X / Twitter</a>
               <span className="text-white/10">|</span>
               <a href="/api/skill.md" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">Docs</a>
             </div>

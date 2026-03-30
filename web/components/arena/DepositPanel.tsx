@@ -36,11 +36,11 @@ export function DepositPanel() {
   useEffect(() => {
     fetchBalance().then(async () => {
       // Submit saved referral code if present
-      const savedRef = localStorage.getItem('supermolt_ref');
+      const savedRef = localStorage.getItem('trench_ref');
       if (savedRef) {
         try {
           await api.post('/referral/use', { code: savedRef });
-          localStorage.removeItem('supermolt_ref');
+          localStorage.removeItem('trench_ref');
         } catch {
           // Ignore — may already be recorded or invalid
         }
