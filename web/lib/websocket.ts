@@ -52,6 +52,12 @@ class WebSocketManager {
         return;
       }
 
+      // Clean up any existing disconnected socket to prevent leaks
+      if (this.socket) {
+        this.socket.disconnect();
+        this.socket = null;
+      }
+
       const token = getJWT();
       this.socket = io(this.url, {
         reconnection: true,

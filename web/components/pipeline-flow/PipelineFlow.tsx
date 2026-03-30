@@ -80,24 +80,20 @@ const INTERVAL_MS = 5000;
 export function PipelineFlow() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const [timerVersion, setTimerVersion] = useState(0);
 
-  // Auto-rotate
+  // Auto-rotate — restarts when timerVersion changes (manual click) or pause toggles
   useEffect(() => {
     if (isPaused) return;
-    timerRef.current = setInterval(() => {
+    const id = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % STEPS.length);
     }, INTERVAL_MS);
-    return () => clearInterval(timerRef.current);
-  }, [isPaused]);
+    return () => clearInterval(id);
+  }, [isPaused, timerVersion]);
 
   const handleStepClick = useCallback((index: number) => {
     setActiveIndex(index);
-    // Reset timer on manual click — briefly pause to restart the interval cycle
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % STEPS.length);
-    }, INTERVAL_MS);
+    setTimerVersion((v) => v + 1); // force interval restart via effect
   }, []);
 
   const activeStep = STEPS[activeIndex];

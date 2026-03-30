@@ -92,6 +92,7 @@ function mapTradeEvent(evt: FeedEvent): Omit<PipelineEvent, 'id' | 'timestamp'> 
 export function LivePipelineFeed({ maxEvents = 8 }: { maxEvents?: number }) {
   const [events, setEvents] = useState<PipelineEvent[]>([]);
   const [isLive, setIsLive] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const demoIndex = useRef(0);
   const liveEventCount = useRef(0);
 
@@ -106,88 +107,84 @@ export function LivePipelineFeed({ maxEvents = 8 }: { maxEvents?: number }) {
 
   // Try to connect to real WebSocket
   useEffect(() => {
+    let isMounted = true;
     const ws = getWebSocketManager();
     const unsubs: Array<() => void> = [];
 
-    try {
-      ws.connect().then(() => {
-        setIsLive(true);
+    ws.connect().then(() => {
+      if (!isMounted) return;
+      setIsLive(true);
 
-        // Detect stage: tweets + new tokens
-        unsubs.push(ws.onPipelineDetect((evt) => {
-          const mapped = mapDetectEvent(evt);
-          if (mapped) { addEvent(mapped); liveEventCount.current++; }
-        }));
+      unsubs.push(ws.onPipelineDetect((evt) => {
+        const mapped = mapDetectEvent(evt);
+        if (mapped) { addEvent(mapped); liveEventCount.current++; }
+      }));
 
-        // Deploy stage: token deployments
-        unsubs.push(ws.onPipelineDeployment((evt) => {
-          const mapped = mapDeployEvent(evt);
-          if (mapped) { addEvent(mapped); liveEventCount.current++; }
-        }));
+      unsubs.push(ws.onPipelineDeployment((evt) => {
+        const mapped = mapDeployEvent(evt);
+        if (mapped) { addEvent(mapped); liveEventCount.current++; }
+      }));
 
-        // Trade stage: agent buys/sells
-        unsubs.push(ws.onPipelinePosition((evt) => {
-          const mapped = mapTradeEvent(evt);
-          if (mapped) { addEvent(mapped); liveEventCount.current++; }
-        }));
+      unsubs.push(ws.onPipelinePosition((evt) => {
+        const mapped = mapTradeEvent(evt);
+        if (mapped) { addEvent(mapped); liveEventCount.current++; }
+      }));
 
-        // Also catch auto_buy_executed from agent activity
-        unsubs.push(ws.onAutoBuyExecuted((evt) => {
-          const mapped = mapTradeEvent(evt);
-          if (mapped) { addEvent(mapped); liveEventCount.current++; }
-        }));
+      unsubs.push(ws.onAutoBuyExecuted((evt) => {
+        const mapped = mapTradeEvent(evt);
+        if (mapped) { addEvent(mapped); liveEventCount.current++; }
+      }));
 
-        // Pipeline events (concept generated, outcome labeled, etc.)
-        unsubs.push(ws.onPipelineEvent((evt) => {
-          const d = evt.data;
-          const type = d.type || evt.type;
-          if (type === 'concept_generated' || type === 'conceptGenerated') {
-            addEvent({
-              stage: 'deploy',
-              type: 'concept_generated',
-              title: `Token concept: $${d.symbol || d.tokenSymbol || '???'}`,
-              detail: `LLM generated name + narrative`,
-            });
-          } else if (type === 'outcome_labeled' || type === 'outcomeLabeled') {
-            addEvent({
-              stage: 'learn',
-              type: 'outcome_labeled',
-              title: `$${d.symbol || d.tokenSymbol || 'TOKEN'} labeled: ${d.label || d.outcome || '?'}`,
-              detail: d.reason || 'Outcome tracked',
-            });
-          } else if (type === 'meme_filtered' || type === 'memeFiltered') {
-            addEvent({
-              stage: 'detect',
-              type: 'meme_filtered',
-              title: 'Meme filter applied',
-              detail: d.passed ? `Score: ${d.score} — PASS` : `Score: ${d.score} — FILTERED`,
-            });
-          }
-          liveEventCount.current++;
-        }));
-      }).catch(() => {
-        setIsLive(false);
-      });
-    } catch {
-      setIsLive(false);
-    }
+      unsubs.push(ws.onPipelineEvent((evt) => {
+        const d = evt.data;
+        const type = d.type || evt.type;
+        if (type === 'concept_generated' || type === 'conceptGenerated') {
+          addEvent({
+            stage: 'deploy',
+            type: 'concept_generated',
+            title: `Token concept: $${d.symbol || d.tokenSymbol || '???'}`,
+            detail: `LLM generated name + narrative`,
+          });
+        } else if (type === 'outcome_labeled' || type === 'outcomeLabeled') {
+          addEvent({
+            stage: 'learn',
+            type: 'outcome_labeled',
+            title: `$${d.symbol || d.tokenSymbol || 'TOKEN'} labeled: ${d.label || d.outcome || '?'}`,
+            detail: d.reason || 'Outcome tracked',
+          });
+        } else if (type === 'meme_filtered' || type === 'memeFiltered') {
+          addEvent({
+            stage: 'detect',
+            type: 'meme_filtered',
+            title: 'Meme filter applied',
+            detail: d.passed ? `Score: ${d.score} — PASS` : `Score: ${d.score} — FILTERED`,
+          });
+        }
+        liveEventCount.current++;
+      }));
+    }).catch(() => {
+      if (isMounted) setIsLive(false);
+    });
 
-    return () => unsubs.forEach((u) => u());
+    return () => {
+      isMounted = false;
+      unsubs.forEach((u) => u());
+    };
   }, [addEvent]);
 
-  // Demo fallback: if no live events after 10s, start demo mode
+  // Demo fallback: only activate after 10s if no live events received
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (liveEventCount.current === 0) {
-        setIsLive(false);
+        setIsDemoMode(true);
       }
     }, 10_000);
     return () => clearTimeout(timeout);
   }, []);
 
-  // Demo mode ticker
+  // Demo mode ticker — only runs after explicit 10s fallback activation
   useEffect(() => {
-    if (isLive) return;
+    if (!isDemoMode || isLive) return;
 
     const interval = setInterval(() => {
       const template = DEMO_EVENTS[demoIndex.current % DEMO_EVENTS.length];
@@ -196,16 +193,16 @@ export function LivePipelineFeed({ maxEvents = 8 }: { maxEvents?: number }) {
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isLive, addEvent]);
+  }, [isDemoMode, isLive, addEvent]);
 
   return (
     <div className="w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
+          <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-emerald-400' : isDemoMode ? 'bg-amber-400' : 'bg-white/20'} animate-pulse`} />
           <span className="text-xs font-mono text-white/40 uppercase tracking-wider">
-            {isLive ? 'Live Pipeline' : 'Demo Mode'}
+            {isLive ? 'Live Pipeline' : isDemoMode ? 'Demo Mode' : 'Connecting...'}
           </span>
         </div>
         <div className="flex items-center gap-3 text-[10px] font-mono text-white/25">

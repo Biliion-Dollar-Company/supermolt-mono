@@ -405,10 +405,16 @@ export async function evaluateDeploymentTrigger(event: DeploymentEvent): Promise
   const queued: AutoBuyRequest[] = [];
 
   try {
-    // Find all active agents with auto-trading enabled
-    const agents = await db.tradingAgent.findMany({
-      where: { status: 'ACTIVE' },
+    // Find agents with an active deployment trigger
+    const deploymentTriggers = await db.buyTrigger.findMany({
+      where: { type: 'deployment', enabled: true },
+      include: { agent: true },
     });
+
+    // Filter to only active agents
+    const agents = deploymentTriggers
+      .filter((t) => t.agent.status === 'ACTIVE')
+      .map((t) => ({ agent: t.agent, config: (t.config as Record<string, any>) || {} }));
 
     if (agents.length === 0) return queued;
 
@@ -427,7 +433,7 @@ export async function evaluateDeploymentTrigger(event: DeploymentEvent): Promise
       marketCap: event.marketCap,
     };
 
-    for (const agent of agents) {
+    for (const { agent, config } of agents) {
       // Dedup: don't fire same agent+token twice
       const dedupKey = `deployment:${agent.id}:${event.tokenMint}`;
       if (triggerFired.has(dedupKey)) continue;
@@ -439,8 +445,11 @@ export async function evaluateDeploymentTrigger(event: DeploymentEvent): Promise
         continue;
       }
 
-      // Queue buy — conservative amount for pipeline-deployed tokens
-      const buyAmount = 0.05; // 0.05 SOL default for pipeline tokens
+      // Use trigger config for buy amount, default 0.05 SOL
+      const buyAmount = Math.min(
+        config.autoBuyAmount ?? config.amount ?? 0.05,
+        getMaxPositionSize(agent),
+      );
       const request: AutoBuyRequest = {
         agentId: agent.id,
         agentName: agent.name,
@@ -462,7 +471,7 @@ export async function evaluateDeploymentTrigger(event: DeploymentEvent): Promise
       rl.count++;
       rl.lastBuyAt = Date.now();
 
-      console.log(`[TriggerEngine] QUEUED deployment buy: ${agent.name} → 0.05 SOL of $${event.tokenSymbol}`);
+      console.log(`[TriggerEngine] QUEUED deployment buy: ${agent.name} → ${buyAmount} SOL of $${event.tokenSymbol}`);
     }
 
     // Generate agent commentary about the deployment
