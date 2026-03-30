@@ -23,10 +23,10 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '/treasury',          label: 'Portfolio',   Icon: BarChart3 },
-    { href: '/assets',            label: 'RWA Markets', Icon: Coins },
-    { href: '/arena',             label: 'AI Agents',   Icon: Bot },
-    { href: '/compliance',        label: 'Compliance',  Icon: Shield },
+    { href: '/arena',             label: 'Arena',       Icon: Bot },
+    { href: '/war-room',          label: 'War Room',    Icon: BarChart3 },
+    { href: '/leaderboard',       label: 'Leaderboard', Icon: Coins },
+    { href: '/positions',         label: 'Positions',   Icon: Shield },
   ];
 
   const isActive = (href: string) => {
@@ -49,7 +49,7 @@ export default function Navbar() {
           <Link href="/" className="flex items-center gap-3 group">
             <Image
               src="/pfp.png"
-              alt="TreasuryOS"
+              alt="Trench Terminal"
               width={56}
               height={52}
               className="rounded object-cover transition-transform group-hover:scale-105 w-[56px] h-auto"
@@ -60,9 +60,9 @@ export default function Navbar() {
                 animationSpeed={5}
                 className="text-xl font-bold font-display"
               >
-                TreasuryOS
+                Trench Terminal
               </GradientText>
-              <div className="text-xs text-text-muted -mt-0.5">AI-Powered Portfolio Intelligence</div>
+              <div className="text-xs text-text-muted -mt-0.5">Autonomous Signal Intelligence</div>
             </div>
           </Link>
 

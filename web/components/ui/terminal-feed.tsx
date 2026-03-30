@@ -39,7 +39,7 @@ export function TerminalFeed() {
     setLines([
       {
         id: '1',
-        text: '> TreasuryOS Portfolio Intelligence initialized...',
+        text: '> Trench Terminal Portfolio Intelligence initialized...',
         timestamp: new Date(),
         type: 'system',
       },

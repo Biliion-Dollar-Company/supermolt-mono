@@ -320,6 +320,16 @@ function evaluateSingleTrigger(
       };
     }
 
+    case 'deployment': {
+      // Pipeline deployment trigger: auto-buy tokens deployed by the pipeline
+      if (trade.action !== 'BUY') return null;
+      const buyAmount = config.autoBuyAmount ?? config.amount ?? 0.05;
+      return {
+        buyAmount: Math.min(buyAmount, getMaxPositionSize(agent)),
+        reason: `Pipeline deployed $${trade.tokenSymbol} — auto-evaluating`,
+      };
+    }
+
     default:
       return null;
   }
@@ -372,6 +382,102 @@ async function checkSafety(agent: TradingAgent, trade: DetectedTrade): Promise<S
   }
 
   return { ok: true };
+}
+
+// ── Pipeline Deployment Trigger (Trench Terminal) ────────
+
+export interface DeploymentEvent {
+  tokenMint: string;
+  tokenSymbol: string;
+  chain: 'SOLANA';
+  deployedBy: string; // deployer agent or 'pipeline'
+  signature?: string;
+  liquidity?: number;
+  marketCap?: number;
+}
+
+/**
+ * Called when DevPrint pipeline deploys a new token.
+ * Evaluates all active trader agents and queues buys for eligible ones.
+ * This is the core bridge: DEPLOY stage → TRADE stage.
+ */
+export async function evaluateDeploymentTrigger(event: DeploymentEvent): Promise<AutoBuyRequest[]> {
+  const queued: AutoBuyRequest[] = [];
+
+  try {
+    // Find all active agents with auto-trading enabled
+    const agents = await db.tradingAgent.findMany({
+      where: { status: 'ACTIVE' },
+    });
+
+    if (agents.length === 0) return queued;
+
+    console.log(`[TriggerEngine] 🚀 Deployment trigger: $${event.tokenSymbol} → evaluating ${agents.length} agents`);
+
+    // Create a synthetic DetectedTrade for safety checks
+    const syntheticTrade: DetectedTrade = {
+      walletAddress: event.deployedBy,
+      tokenMint: event.tokenMint,
+      tokenSymbol: event.tokenSymbol,
+      action: 'BUY',
+      amount: 0,
+      chain: event.chain,
+      signature: event.signature || '',
+      liquidity: event.liquidity,
+      marketCap: event.marketCap,
+    };
+
+    for (const agent of agents) {
+      // Dedup: don't fire same agent+token twice
+      const dedupKey = `deployment:${agent.id}:${event.tokenMint}`;
+      if (triggerFired.has(dedupKey)) continue;
+
+      // Safety checks (rate limits, max positions, cooldown)
+      const safetyResult = await checkSafety(agent, syntheticTrade);
+      if (!safetyResult.ok) {
+        console.log(`[TriggerEngine] Safety block for ${agent.name}: ${safetyResult.reason}`);
+        continue;
+      }
+
+      // Queue buy — conservative amount for pipeline-deployed tokens
+      const buyAmount = 0.05; // 0.05 SOL default for pipeline tokens
+      const request: AutoBuyRequest = {
+        agentId: agent.id,
+        agentName: agent.name,
+        tokenMint: event.tokenMint,
+        tokenSymbol: event.tokenSymbol,
+        solAmount: buyAmount,
+        chain: event.chain,
+        triggeredBy: 'deployment',
+        sourceWallet: event.deployedBy,
+        reason: `Pipeline deployed $${event.tokenSymbol} — auto-evaluating`,
+      };
+
+      pendingBuys.push(request);
+      queued.push(request);
+      triggerFired.set(dedupKey, Date.now());
+
+      // Update rate limit
+      const rl = getRateLimit(agent.id);
+      rl.count++;
+      rl.lastBuyAt = Date.now();
+
+      console.log(`[TriggerEngine] QUEUED deployment buy: ${agent.name} → 0.05 SOL of $${event.tokenSymbol}`);
+    }
+
+    // Generate agent commentary about the deployment
+    agentSignalReactor.react('token_deployed', {
+      tokenMint: event.tokenMint,
+      tokenSymbol: event.tokenSymbol,
+      deployedBy: event.deployedBy,
+      chain: event.chain,
+    }).catch((err) => console.error('[TriggerEngine] Reactor error:', err));
+
+  } catch (error) {
+    console.error('[TriggerEngine] Error evaluating deployment trigger:', error);
+  }
+
+  return queued;
 }
 
 // ── Trending Trigger (arena-wide activity) ───────────────

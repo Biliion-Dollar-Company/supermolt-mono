@@ -133,13 +133,13 @@ function WelcomeScreen() {
             className="relative w-20 h-20 rounded-full overflow-hidden"
             style={{ border: `2px solid ${GOLD}40` }}
           >
-            <Image src="/pfp.png" alt="TreasuryOS" width={80} height={80} className="w-full h-full object-cover" />
+            <Image src="/pfp.png" alt="Trench Terminal" width={80} height={80} className="w-full h-full object-cover" />
           </div>
         </motion.div>
 
         <div className="text-center">
           <div className="text-lg font-black text-white" style={{ fontFamily: 'monospace', letterSpacing: '-0.5px' }}>
-            TreasuryOS
+            Trench Terminal
           </div>
           <div className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
             AI-Powered Portfolio Intelligence
@@ -440,7 +440,7 @@ function LaunchingScreen() {
             className="relative w-20 h-20 rounded-full overflow-hidden z-10"
             style={{ border: `2px solid ${GOLD}50` }}
           >
-            <Image src="/pfp.png" alt="TreasuryOS" width={80} height={80} className="w-full h-full object-cover" />
+            <Image src="/pfp.png" alt="Trench Terminal" width={80} height={80} className="w-full h-full object-cover" />
           </div>
         </div>
 

@@ -48,10 +48,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
           <div style={{ fontSize: '24px', color: '#2563EB', fontWeight: 700, letterSpacing: '4px' }}>
-            TREASURYOS
+            TRENCH TERMINAL
           </div>
           <div style={{ fontSize: '16px', color: 'rgba(255,255,255,0.35)' }}>
-            treasuryos.io
+            trenchterminal.xyz
           </div>
         </div>
 

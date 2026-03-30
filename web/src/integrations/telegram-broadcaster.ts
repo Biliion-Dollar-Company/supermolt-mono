@@ -1,7 +1,7 @@
 /**
  * Telegram broadcaster integration for agent-alpha.
  *
- * Sends formatted EV signals to the TreasuryOS Telegram channels.
+ * Sends formatted EV signals to the Trench Terminal Telegram channels.
  * Uses the Telegram Bot API directly via fetch — no telegraf dependency needed.
  *
  * @remarks
@@ -62,7 +62,7 @@ function signed(value: number, decimals = 1): string {
 }
 
 /**
- * Formats a signal into the TreasuryOS HTML template for Telegram.
+ * Formats a signal into the Trench Terminal HTML template for Telegram.
  *
  * @param signal - The signal to format
  * @param strategy - Strategy name label, e.g. "EV-Kelly" or "Momentum"

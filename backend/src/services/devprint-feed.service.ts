@@ -1,23 +1,23 @@
 /**
- * DevPrint Feed Service
- * Connects to DevPrint's WebSocket streams and re-broadcasts raw market intelligence
- * via SuperMolt's Socket.IO. Agents subscribe to channels they care about.
+ * DevPrint Feed Service — Trench Terminal Integration Bridge
+ *
+ * Connects to DevPrint's WebSocket streams and re-broadcasts market intelligence
+ * via Socket.IO. Core integration for the detect → deploy → trade → learn loop.
  *
  * Streams:
- *   /ws/tokens   → new token detections
- *   /ws/tweets   → celebrity/influencer tweets
- *   /ws/training → training progress updates
+ *   /ws/tokens   → new token detections + deployment results
+ *   /ws/tweets   → celebrity/influencer tweets (signal source)
+ *   /ws/training → training progress + outcome labels
  *
- * Filtered out (private position events):
- *   position_opened, position_closed, price_update,
- *   take_profit_triggered, stop_loss_triggered,
- *   holdings_snapshot, stats_update, config_updated
+ * Pipeline events (deployment results, position updates) are now broadcast
+ * to enable agents to react to DevPrint-deployed tokens in real time.
  */
 
 import { websocketEvents } from './websocket-events.js';
 import { agentSignalReactor } from './agent-signal-reactor.js';
+import { evaluateDeploymentTrigger, type DeploymentEvent } from './trigger-engine.js';
 
-type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets' | 'training';
+type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets' | 'training' | 'deployments' | 'pipeline' | 'positions';
 
 interface StreamConfig {
   name: string;
@@ -28,21 +28,9 @@ interface StreamConfig {
   reconnectAttempts: number;
 }
 
-// Position events — never broadcast
-const FILTERED_EVENTS = new Set([
-  'position_opened',
-  'position_closed',
-  'price_update',
-  'take_profit_triggered',
-  'stop_loss_triggered',
-  'holdings_snapshot',
-  'stats_update',
-  'config_updated',
-]);
-
 // Map event type → feed channel
 const EVENT_ROUTING: Record<string, FeedChannel> = {
-  // snake_case variants (legacy / internal)
+  // ── Social signals ──
   god_wallet_buy_detected: 'godwallet',
   god_wallet_sell_detected: 'godwallet',
   signal_detected: 'signals',
@@ -59,7 +47,7 @@ const EVENT_ROUTING: Record<string, FeedChannel> = {
   training_log: 'training',
   training_complete: 'training',
   training_started: 'training',
-  // camelCase variants (DevPrint actual wire format)
+  // camelCase variants (DevPrint wire format)
   newTweet: 'tweets',
   newToken: 'tokens',
   godWalletBuy: 'godwallet',
@@ -68,7 +56,37 @@ const EVENT_ROUTING: Record<string, FeedChannel> = {
   buySignal: 'signals',
   buyRejected: 'signals',
   marketDataUpdated: 'market',
+  // ── Pipeline events (detect → deploy → trade → learn) ──
+  token_deployed: 'deployments',
+  tokenDeployed: 'deployments',
+  deployment_result: 'deployments',
+  deploymentResult: 'deployments',
+  deploy_request: 'pipeline',
+  deployRequest: 'pipeline',
+  meme_filtered: 'pipeline',
+  memeFiltered: 'pipeline',
+  concept_generated: 'pipeline',
+  conceptGenerated: 'pipeline',
+  outcome_labeled: 'pipeline',
+  outcomeLabeled: 'pipeline',
+  // ── Position tracking (DevPrint trading engine) ──
+  position_opened: 'positions',
+  position_closed: 'positions',
+  take_profit_triggered: 'positions',
+  stop_loss_triggered: 'positions',
+  positionOpened: 'positions',
+  positionClosed: 'positions',
+  // ── Filtered (internal only, no broadcast) ──
+  // price_update, holdings_snapshot, stats_update, config_updated → handled below
 };
+
+// Events that are too noisy to broadcast (high-frequency price ticks)
+const FILTERED_EVENTS = new Set([
+  'price_update',
+  'holdings_snapshot',
+  'stats_update',
+  'config_updated',
+]);
 
 const BASE_RECONNECT_MS = 5_000;
 const MAX_RECONNECT_MS = 30_000;
@@ -206,13 +224,40 @@ export class DevPrintFeedService {
       'signal_detected', 'buy_signal',
       'god_wallet_buy_detected', 'god_wallet_sell_detected',
       'new_token', 'new_tweet',
+      'token_deployed', 'deployment_result',
+      'position_opened', 'position_closed',
       // camelCase (DevPrint wire format)
       'newTweet', 'newToken', 'godWalletBuy', 'godWalletSell', 'signalDetected', 'buySignal',
+      'tokenDeployed', 'deploymentResult',
+      'positionOpened', 'positionClosed',
     ]);
     if (REACTOR_EVENTS.has(eventType)) {
       agentSignalReactor.react(eventType, data).catch((err) =>
         console.error('[DevPrintFeed] AgentReactor error:', err),
       );
+    }
+
+    // Pipeline deployment events → trigger agent evaluation
+    if (channel === 'deployments') {
+      const symbol = data.tokenSymbol || data.symbol || 'unknown';
+      const mint = data.tokenMint || data.mint;
+      console.log(`[DevPrintFeed] 🚀 Token deployed: $${symbol} (${mint || '?'})`);
+
+      // Fire deployment trigger → agents evaluate and potentially trade
+      if (mint) {
+        const deploymentEvent: DeploymentEvent = {
+          tokenMint: mint,
+          tokenSymbol: symbol,
+          chain: 'SOLANA',
+          deployedBy: data.deployedBy || 'pipeline',
+          signature: data.signature || data.tx,
+          liquidity: data.liquidity,
+          marketCap: data.marketCap,
+        };
+        evaluateDeploymentTrigger(deploymentEvent).catch((err) =>
+          console.error('[DevPrintFeed] Deployment trigger error:', err),
+        );
+      }
     }
   }
 

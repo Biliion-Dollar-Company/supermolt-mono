@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { Swords } from 'lucide-react';
 import { useIsMobile } from '@/hooks/useIsMobile';
 import { EventFeed, AgentHoverCard } from '@/components/war-room';
+import { LivePipelineFeed } from '@/components/pipeline-flow/LivePipelineFeed';
 import type { AgentData, FeedEvent, HoveredAgentInfo, StationInfo, ScannerCallData, ScannerCallsMap } from '@/components/war-room';
 import { TokenDetailContent } from '@/components/arena/TokenDetailModal';
 import { SCANNER_IDS } from '@/components/war-room/constants';
@@ -151,7 +152,7 @@ const LOADING_STAGES = [
 
 type StageKey = typeof LOADING_STAGES[number]['key'];
 
-type ViewMode = 'war-room' | 'scanner-grid' | 'heat-map';
+type ViewMode = 'war-room' | 'scanner-grid' | 'heat-map' | 'pipeline';
 
 export default function ArenaPage() {
   const isMobile = useIsMobile();
@@ -351,8 +352,8 @@ export default function ArenaPage() {
 
         {/* View mode selector */}
         <div className="ml-4 flex items-center gap-1">
-          {(['war-room', 'scanner-grid', 'heat-map'] as ViewMode[]).map((mode) => {
-            const labels: Record<ViewMode, string> = { 'war-room': 'War Room', 'scanner-grid': 'Scanners', 'heat-map': 'Heat Map' };
+          {(['war-room', 'pipeline', 'scanner-grid', 'heat-map'] as ViewMode[]).map((mode) => {
+            const labels: Record<ViewMode, string> = { 'war-room': 'War Room', 'pipeline': 'Pipeline', 'scanner-grid': 'Scanners', 'heat-map': 'Heat Map' };
             const isActive = viewMode === mode;
             return (
               <button
@@ -552,49 +553,57 @@ export default function ArenaPage() {
             )}
           </div>
 
-          {/* Bottom ~50%: LIVE FEED */}
+          {/* Bottom ~50%: LIVE FEED or PIPELINE FEED */}
           <div
             className="flex flex-col"
-            style={{ flex: 1, minHeight: 0 }}
+            style={{ flex: viewMode === 'pipeline' ? 2 : 1, minHeight: 0 }}
           >
-            {/* Live Feed header */}
-            <div
-              className="flex items-center gap-2 px-4 py-3 flex-shrink-0"
-              style={{ borderBottom: '1px solid rgba(37, 99, 235, 0.2)' }}
-            >
-              <span
-                className="inline-block w-2 h-2 rounded-full"
-                style={{
-                  background: '#00ff41',
-                  boxShadow: '0 0 6px #00ff41',
-                  animation: 'pulse 1.5s ease-in-out infinite',
-                }}
-              />
-              <h2
-                className="text-xs font-bold uppercase tracking-widest"
-                style={{ color: '#2563EB', fontFamily: 'JetBrains Mono, monospace' }}
-              >
-                Live Feed
-              </h2>
-              <span
-                className="ml-auto text-xs"
-                style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'JetBrains Mono, monospace' }}
-              >
-                {events.length} events
-              </span>
-            </div>
-            {/* Scrollable feed — EventFeed without its own header */}
-            <div
-              className="flex-1"
-              style={{
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: 0,
-              }}
-            >
-              <EventFeed events={events} hideHeader />
-            </div>
+            {viewMode === 'pipeline' ? (
+              /* Pipeline view: full-height pipeline feed */
+              <div className="flex-1 overflow-y-auto px-3 py-3" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(37,99,235,0.2) transparent' }}>
+                <LivePipelineFeed maxEvents={15} />
+              </div>
+            ) : (
+              /* Default: Live event feed */
+              <>
+                <div
+                  className="flex items-center gap-2 px-4 py-3 flex-shrink-0"
+                  style={{ borderBottom: '1px solid rgba(37, 99, 235, 0.2)' }}
+                >
+                  <span
+                    className="inline-block w-2 h-2 rounded-full"
+                    style={{
+                      background: '#00ff41',
+                      boxShadow: '0 0 6px #00ff41',
+                      animation: 'pulse 1.5s ease-in-out infinite',
+                    }}
+                  />
+                  <h2
+                    className="text-xs font-bold uppercase tracking-widest"
+                    style={{ color: '#2563EB', fontFamily: 'JetBrains Mono, monospace' }}
+                  >
+                    Live Feed
+                  </h2>
+                  <span
+                    className="ml-auto text-xs"
+                    style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'JetBrains Mono, monospace' }}
+                  >
+                    {events.length} events
+                  </span>
+                </div>
+                <div
+                  className="flex-1"
+                  style={{
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                  }}
+                >
+                  <EventFeed events={events} hideHeader />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

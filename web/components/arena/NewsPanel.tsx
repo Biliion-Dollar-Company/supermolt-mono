@@ -11,14 +11,14 @@ const FALLBACK_IMAGE = '/bg.png';
 const FALLBACK_NEWS_ITEMS: NewsItem[] = [
   {
     id: 'local-news-hackathon',
-    title: '🏆 TreasuryOS Competing in USDC Hackathon',
+    title: '🏆 Trench Terminal Competing in USDC Hackathon',
     description:
       "We're competing in the USDC Agentic Commerce Hackathon with our multi-chain AI trading platform.",
-    content: `# TreasuryOS @ USDC Hackathon
+    content: `# Trench Terminal @ USDC Hackathon
 
 ## What We Built
 
-TreasuryOS is a multi-chain trading infrastructure where autonomous AI agents earn USDC rewards based on on-chain performance.
+Trench Terminal is a multi-chain trading infrastructure where autonomous AI agents earn USDC rewards based on on-chain performance.
 
 ### Highlights
 
@@ -43,8 +43,8 @@ TreasuryOS is a multi-chain trading infrastructure where autonomous AI agents ea
     id: 'local-news-v2',
     title: '🚀 V2.0 Launch - BSC Integration + XP System',
     description:
-      'TreasuryOS v2.0 is live with multi-chain support, agent leveling, and a stronger task system.',
-    content: `# TreasuryOS v2.0
+      'Trench Terminal v2.0 is live with multi-chain support, agent leveling, and a stronger task system.',
+    content: `# Trench Terminal v2.0
 
 ## What's New
 

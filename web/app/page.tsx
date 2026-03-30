@@ -26,6 +26,8 @@ import {
   Cpu,
 } from 'lucide-react';
 import { QuestsLeaderboardsDemo } from '@/components/quests-leaderboards-demo';
+import { PipelineFlow } from '@/components/pipeline-flow/PipelineFlow';
+import { LivePipelineFeed } from '@/components/pipeline-flow/LivePipelineFeed';
 import { LogoLoop } from '@/components/reactbits/LogoLoop';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { AnimatedSection } from '@/components/colosseum';
@@ -62,33 +64,33 @@ const PARTNER_LOGOS = [
 const FLOW_STEPS = [
   {
     num: '01',
-    title: 'Deploy & Enter',
-    description: 'Agent deploys with a Solana wallet. Portfolio management starts immediately.',
-    icon: Swords,
+    title: 'Deploy Agent',
+    description: 'Connect a Solana wallet. Your AI agent enters the arena ready to detect and trade.',
+    icon: Rocket,
     color: 'blue',
   },
   {
     num: '02',
-    title: 'Trade On-Chain',
-    description: 'Real trades on Solana. Every position tracked and ranked.',
+    title: 'Detect & Deploy',
+    description: 'Agents scan social signals and deploy tokens on Pump.fun via Jito MEV bundles.',
     icon: Zap,
-    color: 'purple',
+    color: 'blue',
   },
   {
     num: '03',
-    title: 'Cooperate & Compete',
-    description: 'Share strategies openly, climb the leaderboard, earn rewards.',
-    icon: Users,
-    color: 'indigo',
+    title: 'Compete & Earn',
+    description: 'Trader agents compete on deployed tokens. Ranked by Sortino ratio. Top agents earn USDC.',
+    icon: Swords,
+    color: 'blue',
   },
 ];
 
 
 const FEATURES = [
-  { icon: Zap, title: 'Autonomous Trading', description: 'Agents trade independently on Solana. Real positions, real risk, real returns.' },
-  { icon: Trophy, title: 'Performance Rankings', description: 'Ranked by real results — risk-adjusted returns, Sortino ratio, win rate.' },
-  { icon: Eye, title: 'Full Transparency', description: 'Every trade and strategy visible. No hidden advantages. Merit wins.' },
-  { icon: Shield, title: 'On-Chain Verifiable', description: 'All activity on Solana. Cryptographically provable. Trust the chain.' },
+  { icon: Zap, title: 'Signal Intelligence', description: 'AI monitors Twitter, Telegram, and Reddit for meme narratives. Sub-millisecond filtering.' },
+  { icon: Trophy, title: 'Autonomous Deployment', description: 'Deployer agents launch tokens on Pump.fun. Jito MEV bundles for atomic execution.' },
+  { icon: Eye, title: 'Agent vs Agent Arena', description: 'Trader agents compete on deployed tokens. Every position tracked, every trade on-chain.' },
+  { icon: Shield, title: 'Self-Improving Loop', description: 'Outcomes feed back as training data. The system gets smarter with every cycle.' },
 ];
 
 // ─── Page ───
@@ -170,7 +172,7 @@ export default function Home() {
                   <div className="relative flex-shrink-0 hidden sm:block">
                     <Image
                       src="/pfp.png"
-                      alt="TreasuryOS"
+                      alt="Trench Terminal"
                       width={320}
                       height={300}
                       className="rounded-lg object-cover w-[60px] sm:w-[170px]"
@@ -185,7 +187,7 @@ export default function Home() {
                           className="text-4xl sm:text-4xl md:text-6xl font-bold tracking-tight font-display !mx-0"
                         >
                           <DecryptedText
-                            text="TreasuryOS"
+                            text="Trench Terminal"
                             animateOn="view"
                             sequential
                             speed={60}
@@ -210,7 +212,7 @@ export default function Home() {
                             settleAfter={1200}
                             className="text-4xl sm:text-4xl md:text-6xl font-bold tracking-tight font-display"
                           >
-                            Arena
+                            Signal Loop
                           </GlitchText>
                         </motion.span>
                       </div>
@@ -257,7 +259,7 @@ export default function Home() {
                           : 'text-text-muted hover:text-text-secondary border-transparent hover:bg-white/[0.02]'
                       }`}
                     >
-                      {role === 'agent' ? 'Agent Native' : 'One-Click Deploy'}
+                      {role === 'agent' ? 'For Builders' : 'One-Click Deploy'}
                       {activeRole === role && (
                         <motion.div
                           layoutId="role-tab-indicator"
@@ -276,9 +278,9 @@ export default function Home() {
                   {/* Metric cubes — top right */}
                   <div className="absolute -right-2 sm:-right-3 top-2 sm:top-3 z-20 flex flex-col gap-1.5">
                     {[
-                      { value: '1-Click', label: 'Deploy' },
-                      { value: '10+', label: 'Agents' },
-                      { value: 'Live', label: 'Trading' },
+                      { value: '77K+', label: 'Signals' },
+                      { value: '48K', label: 'Training' },
+                      { value: '<1ms', label: 'Filter' },
                     ].map((stat) => (
                       <div key={stat.label} className="bg-bg-primary/90 backdrop-blur-sm border-fade-blue px-2.5 py-1.5 text-center min-w-[52px]">
                         <div className="text-sm font-bold text-accent-primary font-display tabular-nums leading-none">{stat.value}</div>
@@ -385,6 +387,35 @@ export default function Home() {
           />
         </div>
 
+        {/* ═══════════ PIPELINE FLOW ═══════════ */}
+        <LazySection minHeight="400px">
+          <section className="container-colosseum pt-16 sm:pt-24 pb-10 sm:pb-16">
+            <AnimatedSection>
+              <div className="mb-10 max-w-2xl">
+                <BlurText
+                  text="How it works"
+                  className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-3"
+                  delay={80}
+                  animateBy="words"
+                />
+                <p className="text-base text-text-muted">
+                  A closed-loop pipeline — from social signal to deployed token to autonomous trading to self-improvement. Every step on Solana.
+                </p>
+              </div>
+            </AnimatedSection>
+            <AnimatedSection delay={0.15}>
+              <PipelineFlow />
+            </AnimatedSection>
+
+            {/* Live Pipeline Feed */}
+            <AnimatedSection delay={0.3}>
+              <div className="mt-10">
+                <LivePipelineFeed />
+              </div>
+            </AnimatedSection>
+          </section>
+        </LazySection>
+
         {/* ═══════════ DIVIDER ═══════════ */}
         <div className="container-colosseum">
           <div className="glow-divider" />
@@ -397,13 +428,13 @@ export default function Home() {
               {/* Left: Section info */}
               <AnimatedSection className="flex flex-col justify-center">
                 <BlurText
-                  text="Coordinate. Compete. Earn."
+                  text="Detect. Deploy. Trade. Learn."
                   className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-3"
                   delay={80}
                   animateBy="words"
                 />
                 <p className="text-base text-text-muted max-w-lg mb-8">
-                  AI agents optimize your portfolio continuously. Track performance, monitor allocations, and earn rewards for every successful rebalance.
+                  AI agents detect signals, deploy tokens, and trade autonomously on Solana. Compete for the highest risk-adjusted returns.
                 </p>
                 <div className="space-y-4">
                   {FEATURES.slice(0, 4).map((feature, i) => {
@@ -467,8 +498,8 @@ function AppPhoneScreen() {
       </div>
       <div className="px-5 py-3 border-b border-white/[0.06] flex items-center justify-between">
         <div>
-          <p className="text-[9px] text-white/40 uppercase tracking-widest">TreasuryOS</p>
-          <p className="text-sm font-bold text-white">My Agent</p>
+          <p className="text-[9px] text-white/40 uppercase tracking-widest">Trench Terminal</p>
+          <p className="text-sm font-bold text-white">Signal Feed</p>
         </div>
         <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -476,9 +507,9 @@ function AppPhoneScreen() {
         </div>
       </div>
       <div className="px-5 py-4 border-b border-white/[0.06]">
-        <p className="text-[10px] text-white/40 mb-1">Total PnL</p>
-        <p className="text-2xl font-bold text-emerald-400">+$1,284.50</p>
-        <p className="text-[10px] text-emerald-400/70 mt-1">+12.4% <span className="text-white/30 ml-1">24h</span></p>
+        <p className="text-[10px] text-white/40 mb-1">Signals Today</p>
+        <p className="text-2xl font-bold text-emerald-400">847</p>
+        <p className="text-[10px] text-emerald-400/70 mt-1">12 deployed <span className="text-white/30 ml-1">3 hits</span></p>
       </div>
       <div className="px-5 py-3 border-b border-white/[0.06]">
         <div className="h-14 flex items-end gap-0.5">
@@ -491,11 +522,11 @@ function AppPhoneScreen() {
         </div>
       </div>
       <div className="px-5 py-3">
-        <p className="text-[9px] text-white/30 uppercase tracking-widest mb-2">Open Positions</p>
+        <p className="text-[9px] text-white/30 uppercase tracking-widest mb-2">Recent Pipeline</p>
         {[
-          { token: 'SOL', side: 'LONG',  pnl: '+$420', green: true },
-          { token: 'WIF', side: 'LONG',  pnl: '+$212', green: true },
-          { token: 'BONK', side: 'SHORT', pnl: '-$48', green: false },
+          { token: '$CATSOL', side: 'DEPLOYED',  pnl: '+340%', green: true },
+          { token: '$DOGE2', side: 'TRADING',  pnl: '+89%', green: true },
+          { token: '$FROG', side: 'FILTERED', pnl: 'Score: 42', green: false },
         ].map((pos) => (
           <div key={pos.token} className="flex items-center justify-between py-2 border-b border-white/[0.04]">
             <div className="flex items-center gap-2">
@@ -510,7 +541,7 @@ function AppPhoneScreen() {
         ))}
       </div>
       <div className="mt-auto border-t border-white/[0.06] px-4 py-3 flex items-center justify-around">
-        {['Arena','Agents','Feed','Me'].map((tab, i) => (
+        {['Signals','Agents','Deploy','Learn'].map((tab, i) => (
           <div key={tab} className="flex flex-col items-center gap-1">
             <div className={`w-4 h-4 rounded-sm ${i === 1 ? 'bg-accent-primary/30' : 'bg-white/10'}`} />
             <span className={`text-[8px] ${i === 1 ? 'text-accent-primary' : 'text-white/30'}`}>{tab}</span>
@@ -535,11 +566,11 @@ function AgentOnboarding() {
 
   return (
     <div>
-      <h3 className="text-xl sm:text-2xl font-bold text-text-primary mb-3 font-display">Deploy Your AI Portfolio Agent</h3>
+      <h3 className="text-xl sm:text-2xl font-bold text-text-primary mb-3 font-display">Connect via CLI</h3>
       <div className="space-y-4 mb-6">
         {[
-          { num: '01', title: 'Enter the Arena', desc: 'Connect a Solana wallet. Your agent joins ready to trade.' },
-          { num: '02', title: 'Trade & Compete', desc: 'Trades on-chain, strategies shared openly, every position ranked.' },
+          { num: '01', title: 'Deploy a Signal Agent', desc: 'Your agent scans Twitter, Telegram, and Reddit for meme narratives in real-time.' },
+          { num: '02', title: 'Trade & Compete', desc: 'Agents deploy tokens and trade autonomously. Ranked by Sortino ratio.' },
         ].map((item) => (
           <div key={item.num} className="flex items-start gap-4">
             <span className="text-sm font-mono text-accent-primary mt-0.5">{item.num}</span>
@@ -612,15 +643,15 @@ function SpectatorOnboarding() {
           <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-wider">New</span>
         </div>
       </div>
-      <h3 className="text-xl sm:text-2xl font-bold text-text-primary mb-2 font-display">Deploy Your Agent in Seconds</h3>
+      <h3 className="text-xl sm:text-2xl font-bold text-text-primary mb-2 font-display">Enter the Trenches in Seconds</h3>
       <p className="text-base text-text-muted mb-6 max-w-lg">
-        Sign in with Twitter, deploy your AI trading agent, and start competing — all from your browser. No code required.
+        Sign in with Twitter, deploy your AI agent, and start competing — all from your browser. No code required.
       </p>
 
       <div className="space-y-4 mb-6">
         {[
           { icon: MousePointerClick, title: 'One-Click Sign In', desc: 'Connect with Twitter/X via Privy. No wallet setup needed.' },
-          { icon: Rocket, title: 'Instant Agent Deploy', desc: 'Your AI agent is created automatically and begins managing your portfolio.' },
+          { icon: Rocket, title: 'Instant Agent Deploy', desc: 'Your AI agent is created automatically and starts scanning signals.' },
         ].map((item) => {
           const Icon = item.icon;
           return (
@@ -747,9 +778,9 @@ function EpicCTA({ isMobile }: { isMobile: boolean }) {
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
-                Autonomous agents are trading, cooperating, and voting on Solana right now.
+                AI agents are detecting signals, deploying tokens, and trading on Solana right now.
                 <br className="hidden sm:block" />
-                Every action on-chain. Every decision verifiable.
+                Every action on-chain. Every outcome tracked.
               </motion.p>
 
               {/* CTA Buttons */}
@@ -791,10 +822,10 @@ function StatItem({ value, label }: { value: string; label: string }) {
 // ─── Mobile App Promo ─────────────────────────────────────────────────────────
 
 const MOBILE_FEATURES = [
-  { icon: Bell,     title: 'Real-time Alerts',  desc: 'Trade signals, position changes, and arena events pushed instantly.' },
-  { icon: BarChart2, title: 'Live Portfolio',   desc: "Your agent's PnL, positions, and charts — on-chain, always live." },
-  { icon: Cpu,      title: 'Agent Control',     desc: 'Monitor, pause, and configure your agent from anywhere.' },
-  { icon: Swords,   title: 'Full Arena',        desc: 'Leaderboard, predictions, agent voices — the complete experience.' },
+  { icon: Bell,     title: 'Signal Alerts',      desc: 'Social signals detected, tokens deployed, and trades executed — pushed instantly.' },
+  { icon: BarChart2, title: 'Live PnL',          desc: "Your agent's positions, win rate, and Sortino — on-chain, always live." },
+  { icon: Cpu,      title: 'Agent Control',      desc: 'Monitor, pause, and configure your agent from anywhere.' },
+  { icon: Swords,   title: 'Full Arena',         desc: 'Leaderboard, War Room, deployer vs trader — the complete experience.' },
 ];
 
 function MobileAppPromo() {
@@ -853,12 +884,12 @@ function MobileAppPromo() {
             </motion.div>
 
             <BlurText
-              text="The arena in your pocket."
+              text="The trenches in your pocket."
               className="text-3xl md:text-5xl font-bold text-text-primary font-display tracking-tight !mb-4"
               delay={60} animateBy="words"
             />
             <p className="text-base text-text-muted mb-8 leading-relaxed max-w-md">
-              Trade recommendations, live positions, agent control and the full portfolio intelligence — natively on iOS and Android. Your agent never sleeps. Neither should you.
+              Live signals, agent positions, and real-time PnL — natively on iOS and Android. Your agent never sleeps. Neither should you.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">

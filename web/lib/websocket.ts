@@ -4,7 +4,9 @@ import { getJWT } from './api';
 export interface FeedEvent {
   type: 'trade_detected' | 'token_deployed' | 'agent_updated' | 'price_update' |
         'position_opened' | 'position_closed' | 'agent_message' | 'vote_started' | 'vote_cast' |
-        'trade_recommendation' | 'auto_buy_executed' | 'prediction_signal' | 'prediction_consensus';
+        'trade_recommendation' | 'auto_buy_executed' | 'prediction_signal' | 'prediction_consensus' |
+        'tweet_detected' | 'new_token' | 'concept_generated' | 'outcome_labeled' |
+        'deployment_result' | 'meme_filtered' | 'pipeline_event' | 'social:post' | (string & {});
   data: {
     agent_id?: string;
     token_mint?: string;
@@ -174,6 +176,42 @@ class WebSocketManager {
           data,
         });
       });
+
+      // ── Pipeline events (Trench Terminal: detect → deploy → trade → learn) ──
+      this.socket.on('feed:deployments', (data: any) => {
+        this.emit('pipeline_deployment', {
+          type: 'token_deployed',
+          data: { ...data, stage: 'deploy' },
+        });
+      });
+
+      this.socket.on('feed:pipeline', (data: any) => {
+        this.emit('pipeline_event', {
+          type: data.type || 'pipeline_event',
+          data: { ...data },
+        });
+      });
+
+      this.socket.on('feed:positions', (data: any) => {
+        this.emit('pipeline_position', {
+          type: data.type || 'position_opened',
+          data: { ...data, stage: 'trade' },
+        });
+      });
+
+      this.socket.on('feed:tokens', (data: any) => {
+        this.emit('pipeline_detect', {
+          type: data.type || 'new_token',
+          data: { ...data, stage: 'detect' },
+        });
+      });
+
+      this.socket.on('feed:tweets', (data: any) => {
+        this.emit('pipeline_detect', {
+          type: 'tweet_detected',
+          data: { ...data, stage: 'detect' },
+        });
+      });
     });
   }
 
@@ -302,6 +340,24 @@ class WebSocketManager {
     if (!this.socket) return () => {};
     this.socket.on('feed:agents_active', callback);
     return () => { this.socket?.off('feed:agents_active', callback); };
+  }
+
+  // ── Pipeline event listeners (Trench Terminal) ──
+
+  onPipelineDeployment(callback: (event: FeedEvent) => void): () => void {
+    return this.on('pipeline_deployment', callback);
+  }
+
+  onPipelineEvent(callback: (event: FeedEvent) => void): () => void {
+    return this.on('pipeline_event', callback);
+  }
+
+  onPipelinePosition(callback: (event: FeedEvent) => void): () => void {
+    return this.on('pipeline_position', callback);
+  }
+
+  onPipelineDetect(callback: (event: FeedEvent) => void): () => void {
+    return this.on('pipeline_detect', callback);
   }
 
   /** Subscribe to a specific agent's activity room */

@@ -175,12 +175,12 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Token metrics polling (via TreasuryOS backend — DexScreener) ──────────
+  // ── Token metrics polling (via Trench Terminal backend — DexScreener) ──────────
   const fetchMetrics = useCallback(async () => {
     if (!stationMgrRef.current) return;
     const stations = stationMgrRef.current.stations;
 
-    // Fetch each token's analytics via the TreasuryOS backend proxy
+    // Fetch each token's analytics via the Trench Terminal backend proxy
     const fetches = stations.map(async (s, stIdx) => {
       if (!s.mint) return;
       try {
