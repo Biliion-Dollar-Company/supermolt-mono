@@ -75,7 +75,7 @@ function mapDeployEvent(evt: FeedEvent): Omit<PipelineEvent, 'id' | 'timestamp'>
 
 function mapTradeEvent(evt: FeedEvent): Omit<PipelineEvent, 'id' | 'timestamp'> | null {
   const d = evt.data;
-  const action = d.action || d.type?.includes('sell') ? 'sold' : 'bought';
+  const action = (d.action === 'SELL' || d.type?.includes('sell')) ? 'sold' : 'bought';
   const agent = d.agentName || d.agent_name || 'Agent';
   const symbol = d.tokenSymbol || d.symbol || 'TOKEN';
   const amount = d.amount || d.amountSol;

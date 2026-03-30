@@ -93,9 +93,11 @@ export function PipelineFlow() {
 
   const handleStepClick = useCallback((index: number) => {
     setActiveIndex(index);
-    // Reset timer on manual click
+    // Reset timer on manual click — briefly pause to restart the interval cycle
     clearInterval(timerRef.current);
-    setIsPaused(false);
+    timerRef.current = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % STEPS.length);
+    }, INTERVAL_MS);
   }, []);
 
   const activeStep = STEPS[activeIndex];
