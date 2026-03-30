@@ -233,7 +233,7 @@ export default function ConfigurePage() {
           <div className="mb-6">
             <h3 className="text-white font-semibold text-lg mb-1">Select Archetype</h3>
             <p className="text-white/50 text-sm">
-              Choose your agent's trading personality and strategy
+              Choose your agent&apos;s trading personality and strategy
             </p>
           </div>
 
