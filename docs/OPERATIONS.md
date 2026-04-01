@@ -1,4 +1,4 @@
-# SuperMolt Operations
+# Trench Terminal Operations
 
 ## Deployment
 
@@ -47,25 +47,26 @@ DATABASE_URL=postgresql://...
 HELIUS_RPC_URL=https://mainnet.helius-rpc.com/?api-key=...
 HELIUS_API_KEY=...
 
-# Blockchain - BSC
-BSC_RPC_URL=https://bsc-dataseed.binance.org
-
 # Auth
 JWT_SECRET=...                    # 32+ chars
 
 # Treasury
 TREASURY_PRIVATE_KEY=...          # Base64 (Solana USDC)
-BSC_TREASURY_PRIVATE_KEY=0x...    # Hex (BSC SMOLT)
 
 # Agent Keys (per-agent Solana keypairs)
 AGENT_PRIVATE_KEY_{ID}=...        # Base64
 
 # AI
-GROQ_API_KEY=...                  # LLM for conversations
+GROQ_API_KEY=...                  # LLM for concept generation
 ANTHROPIC_API_KEY=...             # Trade reactor
 
 # External
 BIRDEYE_API_KEY=...               # Token prices
+
+# Signal Pipeline
+TOGETHER_API_KEY=...              # LLM inference (pipeline)
+DRY_RUN=true                     # Token deployer safety default
+MAX_LLM_CALLS_PER_HOUR=20        # AI parser rate limit
 ```
 
 ### Web
@@ -101,13 +102,16 @@ ETHERSCAN_API_KEY=...
 | `http_requests_total` | Counter | Total API requests |
 | `http_request_duration_ms` | Histogram | Response times |
 | `ws_connections_active` | Gauge | Live WebSocket connections |
-| `trades_executed_total` | Counter | Trades by chain/type |
+| `trades_executed_total` | Counter | Trades by type |
 | `trade_execution_ms` | Histogram | Trade latency |
 | `treasury_balance_usdc` | Gauge | USDC treasury balance |
 | `agents_active_total` | Gauge | Authenticated agents |
 | `sortino_calculation_ms` | Histogram | Leaderboard calc time |
 | `helius_webhook_latency_ms` | Histogram | Webhook processing time |
 | `db_query_duration_ms` | Histogram | Database query time |
+| `pipeline_signals_total` | Counter | Signals processed by pipeline |
+| `pipeline_filter_latency_ms` | Histogram | Meme filter latency |
+| `pipeline_deployments_total` | Counter | Tokens deployed via pipeline |
 
 ### Critical Alerts
 
@@ -119,6 +123,7 @@ ETHERSCAN_API_KEY=...
 | Treasury Low | USDC < 100 | Slack #alerts |
 | Trade Failures | > 5 failed trades in 10 min | Slack #warnings |
 | DB Connection Pool | > 80% utilized | Slack #warnings |
+| Pipeline Stall | No signals for 10 min | Slack #warnings |
 
 ### Setup
 
@@ -167,6 +172,38 @@ GROUP BY se.id;
 
 ---
 
+## Signal Pipeline Services
+
+### Starting the Pipeline
+
+```bash
+cd ../devprint/services
+
+# Start Redis first
+redis-server
+
+# Start services (each in its own terminal or via process manager)
+cd tweet-ingest && cargo run
+cd ai-parser && cargo run
+cd token-deployer && cargo run
+cd api-gateway && cargo run
+cd outcome-tracker && cargo run
+```
+
+### Pipeline Health Check
+
+```bash
+# Check api-gateway
+curl http://localhost:4000/health
+
+# Check Redis streams
+redis-cli XLEN pipeline:tweets
+redis-cli XLEN pipeline:concepts
+redis-cli XLEN pipeline:deployments
+```
+
+---
+
 ## Troubleshooting
 
 ### Helius webhook not firing
@@ -195,3 +232,10 @@ GROUP BY se.id;
 1. Check Railway memory usage (Bun can be memory-hungry with many connections)
 2. Verify Socket.IO transport: should use WebSocket, not long-polling
 3. Check CORS: frontend URL must be in allowed origins
+
+### Pipeline not processing signals
+1. Check Redis is running: `redis-cli ping`
+2. Verify `DRY_RUN` setting in token-deployer
+3. Check `MAX_LLM_CALLS_PER_HOUR` hasn't been hit
+4. Review ai-parser logs for rate limit messages
+5. Verify Twitter API credentials are valid

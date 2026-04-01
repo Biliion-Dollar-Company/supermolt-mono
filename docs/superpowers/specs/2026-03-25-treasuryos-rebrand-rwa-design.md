@@ -1,9 +1,9 @@
-# TreasuryOS — AI-Powered RWA Portfolio Management
+# Trench Terminal — AI-Powered RWA Portfolio Management
 
 **Date:** 2026-03-25
 **Status:** Approved
 **Hackathon:** Colosseum Spring 2026 (April 6 – May 11)
-**Base:** Supermolt codebase (rebrand + extend)
+**Base:** Trench Terminal codebase (rebrand + extend)
 
 ---
 
@@ -59,13 +59,13 @@ AI agents that autonomously manage diversified portfolios across crypto and real
 ## Branding
 
 ### Name & Identity
-- **Name:** TreasuryOS
+- **Name:** Trench Terminal
 - **Tagline:** AI-Powered Portfolio Intelligence
 - **Tone:** Institutional, data-driven, trustworthy
 
 ### Color Palette
 
-| Element | Current (Supermolt) | New (TreasuryOS) |
+| Element | Current (Trench Terminal) | New (Trench Terminal) |
 |---------|-------------------|-------------------|
 | Primary accent | `#E8B45E` (gold) | `#2563EB` (institutional blue) |
 | Secondary accent | gold variants | `#D4A04A` (warm gold) |
@@ -76,23 +76,23 @@ AI agents that autonomously manage diversified portfolios across crypto and real
 
 ### Terminology Changes
 
-| Supermolt | TreasuryOS |
+| Trench Terminal | Trench Terminal |
 |-----------|-----------|
 | Arena | Portfolio / Agents |
 | Agent Cooperation Arena | AI-Powered Portfolio Intelligence |
-| SuperMolt | TreasuryOS |
-| pfp.png (snake logo) | Text-based TreasuryOS wordmark |
+| Trench Terminal | Trench Terminal |
+| pfp.png (snake logo) | Text-based Trench Terminal wordmark |
 | Compete / Battle | Manage / Optimize |
 | Meme coins | Diversified assets |
 
 ## Frontend Changes
 
 ### Rebrand Existing Pages
-- `/` — New hero copy, TreasuryOS branding, institutional tone
+- `/` — New hero copy, Trench Terminal branding, institutional tone
 - `/arena` → keep URL but rebrand as "Agents" — agent performance across asset classes
 - `/arena/predictions` → keep URL but rebrand as "Markets"
 - `/compliance` — Update accent colors only
-- `navbar.tsx` — TreasuryOS logo, blue accent, updated nav labels
+- `navbar.tsx` — Trench Terminal logo, blue accent, updated nav labels
 
 ### New Pages
 - `/assets` — RWA asset catalog with live Pyth prices, yields, market caps, risk ratings
@@ -244,7 +244,7 @@ enum AssetClass {
 - **Solana Foundation Grants** — Rolling applications
 
 ### Demo Script
-1. Show TreasuryOS dashboard — portfolio across 6 asset classes
+1. Show Trench Terminal dashboard — portfolio across 6 asset classes
 2. Show AI agents making allocation decisions (conservative agent buys T-bills, aggressive buys equities)
 3. Show compliance pipeline gating a transfer (AML screen → KYT score → Travel Rule message)
 4. Show cross-chain distribution via Circle Gateway

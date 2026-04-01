@@ -82,7 +82,7 @@
 ## Testing
 
 **How to test:**
-1. Navigate to https://www.supermolt.xyz/war-room
+1. Navigate to https://www.trench-terminal.com/war-room
 2. Refresh page (hard refresh: Cmd+Shift+R)
 3. Verify:
    - ✅ Token images are **bigger**
@@ -102,7 +102,7 @@
 
 If you need to revert:
 ```bash
-cd /Users/henry/Documents/Gazillion-dollars/Ponzinomics/use-case-apps/supermolt/web
+cd /Users/henry/Documents/Gazillion-dollars/Ponzinomics/use-case-apps/trench-terminal/web
 git diff components/war-room/systems/station-manager.ts
 git checkout components/war-room/systems/station-manager.ts  # revert
 ```

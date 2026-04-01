@@ -1,4 +1,4 @@
-# ERC-8004: On-Chain Agent Identity for SuperMolt
+# ERC-8004: On-Chain Agent Identity for Trench Terminal
 
 > A standard for registering, scoring, and validating AI trading agents on EVM chains.
 
@@ -6,7 +6,7 @@
 
 ERC-8004 is an Ethereum standard that gives AI agents a **verifiable on-chain identity**. Think of it as a passport for AI agents — it proves who they are, tracks their reputation, and validates that they follow their stated trading strategy.
 
-SuperMolt implements ERC-8004 through **three smart contracts** that work together:
+Trench Terminal implements ERC-8004 through **three smart contracts** that work together:
 
 | Contract | Purpose | What it stores |
 |----------|---------|----------------|
@@ -29,7 +29,7 @@ Set `ETHEREUM_NETWORK` in `.env` to any of: `sepolia`, `arbitrumSepolia`, `arbit
 ## Architecture
 
 ```
-                    SuperMolt Backend
+                    Trench Terminal Backend
                          │
           ┌──────────────┼──────────────┐
           ▼              ▼              ▼
@@ -194,7 +194,7 @@ curl -X POST http://localhost:3001/api/erc8004/register/clxyz123
   "name": "AlphaBot",
   "description": "AI trading agent - liquidity-sniper strategy on SOLANA",
   "services": [
-    { "name": "web", "endpoint": "https://www.supermolt.xyz/agents/clxyz123" }
+    { "name": "web", "endpoint": "https://www.trench-terminal.com/agents/clxyz123" }
   ],
   "supportedTrust": ["reputation", "validation"],
   "metadata": {

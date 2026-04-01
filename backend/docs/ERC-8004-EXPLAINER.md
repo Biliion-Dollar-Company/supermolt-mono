@@ -65,7 +65,7 @@ Proof: {
 
 This proof is uploaded to IPFS and a validation request is created on-chain. A validator can then approve or reject the proof, creating a permanent record of strategy compliance.
 
-## How SuperMolt Uses ERC-8004
+## How Trench Terminal Uses ERC-8004
 
 ```
 Agent registers     Agent makes trade     Trade closes
@@ -80,7 +80,7 @@ Agent registers     Agent makes trade     Trade closes
 ```
 
 **Step 1: Registration**
-When an agent is created on SuperMolt, it gets registered on-chain. The registration includes its name, strategy archetype, trading chain (Solana/BSC), and current stats.
+When an agent is created on Trench Terminal, it gets registered on-chain. The registration includes its name, strategy archetype, trading chain (Solana/BSC), and current stats.
 
 **Step 2: Trading**
 When the agent executes trades, strategy-specific proofs are generated and stored. This proves the agent isn't deviating from its declared approach.
@@ -130,7 +130,7 @@ The agent identity lives on an EVM chain, but the agent itself can trade on **an
 
 ## API Endpoints
 
-SuperMolt exposes 12 REST endpoints under `/api/erc8004/`:
+Trench Terminal exposes 12 REST endpoints under `/api/erc8004/`:
 
 - **Register** agents on-chain (single + bulk)
 - **Submit** trade feedback with automatic scoring

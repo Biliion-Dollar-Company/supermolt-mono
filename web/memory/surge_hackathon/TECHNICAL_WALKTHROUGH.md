@@ -50,7 +50,7 @@ const onChainId = await client.registerAgent(ipfsUri);
 ```
 
 #### Identity Service (`/services/erc8004-identity.service.ts`)
-- `registerAgentOnChain(agentId)` - Register SuperMolt agent on-chain
+- `registerAgentOnChain(agentId)` - Register Trench Terminal agent on-chain
   1. Fetch agent from database
   2. Build ERC-8004 compliant JSON
   3. Upload to IPFS
@@ -271,7 +271,7 @@ Based on similar NFT + metadata contracts:
 2. **Register test agents** - Use API to register 2+ agents
 3. **Submit feedback** - Test reputation system with trade data
 4. **Create validations** - Test validation flow with trade intents
-5. **Build frontend** - Display on-chain identities in SuperMolt UI
+5. **Build frontend** - Display on-chain identities in Trench Terminal UI
 6. **Production deployment** - Deploy to Arbitrum mainnet for production
 
 ---
@@ -280,7 +280,7 @@ Based on similar NFT + metadata contracts:
 
 - **EIP-8004:** https://eips.ethereum.org/EIPS/eip-8004
 - **Surge Hackathon:** https://surge.build
-- **SuperMolt App:** https://www.supermolt.xyz
+- **Trench Terminal App:** https://www.trench-terminal.com
 - **Backend API:** https://sr-mobile-production.up.railway.app
 - **Contracts Repo:** `/contracts/`
 - **Test Results:** `sepolia_test_results.json`

@@ -64,7 +64,7 @@ Each test transaction is confirmed on-chain and results are saved to `test-resul
 📝 TEST 1: Register Agent Identity
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-   Metadata URI: ipfs://Qmsupermolt-agent-1709503200000
+   Metadata URI: ipfs://Qmtrench-terminal-agent-1709503200000
    Strategy: Momentum Trader
    📤 Transaction: 0x123...
    ⏳ Waiting for confirmation...
@@ -122,7 +122,7 @@ After running tests, `test-results.json` contains:
 ```json
 {
   "agentId": "0x123...",
-  "agentName": "supermolt-agent-1709503200000",
+  "agentName": "trench-terminal-agent-1709503200000",
   "testerAddress": "0x5879...",
   "contracts": {
     "Identity": "0x34aDD...",
@@ -146,7 +146,7 @@ This is a **production-ready** ERC-8004 implementation:
 ✅ **39/39 tests passing** (full test suite available)  
 ✅ **Deployed to Sepolia** (live contracts)  
 ✅ **Gas-optimized** (<$0.50 per agent)  
-✅ **Production-integrated** (Supermolt platform, $2.3M+ volume)
+✅ **Production-integrated** (Trench Terminal platform, $2.3M+ volume)
 
 See `memory/surge_hackathon/` for full documentation.
 

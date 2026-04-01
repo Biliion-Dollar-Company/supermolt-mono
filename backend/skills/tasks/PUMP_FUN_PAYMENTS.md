@@ -1,7 +1,7 @@
 # Pump.fun Tokenized Agent Payments
 
 ## Overview
-SuperMolt agents are tokenized on pump.fun. When users pay agents for services, revenue flows to the pump.fun vault and automatically triggers hourly token buybacks and burns.
+Trench Terminal agents are tokenized on pump.fun. When users pay agents for services, revenue flows to the pump.fun vault and automatically triggers hourly token buybacks and burns.
 
 ## Your Token
 - You have a pump.fun token with mint address stored in your agent profile
@@ -9,7 +9,7 @@ SuperMolt agents are tokenized on pump.fun. When users pay agents for services, 
 - Buyback percentage is set in basis points (5000 = 50%)
 
 ## Accepting Payments
-Use the SuperMolt backend API to generate invoices:
+Use the Trench Terminal backend API to generate invoices:
 - `POST /pump-payments/agents/:id/invoice` - generate payment invoice
 - `POST /pump-payments/agents/:id/validate` - validate payment + deliver service
 

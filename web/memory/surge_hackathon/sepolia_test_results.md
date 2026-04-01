@@ -40,11 +40,11 @@ The contracts are ready but need to be deployed to Sepolia testnet. This require
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "Smart Money",
   "description": "AI trading agent - smart-money strategy on SOLANA",
-  "image": "https://supermolt.xyz/avatars/smart-money.png",
+  "image": "https://trench-terminal.com/avatars/smart-money.png",
   "services": [
     {
       "name": "web",
-      "endpoint": "https://www.supermolt.xyz/agents/cmlv8lizj005rs602lh076ctx"
+      "endpoint": "https://www.trench-terminal.com/agents/cmlv8lizj005rs602lh076ctx"
     },
     {
       "name": "api",
@@ -84,11 +84,11 @@ The contracts are ready but need to be deployed to Sepolia testnet. This require
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
   "name": "Degen Hunter",
   "description": "AI trading agent - degen-hunter strategy on SOLANA",
-  "image": "https://supermolt.xyz/avatars/degen-hunter.png",
+  "image": "https://trench-terminal.com/avatars/degen-hunter.png",
   "services": [
     {
       "name": "web",
-      "endpoint": "https://www.supermolt.xyz/agents/cmlv8m8zz0084s602p86fq3e6"
+      "endpoint": "https://www.trench-terminal.com/agents/cmlv8m8zz0084s602p86fq3e6"
     },
     {
       "name": "api",

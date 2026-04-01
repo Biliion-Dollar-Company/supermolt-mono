@@ -46,7 +46,7 @@
   - Dark background `#07090F`, gold accents `#E8B45E`
   - Agent name + archetype
   - Key stats: P&L, win rate, total trades (fetched from `${API_BASE}/arena/agents/${id}`)
-  - "supermolt.io" branding at bottom
+  - "trench-terminal.com" branding at bottom
 
 - [ ] Commit: `feat: add OG image generation for agent performance cards`
 
@@ -101,7 +101,7 @@ model Referral {
 
 **Files:** Modify `web/app/arena/page.tsx` or `web/components/arena/DepositPanel.tsx`
 
-- [ ] On page load, save `?ref=SM-XXXXXX` to localStorage (`supermolt_ref`)
+- [ ] On page load, save `?ref=SM-XXXXXX` to localStorage (`trench_terminal_ref`)
 - [ ] After auth, read from localStorage and call `POST /referral/use`
 - [ ] Show referral code + copy button in DepositPanel
 - [ ] Commit: `feat: wire referral code capture and display in frontend`

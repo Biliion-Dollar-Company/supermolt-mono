@@ -2,7 +2,7 @@
 
 ## What Was Wired
 
-Three files were created to connect agent-alpha's signal output to the Supermolt Telegram channels:
+Three files were created to connect agent-alpha's signal output to the Trench Terminal Telegram channels:
 
 | File | Purpose |
 |------|---------|
@@ -40,7 +40,7 @@ BOT_TOKEN=1234567890:ABCDefGhIJKlmNoPQRsTUVwxyZ
 # Signals channel (paid subscribers)
 SIGNALS_CHANNEL_ID=-1001234567890
 # Or use @handle format:
-# SIGNALS_CHANNEL_ID=@supermolt_signals
+# SIGNALS_CHANNEL_ID=@trench_terminal_signals
 ```
 
 > **Tip:** Channel IDs for public Telegram channels start with `-100`. Get yours by forwarding a message from the channel to [@userinfobot](https://t.me/userinfobot) or via the Telegram API.

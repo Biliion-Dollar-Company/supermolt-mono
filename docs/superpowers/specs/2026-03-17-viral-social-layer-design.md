@@ -63,7 +63,7 @@ Uses Next.js `ImageResponse` (built-in, no new deps) to generate a 1200×630 PNG
 
 ```
 ┌──────────────────────────────────────────────┐
-│  SUPERMOLT                           [logo]   │
+│  TRENCH TERMINAL                           [logo]   │
 │                                               │
 │  PHANTOM-7                                    │
 │  Degen Hunter                                 │
@@ -71,7 +71,7 @@ Uses Next.js `ImageResponse` (built-in, no new deps) to generate a 1200×630 PNG
 │  +847%        89%          142               │
 │  Total P&L    Win Rate     Trades            │
 │                                               │
-│  supermolt.io/arena                           │
+│  trench-terminal.com/arena                           │
 └──────────────────────────────────────────────┘
 ```
 
@@ -80,7 +80,7 @@ Uses Next.js `ImageResponse` (built-in, no new deps) to generate a 1200×630 PNG
 - Key stats: P&L, win rate, total trades
 - Data sourced from `AgentStats` table
 
-**Share button:** Add to `AgentProfileModal.tsx` and the leaderboard row — a "Share" button that copies `https://supermolt.io/agents/{id}` to clipboard. The agent profile page at `/agents/[id]` already exists and should set the OG meta tags to point to this image.
+**Share button:** Add to `AgentProfileModal.tsx` and the leaderboard row — a "Share" button that copies `https://trench-terminal.com/agents/{id}` to clipboard. The agent profile page at `/agents/[id]` already exists and should set the OG meta tags to point to this image.
 
 **`/agents/[id]` metadata:** The existing `web/app/agents/[id]/page.tsx` is a `'use client'` component. `generateMetadata()` is a server-only Next.js export and cannot live in a client component. Fix: create a server component wrapper at `web/app/agents/[id]/layout.tsx` that exports `generateMetadata()` and fetches the agent stats server-side. The existing `page.tsx` client component remains unchanged inside it. `layout.tsx` sets `og:image` to `/api/og/agent/[id]`.
 
@@ -124,22 +124,22 @@ Privy's OAuth flow redirects away and back, losing all URL query params. Before 
 ```typescript
 // On page load, if ?ref=SM-XXXXXX is present:
 if (searchParams.get('ref')) {
-  localStorage.setItem('supermolt_ref', searchParams.get('ref')!);
+  localStorage.setItem('trench_terminal_ref', searchParams.get('ref')!);
 }
 // After successful auth + agent creation:
-const savedRef = localStorage.getItem('supermolt_ref');
+const savedRef = localStorage.getItem('trench_terminal_ref');
 if (savedRef) {
   await api.post('/referral/use', { code: savedRef });
-  localStorage.removeItem('supermolt_ref');
+  localStorage.removeItem('trench_terminal_ref');
 }
 ```
 
-**Signup flow:** After agent creation in `agent-session.service.ts` completes, the frontend reads `supermolt_ref` from localStorage and calls `POST /referral/use`.
+**Signup flow:** After agent creation in `agent-session.service.ts` completes, the frontend reads `trench_terminal_ref` from localStorage and calls `POST /referral/use`.
 
 **Frontend:**
 - Add referral code display + share button to the DepositPanel (Build 1) and the `/agents/[id]` profile page
 - "Invite friends, grow your agent's edge" — keep copy vague until real rewards are defined
-- Track referral code via URL param: `supermolt.io?ref=SM-XXXXXX`
+- Track referral code via URL param: `trench-terminal.com?ref=SM-XXXXXX`
 
 **Reward (phase 1):** No financial reward yet — just track the data. Display referral count as a badge on the leaderboard ("Referred 7 traders"). Real rewards (allocation boost, fee discount) added in a future build once real money is flowing.
 
@@ -157,7 +157,7 @@ User makes real trade (Build 1)
 
 User views leaderboard
   → Sees "Share" button on their agent
-  → Clicks → copies supermolt.io/agents/{id}
+  → Clicks → copies trench-terminal.com/agents/{id}
   → Pastes to Twitter → OG card shows P&L stats
   → Friend clicks link → lands on agent profile
   → Signs up with ref code embedded in URL

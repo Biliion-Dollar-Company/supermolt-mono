@@ -1,14 +1,14 @@
-# TreasuryOS Rebrand + RWA Integration — Implementation Plan
+# Trench Terminal Rebrand + RWA Integration — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebrand Supermolt to TreasuryOS and add RWA (Real World Asset) portfolio management capabilities — AI agents trade tokenized T-bills, gold, equities, and real estate alongside crypto.
+**Goal:** Rebrand Trench Terminal to Trench Terminal and add RWA (Real World Asset) portfolio management capabilities — AI agents trade tokenized T-bills, gold, equities, and real estate alongside crypto.
 
 **Architecture:** Extend the existing Hono+Bun backend with new RWA services (Jupiter Swap API for trading, Pyth Network for price feeds, portfolio allocation engine). Rebrand the Next.js frontend from gold-themed meme-coin arena to blue-themed institutional portfolio platform. All new backend services follow the mock-mode pattern from `circle-gateway.service.ts`.
 
 **Tech Stack:** Bun + Hono (backend), Next.js 16 (frontend), Prisma 6 + PostgreSQL, Jupiter Swap API v2, Pyth Hermes API, `@pythnetwork/hermes-client`, `@jup-ag/api`
 
-**Spec:** `docs/superpowers/specs/2026-03-25-treasuryos-rebrand-rwa-design.md`
+**Spec:** `docs/superpowers/specs/2026-03-25-trench-terminal-rebrand-rwa-design.md`
 
 ---
 
@@ -44,12 +44,12 @@
 |------|--------|
 | `web/tailwind.config.js` | Change accent colors from gold (#E8B45E) to blue (#2563EB) |
 | `web/app/globals.css` | Update hardcoded gold hex values, gradient references |
-| `web/app/navbar.tsx` | "SuperMolt" → "TreasuryOS", update tagline, nav labels |
+| `web/app/navbar.tsx` | "Trench Terminal" → "Trench Terminal", update tagline, nav labels |
 | `web/app/page.tsx` | Rebrand hero section, partner logos, copy |
 | `web/app/layout.tsx` | Update metadata title/description |
 | `web/components/reactbits/GradientText.tsx` | Update default gradient colors |
 | 50+ files with `#E8B45E` | Find-and-replace accent color references |
-| 25+ files with `SuperMolt` | Find-and-replace brand name |
+| 25+ files with `Trench Terminal` | Find-and-replace brand name |
 
 ---
 
@@ -1321,22 +1321,22 @@ git commit -m "feat: rebrand color system from gold (#E8B45E) to institutional b
 - Modify: `web/app/navbar.tsx`
 - Modify: `web/app/page.tsx`
 - Modify: `web/app/layout.tsx`
-- Modify: all 25 files containing "SuperMolt" or "Supermolt"
+- Modify: all 25 files containing "Trench Terminal" or "Trench Terminal"
 
 - [ ] **Step 1: Update navbar.tsx**
 
 In `web/app/navbar.tsx`:
 
-1. Replace the GradientText content (line 62): `SuperMolt` → `TreasuryOS`
+1. Replace the GradientText content (line 62): `Trench Terminal` → `Trench Terminal`
 2. Replace the subtitle (line 64): `Agent Cooperation Arena` → `AI-Powered Portfolio Intelligence`
-3. Replace the Image alt (line 52): `SuperMolt` → `TreasuryOS`
+3. Replace the Image alt (line 52): `Trench Terminal` → `Trench Terminal`
 4. Update nav labels array (lines 25-29): Change `'Arena'` label to `'Agents'`, keep the href as `/arena`
 5. Change `'Predictions'` label to `'Markets'`
 
 - [ ] **Step 2: Update layout.tsx metadata**
 
 In `web/app/layout.tsx`, find the metadata export and update:
-- `title`: `SuperMolt` → `TreasuryOS — AI-Powered Portfolio Intelligence`
+- `title`: `Trench Terminal` → `Trench Terminal — AI-Powered Portfolio Intelligence`
 - `description`: Update to: `AI agents managing diversified portfolios across crypto and real-world assets on Solana. Fully compliance-gated.`
 
 - [ ] **Step 3: Update home page hero**
@@ -1348,12 +1348,12 @@ In `web/app/page.tsx`, update the hero section text. Key changes:
 
 - [ ] **Step 4: Bulk find-and-replace brand name across all files**
 
-Across all 25 files containing "SuperMolt"/"Supermolt":
-- `SuperMolt` → `TreasuryOS`
-- `Supermolt` → `TreasuryOS`
-- `supermolt` → `treasuryos` (in URLs, slugs)
+Across all 25 files containing "Trench Terminal"/"Trench Terminal":
+- `Trench Terminal` → `Trench Terminal`
+- `Trench Terminal` → `Trench Terminal`
+- `trench-terminal` (in URLs, slugs)
 - `Agent Cooperation Arena` → `AI-Powered Portfolio Intelligence`
-- `@SupermoltSol` → keep as-is (this is the live Twitter handle, don't change external refs)
+- `@Trench TerminalSol` → keep as-is (this is the live Twitter handle, don't change external refs)
 
 **Do NOT change:**
 - Git repo name or folder paths
@@ -1370,7 +1370,7 @@ Expected: Build succeeds with new branding.
 
 ```bash
 git add -u web/
-git commit -m "feat: rebrand SuperMolt → TreasuryOS across all frontend files"
+git commit -m "feat: rebrand Trench Terminal → Trench Terminal across all frontend files"
 ```
 
 ---
