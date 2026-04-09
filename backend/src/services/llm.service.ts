@@ -8,6 +8,9 @@
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY;
+const TOGETHER_MODEL = process.env.TOGETHER_MODEL || 'Qwen/Qwen2.5-72B-Instruct-Turbo';
+const LLM_PROVIDER = (process.env.LLM_PROVIDER || '').toLowerCase();
 
 interface LLMResponse {
     content: string;
@@ -31,7 +34,26 @@ export class LLMService {
     }
 
     public get isConfigured(): boolean {
-        return !!(GROQ_API_KEY || ANTHROPIC_API_KEY || OPENAI_API_KEY);
+        return !!(TOGETHER_API_KEY || GROQ_API_KEY || ANTHROPIC_API_KEY || OPENAI_API_KEY);
+    }
+
+    public getActiveProviderInfo(): { provider: string; model: string } | null {
+        for (const provider of this.getProviderOrder()) {
+            if (provider === 'together' && TOGETHER_API_KEY) {
+                return { provider: 'together', model: TOGETHER_MODEL };
+            }
+            if (provider === 'groq' && GROQ_API_KEY) {
+                return { provider: 'groq', model: 'llama-3.3-70b-versatile' };
+            }
+            if (provider === 'anthropic' && ANTHROPIC_API_KEY) {
+                return { provider: 'anthropic', model: 'claude-3-haiku-20240307' };
+            }
+            if (provider === 'openai' && OPENAI_API_KEY) {
+                return { provider: 'openai', model: 'gpt-4o-mini' };
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -39,21 +61,72 @@ export class LLMService {
      */
     async generate(systemPrompt: string, userPrompt: string, config?: { temperature?: number; maxTokens?: number }): Promise<string | null> {
         try {
-            // Prioritize Groq (Cheaper/Faster)
-            if (GROQ_API_KEY) {
-                return this.callGroq(systemPrompt, userPrompt, config);
-            }
-            if (ANTHROPIC_API_KEY) {
-                return this.callAnthropic(systemPrompt, userPrompt, config);
-            }
-            if (OPENAI_API_KEY) {
-                return this.callOpenAI(systemPrompt, userPrompt, config);
+            for (const provider of this.getProviderOrder()) {
+                if (provider === 'together' && TOGETHER_API_KEY) {
+                    return this.callTogether(systemPrompt, userPrompt, config);
+                }
+                if (provider === 'groq' && GROQ_API_KEY) {
+                    return this.callGroq(systemPrompt, userPrompt, config);
+                }
+                if (provider === 'anthropic' && ANTHROPIC_API_KEY) {
+                    return this.callAnthropic(systemPrompt, userPrompt, config);
+                }
+                if (provider === 'openai' && OPENAI_API_KEY) {
+                    return this.callOpenAI(systemPrompt, userPrompt, config);
+                }
             }
             return null;
         } catch (error) {
             console.error('LLM Generation Error:', error);
             return null;
         }
+    }
+
+    private getProviderOrder(): Array<'together' | 'groq' | 'anthropic' | 'openai'> {
+        const defaultOrder: Array<'together' | 'groq' | 'anthropic' | 'openai'> = [
+            'together',
+            'groq',
+            'anthropic',
+            'openai',
+        ];
+
+        if (!LLM_PROVIDER) {
+            return defaultOrder;
+        }
+
+        const preferred = defaultOrder.find(provider => provider === LLM_PROVIDER);
+        if (!preferred) {
+            return defaultOrder;
+        }
+
+        return [preferred, ...defaultOrder.filter(provider => provider !== preferred)];
+    }
+
+    private async callTogether(system: string, user: string, config?: { temperature?: number; maxTokens?: number }): Promise<string> {
+        const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${TOGETHER_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model: TOGETHER_MODEL,
+                messages: [
+                    { role: 'system', content: system },
+                    { role: 'user', content: user },
+                ],
+                temperature: config?.temperature ?? 0.7,
+                max_tokens: config?.maxTokens ?? 1024,
+            }),
+        });
+
+        if (!response.ok) {
+            const err = await response.text();
+            throw new Error(`Together API Error: ${response.status} ${err}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
     }
 
     private async callGroq(system: string, user: string, config?: { temperature?: number; maxTokens?: number }): Promise<string> {

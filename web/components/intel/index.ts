@@ -1,0 +1,1 @@
+export { BrainrotLandingPage } from './BrainrotLandingPage';

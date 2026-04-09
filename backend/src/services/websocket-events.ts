@@ -11,10 +11,29 @@ import Redis from 'ioredis';
 import { verifyToken } from '../lib/jwt';
 import { notifyTradeRecommendation, notifyTradeExecuted, notifyConsensus } from './notification.service';
 
-type FeedChannel = 'godwallet' | 'signals' | 'market' | 'watchlist' | 'tokens' | 'tweets' | 'training';
+type FeedChannel =
+  | 'godwallet'
+  | 'signals'
+  | 'market'
+  | 'watchlist'
+  | 'tokens'
+  | 'tweets'
+  | 'training'
+  | 'deployments'
+  | 'pipeline'
+  | 'positions';
 
 const VALID_FEED_CHANNELS = new Set<FeedChannel>([
-  'godwallet', 'signals', 'market', 'watchlist', 'tokens', 'tweets', 'training',
+  'godwallet',
+  'signals',
+  'market',
+  'watchlist',
+  'tokens',
+  'tweets',
+  'training',
+  'deployments',
+  'pipeline',
+  'positions',
 ]);
 
 interface BroadcastEvents {
@@ -47,6 +66,9 @@ interface BroadcastEvents {
   'feed:watchlist': any;
   'feed:tokens': any;
   'feed:tweets': any;
+  'feed:deployments': any;
+  'feed:pipeline': any;
+  'feed:positions': any;
   'consensus:reached': {
     tokenMint: string;
     tokenSymbol: string;

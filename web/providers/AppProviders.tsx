@@ -21,7 +21,7 @@ export default function AppProviders({ children }: { children: ReactNode }) {
       config={{
         appearance: {
           theme: 'dark',
-          accentColor: '#E8B45E',
+          accentColor: '#2563EB',
         },
         embeddedWallets: {
           createOnLogin: 'all-users',

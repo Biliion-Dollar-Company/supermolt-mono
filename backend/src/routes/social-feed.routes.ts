@@ -33,18 +33,61 @@ async function requireAuth(c: any, next: () => Promise<void>) {
   const token = authHeader.substring(7);
   try {
     const payload = await verifyToken(token);
+    if (!payload.agentId) {
+      return c.json({ success: false, error: 'Agent context required' }, 403);
+    }
     c.set('agentId', payload.agentId);
-    c.set('userId', payload.userId);
+    c.set('userId', payload.sub);
     await next();
   } catch (error) {
     return c.json({ success: false, error: 'Invalid token' }, 401);
   }
 }
 
+async function getOptionalAgentId(c: any): Promise<string | null> {
+  const authHeader = c.req.header('Authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
+  }
+
+  try {
+    const payload = await verifyToken(authHeader.substring(7));
+    return typeof payload.agentId === 'string' ? payload.agentId : null;
+  } catch {
+    return null;
+  }
+}
+
+function getAuthenticatedAgentId(c: any): string {
+  return c.get('agentId') as string;
+}
+
+function decoratePostWithViewerState<T extends {
+  agentId: string;
+  likes?: Array<{ agentId: string }>;
+}>(post: T, viewerAgentId: string | null) {
+  return {
+    ...post,
+    viewerLiked: viewerAgentId ? (post.likes ?? []).some((like) => like.agentId === viewerAgentId) : false,
+    viewerOwnsPost: viewerAgentId ? post.agentId === viewerAgentId : false,
+  };
+}
+
+function decorateCommentWithViewerState<T extends {
+  agentId: string;
+  replies?: Array<{ agentId: string }>;
+}>(comment: T, viewerAgentId: string | null) {
+  return {
+    ...comment,
+    viewerOwnsComment: viewerAgentId ? comment.agentId === viewerAgentId : false,
+  };
+}
+
 // Schema validators
 const createPostSchema = z.object({
   content: z.string().min(1).max(5000),
   postType: z.enum(['TRADE', 'STRATEGY', 'INSIGHT', 'QUESTION', 'ANNOUNCEMENT']),
+  narrativeSlug: z.string().optional(),
   tokenMint: z.string().optional(),
   tokenSymbol: z.string().optional(),
   tradeId: z.string().optional(),
@@ -64,10 +107,12 @@ const createCommentSchema = z.object({
  */
 socialFeed.get('/posts', async (c) => {
   try {
+    const viewerAgentId = await getOptionalAgentId(c);
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '20');
     const postType = c.req.query('type');
     const tokenMint = c.req.query('token');
+    const narrativeSlug = c.req.query('narrative');
     const agentId = c.req.query('agentId');
 
     const skip = (page - 1) * limit;
@@ -75,6 +120,7 @@ socialFeed.get('/posts', async (c) => {
 
     if (postType) where.postType = postType;
     if (tokenMint) where.tokenMint = tokenMint;
+    if (narrativeSlug) where.narrativeSlug = narrativeSlug;
     if (agentId) where.agentId = agentId;
 
     const [posts, total] = await Promise.all([
@@ -91,10 +137,15 @@ socialFeed.get('/posts', async (c) => {
               level: true,
             },
           },
-          likes: {
-            select: { agentId: true },
-            take: 10,
-          },
+          ...(viewerAgentId
+            ? {
+                likes: {
+                  where: { agentId: viewerAgentId },
+                  select: { agentId: true },
+                  take: 1,
+                },
+              }
+            : {}),
           comments: {
             select: {
               id: true,
@@ -130,7 +181,7 @@ socialFeed.get('/posts', async (c) => {
       success: true,
       data: {
         posts: posts.map(p => ({
-          ...p,
+          ...decoratePostWithViewerState(p, viewerAgentId),
           likesCount: p._count.likes,
           commentsCount: p._count.comments,
           sharesCount: p._count.shares,
@@ -156,6 +207,7 @@ socialFeed.get('/posts', async (c) => {
  */
 socialFeed.get('/posts/:id', async (c) => {
   try {
+    const viewerAgentId = await getOptionalAgentId(c);
     const postId = c.req.param('id');
 
     const post = await db.agentPost.findUnique({
@@ -225,10 +277,11 @@ socialFeed.get('/posts/:id', async (c) => {
     return c.json({
       success: true,
       data: {
-        ...post,
+        ...decoratePostWithViewerState(post, viewerAgentId),
         likesCount: post.likes.length,
         commentsCount: post.comments.length,
         sharesCount: post.shares.length,
+        comments: post.comments.map((comment) => decorateCommentWithViewerState(comment, viewerAgentId)),
       },
     });
   } catch (error: any) {
@@ -243,9 +296,20 @@ socialFeed.get('/posts/:id', async (c) => {
  */
 socialFeed.post('/posts', requireAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = getAuthenticatedAgentId(c);
     const body = await c.req.json();
     const validated = createPostSchema.parse(body);
+
+    if (validated.narrativeSlug) {
+      const narrative = await db.narrativeThread.findUnique({
+        where: { slug: validated.narrativeSlug },
+        select: { slug: true },
+      });
+
+      if (!narrative) {
+        return c.json({ success: false, error: 'Narrative not found' }, 404);
+      }
+    }
 
     // If sharing a trade, verify ownership
     if (validated.tradeId) {
@@ -280,13 +344,13 @@ socialFeed.post('/posts', requireAuth, async (c) => {
       agentId,
       content: post.content,
       postType: post.postType,
-      tokenSymbol: post.tokenSymbol,
+      tokenSymbol: post.tokenSymbol ?? undefined,
       createdAt: post.createdAt.toISOString(),
     });
 
     console.log(`[SocialFeed] Post created: ${post.id} by agent ${agentId}`);
 
-    return c.json({ success: true, data: post }, 201);
+    return c.json({ success: true, data: decoratePostWithViewerState(post, agentId) }, 201);
   } catch (error: any) {
     console.error('[SocialFeed] POST /posts error:', error);
     if (error instanceof z.ZodError) {
@@ -302,7 +366,7 @@ socialFeed.post('/posts', requireAuth, async (c) => {
  */
 socialFeed.delete('/posts/:id', requireAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = getAuthenticatedAgentId(c);
     const postId = c.req.param('id');
 
     const post = await db.agentPost.findUnique({
@@ -334,7 +398,7 @@ socialFeed.delete('/posts/:id', requireAuth, async (c) => {
  */
 socialFeed.post('/posts/:id/like', requireAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = getAuthenticatedAgentId(c);
     const postId = c.req.param('id');
 
     // Check if post exists
@@ -346,50 +410,47 @@ socialFeed.post('/posts/:id/like', requireAuth, async (c) => {
       return c.json({ success: false, error: 'Post not found' }, 404);
     }
 
-    // Toggle like (create or delete)
-    const existingLike = await db.postLike.findUnique({
-      where: {
-        postId_agentId: {
-          postId,
-          agentId,
+    // Toggle like atomically
+    const liked = await db.$transaction(async (tx) => {
+      const existingLike = await tx.postLike.findUnique({
+        where: {
+          postId_agentId: {
+            postId,
+            agentId,
+          },
         },
-      },
+      });
+
+      if (existingLike) {
+        await tx.postLike.delete({
+          where: { id: existingLike.id },
+        });
+        await tx.agentPost.update({
+          where: { id: postId },
+          data: { likesCount: { decrement: 1 } },
+        });
+        return false;
+      } else {
+        await tx.postLike.create({
+          data: { postId, agentId },
+        });
+        await tx.agentPost.update({
+          where: { id: postId },
+          data: { likesCount: { increment: 1 } },
+        });
+        return true;
+      }
     });
 
-    if (existingLike) {
-      // Unlike
-      await db.postLike.delete({
-        where: { id: existingLike.id },
+    if (liked && post.agentId !== agentId) {
+      websocketEvents.sendNotification(post.agentId, {
+        type: 'post_liked',
+        postId,
+        likedBy: agentId,
       });
-
-      await db.agentPost.update({
-        where: { id: postId },
-        data: { likesCount: { decrement: 1 } },
-      });
-
-      return c.json({ success: true, data: { liked: false } });
-    } else {
-      // Like
-      await db.postLike.create({
-        data: { postId, agentId },
-      });
-
-      await db.agentPost.update({
-        where: { id: postId },
-        data: { likesCount: { increment: 1 } },
-      });
-
-      // Notify post owner
-      if (post.agentId !== agentId) {
-        websocketEvents.sendNotification(post.agentId, {
-          type: 'post_liked',
-          postId,
-          likedBy: agentId,
-        });
-      }
-
-      return c.json({ success: true, data: { liked: true } });
     }
+
+    return c.json({ success: true, data: { liked } });
   } catch (error: any) {
     console.error('[SocialFeed] POST /posts/:id/like error:', error);
     return c.json({ success: false, error: 'Failed to like post' }, 500);
@@ -402,7 +463,7 @@ socialFeed.post('/posts/:id/like', requireAuth, async (c) => {
  */
 socialFeed.post('/posts/:id/comment', requireAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = getAuthenticatedAgentId(c);
     const postId = c.req.param('id');
     const body = await c.req.json();
     const validated = createCommentSchema.parse(body);
@@ -416,28 +477,31 @@ socialFeed.post('/posts/:id/comment', requireAuth, async (c) => {
       return c.json({ success: false, error: 'Post not found' }, 404);
     }
 
-    const comment = await db.postComment.create({
-      data: {
-        postId,
-        agentId,
-        content: validated.content,
-        parentId: validated.parentId,
-      },
-      include: {
-        agent: {
-          select: {
-            id: true,
-            displayName: true,
-            avatarUrl: true,
+    const comment = await db.$transaction(async (tx) => {
+      const created = await tx.postComment.create({
+        data: {
+          postId,
+          agentId,
+          content: validated.content,
+          parentId: validated.parentId,
+        },
+        include: {
+          agent: {
+            select: {
+              id: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
         },
-      },
-    });
+      });
 
-    // Update comment count
-    await db.agentPost.update({
-      where: { id: postId },
-      data: { commentsCount: { increment: 1 } },
+      await tx.agentPost.update({
+        where: { id: postId },
+        data: { commentsCount: { increment: 1 } },
+      });
+
+      return created;
     });
 
     // Notify post owner
@@ -452,7 +516,7 @@ socialFeed.post('/posts/:id/comment', requireAuth, async (c) => {
 
     console.log(`[SocialFeed] Comment created: ${comment.id} on post ${postId}`);
 
-    return c.json({ success: true, data: comment }, 201);
+    return c.json({ success: true, data: decorateCommentWithViewerState(comment, agentId) }, 201);
   } catch (error: any) {
     console.error('[SocialFeed] POST /posts/:id/comment error:', error);
     if (error instanceof z.ZodError) {
@@ -468,53 +532,63 @@ socialFeed.post('/posts/:id/comment', requireAuth, async (c) => {
  */
 socialFeed.get('/posts/:id/comments', async (c) => {
   try {
+    const viewerAgentId = await getOptionalAgentId(c);
     const postId = c.req.param('id');
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '50');
     const skip = (page - 1) * limit;
 
-    const comments = await db.postComment.findMany({
-      where: { postId, parentId: null },
-      include: {
-        agent: {
-          select: {
-            id: true,
-            displayName: true,
-            avatarUrl: true,
+    const where = { postId, parentId: null };
+
+    const [comments, total] = await Promise.all([
+      db.postComment.findMany({
+        where,
+        include: {
+          agent: {
+            select: {
+              id: true,
+              displayName: true,
+              avatarUrl: true,
+            },
           },
-        },
-        replies: {
-          include: {
-            agent: {
-              select: {
-                id: true,
-                displayName: true,
-                avatarUrl: true,
+          replies: {
+            include: {
+              agent: {
+                select: {
+                  id: true,
+                  displayName: true,
+                  avatarUrl: true,
+                },
+              },
+              _count: {
+                select: { likes: true },
               },
             },
-            _count: {
-              select: { likes: true },
-            },
+            orderBy: { createdAt: 'asc' },
           },
-          orderBy: { createdAt: 'asc' },
+          _count: {
+            select: { likes: true },
+          },
         },
-        _count: {
-          select: { likes: true },
-        },
-      },
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-    });
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      db.postComment.count({ where }),
+    ]);
 
     return c.json({
       success: true,
       data: {
-        comments,
+        comments: comments.map((comment) => ({
+          ...decorateCommentWithViewerState(comment, viewerAgentId),
+          replies: comment.replies.map((reply) => decorateCommentWithViewerState(reply, viewerAgentId)),
+        })),
         pagination: {
           page,
           limit,
-          total: comments.length,
+          total,
+          totalPages: Math.ceil(total / limit),
         },
       },
     });
@@ -530,7 +604,7 @@ socialFeed.get('/posts/:id/comments', async (c) => {
  */
 socialFeed.post('/posts/:id/share', requireAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = getAuthenticatedAgentId(c);
     const postId = c.req.param('id');
     const { note } = await c.req.json().catch(() => ({}));
 
@@ -542,34 +616,37 @@ socialFeed.post('/posts/:id/share', requireAuth, async (c) => {
       return c.json({ success: false, error: 'Post not found' }, 404);
     }
 
-    const share = await db.postShare.create({
-      data: {
-        postId,
-        agentId,
-        note: note?.slice(0, 500),
-      },
-      include: {
-        agent: {
-          select: {
-            id: true,
-            displayName: true,
-            avatarUrl: true,
+    const share = await db.$transaction(async (tx) => {
+      const created = await tx.postShare.create({
+        data: {
+          postId,
+          agentId,
+          note: note?.slice(0, 500),
+        },
+        include: {
+          agent: {
+            select: {
+              id: true,
+              displayName: true,
+              avatarUrl: true,
+            },
+          },
+          post: {
+            select: {
+              id: true,
+              content: true,
+              postType: true,
+            },
           },
         },
-        post: {
-          select: {
-            id: true,
-            content: true,
-            postType: true,
-          },
-        },
-      },
-    });
+      });
 
-    // Update share count
-    await db.agentPost.update({
-      where: { id: postId },
-      data: { sharesCount: { increment: 1 } },
+      await tx.agentPost.update({
+        where: { id: postId },
+        data: { sharesCount: { increment: 1 } },
+      });
+
+      return created;
     });
 
     // Notify post owner
@@ -596,7 +673,7 @@ socialFeed.post('/posts/:id/share', requireAuth, async (c) => {
  */
 socialFeed.get('/my-posts', requireAuth, async (c) => {
   try {
-    const agentId = c.get('agentId');
+    const agentId = getAuthenticatedAgentId(c);
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '20');
     const skip = (page - 1) * limit;
@@ -621,7 +698,7 @@ socialFeed.get('/my-posts', requireAuth, async (c) => {
       success: true,
       data: {
         posts: posts.map(p => ({
-          ...p,
+          ...decoratePostWithViewerState(p, agentId),
           likesCount: p._count.likes,
           commentsCount: p._count.comments,
           sharesCount: p._count.shares,
@@ -645,6 +722,7 @@ socialFeed.get('/my-posts', requireAuth, async (c) => {
  */
 socialFeed.get('/trending', async (c) => {
   try {
+    const viewerAgentId = await getOptionalAgentId(c);
     const limit = parseInt(c.req.query('limit') || '10');
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -662,6 +740,15 @@ socialFeed.get('/trending', async (c) => {
             archetypeId: true,
           },
         },
+        ...(viewerAgentId
+          ? {
+              likes: {
+                where: { agentId: viewerAgentId },
+                select: { agentId: true },
+                take: 1,
+              },
+            }
+          : {}),
         _count: {
           select: {
             likes: true,
@@ -688,7 +775,7 @@ socialFeed.get('/trending', async (c) => {
       success: true,
       data: {
         posts: posts.map(p => ({
-          ...p,
+          ...decoratePostWithViewerState(p, viewerAgentId),
           likesCount: p._count.likes,
           commentsCount: p._count.comments,
           sharesCount: p._count.shares,

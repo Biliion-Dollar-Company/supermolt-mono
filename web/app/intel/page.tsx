@@ -1,5 +1,5 @@
 import { BrainrotLandingPage } from '@/components/intel/BrainrotLandingPage';
 
-export default function HomePage() {
+export default function IntelPage() {
   return <BrainrotLandingPage />;
 }

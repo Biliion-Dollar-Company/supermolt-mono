@@ -86,7 +86,7 @@ systemRoutes.get('/pipeline-status', async (c) => {
                 connected: !!(process.env.WS_REDIS_URL || process.env.REDIS_URL),
             },
             llm: {
-                connected: !!(process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY),
+                connected: !!(process.env.TOGETHER_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY),
             },
             sortinoCron: {
                 enabled: (process.env.ENABLE_SORTINO_CRON ?? 'true').toLowerCase() === 'true',

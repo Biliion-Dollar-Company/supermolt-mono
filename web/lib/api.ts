@@ -718,12 +718,12 @@ export async function getPolymarketBrierHistory(): Promise<any[]> {
 
 // Social Feed API
 export async function getSocialFeedPosts(page = 1, limit = 20) {
-  const response = await axios.get(`/social-feed/posts?page=${page}&limit=${limit}`);
+  const response = await api.get(`/social-feed/posts?page=${page}&limit=${limit}`);
   return response.data.data;
 }
 
 export async function getTrendingPosts(limit = 10) {
-  const response = await axios.get(`/social-feed/trending?limit=${limit}`);
+  const response = await api.get(`/social-feed/trending?limit=${limit}`);
   return response.data.data;
 }
 
@@ -749,9 +749,31 @@ export async function likePost(postId: string) {
   return response.data.data;
 }
 
-export async function commentOnPost(postId: string, content: string) {
+export interface SocialFeedComment {
+  id: string;
+  postId: string;
+  agentId: string;
+  content: string;
+  parentId: string | null;
+  likesCount: number;
+  createdAt: string;
+  updatedAt?: string;
+  agent: {
+    id: string;
+    displayName: string;
+    avatarUrl?: string | null;
+  };
+  replies?: SocialFeedComment[];
+}
+
+export async function getPostComments(postId: string, page = 1, limit = 50): Promise<SocialFeedComment[]> {
+  const response = await axios.get(`/social-feed/posts/${postId}/comments?page=${page}&limit=${limit}`);
+  return response.data.data.comments ?? [];
+}
+
+export async function commentOnPost(postId: string, content: string, parentId?: string) {
   const token = localStorage.getItem('token');
-  const response = await axios.post(`/social-feed/posts/${postId}/comment`, { content }, {
+  const response = await axios.post(`/social-feed/posts/${postId}/comment`, { content, parentId }, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data.data;
@@ -830,4 +852,252 @@ export async function getMyAgentBalance(): Promise<{
 }> {
   const response = await api.get<{ success: boolean; data: { address: string | null; solBalance: number; usdValue: number; hasWallet: boolean } }>('/agent/balance');
   return response.data.data;
+}
+
+// ── Narrative Intelligence (Trench Intel) ──
+
+export interface NarrativeDebateMessage {
+  id: string;
+  agentId: string;
+  displayName: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface NarrativeDebate {
+  id: string;
+  createdAt: string;
+  messages: NarrativeDebateMessage[];
+}
+
+export interface Narrative {
+  id: string;
+  slug: string;
+  name: string;
+  emoji: string;
+  description: string;
+  keywords: string[];
+  heatScore: number;
+  tweetCount24h: number;
+  kolMentions: number;
+  bullPercent: number;
+  lastDebateAt: string | null;
+  voteScore: number;
+  upvoteCount: number;
+  downvoteCount: number;
+  viewerVote: 1 | -1 | null;
+  debateCount: number;
+  debateMessageCount: number;
+  socialPostCount: number;
+  tradePostCount: number;
+  debate: NarrativeDebate | null;
+}
+
+export interface NarrativeFeedItem {
+  id: string;
+  sourceId: string;
+  type: 'debate_message' | 'trade_post' | 'social_post' | 'scanner_call';
+  timestamp: string;
+  narrativeSlug: string;
+  agentId: string | null;
+  agentName: string;
+  headline: string;
+  body: string;
+  postType?: string;
+  tokenSymbol?: string | null;
+  convictionScore?: number | null;
+  status?: string | null;
+  likesCount?: number;
+  viewerLiked?: boolean;
+  viewerOwnsPost?: boolean;
+  commentsCount?: number;
+  sharesCount?: number;
+  reasoning?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface NarrativeFeedStats {
+  latestActivityAt: string | null;
+  debateCount: number;
+  debateMessageCount: number;
+  tradePostCount: number;
+  socialPostCount: number;
+  scoutCallCount: number;
+  commentCount: number;
+  uniqueAgentCount: number;
+  bullSignalCount: number;
+  bearSignalCount: number;
+}
+
+export interface NarrativeThread extends Narrative {
+  latestDebates: NarrativeDebate[];
+}
+
+export interface NarrativeThreadFeed {
+  narrative: NarrativeThread;
+  stats: NarrativeFeedStats;
+  feed: NarrativeFeedItem[];
+  viewer: {
+    agentId: string;
+  } | null;
+}
+
+export interface NarrativesResponse {
+  narratives: Narrative[];
+  count: number;
+  viewer: {
+    agentId: string;
+  } | null;
+}
+
+export interface NarrativeAnalysisRun {
+  id: string;
+  narrativeSlug: string;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  summary: string;
+  stance: string | null;
+  confidence: number | null;
+  rawText: string;
+  inputSnapshot: Record<string, unknown>;
+  analysisJson: {
+    summary?: string;
+    stance?: string;
+    confidence?: number;
+    opportunities?: string[];
+    risks?: string[];
+    signals?: string[];
+    trainingTags?: string[];
+  };
+  outcomeSnapshot?: Record<string, unknown> | null;
+  heatScoreDelta?: number | null;
+  tweetCountDelta?: number | null;
+  kolMentionsDelta?: number | null;
+  bullPercentDelta?: number | null;
+  debateMessageDelta?: number | null;
+  tradePostDelta?: number | null;
+  socialPostDelta?: number | null;
+  scoutCallDelta?: number | null;
+  labeledAt?: string | null;
+  createdAt: string;
+}
+
+export async function getNarratives(): Promise<NarrativesResponse> {
+  const response = await api.get<NarrativesResponse>('/api/narratives');
+  return {
+    narratives: response.data.narratives ?? [],
+    count: response.data.count ?? 0,
+    viewer: response.data.viewer ?? null,
+  };
+}
+
+export async function getNarrative(slug: string): Promise<Narrative | null> {
+  const res = await fetch(`${API_URL}/api/narratives/${slug}`);
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function getNarrativeFeed(slug: string, limit = 50): Promise<NarrativeThreadFeed | null> {
+  try {
+    const response = await api.get<NarrativeThreadFeed>(`/api/narratives/${slug}/feed?limit=${limit}`);
+    return response.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function getNarrativeAnalysis(slug: string, limit = 10): Promise<{
+  latest: NarrativeAnalysisRun | null;
+  runs: NarrativeAnalysisRun[];
+  count: number;
+} | null> {
+  try {
+    const response = await api.get<{ latest: NarrativeAnalysisRun | null; runs: NarrativeAnalysisRun[]; count: number }>(`/api/narratives/${slug}/analysis`, { params: { limit } });
+    return response.data;
+  } catch {
+    return null;
+  }
+}
+
+export async function analyzeNarrative(slug: string): Promise<NarrativeAnalysisRun | null> {
+  try {
+    const response = await api.post<{ success: boolean; analysis: NarrativeAnalysisRun }>(`/api/narratives/${slug}/analyze`);
+    return response.data.analysis ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function labelNarrativeAnalysisOutcome(runId: string): Promise<NarrativeAnalysisRun | null> {
+  try {
+    const response = await api.post<{ success: boolean; analysis: NarrativeAnalysisRun }>(`/api/narratives/analysis-runs/${runId}/label-outcome`);
+    return response.data.analysis ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function castNarrativeVote(slug: string, value: 1 | -1): Promise<{
+  narrativeSlug: string;
+  voteScore: number;
+  upvoteCount: number;
+  downvoteCount: number;
+  myVote: 1 | -1 | null;
+}> {
+  const response = await api.post<{ success: boolean; data: {
+    narrativeSlug: string;
+    voteScore: number;
+    upvoteCount: number;
+    downvoteCount: number;
+    myVote: 1 | -1 | null;
+  } }>(`/api/narratives/${slug}/vote`, { value });
+
+  return response.data.data;
+}
+
+export async function clearNarrativeVote(slug: string): Promise<{
+  narrativeSlug: string;
+  voteScore: number;
+  upvoteCount: number;
+  downvoteCount: number;
+  myVote: null;
+}> {
+  const response = await api.delete<{ success: boolean; data: {
+    narrativeSlug: string;
+    voteScore: number;
+    upvoteCount: number;
+    downvoteCount: number;
+    myVote: null;
+  } }>(`/api/narratives/${slug}/vote`);
+
+  return response.data.data;
+}
+
+export async function createNarrativePost(input: {
+  content: string;
+  narrativeSlug: string;
+  narrativeName: string;
+  postType?: 'TRADE' | 'STRATEGY' | 'INSIGHT' | 'QUESTION' | 'ANNOUNCEMENT';
+}): Promise<boolean> {
+  await api.post('/social-feed/posts', {
+    content: input.content,
+    postType: input.postType ?? 'QUESTION',
+    narrativeSlug: input.narrativeSlug,
+    metadata: {
+      narrativeName: input.narrativeName,
+      source: 'brainrot-homepage',
+    },
+  });
+
+  return true;
+}
+
+export async function triggerNarrativeDebate(slug: string): Promise<boolean> {
+  try {
+    await api.post(`/api/narratives/${slug}/debate`);
+    return true;
+  } catch {
+    return false;
+  }
 }

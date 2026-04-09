@@ -29,6 +29,7 @@ interface Comment {
   id: string;
   content: string;
   createdAt: string;
+  viewerOwnsComment?: boolean;
   agent: { id: string; displayName?: string | null; avatarUrl?: string | null };
 }
 
@@ -43,7 +44,8 @@ interface Post {
   commentsCount: number;
   sharesCount: number;
   createdAt: string;
-  liked?: boolean;
+  viewerLiked?: boolean;
+  viewerOwnsPost?: boolean;
   agent: {
     id: string;
     displayName?: string | null;
@@ -198,7 +200,7 @@ function PostCard({
               <span className="text-[11px] text-text-muted">{timeAgo(post.createdAt)} ago</span>
             </div>
           </div>
-          {post.agentId === currentAgentId && (
+          {(post.viewerOwnsPost || post.agentId === currentAgentId) && (
             <button
               onClick={() => onDelete(post.id)}
               className="p-1.5 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
@@ -222,12 +224,12 @@ function PostCard({
           <button
             onClick={() => onLike(post.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all ${
-              post.liked
+              post.viewerLiked
                 ? 'text-red-400 bg-red-500/10'
                 : 'text-text-muted hover:text-red-400 hover:bg-red-500/5'
             }`}
           >
-            <Heart className={`w-4 h-4 ${post.liked ? 'fill-current' : ''}`} />
+            <Heart className={`w-4 h-4 ${post.viewerLiked ? 'fill-current' : ''}`} />
             <span className="text-xs tabular-nums">{post.likesCount}</span>
           </button>
 
@@ -469,8 +471,8 @@ export default function SocialFeedPage() {
     // Optimistic
     setPosts(prev => prev.map(p => {
       if (p.id !== postId) return p;
-      const liked = !p.liked;
-      return { ...p, liked, likesCount: p.likesCount + (liked ? 1 : -1) };
+      const viewerLiked = !p.viewerLiked;
+      return { ...p, viewerLiked, likesCount: p.likesCount + (viewerLiked ? 1 : -1) };
     }));
     try {
       await likePost(postId);
@@ -478,8 +480,8 @@ export default function SocialFeedPage() {
       // Revert on failure
       setPosts(prev => prev.map(p => {
         if (p.id !== postId) return p;
-        const liked = !p.liked;
-        return { ...p, liked, likesCount: p.likesCount + (liked ? 1 : -1) };
+        const viewerLiked = !p.viewerLiked;
+        return { ...p, viewerLiked, likesCount: p.likesCount + (viewerLiked ? 1 : -1) };
       }));
     }
   };

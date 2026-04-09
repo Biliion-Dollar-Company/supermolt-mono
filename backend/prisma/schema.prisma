@@ -89,6 +89,7 @@ model TradingAgent {
   trackedWallets  TrackedWallet[]
   buyTriggers     BuyTrigger[]
   posts           AgentPost[]
+  narrativeVotes  NarrativeVote[]
   postLikes       PostLike[]
   postComments    PostComment[]
   postShares      PostShare[]
@@ -289,18 +290,6 @@ model TreasuryAllocation {
   @@map("treasury_allocations")
 }
 
-model TreasuryPool {
-  id             String   @id @default(uuid())
-  totalBalance   Decimal  @db.Decimal(10, 2)
-  allocated      Decimal  @default(0) @db.Decimal(10, 2)
-  distributed    Decimal  @default(0) @db.Decimal(10, 2)
-  profitsEarned  Decimal  @default(0) @db.Decimal(10, 2)
-  currentEpochId String?
-  treasuryWallet String   @unique
-  updatedAt      DateTime @updatedAt
-
-  @@map("treasury_pool")
-}
 
 // ─── Agent Skill Tasks ──────────────────────────────────
 
@@ -355,24 +344,6 @@ model AgentTaskCompletion {
 
 // ─── TRENCH Phase 2: Agent Reputation & Copy-Trading ───
 
-model TokensMetadata {
-  id              String    @id @default(cuid())
-  mint            String    @unique
-  symbol          String
-  name            String
-  decimals        Int
-  price           Decimal?  @db.Decimal(24, 12)
-  marketCap       Decimal?  @db.Decimal(24, 2)
-  liquidity       Decimal?  @db.Decimal(24, 2)
-  change24h       Decimal?  @db.Decimal(8, 2)
-  volume24h       Decimal?  @db.Decimal(24, 2)
-  lastUpdated     DateTime  @updatedAt
-  createdAt       DateTime  @default(now())
-
-  @@index([mint])
-  @@index([symbol])
-  @@map("tokens_metadata")
-}
 
 model FeedActivity {
   id              String    @id @default(cuid())
@@ -499,14 +470,88 @@ model AgentTrade {
 }
 
 model AgentConversation {
-  id        String          @id @default(cuid())
-  topic     String
-  tokenMint String?
-  createdAt DateTime        @default(now())
-  messages  AgentMessage[]
+  id             String          @id @default(cuid())
+  topic          String
+  tokenMint      String?
+  narrativeSlug  String?         // links to NarrativeThread.slug
+  createdAt      DateTime        @default(now())
+  messages       AgentMessage[]
 
   @@index([tokenMint])
+  @@index([narrativeSlug])
   @@map("agent_conversations")
+}
+
+// ─── Narrative Intelligence (Trench Intel) ─────────────────
+model NarrativeThread {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  emoji         String
+  description   String
+  keywords      String[] // search terms for Twitter scraping
+  heatScore     Float    @default(0)
+  tweetCount24h Int      @default(0)
+  kolMentions   Int      @default(0)
+  bullPercent   Float    @default(50) // % of agents bullish on this narrative
+  lastDebateAt  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  analysisRuns  NarrativeAnalysisRun[]
+  posts         AgentPost[]
+  votes         NarrativeVote[]
+
+  @@map("narrative_threads")
+}
+
+model NarrativeVote {
+  id            String   @id @default(cuid())
+  narrativeSlug String
+  agentId       String
+  value         Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  narrative NarrativeThread @relation(fields: [narrativeSlug], references: [slug], onDelete: Cascade)
+  agent     TradingAgent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([narrativeSlug, agentId])
+  @@index([narrativeSlug, value])
+  @@index([agentId])
+  @@map("narrative_votes")
+}
+
+model NarrativeAnalysisRun {
+  id            String   @id @default(cuid())
+  narrativeSlug String
+  provider      String
+  model         String
+  promptVersion String
+  summary       String   @db.Text
+  stance        String?
+  confidence    Int?
+  rawText       String   @db.Text
+  inputSnapshot Json
+  analysisJson  Json
+  outcomeSnapshot Json?
+  heatScoreDelta Float?
+  tweetCountDelta Int?
+  kolMentionsDelta Int?
+  bullPercentDelta Float?
+  debateMessageDelta Int?
+  tradePostDelta Int?
+  socialPostDelta Int?
+  scoutCallDelta Int?
+  labeledAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  narrative NarrativeThread @relation(fields: [narrativeSlug], references: [slug], onDelete: Cascade)
+
+  @@index([narrativeSlug, createdAt])
+  @@index([labeledAt])
+  @@index([createdAt])
+  @@map("narrative_analysis_runs")
 }
 
 model AgentMessage {
@@ -528,6 +573,7 @@ model AgentMessage {
 model AgentPost {
   id            String    @id @default(cuid())
   agentId       String
+  narrativeSlug String?
   content       String    @db.Text
   postType      String    // TRADE, STRATEGY, INSIGHT, QUESTION, ANNOUNCEMENT
   tokenMint     String?
@@ -546,8 +592,10 @@ model AgentPost {
   likes     PostLike[]
   comments  PostComment[]
   shares    PostShare[]
+  narrative NarrativeThread? @relation(fields: [narrativeSlug], references: [slug], onDelete: SetNull)
 
   @@index([agentId])
+  @@index([narrativeSlug])
   @@index([postType])
   @@index([tokenMint])
   @@index([createdAt])
@@ -735,18 +783,6 @@ model MonitorState {
   @@map("monitor_state")
 }
 
-// ─── Distributed Locks: Prevent duplicate cron/worker execution across replicas ───
-
-model JobExecutionLock {
-  jobKey     String   @id
-  owner      String
-  expiresAt  DateTime
-  acquiredAt DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([expiresAt])
-  @@map("job_execution_locks")
-}
 
 // ─── News & Announcements: Platform updates, partnerships, milestones ───
 

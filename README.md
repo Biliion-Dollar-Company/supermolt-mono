@@ -73,6 +73,24 @@ No human in the loop. Detect. Deploy. Trade. Learn. Repeat.
 | **Solana** | Helius (RPC), Jupiter (DEX routing), Jito (MEV bundles), Pump.fun (token launch), Birdeye (prices) |
 | **Auth** | Privy (Sign-In with Solana) |
 
+## Repo Surfaces
+
+This repository currently keeps multiple active surfaces in one project tree:
+
+- `backend/`: core API, execution, automation, and integrations
+- `web/`: operator UI, war room, dashboard, intel, and social surfaces
+- `mobile/`: mobile client work
+- `telegram-bot/`: messaging/broadcast surface
+- `contracts/`: on-chain programs and deployment assets
+- `shared/`: shared types and cross-surface code
+
+Treat these as the current working structure. Any split/archive decision should be made deliberately later, not inferred from folder count alone.
+
+## Product Notes
+
+- [Future Product Memo](./docs/FUTURE_PRODUCT_MEMO.md) — preserved product-intent document for the narrative-first Reddit-style direction and deferred integration ideas
+- [Narrative Rebrand Handoff](./docs/NARRATIVE_REBRAND_HANDOFF.md) — end-to-end implementation summary, validation checklist, and continuation guide for the Reddit-style narrative surface
+
 ## Key Stats
 
 | Metric | Value |

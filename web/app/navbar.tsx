@@ -1,12 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Bot, BarChart3, BookOpen, Menu, X, Shield, Coins, Wallet } from 'lucide-react';
+import { BarChart3, BookOpen, Flame, Menu, MessageSquare, Trophy, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import GradientText from '@/components/reactbits/GradientText';
 import UserAuthButton from '@/components/auth/UserAuthButton';
 import { DexscreenerIcon } from '@/components/icons/action-icons';
 
@@ -23,14 +21,15 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '/arena',             label: 'Arena',       Icon: Bot },
-    { href: '/war-room',          label: 'War Room',    Icon: BarChart3 },
-    { href: '/leaderboard',       label: 'Leaderboard', Icon: Coins },
-    { href: '/positions',         label: 'Positions',   Icon: Shield },
+    { href: '/#feed', label: 'Hot Feed', Icon: Flame },
+    { href: '/#filters', label: 'Narratives', Icon: MessageSquare },
+    { href: '/#health', label: 'Health', Icon: BarChart3 },
+    { href: '/#copers', label: 'Copers', Icon: Trophy },
   ];
 
   const isActive = (href: string) => {
     if (!pathname) return false;
+    if (href.includes('#')) return false;
     if (href === '/') return pathname === '/';
     if (pathname === href) return true;
     // Don't activate a parent route when a more-specific sibling nav entry owns this path
@@ -47,22 +46,13 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <Image
-              src="/pfp.png"
-              alt="Trench Terminal"
-              width={56}
-              height={52}
-              className="rounded object-cover transition-transform group-hover:scale-105 w-[56px] h-auto"
-            />
             <div>
-              <GradientText
-                colors={['#2563EB', '#1D4ED8', '#60A5FA', '#2563EB']}
-                animationSpeed={5}
-                className="text-xl font-bold font-display"
-              >
-                Trench Terminal
-              </GradientText>
-              <div className="text-xs text-text-muted -mt-0.5">Autonomous Signal Intelligence</div>
+              <div className="text-xl font-black uppercase tracking-tight text-white transition-colors group-hover:text-accent-soft">
+                Solana Brainrot
+              </div>
+              <div className="text-[10px] uppercase tracking-[0.24em] text-text-muted -mt-0.5">
+                by Trench Terminal
+              </div>
             </div>
           </Link>
 

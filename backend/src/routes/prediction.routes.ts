@@ -585,24 +585,33 @@ predictionRoutes.get('/recent', async (c) => {
       orderBy: { createdAt: 'desc' },
       take: limit,
       include: {
-        agent: { select: { id: true, name: true, displayName: true } },
         market: { select: { externalId: true } },
       },
     });
 
+    const agentIds = [...new Set(predictions.map((prediction) => prediction.agentId))];
+    const agents = await db.tradingAgent.findMany({
+      where: { id: { in: agentIds } },
+      select: { id: true, name: true, displayName: true },
+    });
+    const agentMap = new Map(agents.map((agent) => [agent.id, agent]));
+
     return c.json({
       success: true,
-      data: predictions.map(p => ({
-        id: p.id,
-        agentId: p.agentId,
-        agentName: p.agent.displayName || p.agent.name,
-        ticker: p.market.externalId,
-        side: p.side,
-        confidence: p.confidence,
-        contracts: p.contracts,
-        avgPrice: Number(p.avgPrice),
-        createdAt: p.createdAt.toISOString(),
-      })),
+      data: predictions.map((prediction) => {
+        const agent = agentMap.get(prediction.agentId);
+        return {
+          id: prediction.id,
+          agentId: prediction.agentId,
+          agentName: agent?.displayName || agent?.name || prediction.agentId.slice(0, 8),
+          ticker: prediction.market.externalId,
+          side: prediction.side,
+          confidence: prediction.confidence,
+          contracts: prediction.contracts,
+          avgPrice: Number(prediction.avgPrice),
+          createdAt: prediction.createdAt.toISOString(),
+        };
+      }),
     });
   } catch (error: any) {
     console.error('[Prediction] GET /recent error:', error);

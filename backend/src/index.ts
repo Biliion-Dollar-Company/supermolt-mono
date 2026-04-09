@@ -53,6 +53,7 @@ import polymarketRoutes from './routes/polymarket.routes';
 import glintRoutes from './routes/glint.routes';
 import swarmRoutes from './routes/swarm.routes';
 import socialFeedRoutes from './routes/social-feed.routes';
+import narrativeRoutes from './routes/narratives.routes';
 import { runStartupMigrations } from './lib/migrate';
 import { trading } from './routes/trading.routes';
 import { erc8004Routes } from './routes/erc8004.routes';
@@ -61,6 +62,7 @@ import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-e
 import { getScannerScheduler } from './scanners/scheduler';
 import { startTrendingTokenSync, stopTrendingTokenSync } from './services/trending-token-sync';
 import { startTokenDiscussionEngine, stopTokenDiscussionEngine } from './services/token-discussion-engine';
+import { startNarrativeIntelEngine, stopNarrativeIntelEngine } from './services/narrative-intel.service';
 import { getPredictionCoordinator } from './services/prediction-coordinator';
 
 // TEMPORARY: Admin fix for Epic Reward scanner
@@ -264,6 +266,9 @@ app.route('/api/glint', glintRoutes);
 
 // Swarm routes (multi-agent prediction consensus)
 app.route('/swarm', swarmRoutes);
+
+// Narrative Intelligence routes (Trench Intel — Reddit-style narrative debates)
+app.route('/api/narratives', narrativeRoutes);
 
 // Arena routes (public, frontend arena page)
 app.route('/arena', arenaMeRoutes); // /arena/me — must be before generic arena routes
@@ -690,6 +695,15 @@ if (enableDiscussionEngine) {
   console.log('⏭️  Token discussion engine disabled on this replica');
 }
 
+// Start Narrative Intel Engine (Trench Intel — Reddit-style narrative debates)
+const enableNarrativeEngine = envFlag('ENABLE_NARRATIVE_ENGINE', enableBackgroundWorkers);
+if (enableNarrativeEngine) {
+  startNarrativeIntelEngine().catch(err => console.error('[NarrativeIntel] Startup error:', err));
+  console.log('✅ Narrative intel engine started');
+} else {
+  console.log('⏭️  Narrative intel engine disabled on this replica');
+}
+
 // Update Prometheus metrics every 30 seconds
 setInterval(async () => {
   await updateAgentMetrics(db);
@@ -706,6 +720,7 @@ process.on('SIGTERM', async () => {
   stopAutoBuyExecutor();
   stopTrendingTokenSync();
   stopTokenDiscussionEngine();
+  stopNarrativeIntelEngine();
   if (devprintFeed) await devprintFeed.stop();
   // Stop trading loop if running
   if (enableTradingLoop) {
@@ -728,6 +743,7 @@ process.on('SIGINT', async () => {
   stopAutoBuyExecutor();
   stopTrendingTokenSync();
   stopTokenDiscussionEngine();
+  stopNarrativeIntelEngine();
   if (devprintFeed) await devprintFeed.stop();
   // Stop trading loop if running
   if (enableTradingLoop) {
