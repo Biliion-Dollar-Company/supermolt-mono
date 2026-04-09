@@ -33,6 +33,9 @@ yarn-error.log*
 
 # Turbo
 .turbo
+.superpowers/
+web/.superpowers/
+web/web.log
 
 # TypeScript
 *.tsbuildinfo
