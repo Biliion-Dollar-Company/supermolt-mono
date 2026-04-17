@@ -12,7 +12,7 @@ const AgentMap = dynamic(
     loading: () => (
       <div
         className="flex-1 flex items-center justify-center"
-        style={{ background: '#050505', fontFamily: 'JetBrains Mono, monospace', color: '#2563EB' }}
+        style={{ background: '#050505', fontFamily: 'JetBrains Mono, monospace', color: '#5741D9' }}
       >
         <div className="text-center space-y-3">
           <div className="text-lg font-bold animate-pulse">INITIALIZING AGENT MAP</div>
@@ -38,7 +38,7 @@ export default function ArenaMapPage() {
         className="flex items-center gap-3 px-4 py-3 flex-shrink-0 border-b"
         style={{
           background: 'rgba(5,5,5,0.98)',
-          borderColor: 'rgba(37,99,235,0.2)',
+          borderColor: 'rgba(87,65,217,0.2)',
           zIndex: 20,
         }}
       >
@@ -53,10 +53,10 @@ export default function ArenaMapPage() {
 
         <div className="w-px h-4 bg-gray-800" />
 
-        <Map className="w-4 h-4" style={{ color: '#2563EB' }} />
+        <Map className="w-4 h-4" style={{ color: '#5741D9' }} />
         <span
           className="font-bold text-sm uppercase tracking-widest"
-          style={{ fontFamily: 'Orbitron, sans-serif', color: '#2563EB' }}
+          style={{ fontFamily: 'Orbitron, sans-serif', color: '#5741D9' }}
         >
           Agent Map
         </span>
@@ -93,9 +93,9 @@ export default function ArenaMapPage() {
             className="text-xs px-3 py-1.5 border"
             style={{
               fontFamily: 'JetBrains Mono, monospace',
-              color: '#2563EB',
-              borderColor: 'rgba(37,99,235,0.3)',
-              background: 'rgba(37,99,235,0.05)',
+              color: '#5741D9',
+              borderColor: 'rgba(87,65,217,0.3)',
+              background: 'rgba(87,65,217,0.05)',
             }}
           >
             Map

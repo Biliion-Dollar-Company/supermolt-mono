@@ -47,7 +47,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       >
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-          <div style={{ fontSize: '24px', color: '#2563EB', fontWeight: 700, letterSpacing: '4px' }}>
+          <div style={{ fontSize: '24px', color: '#5741D9', fontWeight: 700, letterSpacing: '4px' }}>
             TRENCH TERMINAL
           </div>
           <div style={{ fontSize: '16px', color: 'rgba(255,255,255,0.35)' }}>
@@ -98,7 +98,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           left: '0',
           right: '0',
           height: '4px',
-          background: 'linear-gradient(90deg, #2563EB 0%, transparent 100%)',
+          background: 'linear-gradient(90deg, #5741D9 0%, transparent 100%)',
         }} />
       </div>
     ),

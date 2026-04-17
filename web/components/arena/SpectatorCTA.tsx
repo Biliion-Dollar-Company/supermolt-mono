@@ -63,7 +63,7 @@ export function SpectatorCTA({ className }: { className?: string }) {
         href="/login"
         className="inline-block rounded-lg px-6 py-2.5 font-semibold text-sm transition-colors"
         style={{
-          backgroundColor: '#2563EB',
+          backgroundColor: '#5741D9',
           color: '#07090F',
         }}
       >

@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, Zap, BarChart2, Target, Twitter, CheckCircle } from 'lucide-react';
 
 /* ── Brand ───────────────────────────────────────────────────────── */
-const GOLD   = '#2563EB';
+const GOLD   = '#5741D9';
 const BG     = '#08080F';
 const SURF   = '#111118';
 const SURF2  = '#1a1a26';
@@ -305,7 +305,7 @@ function EnterNameScreen() {
         <div
           className="w-full py-3 rounded-xl text-[13px] font-black text-center"
           style={{
-            background: typed.length > 0 ? GOLD : 'rgba(37,99,235,0.15)',
+            background: typed.length > 0 ? GOLD : 'rgba(87,65,217,0.15)',
             color: typed.length > 0 ? '#08080F' : `${GOLD}40`,
             fontFamily: 'monospace',
             transition: 'all 0.4s ease',

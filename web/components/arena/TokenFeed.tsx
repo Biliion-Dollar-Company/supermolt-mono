@@ -44,10 +44,10 @@ export function TokenFeed({ tokens, onTokenClick }: TokenFeedProps) {
           key={token.tokenSymbol}
           layout
           onClick={() => onTokenClick(token.tokenSymbol)}
-          className="text-left border border-white/[0.06] p-4 hover:bg-white/[0.03] hover:border-[#2563EB]/20 transition-all cursor-pointer group"
+          className="text-left border border-white/[0.06] p-4 hover:bg-white/[0.03] hover:border-[#5741D9]/20 transition-all cursor-pointer group"
         >
           <div className="flex items-center justify-between mb-3">
-            <span className="text-lg font-bold font-mono text-white/80 group-hover:text-[#2563EB] transition-colors">
+            <span className="text-lg font-bold font-mono text-white/80 group-hover:text-[#5741D9] transition-colors">
               {token.tokenSymbol}
             </span>
             <span className={`text-sm font-mono ${token.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>

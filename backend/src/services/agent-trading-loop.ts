@@ -1,34 +1,27 @@
 /**
- * Agent Trading Loop
- * 
+ * Agent Trading Loop — Kraken Edition
+ *
  * Autonomous trading system that makes agents trade every 15-30 minutes.
- * Fetches trending tokens, scores them per agent archetype, and executes paper trades.
- * 
+ * Uses Kraken REST API for live market signals instead of Birdeye/DexScreener.
+ * ERC-8004 validation artifacts are emitted after each paper trade (fire-and-forget).
+ *
  * The conversation reactor (agent-signal-reactor.ts) automatically generates
  * conversations when trades are created.
  */
 
 import { db } from '../lib/db';
 import { scoreTokenForAgent, type TokenData } from '../lib/token-scorer';
-import { getOrInitExecutor, executeDirectBuyWithPrivy } from './auto-buy-executor';
-import type { AutoBuyRequest } from './trigger-engine';
+import {
+  getTickerData,
+  placeOrder,
+  KRAKEN_DEFAULT_PAIRS,
+  type KrakenTickerData,
+} from './kraken-cli.service';
+import { proveTradeIntent } from './erc8004-validation.service';
+import { submitTradeFeedback } from './erc8004-reputation.service';
 
-const BIRDEYE_API_URL = process.env.BIRDEYE_API_URL || 'https://public-api.birdeye.so';
-const BIRDEYE_API_KEY = process.env.BIRDEYE_API_KEY || '';
-
-// Real well-known Solana token mints — used as DexScreener fallback
-const FALLBACK_MINTS = [
-  'So11111111111111111111111111111111111111112',    // SOL
-  'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN',  // JUP
-  'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', // BONK
-  'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm', // WIF
-  'MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5',   // MEW
-  '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R',  // RAY
-  'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE',   // ORCA
-  'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So',  // mSOL
-  'HZ1JovNiVvGrCNiiYWY1ZQuAHYtmzMocHUvCYBFzEfmR',  // RENDER
-  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',  // USDT
-];
+// Position size in USD per trade (replaces positionSizeSOL for Kraken)
+const KRAKEN_POSITION_USD = parseFloat(process.env.KRAKEN_POSITION_USD || '150');
 
 // ── Configuration ────────────────────────────────────────
 
@@ -37,7 +30,7 @@ interface TradingLoopConfig {
   agentsPerCycle: number;
   minConfidence: number;
   maxTradesPerCycle: number;
-  positionSizeSOL: number;
+  positionSizeSOL: number; // Kept for API compatibility; maps to KRAKEN_POSITION_USD internally
 }
 
 const DEFAULT_CONFIG: TradingLoopConfig = {
@@ -45,7 +38,7 @@ const DEFAULT_CONFIG: TradingLoopConfig = {
   agentsPerCycle: 3,
   minConfidence: 70,
   maxTradesPerCycle: 5,
-  positionSizeSOL: 1.5, // Each trade is ~1.5 SOL
+  positionSizeSOL: 1.5,
 };
 
 // ── State ────────────────────────────────────────────────
@@ -55,95 +48,54 @@ let isRunning = false;
 let cycleCount = 0;
 let totalTradesCreated = 0;
 
-// ── Token Fetching ───────────────────────────────────────
+// ── Market Signal Fetching (Kraken) ──────────────────────
 
 /**
- * Fetch real trending tokens from Birdeye, with DexScreener fallback.
- * No mock data — every token has a real on-chain mint and live price.
+ * Fetch live market signals from Kraken REST API.
+ * Maps KrakenTickerData → TokenData so the existing LLM scoring layer
+ * works without any changes (scoring is chain-agnostic).
  */
-async function fetchTrendingTokens(): Promise<TokenData[]> {
-  // 1. Try Birdeye trending (requires API key)
-  if (BIRDEYE_API_KEY) {
-    try {
-      const url = `${BIRDEYE_API_URL}/defi/token_trending?sort_by=volume24hUSD&sort_type=desc&offset=0&limit=20&min_liquidity=30000`;
-      const res = await fetch(url, {
-        headers: { 'X-API-KEY': BIRDEYE_API_KEY, 'x-chain': 'solana' },
-        signal: AbortSignal.timeout(8000),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as any;
-        const raw: any[] = data?.data?.tokens ?? data?.data?.items ?? data?.data ?? [];
-        const tokens = raw
-          .map((t: any): TokenData => ({
-            mint: t.address,
-            symbol: t.symbol || 'UNKNOWN',
-            name: t.name || t.symbol || 'Unknown Token',
-            priceUsd: Number(t.price) || 0,
-            marketCap: t.mc ?? t.marketCap,
-            liquidity: t.liquidity,
-            volume24h: t.v24hUSD ?? t.volume24hUSD ?? t.volume24h,
-            priceChange24h: t.price24hChangePercent ?? t.priceChange24h,
-            priceChange1h: t.price1hChangePercent ?? t.priceChange1h,
-            holder: t.uniqueWallet24h ?? t.holder,
-          }))
-          .filter((t) => t.priceUsd > 0 && t.mint);
-        if (tokens.length > 0) {
-          console.log(`[TradingLoop] Birdeye: ${tokens.length} real trending tokens`);
-          return tokens;
-        }
-      }
-    } catch (err) {
-      console.warn('[TradingLoop] Birdeye trending failed:', err);
-    }
+async function fetchKrakenMarketSignals(): Promise<TokenData[]> {
+  try {
+    const tickers = await getTickerData(KRAKEN_DEFAULT_PAIRS);
+    const tokens = tickers.map((t): TokenData => krakenTickerToTokenData(t));
+    const valid = tokens.filter((t) => t.priceUsd > 0);
+    console.log(`[TradingLoop] Kraken: ${valid.length} market signals (${KRAKEN_DEFAULT_PAIRS.join(', ')})`);
+    return valid;
+  } catch (err) {
+    console.error('[TradingLoop] Kraken market signals failed:', err);
+    return [];
   }
-
-  // 2. Fallback: DexScreener batch lookup on real known mints
-  return fetchFallbackTokens();
 }
 
 /**
- * DexScreener batch fetch for known real token mints.
- * Free, no API key, always available.
+ * Map a Kraken ticker into the TokenData shape expected by scoreTokenForAgent.
+ * "mint" holds the pair key (XBTUSD) as a stable unique identifier.
  */
-async function fetchFallbackTokens(): Promise<TokenData[]> {
-  try {
-    const res = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${FALLBACK_MINTS.slice(0, 10).join(',')}`,
-      { signal: AbortSignal.timeout(8000) },
-    );
-    if (!res.ok) return [];
-    const data = (await res.json()) as any;
-    const pairs: any[] = data?.pairs ?? [];
+function krakenTickerToTokenData(t: KrakenTickerData): TokenData {
+  const priceChange24hPct =
+    t.openPrice24h > 0 ? ((t.price - t.openPrice24h) / t.openPrice24h) * 100 : 0;
 
-    const seen = new Set<string>();
-    const tokens: TokenData[] = [];
+  // Map Kraken pair keys to human-readable symbol/name
+  const symbolMap: Record<string, { symbol: string; name: string }> = {
+    XBTUSD: { symbol: 'BTC', name: 'Bitcoin' },
+    ETHUSD: { symbol: 'ETH', name: 'Ethereum' },
+    SOLUSD: { symbol: 'SOL', name: 'Solana' },
+    XBTEUR: { symbol: 'BTC', name: 'Bitcoin' },
+    ETHEUR: { symbol: 'ETH', name: 'Ethereum' },
+  };
 
-    // Highest liquidity pair per token
-    const sorted = [...pairs].sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
-    for (const pair of sorted) {
-      const mint = pair.baseToken?.address;
-      if (!mint || seen.has(mint)) continue;
-      seen.add(mint);
-      tokens.push({
-        mint,
-        symbol: pair.baseToken?.symbol || 'UNKNOWN',
-        name: pair.baseToken?.name || pair.baseToken?.symbol || 'Unknown',
-        priceUsd: parseFloat(pair.priceUsd) || 0,
-        marketCap: pair.marketCap,
-        liquidity: pair.liquidity?.usd,
-        volume24h: pair.volume?.h24,
-        priceChange24h: pair.priceChange?.h24,
-        priceChange1h: pair.priceChange?.h1,
-      });
-    }
+  const meta = symbolMap[t.pair] ?? { symbol: t.pair.slice(0, 3), name: t.pair };
 
-    const valid = tokens.filter((t) => t.priceUsd > 0);
-    console.log(`[TradingLoop] DexScreener fallback: ${valid.length} real tokens`);
-    return valid;
-  } catch (err) {
-    console.error('[TradingLoop] DexScreener fallback failed:', err);
-    return [];
-  }
+  return {
+    mint: t.pair,                          // pair key as stable ID
+    symbol: meta.symbol,
+    name: meta.name,
+    priceUsd: t.price,
+    volume24h: t.volume24h * t.price,      // convert to USD volume
+    priceChange24h: priceChange24hPct,
+    liquidity: t.volume24h * t.price * 0.1, // rough liquidity proxy
+  };
 }
 
 // ── Agent Selection ──────────────────────────────────────
@@ -203,9 +155,9 @@ async function executeTradingCycle(config: TradingLoopConfig): Promise<void> {
   console.log(`\n[TradingLoop] === Cycle #${cycleCount} starting ===`);
 
   try {
-    // 1. Fetch trending tokens
-    const tokens = await fetchTrendingTokens();
-    console.log(`[TradingLoop] Fetched ${tokens.length} trending tokens`);
+    // 1. Fetch Kraken market signals
+    const tokens = await fetchKrakenMarketSignals();
+    console.log(`[TradingLoop] Fetched ${tokens.length} Kraken market signals`);
 
     if (tokens.length === 0) {
       console.warn('[TradingLoop] No tokens available, skipping cycle');
@@ -273,57 +225,56 @@ async function executeTradingCycle(config: TradingLoopConfig): Promise<void> {
 }
 
 /**
- * Route trade to real execution (Privy wallet) or paper trade (fallback).
+ * Execute trade via Kraken (sandbox or real) and record as paper trade.
+ * ERC-8004 validation artifacts are emitted fire-and-forget after recording.
  */
 async function executeAgentTrade(
   agent: any,
   token: TokenData,
   confidence: number,
   reasoning: string,
-  config: TradingLoopConfig
+  config: TradingLoopConfig,
 ): Promise<void> {
-  const jupiterExecutor = getOrInitExecutor();
-  const hasRealWallet = agent.privyWalletId && jupiterExecutor;
+  console.log(`[TradingLoop] KRAKEN TRADE: ${agent.displayName || agent.name} → ${token.symbol}`);
 
-  if (hasRealWallet) {
-    console.log(`[TradingLoop] REAL TRADE: ${agent.displayName || agent.name} → ${token.symbol}`);
-    const request: AutoBuyRequest = {
-      agentId: agent.id,
-      agentName: agent.displayName || agent.name,
-      tokenMint: token.mint,
-      tokenSymbol: token.symbol,
-      solAmount: config.positionSizeSOL,
-      chain: 'SOLANA',
-      triggeredBy: 'trading_loop',
-      sourceWallet: '',
-      reason: reasoning,
-    };
+  // 1. Record paper trade in DB first (fast, never fails the loop)
+  const trade = await createPaperTrade(agent, token, confidence, reasoning, config);
 
-    try {
-      await executeDirectBuyWithPrivy(request, agent.privyWalletId);
-    } catch (error) {
-      console.error(`[TradingLoop] Real trade failed, falling back to paper:`, error);
-      await createPaperTrade(agent, token, confidence, reasoning, config);
-    }
-  } else {
-    console.log(`[TradingLoop] PAPER TRADE: ${agent.displayName || agent.name} → ${token.symbol}`);
-    await createPaperTrade(agent, token, confidence, reasoning, config);
-  }
+  if (!trade) return;
+
+  // 2. Place order on Kraken (sandbox by default) — fire-and-forget
+  placeOrder(token.mint, 'buy', KRAKEN_POSITION_USD, token.priceUsd)
+    .then((result) => {
+      console.log(`[Kraken] Order ${result.orderId} placed for trade ${trade.id}`);
+    })
+    .catch((err) => {
+      console.warn(`[Kraken] Order placement failed (trade ${trade.id}):`, err.message);
+    });
+
+  // 3. ERC-8004: emit validation artifact — fire-and-forget
+  proveTradeIntent(trade.id).catch((err) =>
+    console.warn(`[ERC8004] proveTradeIntent failed (trade ${trade.id}):`, err.message),
+  );
+
+  submitTradeFeedback(trade.id).catch((err) =>
+    console.warn(`[ERC8004] submitTradeFeedback failed (trade ${trade.id}):`, err.message),
+  );
 }
 
 /**
- * Create a paper trade in the database
+ * Create a paper trade in the database.
+ * Returns the created record so the caller can fire ERC-8004 events against its ID.
  */
 async function createPaperTrade(
   agent: any,
   token: TokenData,
   confidence: number,
   reasoning: string,
-  config: TradingLoopConfig
-): Promise<void> {
+  config: TradingLoopConfig,
+): Promise<any | null> {
   try {
-    const positionSize = config.positionSizeSOL;
-    const tokenAmount = positionSize / token.priceUsd;
+    const positionUsd = KRAKEN_POSITION_USD;
+    const tokenAmount = positionUsd / token.priceUsd;
 
     const trade = await db.paperTrade.create({
       data: {
@@ -332,18 +283,18 @@ async function createPaperTrade(
         tokenSymbol: token.symbol,
         tokenName: token.name,
         action: 'BUY',
-        chain: 'SOLANA',
-        entryPrice: token.priceUsd, // SOL price (for P&L calc)
-        tokenPrice: token.priceUsd,  // Token price in USD
-        amount: positionSize,        // SOL spent
-        tokenAmount,                 // Token quantity received
+        chain: 'BSC',              // EVM chain — Kraken trades validated via ERC-8004 on Sepolia
+        entryPrice: token.priceUsd,
+        tokenPrice: token.priceUsd,
+        amount: positionUsd,
+        tokenAmount,
         marketCap: token.marketCap,
         liquidity: token.liquidity,
         status: 'OPEN',
-        signalSource: 'autonomous_trading_loop',
+        signalSource: 'kraken_trading_loop',
         confidence,
         metadata: {
-          source: 'trading_loop',
+          source: 'kraken_trading_loop',
           reasoning,
           cycleId: cycleCount,
           timestamp: new Date().toISOString(),
@@ -351,10 +302,6 @@ async function createPaperTrade(
             volume24h: token.volume24h,
             priceChange24h: token.priceChange24h,
             priceChange1h: token.priceChange1h,
-            holder: token.holder,
-            ageMinutes: token.ageMinutes,
-            socialVolume: token.socialVolume,
-            twitterMentions: token.twitterMentions,
           },
         },
       },
@@ -362,16 +309,14 @@ async function createPaperTrade(
 
     console.log(
       `[TradingLoop] ✅ Trade created: ${agent.displayName || agent.name} bought ` +
-      `${tokenAmount.toFixed(2)} ${token.symbol} @ $${token.priceUsd.toFixed(6)} ` +
-      `(${positionSize} SOL, confidence: ${confidence})`
+        `${tokenAmount.toFixed(4)} ${token.symbol} @ $${token.priceUsd.toFixed(2)} ` +
+        `($${positionUsd} USD, confidence: ${confidence})`,
     );
 
-    // The conversation reactor will automatically pick this up
-    // and generate agent commentary within 1-2 minutes
-
+    return trade;
   } catch (error) {
     console.error('[TradingLoop] Failed to create paper trade:', error);
-    throw error;
+    return null;
   }
 }
 

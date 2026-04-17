@@ -106,7 +106,7 @@ function TradeItem({ item }: { item: UnifiedFeedItem & { type: 'trade' } }) {
 function TaskItem({ item }: { item: UnifiedFeedItem & { type: 'task_claimed' | 'task_completed' } }) {
   return (
     <div className="animate-feed-enter flex justify-center py-1.5">
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] bg-[#2563EB]/8 text-[#2563EB]/80">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] bg-[#5741D9]/8 text-[#5741D9]/80">
         <CheckCircle2 className="w-3.5 h-3.5" />
         <span className="font-semibold">{stripEmoji(item.agentName)}</span>
         <span>{item.type === 'task_completed' ? 'completed' : 'claimed'}:</span>
@@ -231,7 +231,7 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
                 />
               ) : null}
-              <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-sm font-bold text-[#2563EB] ring-2 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
+              <div className={`w-10 h-10 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-sm font-bold text-[#5741D9] ring-2 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
                 {token.tokenSymbol?.charAt(0) || '?'}
               </div>
             </div>
@@ -256,21 +256,21 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={copyMint}
-                    className="group flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.05] bg-white/[0.02] text-white/40 transition-all hover:border-[#2563EB]/20 hover:bg-white/[0.05]"
+                    className="group flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.05] bg-white/[0.02] text-white/40 transition-all hover:border-[#5741D9]/20 hover:bg-white/[0.05]"
                     title="Copy contract address"
                     aria-label="Copy contract address"
                   >
                     {copied ? (
                       <CopySuccessIcon className="w-3 h-3 text-green-400" />
                     ) : (
-                      <CopyCaIcon className="w-3 h-3 text-current group-hover:text-[#2563EB]" />
+                      <CopyCaIcon className="w-3 h-3 text-current group-hover:text-[#5741D9]" />
                     )}
                   </button>
                   <a
                     href={`https://dexscreener.com/solana/${token.tokenMint}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.05] bg-white/[0.02] transition-all hover:border-[#2563EB]/20 hover:bg-white/[0.05]"
+                    className="group flex h-6 w-6 items-center justify-center rounded-md border border-white/[0.05] bg-white/[0.02] transition-all hover:border-[#5741D9]/20 hover:bg-white/[0.05]"
                     title="Open on DexScreener"
                     aria-label="Open on DexScreener"
                   >
@@ -316,7 +316,7 @@ export function TokenConversationPanel({ token, onClose }: TokenConversationPane
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-[10px] text-white/35/60 hover:text-[#2563EB] transition-colors px-2 py-1 rounded-md bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.03] hover:border-[#2563EB]/15"
+                className="flex items-center gap-1 text-[10px] text-white/35/60 hover:text-[#5741D9] transition-colors px-2 py-1 rounded-md bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.03] hover:border-[#5741D9]/15"
               >
                 {label} <ExternalLink className="w-2.5 h-2.5" />
               </a>

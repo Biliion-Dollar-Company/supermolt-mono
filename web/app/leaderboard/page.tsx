@@ -8,7 +8,7 @@ import { Agent } from '@/lib/types';
 import { formatPercent, formatCurrency } from '@/lib/design-system';
 import { AgentProfileModal } from '@/components/arena/AgentProfileModal';
 
-const GOLD  = '#2563EB';
+const GOLD  = '#5741D9';
 const YES_C = '#4ade80';
 const NO_C  = '#f87171';
 const BG    = '#07090F';
@@ -20,8 +20,8 @@ function RankBadge({ rank }: { rank: number }) {
     <div
       className="w-7 h-7 flex-shrink-0 flex items-center justify-center text-[11px] font-black font-mono"
       style={{
-        background: isTop3 ? `rgba(37,99,235,${0.15 - (rank - 1) * 0.04})` : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${isTop3 ? `rgba(37,99,235,${0.3 - (rank - 1) * 0.08})` : 'rgba(255,255,255,0.07)'}`,
+        background: isTop3 ? `rgba(87,65,217,${0.15 - (rank - 1) * 0.04})` : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${isTop3 ? `rgba(87,65,217,${0.3 - (rank - 1) * 0.08})` : 'rgba(255,255,255,0.07)'}`,
         color: isTop3 ? GOLD : 'rgba(255,255,255,0.22)',
       }}
     >
@@ -66,7 +66,7 @@ export default function Leaderboard() {
       <div className="min-h-screen flex items-center justify-center" style={{ background: BG }}>
         <div className="flex flex-col items-center gap-5">
           <div className="w-8 h-8 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'rgba(37,99,235,0.15)', borderTopColor: GOLD }} />
+            style={{ borderColor: 'rgba(87,65,217,0.15)', borderTopColor: GOLD }} />
           <p className="text-[10px] font-mono uppercase tracking-[0.35em] opacity-40" style={{ color: GOLD }}>
             Loading leaderboard
           </p>
@@ -83,7 +83,7 @@ export default function Leaderboard() {
       <div className="sticky top-0 z-30 pt-16 sm:pt-[64px]"
         style={{ background: BG, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="flex items-center gap-4 px-4 sm:px-6 py-3">
-          <Trophy className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(37,99,235,0.55)' }} />
+          <Trophy className="w-4 h-4 flex-shrink-0" style={{ color: 'rgba(87,65,217,0.55)' }} />
           <h1 className="text-base font-black tracking-tight text-white font-mono">LEADERBOARD</h1>
           <div className="flex items-center gap-1.5 ml-2">
             <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: YES_C }} />
@@ -138,7 +138,7 @@ export default function Leaderboard() {
                     </p>
                     {index === 0 && (
                       <span className="text-[9px] font-black font-mono px-1.5 py-0.5 flex-shrink-0 tracking-wider"
-                        style={{ color: GOLD, background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.25)' }}>
+                        style={{ color: GOLD, background: 'rgba(87,65,217,0.1)', border: '1px solid rgba(87,65,217,0.25)' }}>
                         LEADER
                       </span>
                     )}
@@ -147,9 +147,9 @@ export default function Leaderboard() {
                     <div className="flex-1 max-w-[100px] overflow-hidden"
                       style={{ height: 3, background: 'rgba(255,255,255,0.06)' }}>
                       <div className="h-full transition-all duration-700"
-                        style={{ width: `${Math.min(100, agent.win_rate || 0)}%`, background: 'rgba(37,99,235,0.5)' }} />
+                        style={{ width: `${Math.min(100, agent.win_rate || 0)}%`, background: 'rgba(87,65,217,0.5)' }} />
                     </div>
-                    <span className="text-[10px] font-mono" style={{ color: 'rgba(37,99,235,0.55)' }}>
+                    <span className="text-[10px] font-mono" style={{ color: 'rgba(87,65,217,0.55)' }}>
                       {formatPercent(agent.win_rate)}
                     </span>
                   </div>

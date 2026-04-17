@@ -4,6 +4,7 @@ import type { AgentStatus } from '@prisma/client';
 import { ensureOnboardingForAgent, ensureScannerForAgent } from './agent-session.service';
 import { triggerAgentIntroduction } from './agent-introduction.service';
 import * as surgeApi from './surge-api.service';
+import { registerAgentOnChain } from './erc8004-identity.service';
 
 // Dynamic import to avoid circular dependency issues
 let heliusMonitor: any = null;
@@ -92,6 +93,11 @@ export async function createAgent(
   // Fire-and-forget: post intro to social feed + join active conversation
   triggerAgentIntroduction(agent.id).catch((error) => {
     console.error('Failed to trigger agent introduction:', error);
+  });
+
+  // Fire-and-forget: register agent as ERC-8004 identity on Sepolia
+  registerAgentOnChain(agent.id).catch((err) => {
+    console.warn('[ERC8004] deferred on-chain registration:', err.message ?? err);
   });
 
   return agent;

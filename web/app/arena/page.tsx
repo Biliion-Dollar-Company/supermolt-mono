@@ -1,6 +1,6 @@
 'use client';
 
-const GOLD  = '#2563EB';
+const GOLD  = '#5741D9';
 const YES_C = '#4ade80';
 const BG    = '#07090F';
 const SURF  = '#0C1020';
@@ -197,7 +197,7 @@ function TokenChip({ token, isSelected, onSelect }: { token: ArenaToken; isSelec
       onClick={onSelect}
       className="flex-shrink-0 flex items-center gap-2 px-3 py-2 border transition-all cursor-pointer"
       style={isSelected
-        ? { borderColor: 'rgba(37,99,235,0.5)', background: 'rgba(37,99,235,0.06)' }
+        ? { borderColor: 'rgba(87,65,217,0.5)', background: 'rgba(87,65,217,0.06)' }
         : { borderColor: 'rgba(255,255,255,0.07)', background: 'transparent' }}
     >
       <span className="text-sm font-bold font-mono text-white/80 whitespace-nowrap">
@@ -219,7 +219,7 @@ function TokenChip({ token, isSelected, onSelect }: { token: ArenaToken; isSelec
           {copied ? (
             <CopySuccessIcon className="w-3 h-3 text-green-400" />
           ) : (
-            <CopyCaIcon className="w-3 h-3 text-current group-hover:text-[#2563EB]" />
+            <CopyCaIcon className="w-3 h-3 text-current group-hover:text-[#5741D9]" />
           )}
         </span>
       )}
@@ -276,7 +276,7 @@ function ClassicArenaView() {
             </div>
             {loading ? (
               <div className="flex flex-col items-center justify-center py-8 gap-3">
-                <div className="w-5 h-5 border-2 border-t-white/60 rounded-full animate-spin" style={{ borderColor: 'rgba(37,99,235,0.3)', borderTopColor: GOLD }} />
+                <div className="w-5 h-5 border-2 border-t-white/60 rounded-full animate-spin" style={{ borderColor: 'rgba(87,65,217,0.3)', borderTopColor: GOLD }} />
                 <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>Loading tokens...</span>
               </div>
             ) : tokens.length === 0 ? (
@@ -319,7 +319,7 @@ function ClassicArenaView() {
                   onClick={() => setLeaderboardTab(tab)}
                   className="text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer font-mono"
                   style={leaderboardTab === tab
-                    ? { color: GOLD, background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)' }
+                    ? { color: GOLD, background: 'rgba(87,65,217,0.08)', border: '1px solid rgba(87,65,217,0.2)' }
                     : { color: 'rgba(255,255,255,0.3)', border: '1px solid transparent' }}
                 >
                   {tab === 'trades' ? 'Trades' : 'XP'}
@@ -465,7 +465,7 @@ function ConversationsView() {
                     onClick={() => setLeaderboardTab(tab)}
                     className="text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer font-mono"
                     style={leaderboardTab === tab
-                      ? { color: GOLD, background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)' }
+                      ? { color: GOLD, background: 'rgba(87,65,217,0.08)', border: '1px solid rgba(87,65,217,0.2)' }
                       : { color: 'rgba(255,255,255,0.3)', border: '1px solid transparent' }}
                   >
                     {tab === 'trades' ? 'Trades' : 'XP'}
@@ -558,7 +558,7 @@ export default function ArenaPage() {
       <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1, background: BG }} />
       {!isMobile && (
         <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1, opacity: 0.22 }}>
-          <RisingLines color="#2563EB" horizonColor="#2563EB" haloColor="#F5D78E" riseSpeed={0.06} riseScale={8} riseIntensity={1.0} flowSpeed={0.12} flowDensity={3.5} flowIntensity={0.5} horizonIntensity={0.7} haloIntensity={5} horizonHeight={-0.9} circleScale={-0.5} scale={5.5} brightness={0.95} />
+          <RisingLines color="#5741D9" horizonColor="#5741D9" haloColor="#F5D78E" riseSpeed={0.06} riseScale={8} riseIntensity={1.0} flowSpeed={0.12} flowDensity={3.5} flowIntensity={0.5} horizonIntensity={0.7} haloIntensity={5} horizonHeight={-0.9} circleScale={-0.5} scale={5.5} brightness={0.95} />
         </div>
       )}
     <div className="min-h-screen" style={{ background: 'transparent' }}>
@@ -571,9 +571,9 @@ export default function ArenaPage() {
             <Link
               href="/arena/predictions"
               className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors"
-              style={{ border: '1px solid rgba(37,99,235,0.15)', color: 'rgba(37,99,235,0.45)' }}
-              onMouseEnter={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.borderColor = 'rgba(37,99,235,0.4)'; el.style.color = GOLD; }}
-              onMouseLeave={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.borderColor = 'rgba(37,99,235,0.15)'; el.style.color = 'rgba(37,99,235,0.45)'; }}
+              style={{ border: '1px solid rgba(87,65,217,0.15)', color: 'rgba(87,65,217,0.45)' }}
+              onMouseEnter={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.borderColor = 'rgba(87,65,217,0.4)'; el.style.color = GOLD; }}
+              onMouseLeave={(e) => { const el = e.currentTarget as HTMLAnchorElement; el.style.borderColor = 'rgba(87,65,217,0.15)'; el.style.color = 'rgba(87,65,217,0.45)'; }}
             >
               Predictions
             </Link>
@@ -593,7 +593,7 @@ export default function ArenaPage() {
               onClick={() => setView('discussions')}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
               style={view === 'discussions'
-                ? { color: GOLD, background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)' }
+                ? { color: GOLD, background: 'rgba(87,65,217,0.08)', border: '1px solid rgba(87,65,217,0.2)' }
                 : { color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.07)' }}
             >
               <MessageSquare className="w-3 h-3" />
@@ -603,7 +603,7 @@ export default function ArenaPage() {
               onClick={() => setView('classic')}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer"
               style={view === 'classic'
-                ? { color: GOLD, background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)' }
+                ? { color: GOLD, background: 'rgba(87,65,217,0.08)', border: '1px solid rgba(87,65,217,0.2)' }
                 : { color: 'rgba(255,255,255,0.3)', border: '1px solid rgba(255,255,255,0.07)' }}
             >
               <LayoutGrid className="w-3 h-3" />

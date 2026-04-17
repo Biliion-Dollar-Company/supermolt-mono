@@ -39,13 +39,13 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
         width:           cardW,
         zIndex:          9999,
         background:      'rgba(10,10,10,0.97)',
-        border:          `1px solid ${isGod ? '#2563EB' : 'rgba(37,99,235,0.3)'}`,
+        border:          `1px solid ${isGod ? '#5741D9' : 'rgba(87,65,217,0.3)'}`,
         borderRadius:    0,
         padding:         '12px',
         fontFamily:      'JetBrains Mono, monospace',
         backdropFilter:  'blur(20px)',
         boxShadow:       isGod
-          ? '0 0 32px rgba(37,99,235,0.25), 0 0 8px rgba(37,99,235,0.15), inset 0 1px 0 rgba(37,99,235,0.1)'
+          ? '0 0 32px rgba(87,65,217,0.25), 0 0 8px rgba(87,65,217,0.15), inset 0 1px 0 rgba(87,65,217,0.1)'
           : '0 8px 32px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)',
         pointerEvents:   'none',
         transition:      'opacity 0.15s ease',
@@ -61,8 +61,8 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
               height:       48,
               borderRadius: 0,
               overflow:     'hidden',
-              border:       `2px solid ${isGod ? '#2563EB' : '#333'}`,
-              boxShadow:    isGod ? '0 0 12px rgba(37,99,235,0.5)' : 'none',
+              border:       `2px solid ${isGod ? '#5741D9' : '#333'}`,
+              boxShadow:    isGod ? '0 0 12px rgba(87,65,217,0.5)' : 'none',
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -87,7 +87,7 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
                 width:      14,
                 height:     14,
                 borderRadius: 0,
-                background: '#2563EB',
+                background: '#5741D9',
                 display:    'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -106,7 +106,7 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
-              color:      isGod ? '#2563EB' : '#ffffff',
+              color:      isGod ? '#5741D9' : '#ffffff',
               fontWeight: '700',
               fontSize:   13,
               whiteSpace: 'nowrap',
@@ -132,14 +132,14 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
             width:      28,
             height:     28,
             borderRadius: 0,
-            background:  isGod ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.08)',
-            border:      `1px solid ${isGod ? '#2563EB' : 'rgba(255,255,255,0.2)'}`,
+            background:  isGod ? 'rgba(87,65,217,0.2)' : 'rgba(255,255,255,0.08)',
+            border:      `1px solid ${isGod ? '#5741D9' : 'rgba(255,255,255,0.2)'}`,
             display:     'flex',
             alignItems:  'center',
             justifyContent: 'center',
             fontSize:    11,
             fontWeight:  '900',
-            color:       isGod ? '#2563EB' : '#ffffff',
+            color:       isGod ? '#5741D9' : '#ffffff',
             flexShrink:  0,
           }}
         >
@@ -156,7 +156,7 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
           <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1 }}>
             Win Rate
           </span>
-          <span style={{ color: '#2563EB', fontSize: 10, fontWeight: '700' }}>
+          <span style={{ color: '#5741D9', fontSize: 10, fontWeight: '700' }}>
             {wins}/{total} ({winPct}%)
           </span>
         </div>
@@ -174,9 +174,9 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
             style={{
               width:        `${winPct}%`,
               height:       '100%',
-              background:   `linear-gradient(90deg, #ffaa00, #2563EB)`,
+              background:   `linear-gradient(90deg, #ffaa00, #5741D9)`,
               borderRadius: 0,
-              boxShadow:    '0 0 6px rgba(37,99,235,0.6)',
+              boxShadow:    '0 0 6px rgba(87,65,217,0.6)',
               transition:   'width 0.5s ease',
             }}
           />
@@ -242,11 +242,11 @@ export default function AgentHoverCard({ agent, x, y, currentStation }: Props) {
           style={{
             marginTop:    8,
             padding:      '4px 8px',
-            background:   'rgba(37,99,235,0.1)',
-            border:       '1px solid rgba(37,99,235,0.3)',
+            background:   'rgba(87,65,217,0.1)',
+            border:       '1px solid rgba(87,65,217,0.3)',
             borderRadius: 0,
             textAlign:    'center',
-            color:        '#2563EB',
+            color:        '#5741D9',
             fontSize:     9,
             fontWeight:   '700',
             letterSpacing: 1.5,

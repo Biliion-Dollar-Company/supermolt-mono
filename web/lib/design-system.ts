@@ -8,10 +8,10 @@ export const colors = {
   navy: '#0f172a',
   slate: '#1a1f3a',
   
-  // Accents
-  purple: '#8b5cf6',
-  blue: '#3b82f6',
-  cyan: '#06b6d4',
+  // Accents — Kraken purple palette
+  purple: '#5741D9',
+  blue: '#5741D9',
+  cyan: '#8B6EF0',
   pink: '#ec4899',
   
   // Semantic
@@ -72,8 +72,8 @@ export const shadows = {
   md: '0 6px 12px -2px rgba(0, 0, 0, 0.4)',
   lg: '0 10px 15px -3px rgba(0, 0, 0, 0.4)',
   xl: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
-  glow: '0 0 20px rgba(59, 130, 246, 0.4)',
-  glowPurple: '0 0 20px rgba(139, 92, 246, 0.4)',
+  glow: '0 0 20px rgba(87, 65, 217, 0.4)',
+  glowPurple: '0 0 20px rgba(87, 65, 217, 0.4)',
   glowCyan: '0 0 20px rgba(6, 182, 212, 0.4)',
 } as const;
 

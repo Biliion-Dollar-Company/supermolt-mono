@@ -25,7 +25,7 @@ export function AgentMapFeed({ entries }: AgentMapFeedProps) {
 
   const colorClass = (color: FeedEntry['color']) => {
     switch (color) {
-      case 'gold': return '#2563EB';
+      case 'gold': return '#5741D9';
       case 'green': return '#4ade80';
       case 'red': return '#f87171';
       case 'dim': return '#6b7280';
@@ -38,7 +38,7 @@ export function AgentMapFeed({ entries }: AgentMapFeedProps) {
       {/* Header */}
       <div
         className="px-4 py-3 border-b flex items-center gap-2 flex-shrink-0"
-        style={{ borderColor: 'rgba(37,99,235,0.2)', background: 'rgba(5,5,5,0.9)' }}
+        style={{ borderColor: 'rgba(87,65,217,0.2)', background: 'rgba(5,5,5,0.9)' }}
       >
         <span
           className="w-2 h-2 rounded-full animate-pulse"
@@ -46,7 +46,7 @@ export function AgentMapFeed({ entries }: AgentMapFeedProps) {
         />
         <span
           className="text-xs font-bold uppercase tracking-widest"
-          style={{ fontFamily: 'JetBrains Mono, monospace', color: '#2563EB' }}
+          style={{ fontFamily: 'JetBrains Mono, monospace', color: '#5741D9' }}
         >
           Live Feed
         </span>
@@ -59,7 +59,7 @@ export function AgentMapFeed({ entries }: AgentMapFeedProps) {
         style={{
           background: 'rgba(5,5,5,0.95)',
           scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(37,99,235,0.2) transparent',
+          scrollbarColor: 'rgba(87,65,217,0.2) transparent',
         }}
       >
         {entries.length === 0 ? (
@@ -94,7 +94,7 @@ export function AgentMapFeed({ entries }: AgentMapFeedProps) {
       <div
         className="px-4 py-2 border-t text-center flex-shrink-0"
         style={{
-          borderColor: 'rgba(37,99,235,0.1)',
+          borderColor: 'rgba(87,65,217,0.1)',
           background: 'rgba(5,5,5,0.9)',
           fontFamily: 'JetBrains Mono, monospace',
           color: '#374151',

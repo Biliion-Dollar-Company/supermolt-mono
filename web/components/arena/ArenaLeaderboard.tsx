@@ -76,8 +76,8 @@ const ANIMATIONS = `
     50%       { opacity: 0.3; transform: scale(0.65); }
   }
   @keyframes ar-blue-pulse {
-    0%, 100% { box-shadow: 0 0 18px rgba(37,99,235,0.35), 0 0 50px rgba(37,99,235,0.08); }
-    50%       { box-shadow: 0 0 30px rgba(37,99,235,0.55), 0 0 80px rgba(37,99,235,0.14); }
+    0%, 100% { box-shadow: 0 0 18px rgba(87,65,217,0.35), 0 0 50px rgba(87,65,217,0.08); }
+    50%       { box-shadow: 0 0 30px rgba(87,65,217,0.55), 0 0 80px rgba(87,65,217,0.14); }
   }
   @keyframes ar-slide-in {
     from { opacity: 0; transform: translateY(-6px); }

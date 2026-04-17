@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 🌑 Colosseum Design System - Trench Terminal Web */
+/* 🟣 Kraken Agent Terminal Design System */
 
 @layer base {
   * {
@@ -175,7 +175,7 @@
   /* ✨ Glow Divider Line */
   .glow-divider {
     @apply h-px w-full;
-    background: linear-gradient(90deg, transparent, #2563EB, transparent);
+    background: linear-gradient(90deg, transparent, #5741D9, transparent);
     opacity: 0.4;
   }
 
@@ -220,7 +220,7 @@
   /* 📜 Custom Scrollbar (Gold Accent) */
   .scrollbar-custom {
     scrollbar-width: thin;
-    scrollbar-color: #2563EB #0A0A0A;
+    scrollbar-color: #5741D9 #0A0812;
   }
 
   .scrollbar-custom::-webkit-scrollbar {
@@ -277,7 +277,7 @@
 
   /* 🌟 Hero Background FX */
   .hero-glow {
-    background-image: radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.25), transparent 60%);
+    background-image: radial-gradient(circle at 50% 0%, rgba(87, 65, 217, 0.25), transparent 60%);
   }
 
   /* 🔥 Responsive Grid Patterns */
@@ -291,7 +291,7 @@
   }
 
   .hover-glow-blue:hover {
-    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 8px 32px rgba(87, 65, 217, 0.2);
   }
 
   /* 🏟️ Grid pattern background */
@@ -333,7 +333,7 @@
   }
 
   .animate-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(37,99,235,0.3), transparent);
+    background: linear-gradient(90deg, transparent, rgba(87,65,217,0.3), transparent);
     background-size: 200% 100%;
     animation: shimmer 3s ease-in-out infinite;
   }
@@ -341,7 +341,7 @@
   /* Step connector line */
   .step-connector {
     @apply h-px w-full;
-    background: linear-gradient(90deg, rgba(37,99,235,0.4), rgba(37,99,235,0.1));
+    background: linear-gradient(90deg, rgba(87,65,217,0.4), rgba(87,65,217,0.1));
   }
 
   /* 🎰 Vertical marquee / carousel */
@@ -417,9 +417,9 @@
 
   /* Token card pulse — new message highlight */
   @keyframes card-pulse {
-    0% { border-color: rgba(37, 99, 235, 0.4); box-shadow: 0 0 16px rgba(37, 99, 235, 0.1); }
-    50% { border-color: rgba(37, 99, 235, 0.15); box-shadow: 0 0 8px rgba(37, 99, 235, 0.05); }
-    100% { border-color: rgba(37, 99, 235, 0.4); box-shadow: 0 0 16px rgba(37, 99, 235, 0.1); }
+    0% { border-color: rgba(87, 65, 217, 0.4); box-shadow: 0 0 16px rgba(87, 65, 217, 0.1); }
+    50% { border-color: rgba(87, 65, 217, 0.15); box-shadow: 0 0 8px rgba(87, 65, 217, 0.05); }
+    100% { border-color: rgba(87, 65, 217, 0.4); box-shadow: 0 0 16px rgba(87, 65, 217, 0.1); }
   }
 
   .animate-card-pulse {
@@ -487,7 +487,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    border: 1px solid rgba(37, 99, 235, 0.25);
+    border: 1px solid rgba(87, 65, 217, 0.25);
     -webkit-mask-image:
       linear-gradient(to right, transparent, white 25%, white 75%, transparent),
       linear-gradient(to bottom, transparent, white 25%, white 75%, transparent);

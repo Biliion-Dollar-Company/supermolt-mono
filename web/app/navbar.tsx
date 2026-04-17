@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { BarChart3, BookOpen, Flame, Menu, MessageSquare, Trophy, X } from 'lucide-react';
+import { BarChart3, Bot, LayoutDashboard, LineChart, Menu, Trophy, TrendingUp, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import UserAuthButton from '@/components/auth/UserAuthButton';
-import { DexscreenerIcon } from '@/components/icons/action-icons';
 
 function XIcon({ className }: { className?: string }) {
   return (
@@ -21,10 +20,11 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks = [
-    { href: '/#feed', label: 'Hot Feed', Icon: Flame },
-    { href: '/#filters', label: 'Narratives', Icon: MessageSquare },
-    { href: '/#health', label: 'Health', Icon: BarChart3 },
-    { href: '/#copers', label: 'Copers', Icon: Trophy },
+    { href: '/war-room', label: 'War Room', Icon: TrendingUp },
+    { href: '/arena', label: 'Arena', Icon: Bot },
+    { href: '/leaderboard', label: 'Leaderboard', Icon: Trophy },
+    { href: '/positions', label: 'Positions', Icon: LineChart },
+    { href: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   ];
 
   const isActive = (href: string) => {
@@ -41,17 +41,17 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-bg-primary/95 backdrop-blur-lg sticky top-0 z-50 relative after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:h-px after:w-full after:bg-[linear-gradient(90deg,transparent_0%,rgba(37,99,235,0.01)_10%,rgba(37,99,235,0.4)_50%,rgba(37,99,235,0.01)_90%,transparent_100%)]">
+    <nav className="bg-bg-primary/95 backdrop-blur-lg sticky top-0 z-50 relative after:absolute after:bottom-0 after:left-1/2 after:-translate-x-1/2 after:h-px after:w-full after:bg-[linear-gradient(90deg,transparent_0%,rgba(87,65,217,0.01)_10%,rgba(87,65,217,0.4)_50%,rgba(87,65,217,0.01)_90%,transparent_100%)]">
       <div className="container-colosseum">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
             <div>
               <div className="text-xl font-black uppercase tracking-tight text-white transition-colors group-hover:text-accent-soft">
-                Solana Brainrot
+                Kraken Agent Terminal
               </div>
               <div className="text-[10px] uppercase tracking-[0.24em] text-text-muted -mt-0.5">
-                by Trench Terminal
+                AI Trading Hackathon
               </div>
             </div>
           </Link>
@@ -88,34 +88,20 @@ export default function Navbar() {
             })}
             <li className="relative h-full flex items-center">
               <a
-                href="/api/skill.md"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/agents"
                 className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-all duration-200 text-text-secondary hover:text-text-primary whitespace-nowrap"
               >
-                <BookOpen className="w-4 h-4" />
-                <span>Docs</span>
+                <BarChart3 className="w-4 h-4" />
+                <span>Agents</span>
               </a>
             </li>
             <li className="relative h-full flex items-center">
               <a
-                href="https://dexscreener.com/solana"
+                href="https://x.com/krakenfx"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-all duration-200 text-text-secondary hover:text-text-primary whitespace-nowrap"
-                title="DexScreener"
-              >
-                <DexscreenerIcon className="w-4 h-4" />
-                <span>Chart</span>
-              </a>
-            </li>
-            <li className="relative h-full flex items-center">
-              <a
-                href="https://x.com/SupermoltSol"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-all duration-200 text-text-secondary hover:text-text-primary whitespace-nowrap"
-                title="X / Twitter"
+                title="Kraken on X"
               >
                 <XIcon className="w-4 h-4" />
               </a>

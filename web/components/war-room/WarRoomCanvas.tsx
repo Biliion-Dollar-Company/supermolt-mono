@@ -642,11 +642,11 @@ export default function WarRoomCanvas({ agents, onEvent, onAgentHover, onLiveTx,
             zIndex: 40,
             fontFamily: 'JetBrains Mono, monospace',
             fontSize: '9px',
-            color: 'rgba(37,99,235,0.5)',
+            color: 'rgba(87,65,217,0.5)',
             letterSpacing: '0.5px',
             background: 'rgba(0,0,0,0.6)',
             padding: '6px 10px',
-            border: '1px solid rgba(37,99,235,0.15)',
+            border: '1px solid rgba(87,65,217,0.15)',
             animation: 'fadeOut 1s ease-out 5s forwards',
           }}
         >

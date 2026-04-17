@@ -65,7 +65,7 @@ function GraduationRow({ token }: { token: BSCTokenGraduation }) {
   return (
     <div className="flex items-center gap-3 py-2.5 px-3 hover:bg-white/[0.02] transition-colors">
       {/* Rocket icon */}
-      <Rocket className="w-4 h-4 text-[#2563EB] flex-shrink-0" />
+      <Rocket className="w-4 h-4 text-[#5741D9] flex-shrink-0" />
 
       {/* Token info */}
       <div className="flex-1 min-w-0">
@@ -93,7 +93,7 @@ function GraduationRow({ token }: { token: BSCTokenGraduation }) {
             href={token.pancakeSwapUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-white/35 hover:text-[#2563EB] transition-colors"
+            className="text-white/35 hover:text-[#5741D9] transition-colors"
             title="Trade on PancakeSwap"
           >
             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -167,7 +167,7 @@ export function GraduationPanel() {
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <Rocket className="w-4 h-4 text-[#2563EB]" />
+          <Rocket className="w-4 h-4 text-[#5741D9]" />
           <h3 className="text-sm font-semibold text-white/55 uppercase tracking-wider">
             BSC Graduations
           </h3>
@@ -187,7 +187,7 @@ export function GraduationPanel() {
             <div className="text-[10px] text-white/35 uppercase">Created</div>
           </div>
           <div className="bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-center">
-            <div className="text-lg font-bold font-mono text-[#2563EB]">{stats.totalGraduated}</div>
+            <div className="text-lg font-bold font-mono text-[#5741D9]">{stats.totalGraduated}</div>
             <div className="text-[10px] text-white/35 uppercase">Graduated</div>
           </div>
           <div className="bg-white/[0.03] border border-white/[0.06] px-3 py-2 text-center">

@@ -67,7 +67,7 @@ export function TrackedWalletsConfig({
             key={wallet.address}
             className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/[0.08] border border-white/[0.12] rounded-full text-sm"
           >
-            <Wallet className="w-3.5 h-3.5 text-[#2563EB]" />
+            <Wallet className="w-3.5 h-3.5 text-[#5741D9]" />
             <span className="text-white font-mono text-xs">
               {wallet.label || truncateAddress(wallet.address)}
             </span>
@@ -136,7 +136,7 @@ export function TrackedWalletsConfig({
                 <Button
                   onClick={handleAdd}
                   disabled={!newAddress.trim()}
-                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-black"
+                  className="bg-[#5741D9] hover:bg-[#3D2DB8] text-black"
                 >
                   Add Wallet
                 </Button>

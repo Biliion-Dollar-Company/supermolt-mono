@@ -30,7 +30,7 @@ function TaskStatusBadge({ status }: { status: string }) {
       );
     default:
       return (
-        <span className="flex items-center gap-0.5 text-[10px] text-[#2563EB] bg-[#2563EB]/10 px-1 py-0.5 rounded flex-shrink-0">
+        <span className="flex items-center gap-0.5 text-[10px] text-[#5741D9] bg-[#5741D9]/10 px-1 py-0.5 rounded flex-shrink-0">
           <Circle className="w-2.5 h-2.5" />
           Open
         </span>
@@ -167,8 +167,8 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
       <div className="px-6 py-4 border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
           <div className="relative w-7 h-7 flex-shrink-0">
-            <div className="w-7 h-7 rounded-full bg-[#2563EB]/20 flex items-center justify-center">
-              <span className="text-xs font-bold text-[#2563EB]">{tokenSymbol[0]}</span>
+            <div className="w-7 h-7 rounded-full bg-[#5741D9]/20 flex items-center justify-center">
+              <span className="text-xs font-bold text-[#5741D9]">{tokenSymbol[0]}</span>
             </div>
             {tokenMint && (
               <img
@@ -179,11 +179,11 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
               />
             )}
           </div>
-          <span className="text-2xl font-bold font-mono text-[#2563EB]">{tokenSymbol}</span>
+          <span className="text-2xl font-bold font-mono text-[#5741D9]">{tokenSymbol}</span>
           <div className="flex items-center gap-3 ml-auto text-xs">
             <span className="text-green-400">{buyCount} buys</span>
             <span className="text-red-400">{sellCount} sells</span>
-            {activeVotes > 0 && <span className="text-[#2563EB]">{activeVotes} votes</span>}
+            {activeVotes > 0 && <span className="text-[#5741D9]">{activeVotes} votes</span>}
             {totalPnl !== 0 && (
               <span className={`font-mono font-bold ${totalPnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
                 {totalPnl > 0 ? '+' : '-'}{fmt(Math.abs(totalPnl))}
@@ -365,7 +365,7 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
                             {vote.action}
                           </span>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                            vote.status === 'active' ? 'bg-[#2563EB]/10 text-[#2563EB]' :
+                            vote.status === 'active' ? 'bg-[#5741D9]/10 text-[#5741D9]' :
                             vote.status === 'passed' ? 'bg-green-500/10 text-green-400' :
                             'bg-red-500/10 text-red-400'
                           }`}>

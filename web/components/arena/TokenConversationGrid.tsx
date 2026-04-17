@@ -83,7 +83,7 @@ export function TokenConversationGrid({ tokens, newMints, onTokenClick }: TokenC
               onClick={() => setSortMode(key)}
               className={`flex items-center gap-1 text-[10px] font-medium px-2 py-1 rounded-md transition-all cursor-pointer ${
                 sortMode === key
-                  ? 'text-[#2563EB] bg-[#2563EB]/10'
+                  ? 'text-[#5741D9] bg-[#5741D9]/10'
                   : 'text-white/35/50 hover:text-white/35'
               }`}
             >

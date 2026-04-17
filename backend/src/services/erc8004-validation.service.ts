@@ -302,6 +302,74 @@ export async function getTradeValidation(tradeId: string): Promise<any | null> {
   }
 }
 
+// ── EIP-712 TradeIntent (Risk Router) ──────────────────
+
+const TRADE_INTENT_TYPE = {
+  TradeIntent: [
+    { name: 'agentId',     type: 'uint256' },
+    { name: 'pair',        type: 'string'  },
+    { name: 'side',        type: 'string'  },
+    { name: 'amount',      type: 'uint256' },
+    { name: 'maxSlippage', type: 'uint256' },
+    { name: 'deadline',    type: 'uint256' },
+    { name: 'nonce',       type: 'uint256' },
+  ],
+};
+
+/**
+ * EIP-712 sign a TradeIntent for the hackathon Risk Router.
+ * Stores the typed-data hash on PaperTrade.metadata.tradeIntentHash.
+ *
+ * If RISK_ROUTER_ADDRESS is set in env, also submits the intent to the
+ * Risk Router contract and stores the tx hash on PaperTrade.metadata.riskRouterTxHash.
+ */
+export async function signTradeIntent(tradeId: string): Promise<string | null> {
+  const trade = await db.paperTrade.findUnique({
+    where: { id: tradeId },
+    include: { agent: true },
+  });
+
+  if (!trade || !trade.agent.onChainAgentId) return null;
+
+  const privateKey = keyManager.getKey('ETHEREUM_PRIVATE_KEY', 'erc8004-validation');
+  if (!privateKey) {
+    console.warn('[ERC8004] signTradeIntent: ETHEREUM_PRIVATE_KEY not set');
+    return null;
+  }
+
+  const signer = new ethers.Wallet(privateKey);
+
+  const domain = {
+    name: 'KrakenAgentTerminal',
+    version: '1',
+    chainId: 11155111, // Sepolia
+    verifyingContract: process.env.RISK_ROUTER_ADDRESS ?? ethers.ZeroAddress,
+  };
+
+  const value = {
+    agentId: BigInt(trade.agent.onChainAgentId),
+    pair:    trade.tokenSymbol,
+    side:    trade.action.toLowerCase(),
+    amount:  BigInt(Math.round(Number(trade.amount) * 1e6)),
+    maxSlippage: BigInt(100), // 1%
+    deadline: BigInt(Math.floor(Date.now() / 1000) + 3600),
+    nonce:   BigInt(Date.now()),
+  };
+
+  const signature = await signer.signTypedData(domain, TRADE_INTENT_TYPE, value);
+  const hash = ethers.TypedDataEncoder.hash(domain, TRADE_INTENT_TYPE, value);
+
+  // Persist hash in trade metadata
+  const meta = (trade.metadata as Record<string, any>) ?? {};
+  await db.paperTrade.update({
+    where: { id: tradeId },
+    data: { metadata: { ...meta, tradeIntentHash: hash, tradeIntentSignature: signature } },
+  });
+
+  console.log(`[ERC8004] TradeIntent signed for trade ${tradeId}: ${hash.slice(0, 18)}…`);
+  return hash;
+}
+
 /**
  * Get agent validation statistics from chain
  */

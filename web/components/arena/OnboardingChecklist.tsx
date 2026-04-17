@@ -44,7 +44,7 @@ export function OnboardingChecklist({ tasks, completedTasks, totalTasks }: Onboa
                   {task.title}
                 </span>
               </div>
-              <span className={`text-xs font-mono ${done ? 'text-green-400' : 'text-[#2563EB]'}`}>
+              <span className={`text-xs font-mono ${done ? 'text-green-400' : 'text-[#5741D9]'}`}>
                 +{task.xpReward} XP
               </span>
             </div>

@@ -263,7 +263,7 @@ function BlinkingCursor() {
         display: 'inline-block',
         width: '7px',
         height: '12px',
-        background: '#2563EB',
+        background: '#5741D9',
         marginLeft: '2px',
         verticalAlign: 'middle',
         animation: 'blink-cursor 1s step-end infinite',
@@ -314,7 +314,32 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
   const [narrative, setNarrative] = useState('');
   const [updateCount, setUpdateCount] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [consensus, setConsensus] = useState<any>(null); // Gazillion Intelligence Consensus
   const { displayed, done } = useTypewriter(narrative, 16);
+
+  // Listen for GI Consensus updates
+  useEffect(() => {
+    // This is a placeholder for the actual socket.on('feed:war-room') listener
+    // In a real environment, this would be wired to the websocket provider
+    const handleConsensus = (event: any) => {
+      if (event.type === 'consensus:update') {
+        setConsensus(event.result);
+      }
+    };
+    
+    // Mocking a consensus event for the demo visual
+    if (narrative.includes('HIGH CONVICTION')) {
+      setConsensus({
+        decision: 'BUY',
+        confidence: 88,
+        debate: [
+          { name: '🛰️ The Scout', message: 'Narrative is exploding on X. $BAGS integration confirmed.', sentiment: 'BULLISH' },
+          { name: '🛡️ The Analyst', message: 'Liquidity is thin but locking. No rug patterns detected.', sentiment: 'NEUTRAL' },
+          { name: '⚔️ The General', message: 'Consensus reached. Execute 1.5 SOL entry.', sentiment: 'BULLISH' }
+        ]
+      });
+    }
+  }, [narrative]);
 
   // Store latest props in refs so the interval always reads current data
   // without causing the useEffect to re-fire on every prop change
@@ -364,7 +389,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
 
   const signalColor =
     signalLevel === 'high'
-      ? '#2563EB'
+      ? '#5741D9'
       : signalLevel === 'medium'
       ? '#ffaa00'
       : 'rgba(255,255,255,0.45)';
@@ -400,7 +425,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
         style={{
           height: '40%',
           minHeight: '160px',
-          borderBottom: '1px solid rgba(37,99,235,0.25)',
+          borderBottom: '1px solid rgba(87,65,217,0.25)',
           background: '#080808',
           position: 'relative',
           overflow: 'hidden',
@@ -410,7 +435,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
         <div
           className="flex items-center gap-2 px-4 py-2 flex-shrink-0"
           style={{
-            borderBottom: '1px solid rgba(37,99,235,0.15)',
+            borderBottom: '1px solid rgba(87,65,217,0.15)',
             background: '#050505',
           }}
         >
@@ -436,7 +461,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
               fontSize: '10px',
               fontWeight: '800',
               letterSpacing: '2px',
-              color: '#2563EB',
+              color: '#5741D9',
               flex: 1,
             }}
           >
@@ -468,7 +493,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
                 position: 'absolute',
                 inset: 0,
                 background:
-                  'radial-gradient(ellipse at 50% 50%, rgba(37,99,235,0.04) 0%, transparent 70%)',
+                  'radial-gradient(ellipse at 50% 50%, rgba(87,65,217,0.04) 0%, transparent 70%)',
                 pointerEvents: 'none',
               }}
             />
@@ -488,13 +513,33 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
             {displayed}
             {!done && <BlinkingCursor />}
           </p>
+
+          {/* GI Consensus War Room Debate */}
+          {consensus && (
+            <div className="mt-4 pt-3" style={{ borderTop: '1px dashed rgba(87,65,217,0.3)' }}>
+              <div className="flex justify-between items-center mb-2">
+                <span style={{ fontSize: '9px', fontWeight: '800', color: '#5741D9' }}>⚔️ GI WAR ROOM DEBATE</span>
+                <span style={{ fontSize: '9px', fontWeight: '800', color: consensus.decision === 'BUY' ? '#c4f70e' : '#ff4400' }}>
+                  {consensus.decision} ({consensus.confidence}%)
+                </span>
+              </div>
+              <div className="space-y-2">
+                {consensus.debate.map((m: any, idx: number) => (
+                  <div key={idx} style={{ fontSize: '9px', lineHeight: '1.4' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' }}>{m.name}:</span>{' '}
+                    <span style={{ color: 'rgba(255,255,255,0.7)' }}>{m.message}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer: timestamp + refresh counter */}
         <div
           className="flex items-center justify-between px-4 py-1.5 flex-shrink-0"
           style={{
-            borderTop: '1px solid rgba(37,99,235,0.08)',
+            borderTop: '1px solid rgba(87,65,217,0.08)',
             background: '#040404',
           }}
         >
@@ -512,7 +557,7 @@ export default function IntelBrief({ agents, events, stations = [], scannerCalls
             style={{
               fontFamily: 'JetBrains Mono, monospace',
               fontSize: '8px',
-              color: 'rgba(37,99,235,0.3)',
+              color: 'rgba(87,65,217,0.3)',
               letterSpacing: '0.5px',
             }}
           >

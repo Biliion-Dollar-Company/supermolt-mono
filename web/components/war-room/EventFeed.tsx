@@ -43,7 +43,7 @@ export default function EventFeed({ events, hideHeader = false }: EventFeedProps
         width: '280px',
         minWidth: '280px',
         background: '#0A0A0A',
-        borderLeft: '1px solid rgba(37, 99, 235, 0.3)',
+        borderLeft: '1px solid rgba(87, 65, 217, 0.3)',
       };
 
   return (
@@ -52,7 +52,7 @@ export default function EventFeed({ events, hideHeader = false }: EventFeedProps
       {!hideHeader && (
         <div
           className="flex items-center gap-2 px-4 py-3 flex-shrink-0"
-          style={{ borderBottom: '1px solid rgba(37, 99, 235, 0.2)' }}
+          style={{ borderBottom: '1px solid rgba(87, 65, 217, 0.2)' }}
         >
           {/* Pulsing dot */}
           <span
@@ -65,7 +65,7 @@ export default function EventFeed({ events, hideHeader = false }: EventFeedProps
           />
           <h2
             className="text-xs font-bold uppercase tracking-widest"
-            style={{ color: '#2563EB', fontFamily: 'JetBrains Mono, monospace' }}
+            style={{ color: '#5741D9', fontFamily: 'JetBrains Mono, monospace' }}
           >
             Live Feed
           </h2>
@@ -84,7 +84,7 @@ export default function EventFeed({ events, hideHeader = false }: EventFeedProps
         className="flex-1 overflow-y-auto"
         style={{
           scrollbarWidth: 'thin',
-          scrollbarColor: 'rgba(37,99,235,0.2) transparent',
+          scrollbarColor: 'rgba(87,65,217,0.2) transparent',
         }}
       >
         {events.length === 0 ? (
@@ -107,7 +107,7 @@ export default function EventFeed({ events, hideHeader = false }: EventFeedProps
       <div
         className="px-4 py-2 flex-shrink-0 text-xs"
         style={{
-          borderTop: '1px solid rgba(37, 99, 235, 0.1)',
+          borderTop: '1px solid rgba(87, 65, 217, 0.1)',
           color: 'rgba(255,255,255,0.2)',
           fontFamily: 'JetBrains Mono, monospace',
         }}
@@ -135,7 +135,7 @@ function EventRow({ event, isLatest }: EventRowProps) {
       style={{
         borderColor: 'rgba(255,255,255,0.04)',
         fontFamily: 'JetBrains Mono, monospace',
-        background: isLatest ? 'rgba(37,99,235,0.04)' : 'transparent',
+        background: isLatest ? 'rgba(87,65,217,0.04)' : 'transparent',
         transition: 'background 0.3s',
       }}
     >
@@ -157,7 +157,7 @@ function EventRow({ event, isLatest }: EventRowProps) {
       </div>
       {/* Agent + token row */}
       <div className="flex items-center gap-1">
-        <span style={{ color: '#2563EB', fontWeight: '700', fontSize: '10px' }}>
+        <span style={{ color: '#5741D9', fontWeight: '700', fontSize: '10px' }}>
           {event.agentName}
         </span>
         <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '10px' }}>→</span>

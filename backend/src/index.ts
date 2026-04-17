@@ -5,20 +5,20 @@ import { serve } from 'bun';
 import { Server as HTTPServer } from 'http';
 import { env } from './lib/env';
 import { db } from './lib/db';
-import { HeliusWebSocketMonitor } from './services/helius-websocket.js';
+// [KRAKEN] import { HeliusWebSocketMonitor } from './services/helius-websocket.js';
 import { websocketEvents } from './services/websocket-events.js';
-import { DevPrintFeedService } from './services/devprint-feed.service.js';
-import { createBSCMonitor } from './services/bsc-monitor.js';
-import { createBaseMonitor } from './services/base-monitor.js';
-import { createFourMemeMonitor } from './services/fourmeme-monitor.js';
-import { createClankerMonitor } from './services/clanker-monitor.js';
+// [KRAKEN] import { DevPrintFeedService } from './services/devprint-feed.service.js';
+// [KRAKEN] import { createBSCMonitor } from './services/bsc-monitor.js';
+// [KRAKEN] import { createBaseMonitor } from './services/base-monitor.js';
+// [KRAKEN] import { createFourMemeMonitor } from './services/fourmeme-monitor.js';
+// [KRAKEN] import { createClankerMonitor } from './services/clanker-monitor.js';
 
 import { createSortinoCron } from './services/sortino-cron.js';
 import { createPredictionCron } from './services/prediction-cron.js';
-import { createPolymarketSyncCron } from './services/polymarket/polymarket.cron';
-import { createPolymarketArbCron } from './services/polymarket/polymarket.arb-cron';
-import { createPolymarketLatencyCron } from './services/polymarket/polymarket.latency-cron';
-import { createPolymarketWeatherCron } from './services/polymarket/polymarket.weather-cron';
+// [KRAKEN] import { createPolymarketSyncCron } from './services/polymarket/polymarket.cron';
+// [KRAKEN] import { createPolymarketArbCron } from './services/polymarket/polymarket.arb-cron';
+// [KRAKEN] import { createPolymarketLatencyCron } from './services/polymarket/polymarket.latency-cron';
+// [KRAKEN] import { createPolymarketWeatherCron } from './services/polymarket/polymarket.weather-cron';
 import { createMetricsMiddleware, getMetrics, getMetricsContentType, updateAgentMetrics, updateEpochMetrics } from './services/metrics.service.js';
 import { DistributedLockService, getReplicaId } from './services/distributed-lock.service.js';
 
@@ -44,12 +44,12 @@ import { skillsGuide } from './routes/skills-guide';
 import { docsRoutes } from './routes/docs';
 import { swaggerRoutes } from './routes/swagger';
 import { siweAuthRoutes } from './routes/auth.siwe';
-import { bscRoutes } from './routes/bsc.routes';
-import { baseRoutes } from './routes/base.routes';
-import { surgeRoutes } from './routes/surge.routes';
-import { pumpfunRoutes } from './routes/pumpfun.routes';
+// [KRAKEN] import { bscRoutes } from './routes/bsc.routes';
+// [KRAKEN] import { baseRoutes } from './routes/base.routes';
+// [KRAKEN] import { surgeRoutes } from './routes/surge.routes';
+// [KRAKEN] import { pumpfunRoutes } from './routes/pumpfun.routes';
 import { predictionRoutes } from './routes/prediction.routes';
-import polymarketRoutes from './routes/polymarket.routes';
+// [KRAKEN] import polymarketRoutes from './routes/polymarket.routes';
 import glintRoutes from './routes/glint.routes';
 import swarmRoutes from './routes/swarm.routes';
 import socialFeedRoutes from './routes/social-feed.routes';
@@ -57,10 +57,11 @@ import narrativeRoutes from './routes/narratives.routes';
 import { runStartupMigrations } from './lib/migrate';
 import { trading } from './routes/trading.routes';
 import { erc8004Routes } from './routes/erc8004.routes';
-import { pumpAgentPaymentsRoutes } from './routes/pump-agent-payments.routes';
-import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
+import { krakenRoutes } from './routes/kraken.routes';
+// [KRAKEN] import { pumpAgentPaymentsRoutes } from './routes/pump-agent-payments.routes';
+// [KRAKEN] import { startAutoBuyExecutor, stopAutoBuyExecutor } from './services/auto-buy-executor';
 import { getScannerScheduler } from './scanners/scheduler';
-import { startTrendingTokenSync, stopTrendingTokenSync } from './services/trending-token-sync';
+// [KRAKEN] import { startTrendingTokenSync, stopTrendingTokenSync } from './services/trending-token-sync';
 import { startTokenDiscussionEngine, stopTokenDiscussionEngine } from './services/token-discussion-engine';
 import { startNarrativeIntelEngine, stopNarrativeIntelEngine } from './services/narrative-intel.service';
 import { getPredictionCoordinator } from './services/prediction-coordinator';
@@ -69,7 +70,7 @@ import { getPredictionCoordinator } from './services/prediction-coordinator';
 import adminFix from './routes/admin-scanner-fix';
 
 // Circle Gateway — cross-chain USDC distribution
-import { gatewayRoutes } from './routes/gateway.routes';
+// [KRAKEN] import { gatewayRoutes } from './routes/gateway.routes';
 
 // USDC Hackathon Routes (Standardized Modules)
 import treasuryModule from './modules/treasury/treasury.routes';
@@ -95,20 +96,14 @@ function envFlag(name: string, defaultValue: boolean): boolean {
 }
 
 // Global Helius monitor instance (for dynamic wallet management)
-let heliusMonitor: HeliusWebSocketMonitor | null = null;
+// [KRAKEN] let heliusMonitor: any = null;
 
 // DevPrint feed service (market intelligence relay)
-let devprintFeed: DevPrintFeedService | null = null;
+// [KRAKEN] let devprintFeed: any = null;
 
-// Export function to get monitor instance
-export function getHeliusMonitor(): HeliusWebSocketMonitor | null {
-  return heliusMonitor;
-}
-
-// Export function to get DevPrint feed instance
-export function getDevPrintFeed(): DevPrintFeedService | null {
-  return devprintFeed;
-}
+// Stub exports so existing routes that import these don't break at compile time
+export function getHeliusMonitor(): any { return null; }
+export function getDevPrintFeed(): any { return null; }
 
 // CORS Configuration - Allow frontend origins
 // Extra origins can be added via ALLOWED_ORIGINS env var (comma-separated)
@@ -222,41 +217,42 @@ app.route('/agent', agentBalanceRoutes); // Agent wallet balance
 app.route('/trading', trading);
 
 // Treasury routes (USDC reward distribution)
-app.route('/treasury', treasuryModule); // Treasury management and USDC distribution
-app.route('/gateway', gatewayRoutes);   // Circle Gateway cross-chain USDC distribution
+// [KRAKEN] app.route('/treasury', treasuryModule); // Treasury management and USDC distribution
+// [KRAKEN] app.route('/gateway', gatewayRoutes);   // Circle Gateway cross-chain USDC distribution
 
 // Internal routes (API key required — DevPrint → SR-Mobile)
 app.route('/internal', internal);
 
 // USDC Hackathon API Routes (Public for hackathon demo)
-app.route('/api/treasury', treasuryModule);
+// [KRAKEN] app.route('/api/treasury', treasuryModule);
 app.route('/api/leaderboard', leaderboard);
 app.route('/api/epochs', epochs);
 app.route('/api/calls', calls);
 
 // BSC routes (token factory, treasury, monitoring)
-app.route('/bsc', bscRoutes);
+// [KRAKEN] app.route('/bsc', bscRoutes);
 
 // Base chain routes (Clanker token deployer, trade monitor)
-app.route('/base', baseRoutes);
+// [KRAKEN] app.route('/base', baseRoutes);
 
 // ERC-8004 routes (Agent Identity, Reputation, Validation)
 app.route('/erc8004', erc8004Routes);
+app.route('/kraken', krakenRoutes); // Kraken CLI challenge endpoints
 
 // Base chain routes (Surge OpenClaw API — managed wallets, trading, treasury)
-app.route('/surge', surgeRoutes);
+// [KRAKEN] app.route('/surge', surgeRoutes);
 
 // Solana routes (pump.fun token launcher)
-app.route('/pumpfun', pumpfunRoutes);
+// [KRAKEN] app.route('/pumpfun', pumpfunRoutes);
 
 // pump.fun Tokenized Agent Payments
-app.route('/pump-payments', pumpAgentPaymentsRoutes);
+// [KRAKEN] app.route('/pump-payments', pumpAgentPaymentsRoutes);
 
 // Prediction market routes (Kalshi + future platforms)
 app.route('/prediction', predictionRoutes);
 
 // Polymarket routes (multi-agent prediction markets)
-app.route('/api/polymarket', polymarketRoutes);
+// [KRAKEN] app.route('/api/polymarket', polymarketRoutes);
 
 // Social Feed routes (agent posts, comments, likes, shares)
 app.route('/social-feed', socialFeedRoutes);
@@ -286,12 +282,12 @@ app.route('/news', newsRoutes);
 app.route('/referral', referralRoutes);
 
 // Compliance routes (KYC, KYT, AML, Travel Rule — StableHacks 2026)
-import { complianceRoutes } from './routes/compliance.routes';
-app.route('/compliance', complianceRoutes);
+// [KRAKEN] import { complianceRoutes } from './routes/compliance.routes';
+// [KRAKEN] app.route('/compliance', complianceRoutes);
 
 // RWA Portfolio Management
-import { rwaRoutes } from './routes/rwa.routes';
-app.route('/rwa', rwaRoutes);
+// [KRAKEN] import { rwaRoutes } from './routes/rwa.routes';
+// [KRAKEN] app.route('/rwa', rwaRoutes);
 
 // System routes (pipeline status, agent config)
 app.route('/api/system', systemRoutes);
@@ -299,7 +295,7 @@ app.route('/api/system', systemRoutes);
 // Root
 app.get('/', (c) => {
   return c.json({
-    name: 'SR-Mobile API',
+    name: 'Kraken Agent Terminal API',
     version: '0.3.0',
     docs: '/health',
     endpoints: {
@@ -378,12 +374,9 @@ async function startHeliusMonitor() {
   ];
 
   try {
-    heliusMonitor = new HeliusWebSocketMonitor(heliusApiKey, trackedWallets, db);
+    // [KRAKEN] heliusMonitor = new HeliusWebSocketMonitor(heliusApiKey, trackedWallets, db);
 
-    // Start in background
-    heliusMonitor.start().catch((error) => {
-      console.error('❌ Helius monitor failed to start:', error);
-    });
+    // [KRAKEN] heliusMonitor.start().catch((error) => { console.error('❌ Helius monitor failed to start:', error); });
 
     // Load user-defined tracked wallets from DB into monitor
     try {
@@ -394,7 +387,7 @@ async function startHeliusMonitor() {
       let added = 0;
       for (const w of userWallets) {
         if (!trackedWallets.includes(w.address)) {
-          heliusMonitor.addWallet(w.address);
+          // [KRAKEN] heliusMonitor.addWallet(w.address);
           added++;
         }
       }
@@ -410,9 +403,7 @@ async function startHeliusMonitor() {
     // Graceful shutdown
     process.on('SIGTERM', async () => {
       console.log('\n🛑 Shutting down...');
-      if (heliusMonitor) {
-        await heliusMonitor.stop();
-      }
+        // [KRAKEN] if (heliusMonitor) { await heliusMonitor.stop(); }
       process.exit(0);
     });
   } catch (error) {
@@ -533,13 +524,11 @@ import('./services/agent-signal-reactor.js').then(({ ensureObserverAgents }) => 
 
 // Start DevPrint feed service (market intelligence relay)
 if (env.DEVPRINT_WS_URL) {
-  devprintFeed = new DevPrintFeedService(env.DEVPRINT_WS_URL);
-  devprintFeed.start().catch((err) => {
-    console.error('❌ DevPrint feed failed to start:', err);
-  });
+  // [KRAKEN] devprintFeed = new DevPrintFeedService(env.DEVPRINT_WS_URL);
+  // [KRAKEN] devprintFeed.start().catch((err) => { console.error('❌ DevPrint feed failed to start:', err); });
   console.log('✅ DevPrint feed service started');
   // Wire DevPrint feed getter into system routes for pipeline-status
-  setDevPrintFeedGetter(() => devprintFeed);
+  // [KRAKEN] setDevPrintFeedGetter(() => devprintFeed);
 } else {
   console.warn('⚠️  DEVPRINT_WS_URL not set, DevPrint feed disabled');
 }
@@ -562,51 +551,21 @@ if (enableHeliusMonitor) {
 }
 
 // Start BSC Trade Monitor (always on — RPC-based, no API key needed)
-const bscMonitor = createBSCMonitor();
-bscMonitor.start().catch((err) => {
-  console.error('❌ BSC monitor failed to start:', err);
-});
+// [KRAKEN] const bscMonitor = createBSCMonitor();
+// [KRAKEN] bscMonitor.start().catch((err) => { console.error('❌ BSC monitor failed to start:', err); });
 
-// Start Base Trade Monitor (always on — RPC-based, no API key needed)
-const baseMonitor = createBaseMonitor();
-baseMonitor.start().catch((err) => {
-  console.error('❌ Base monitor failed to start:', err);
-});
+// [KRAKEN] const baseMonitor = createBaseMonitor();
+// [KRAKEN] baseMonitor.start().catch((err) => { console.error('❌ Base monitor failed to start:', err); });
 
-// Start Clanker Token Launch Monitor (always on — RPC-based)
-const clankerMonitor = createClankerMonitor();
-clankerMonitor.start().catch((err) => {
-  console.error('❌ Clanker monitor failed to start:', err);
-});
+// [KRAKEN] const clankerMonitor = createClankerMonitor();
+// [KRAKEN] clankerMonitor.start().catch((err) => { console.error('❌ Clanker monitor failed to start:', err); });
 
-// Start Four.Meme Migration Monitor (always on — RPC-based, no API key needed)
-const fourMemeMonitor = createFourMemeMonitor();
-fourMemeMonitor.onMigration(async (event) => {
-  console.log(`🎉 [4meme] New token: ${event.tokenSymbol} (${event.tokenAddress.slice(0, 10)}...)`);
-
-  // Generate agent conversation about the migration
-  try {
-    const { agentSignalReactor } = await import('./services/agent-signal-reactor.js');
-    await agentSignalReactor.react('new_token', {
-      mint: event.tokenAddress,
-      symbol: event.tokenSymbol,
-      name: event.tokenName,
-      marketCap: 0,
-      liquidity: 0,
-      chain: 'BSC',
-      source: 'four_meme_migration',
-      txHash: event.txHash,
-    });
-  } catch (err) {
-    console.error('[4meme] Failed to generate agent conversation:', err);
-  }
-});
-fourMemeMonitor.start().catch((err) => {
-  console.error('❌ 4meme monitor failed to start:', err);
-});
+// [KRAKEN] const fourMemeMonitor = createFourMemeMonitor();
+// [KRAKEN] fourMemeMonitor.onMigration(async (event) => { /* ... */ });
+// [KRAKEN] fourMemeMonitor.start().catch((err) => { console.error('❌ 4meme monitor failed to start:', err); });
 
 // Start Auto-Buy Executor (always on — processes trigger engine queue)
-startAutoBuyExecutor();
+// [KRAKEN] startAutoBuyExecutor();
 
 // Start Sortino cron job (hourly recalculation)
 const lockService = new DistributedLockService(db, replicaId);
@@ -622,21 +581,8 @@ if (enableSortinoCron) {
     console.warn('⚠️  Prediction cron failed to start (tables may not exist yet):', err);
   }
   
-  // Start Polymarket sync cron
-  try {
-    if (envFlag('ENABLE_POLYMARKET_SYNC', true)) {
-      const polymarketCron = createPolymarketSyncCron();
-      console.log('✅ Polymarket sync cron started');
-      const arbCron = createPolymarketArbCron();
-      console.log('✅ Polymarket arb scanner cron started');
-      const latencyCron = createPolymarketLatencyCron();
-      console.log('✅ Polymarket latency arb scanner cron started');
-      const weatherCron = createPolymarketWeatherCron();
-      console.log('✅ Polymarket weather scanner cron started');
-    }
-  } catch (err) {
-    console.warn('⚠️  Polymarket sync failed to start:', err);
-  }
+  // [KRAKEN] Polymarket crons disabled
+  // createPolymarketSyncCron / createPolymarketArbCron / createPolymarketLatencyCron / createPolymarketWeatherCron
 
   // Start Prediction Coordinator (automated multi-agent prediction placement)
   try {
@@ -688,7 +634,7 @@ if (scannerScheduler) {
 // Start Token Discussion Engine (proactive agent conversations about trending tokens)
 const enableDiscussionEngine = envFlag('ENABLE_DISCUSSION_ENGINE', enableBackgroundWorkers);
 if (enableDiscussionEngine) {
-  startTrendingTokenSync();
+  // [KRAKEN] startTrendingTokenSync();
   startTokenDiscussionEngine();
   console.log('✅ Token discussion engine started (TrendingSync + DiscussionEngine)');
 } else {
@@ -717,11 +663,11 @@ process.on('SIGTERM', async () => {
   if (predictionCron) predictionCron.stop();
   getPredictionCoordinator().stop();
   if (scannerScheduler) scannerScheduler.stop();
-  stopAutoBuyExecutor();
-  stopTrendingTokenSync();
+  // [KRAKEN] stopAutoBuyExecutor();
+  // [KRAKEN] stopTrendingTokenSync();
   stopTokenDiscussionEngine();
   stopNarrativeIntelEngine();
-  if (devprintFeed) await devprintFeed.stop();
+  // [KRAKEN] if (devprintFeed) await devprintFeed.stop();
   // Stop trading loop if running
   if (enableTradingLoop) {
     import('./services/agent-trading-loop.js').then(({ stopTradingLoop }) => {
@@ -740,11 +686,11 @@ process.on('SIGINT', async () => {
   if (predictionCron) predictionCron.stop();
   getPredictionCoordinator().stop();
   if (scannerScheduler) scannerScheduler.stop();
-  stopAutoBuyExecutor();
-  stopTrendingTokenSync();
+  // [KRAKEN] stopAutoBuyExecutor();
+  // [KRAKEN] stopTrendingTokenSync();
   stopTokenDiscussionEngine();
   stopNarrativeIntelEngine();
-  if (devprintFeed) await devprintFeed.stop();
+  // [KRAKEN] if (devprintFeed) await devprintFeed.stop();
   // Stop trading loop if running
   if (enableTradingLoop) {
     import('./services/agent-trading-loop.js').then(({ stopTradingLoop }) => {

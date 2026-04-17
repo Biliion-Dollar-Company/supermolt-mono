@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { User, Shield, Search, Eye, Send, CheckCircle, XCircle } from 'lucide-react';
 
 const STEPS = [
-  { label: 'Agent', icon: User, color: '#2563EB' },
+  { label: 'Agent', icon: User, color: '#5741D9' },
   { label: 'KYC', icon: Shield, color: '#4ade80' },
   { label: 'AML', icon: Search, color: '#60a5fa' },
   { label: 'KYT', icon: Eye, color: '#f59e0b' },

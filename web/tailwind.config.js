@@ -7,27 +7,27 @@ export default {
   ],
   theme: {
   	extend: {
-  		// 🌑 Colosseum Color System
+  		// 🟣 Kraken Agent Terminal Color System
   		colors: {
-  			// Background Layers (Pure Black System)
+  			// Background Layers (Deep Dark Purple System)
   			bg: {
   				primary: '#000000',
-  				secondary: '#0A0A0A',
-  				elevated: '#111111',
-  				surface: '#141414',
+  				secondary: '#0A0812',
+  				elevated: '#0D0B1A',
+  				surface: '#100E1E',
   			},
-  			
+
   			// Card System
   			card: {
-  				DEFAULT: '#0A0A0A',
-  				elevated: '#111111',
+  				DEFAULT: '#0A0812',
+  				elevated: '#0D0B1A',
   			},
-  			
-  			// Luxury Gold Accent (Colosseum Brand)
+
+  			// Kraken Purple Accent
   			accent: {
-  				primary: '#2563EB',
-  				soft: '#60A5FA',
-  				dark: '#1D4ED8',
+  				primary: '#5741D9',
+  				soft: '#8B6EF0',
+  				dark: '#3D2DB8',
   			},
   			
   			// Border System
@@ -52,7 +52,7 @@ export default {
   			warning: '#ffaa00',
   			
   			// Keep backward compatibility
-  			'brand-primary': '#2563EB',
+  			'brand-primary': '#5741D9',
   			'matrix-green': '#00ff41',
   			'solana-purple': '#9945ff',
   		},
@@ -103,7 +103,7 @@ export default {
   		// ✨ Shadows
   		boxShadow: {
   			glow: '0 20px 60px rgba(0, 0, 0, 0.5)',
-  			'glow-blue': '0 20px 60px rgba(37, 99, 235, 0.3)',
+  			'glow-blue': '0 20px 60px rgba(87, 65, 217, 0.3)',
   			'card-hover': '0 8px 32px rgba(0, 0, 0, 0.4)',
   		},
   		
@@ -149,8 +149,8 @@ export default {
   		
   		// 🎨 Background Gradients
   		backgroundImage: {
-  			'accent-gradient': 'linear-gradient(135deg, #60A5FA, #2563EB)',
-  			'glow-radial': 'radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.25), transparent 60%)',
+  			'accent-gradient': 'linear-gradient(135deg, #8B6EF0, #5741D9)',
+  			'glow-radial': 'radial-gradient(circle at 50% 0%, rgba(87, 65, 217, 0.25), transparent 60%)',
   		},
   	}
   },

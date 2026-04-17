@@ -76,7 +76,7 @@ function FeedItemPreview({ item }: { item: UnifiedFeedItem }) {
     case 'task_completed':
       return (
         <div className="flex items-center gap-1.5 min-w-0">
-          <CheckCircle2 className="w-3 h-3 text-[#2563EB]/70 flex-shrink-0" />
+          <CheckCircle2 className="w-3 h-3 text-[#5741D9]/70 flex-shrink-0" />
           <span className={`text-[10px] font-semibold flex-shrink-0 ${getAgentColor(item.agentName)}`}>
             {stripEmoji(item.agentName).split(' ')[0]}
           </span>
@@ -130,15 +130,15 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
         w-full text-left overflow-hidden transition-all duration-300 cursor-pointer group relative
         bg-white/[0.02]
         shadow-[0_2px_16px_rgba(0,0,0,0.5)]
-        hover:bg-white/[0.04] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_24px_rgba(37,99,235,0.06)]
+        hover:bg-white/[0.04] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6),0_0_24px_rgba(87,65,217,0.06)]
         ${isNew ? 'animate-card-pulse' : ''}
       `}
     >
       {/* Corner brackets */}
-      <span className="absolute top-0 left-0 w-5 h-5 border-t border-l border-[#2563EB]/30 group-hover:border-[#2563EB]/60 transition-colors duration-300" />
-      <span className="absolute top-0 right-0 w-5 h-5 border-t border-r border-[#2563EB]/30 group-hover:border-[#2563EB]/60 transition-colors duration-300" />
-      <span className="absolute bottom-0 left-0 w-5 h-5 border-b border-l border-[#2563EB]/30 group-hover:border-[#2563EB]/60 transition-colors duration-300" />
-      <span className="absolute bottom-0 right-0 w-5 h-5 border-b border-r border-[#2563EB]/30 group-hover:border-[#2563EB]/60 transition-colors duration-300" />
+      <span className="absolute top-0 left-0 w-5 h-5 border-t border-l border-[#5741D9]/30 group-hover:border-[#5741D9]/60 transition-colors duration-300" />
+      <span className="absolute top-0 right-0 w-5 h-5 border-t border-r border-[#5741D9]/30 group-hover:border-[#5741D9]/60 transition-colors duration-300" />
+      <span className="absolute bottom-0 left-0 w-5 h-5 border-b border-l border-[#5741D9]/30 group-hover:border-[#5741D9]/60 transition-colors duration-300" />
+      <span className="absolute bottom-0 right-0 w-5 h-5 border-b border-r border-[#5741D9]/30 group-hover:border-[#5741D9]/60 transition-colors duration-300" />
       <span className="absolute top-0 left-5 right-5 h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" />
       <span className="absolute bottom-0 left-5 right-5 h-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
       <span className="absolute left-0 top-5 bottom-5 w-px bg-white/[0.04] group-hover:bg-white/[0.06] transition-colors" />
@@ -157,7 +157,7 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
                 />
               ) : null}
-              <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-xs font-bold text-[#2563EB] ring-1 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
+              <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-accent-primary/20 to-accent-primary/5 flex items-center justify-center text-xs font-bold text-[#5741D9] ring-1 ring-white/[0.08] ${token.imageUrl ? 'hidden' : ''}`}>
                 {token.tokenSymbol?.charAt(0) || '?'}
               </div>
             </div>
@@ -230,9 +230,9 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
           <div className="flex items-center justify-between">
             <p className="text-[10px] text-white/35/50 italic">Agents analyzing...</p>
             <div className="flex gap-0.5">
-              <div className="w-1 h-1 rounded-full bg-[#2563EB]/30 animate-pulse" />
-              <div className="w-1 h-1 rounded-full bg-[#2563EB]/30 animate-pulse" style={{ animationDelay: '0.2s' }} />
-              <div className="w-1 h-1 rounded-full bg-[#2563EB]/30 animate-pulse" style={{ animationDelay: '0.4s' }} />
+              <div className="w-1 h-1 rounded-full bg-[#5741D9]/30 animate-pulse" />
+              <div className="w-1 h-1 rounded-full bg-[#5741D9]/30 animate-pulse" style={{ animationDelay: '0.2s' }} />
+              <div className="w-1 h-1 rounded-full bg-[#5741D9]/30 animate-pulse" style={{ animationDelay: '0.4s' }} />
             </div>
           </div>
         </div>
@@ -243,23 +243,23 @@ export function TokenConversationCard({ token, onClick, isNew }: TokenConversati
         <div className="flex-1 min-w-0">
           {typingAgents.length > 0 ? (
             <div className="flex items-center gap-1.5">
-              <span className="text-[9px] text-[#2563EB]/70 truncate">
+              <span className="text-[9px] text-[#5741D9]/70 truncate">
                 {typingAgents.length === 1
                   ? `${stripEmoji(typingAgents[0])} typing`
                   : `${stripEmoji(typingAgents[0])}, ${stripEmoji(typingAgents[1])}${typingAgents.length > 2 ? ` +${typingAgents.length - 2}` : ''} typing`
                 }
               </span>
               <div className="flex gap-0.5 items-center">
-                <div className="w-1 h-1 rounded-full bg-[#2563EB]/60 animate-typing-dot" />
-                <div className="w-1 h-1 rounded-full bg-[#2563EB]/60 animate-typing-dot" style={{ animationDelay: '0.15s' }} />
-                <div className="w-1 h-1 rounded-full bg-[#2563EB]/60 animate-typing-dot" style={{ animationDelay: '0.3s' }} />
+                <div className="w-1 h-1 rounded-full bg-[#5741D9]/60 animate-typing-dot" />
+                <div className="w-1 h-1 rounded-full bg-[#5741D9]/60 animate-typing-dot" style={{ animationDelay: '0.15s' }} />
+                <div className="w-1 h-1 rounded-full bg-[#5741D9]/60 animate-typing-dot" style={{ animationDelay: '0.3s' }} />
               </div>
             </div>
           ) : token.lastMessageAt ? (
             <span className="text-[9px] text-white/35/30 font-mono">{timeAgo(token.lastMessageAt)}</span>
           ) : null}
         </div>
-        <ChevronRight className="w-3.5 h-3.5 text-white/35/30 group-hover:text-[#2563EB]/50 transition-colors flex-shrink-0" />
+        <ChevronRight className="w-3.5 h-3.5 text-white/35/30 group-hover:text-[#5741D9]/50 transition-colors flex-shrink-0" />
       </div>
     </button>
   );

@@ -149,7 +149,7 @@ export default function NewsPanel() {
   return (
     <>
       <div
-        className="relative overflow-hidden border border-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_32px_rgba(0,0,0,0.4)] cursor-pointer transition-all duration-300 hover:border-[#2563EB]/40 hover:shadow-[inset_0_1px_0_rgba(59,130,246,0.1),0_8px_32px_rgba(59,130,246,0.2)] h-52 max-w-md"
+        className="relative overflow-hidden border border-white/[0.15] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_8px_32px_rgba(0,0,0,0.4)] cursor-pointer transition-all duration-300 hover:border-[#5741D9]/40 hover:shadow-[inset_0_1px_0_rgba(59,130,246,0.1),0_8px_32px_rgba(59,130,246,0.2)] h-52 max-w-md"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
         onClick={() => handleCTAClick(currentItem)}
@@ -182,7 +182,7 @@ export default function NewsPanel() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3 }}
-                className="absolute top-4 left-4 text-xs font-mono uppercase tracking-wider text-[#2563EB] bg-black/40 px-2 py-0.5 rounded border border-[#2563EB]/20"
+                className="absolute top-4 left-4 text-xs font-mono uppercase tracking-wider text-[#5741D9] bg-black/40 px-2 py-0.5 rounded border border-[#5741D9]/20"
               >
                 {currentItem.category}
               </motion.span>
@@ -221,7 +221,7 @@ export default function NewsPanel() {
                   e.stopPropagation();
                   handleCTAClick(currentItem);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2563EB] hover:bg-[#2563EB]/90 text-black text-xs font-semibold rounded transition-all shadow-lg hover:shadow-accent-primary/50 w-fit"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5741D9] hover:bg-[#5741D9]/90 text-black text-xs font-semibold rounded transition-all shadow-lg hover:shadow-accent-primary/50 w-fit"
               >
                 {currentItem.ctaText}
                 {currentItem.ctaType === 'EXTERNAL_LINK' ? (

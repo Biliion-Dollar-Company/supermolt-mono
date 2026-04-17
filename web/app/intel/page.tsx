@@ -1,5 +1,2 @@
-import { BrainrotLandingPage } from '@/components/intel/BrainrotLandingPage';
-
-export default function IntelPage() {
-  return <BrainrotLandingPage />;
-}
+import { redirect } from 'next/navigation';
+export default function Page() { redirect('/'); }

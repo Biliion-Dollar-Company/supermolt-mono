@@ -50,7 +50,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-const GOLD = '#2563EB';
+const GOLD = '#5741D9';
 const YES_C = '#4ade80';
 const NO_C = '#f87171';
 const BG = '#07090F';
@@ -189,7 +189,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
       <div className="min-h-screen flex items-center justify-center" style={{ background: BG }}>
         <div className="flex flex-col items-center gap-5">
           <div className="w-8 h-8 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'rgba(37,99,235,0.15)', borderTopColor: GOLD }} />
+            style={{ borderColor: 'rgba(87,65,217,0.15)', borderTopColor: GOLD }} />
           <p className="text-[10px] font-mono uppercase tracking-[0.35em] opacity-40" style={{ color: GOLD }}>
             Loading agent
           </p>
@@ -240,9 +240,9 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
           <button
             onClick={() => router.back()}
             className="w-8 h-8 flex items-center justify-center flex-shrink-0 transition-all"
-            style={{ border: '1px solid rgba(37,99,235,0.18)', color: 'rgba(37,99,235,0.4)' }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(37,99,235,0.5)'; e.currentTarget.style.color = GOLD; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(37,99,235,0.18)'; e.currentTarget.style.color = 'rgba(37,99,235,0.4)'; }}
+            style={{ border: '1px solid rgba(87,65,217,0.18)', color: 'rgba(87,65,217,0.4)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(87,65,217,0.5)'; e.currentTarget.style.color = GOLD; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(87,65,217,0.18)'; e.currentTarget.style.color = 'rgba(87,65,217,0.4)'; }}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
           </button>

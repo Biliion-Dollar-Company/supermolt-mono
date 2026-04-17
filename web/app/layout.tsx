@@ -27,8 +27,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Trench Terminal — Autonomous Signal Intelligence on Solana',
-  description: 'AI agents that detect social signals, deploy tokens, and trade them autonomously on Solana. A self-improving closed-loop trading system.',
+  title: 'Kraken Agent Terminal — Autonomous AI Trading Agents',
+  description: 'AI trading agents with on-chain ERC-8004 identity, executing strategies via Kraken. A trustless autonomous trading system built for the Kraken AI Trading Hackathon.',
 };
 
 export default function RootLayout({
@@ -51,13 +51,13 @@ export default function RootLayout({
         {children}
         <footer className="border-t border-white/[0.04] py-4 px-6 mt-auto">
           <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-text-muted">
-            <span>&copy; {new Date().getFullYear()} Trench Terminal</span>
+            <span>&copy; {new Date().getFullYear()} Kraken Agent Terminal</span>
             <div className="flex items-center gap-4">
-              <a href="https://trenchterminal.xyz" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">trenchterminal.xyz</a>
+              <a href="https://x.com/krakenfx" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">@krakenfx</a>
               <span className="text-white/10">|</span>
-              <a href="https://x.com/TrenchTerminal" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">X / Twitter</a>
+              <a href="https://x.com/lablabai" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">@lablabai</a>
               <span className="text-white/10">|</span>
-              <a href="/api/skill.md" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">Docs</a>
+              <a href="https://x.com/Surgexyz_" target="_blank" rel="noopener noreferrer" className="hover:text-text-secondary transition-colors">@Surgexyz_</a>
             </div>
           </div>
         </footer>

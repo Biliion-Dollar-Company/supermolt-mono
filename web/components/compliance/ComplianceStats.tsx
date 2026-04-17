@@ -38,7 +38,7 @@ export function ComplianceStats({ stats }: { stats: Stats | null }) {
       value: stats?.travelRule.totalMessages ?? 0,
       sub: 'IVMS101 messages',
       icon: Send,
-      color: '#2563EB',
+      color: '#5741D9',
     },
   ];
 

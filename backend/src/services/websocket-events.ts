@@ -21,7 +21,8 @@ type FeedChannel =
   | 'training'
   | 'deployments'
   | 'pipeline'
-  | 'positions';
+  | 'positions'
+  | 'war-room';
 
 const VALID_FEED_CHANNELS = new Set<FeedChannel>([
   'godwallet',
@@ -34,6 +35,7 @@ const VALID_FEED_CHANNELS = new Set<FeedChannel>([
   'deployments',
   'pipeline',
   'positions',
+  'war-room',
 ]);
 
 interface BroadcastEvents {

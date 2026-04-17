@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ExternalLink, BarChart2 } from 'lucide-react';
 import { getMyAgent } from '@/lib/api';
 
-const GOLD = '#2563EB';
+const GOLD = '#5741D9';
 const YES_C = '#4ade80';
 const NO_C = '#f87171';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://sr-mobile-production.up.railway.app';
@@ -101,7 +101,7 @@ export function PortfolioPanel() {
             onClick={() => setTab(t)}
             className="text-xs font-semibold uppercase tracking-wider px-3 py-1.5 transition-colors cursor-pointer font-mono"
             style={tab === t
-              ? { color: GOLD, background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.2)' }
+              ? { color: GOLD, background: 'rgba(87,65,217,0.08)', border: '1px solid rgba(87,65,217,0.2)' }
               : { color: 'rgba(255,255,255,0.3)', border: '1px solid transparent' }}
           >
             {t} {t === 'trades' ? `(${trades.length})` : `(${positions.length})`}

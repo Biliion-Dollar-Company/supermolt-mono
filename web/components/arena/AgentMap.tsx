@@ -69,8 +69,8 @@ interface TokenNodeData {
 const TokenNode = memo(({ data }: NodeProps<TokenNodeData>) => {
   const size = data.hot ? 88 : 72;
   const isUp = data.change >= 0;
-  const glowColor = data.godWallet ? '#2563EB' : isUp ? '#4ade80' : '#f87171';
-  const borderColor = data.godWallet ? '#2563EB' : isUp ? '#4ade80' : '#f87171';
+  const glowColor = data.godWallet ? '#5741D9' : isUp ? '#4ade80' : '#f87171';
+  const borderColor = data.godWallet ? '#5741D9' : isUp ? '#4ade80' : '#f87171';
 
   return (
     <div style={{ position: 'relative', width: size, height: size }}>
@@ -96,7 +96,7 @@ const TokenNode = memo(({ data }: NodeProps<TokenNodeData>) => {
           height: size,
           borderRadius: '50%',
           background: data.godWallet
-            ? 'radial-gradient(circle, rgba(37,99,235,0.25) 0%, rgba(5,5,5,0.95) 70%)'
+            ? 'radial-gradient(circle, rgba(87,65,217,0.25) 0%, rgba(5,5,5,0.95) 70%)'
             : isUp
             ? 'radial-gradient(circle, rgba(74,222,128,0.15) 0%, rgba(5,5,5,0.95) 70%)'
             : 'radial-gradient(circle, rgba(248,113,113,0.15) 0%, rgba(5,5,5,0.95) 70%)',
@@ -582,7 +582,7 @@ function AgentMapInner() {
       {/* Live feed sidebar */}
       <div
         className="flex-shrink-0 border-l h-full overflow-hidden"
-        style={{ borderColor: 'rgba(37,99,235,0.15)' }}
+        style={{ borderColor: 'rgba(87,65,217,0.15)' }}
       >
         <AgentMapFeed entries={feedEntries} />
       </div>
