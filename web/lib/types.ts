@@ -1,128 +1,83 @@
-// Agent type
+/**
+ * Core Types for Trench Terminal
+ */
+
+export type Chain = 'SOLANA' | 'BSC' | 'BASE';
+
 export interface Agent {
-  agentId: string;
-  agentName: string;
-  walletAddress: string;
-  sortino_ratio: number;
-  win_rate: number;
-  total_pnl: number;
-  trade_count: number;
-  total_volume: number;
-  average_win: number;
-  average_loss: number;
-  max_win: number;
-  max_loss: number;
-  createdAt: string;
-  updatedAt: string;
-  avatarUrl?: string;
-  twitterHandle?: string;
-}
-
-// Profile type
-export interface Profile {
   id: string;
-  userId: string;
   name: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  bio: string | null;
-  twitterHandle: string | null;
-  website: string | null;
-  discord: string | null;
-  telegram: string | null;
-  status: string;
+  displayName: string;
+  archetypeId: string;
+  avatarUrl?: string | null;
+  level: number;
+  xp: number;
   totalTrades: number;
-  winRate: string;
-  totalPnl: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Profile update data
-export interface ProfileUpdateData {
-  displayName?: string;
-  avatarUrl?: string;
-  bio?: string;
+  winRate: number;
+  totalPnl: number;
+  onChainAgentId?: string;
+  reputationScore?: number;
+  walletAddress?: string;
+  agentName?: string;
   twitterHandle?: string;
-  website?: string;
-  discord?: string;
-  telegram?: string;
+  updatedAt?: string;
+  trade_count?: number;
+  win_rate?: number;
+  total_pnl?: number;
+  average_win?: number;
+  sortino_ratio?: number;
+  status?: string;
+  levelName?: string;
+  xpForNextLevel?: number;
+  createdAt?: string;
 }
 
-// Profile response
-export interface ProfileResponse {
-  success: boolean;
-  data: Profile;
-}
-
-// Trade type
 export interface Trade {
-  tradeId: string;
+  id: string;
   agentId: string;
   tokenMint: string;
   tokenSymbol: string;
+  tokenName: string;
   action: 'BUY' | 'SELL';
-  quantity: number;
+  chain: Chain;
   entryPrice: number;
   exitPrice?: number;
-  pnl: number;
-  pnlPercent: number;
-  txHash: string;
-  timestamp: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Leaderboard response
-export interface LeaderboardResponse {
-  success: boolean;
-  data: {
-    epochId: string;
-    epochName: string;
-    epochNumber: number;
-    startAt: string;
-    endAt: string;
-    status: string;
-    usdcPool: number;
-    baseAllocation: number;
-    rankings: Agent[];
+  pnl?: number;
+  pnlPercent?: number;
+  status: 'OPEN' | 'CLOSED';
+  openedAt: string;
+  closedAt?: string;
+  timestamp?: string; 
+  tradeId?: string;
+  quantity?: number;
+  createdAt?: string;
+  amount?: number;
+  metadata: {
+    reasoning: string;
+    tradeIntentHash?: string;
+    validationTxHash?: string;
   };
 }
 
-// Agent detail response
-export interface AgentDetailResponse {
-  agent: Agent;
-}
-
-// Trades response
-export interface TradesResponse {
-  trades: Trade[];
-}
-
-// Position type
 export interface Position {
-  positionId: string;
+  id: string;
   agentId: string;
-  agentName: string;
   tokenMint: string;
   tokenSymbol: string;
   quantity: number;
   entryPrice: number;
   currentPrice: number;
-  currentValue: number;
   pnl: number;
   pnlPercent: number;
-  openedAt: string;
+  chain: Chain;
   closedAt?: string;
+  positionId?: string;
+  agentName?: string;
+  currentValue?: number;
 }
 
-// Positions response
-export interface PositionsResponse {
-  positions: Position[];
-}
-
-// Conversation type
 export interface Conversation {
+  id?: string;
   conversationId: string;
   topic: string;
   tokenMint?: string;
@@ -134,8 +89,8 @@ export interface Conversation {
   createdAt: string;
 }
 
-// Message type
 export interface Message {
+  id?: string;
   messageId: string;
   conversationId: string;
   agentId: string;
@@ -146,395 +101,245 @@ export interface Message {
   timestamp: string;
 }
 
-// Conversations response
-export interface ConversationsResponse {
-  conversations: Conversation[];
-}
-
-// Messages response
-export interface MessagesResponse {
-  messages: Message[];
-}
-
-// Vote type
 export interface Vote {
-  voteId: string;
+  id: string;
   proposerId: string;
-  proposerName: string;
-  action: 'BUY' | 'SELL';
-  tokenMint: string;
-  tokenSymbol: string;
+  action: string;
+  token: string;
+  tokenMint?: string;
+  tokenSymbol?: string;
+  amount: number;
   reason: string;
-  yesVotes: number;
-  noVotes: number;
-  totalVotes: number;
-  status: 'active' | 'passed' | 'failed' | 'expired';
-  createdAt: string;
+  status: string;
   expiresAt: string;
-  completedAt?: string;
+  createdAt: string;
+  totalVotes?: number;
+  yesVotes?: number;
+  noVotes?: number;
+  voteId?: string;
+  proposerName?: string;
 }
 
-// Vote detail type
 export interface VoteDetail extends Vote {
   votes: Array<{
     agentId: string;
-    agentName: string;
-    vote: 'yes' | 'no';
+    vote: string;
     timestamp: string;
+    agentName?: string;
   }>;
 }
 
-// Votes response
+export interface Profile {
+  id: string;
+  walletAddress: string;
+  bio?: string;
+  twitterHandle?: string;
+  website?: string;
+  discord?: string;
+  telegram?: string;
+  avatarUrl?: string;
+  displayName?: string;
+  userId?: string;
+}
+
+export interface ProfileUpdateData {
+  bio?: string;
+  twitterHandle?: string;
+  website?: string;
+  discord?: string;
+  telegram?: string;
+  displayName?: string;
+  avatarUrl?: string;
+}
+
+export interface LeaderboardResponse {
+  success: boolean;
+  data: {
+    rankings: Agent[];
+    usdcPool: number;
+  };
+}
+
+export interface AgentDetailResponse {
+  success: boolean;
+  data: Agent;
+}
+
+export interface TradesResponse {
+  success: boolean;
+  trades: Trade[];
+}
+
+export interface PositionsResponse {
+  success: boolean;
+  positions: Position[];
+}
+
+export interface ConversationsResponse {
+  success: boolean;
+  conversations: Conversation[];
+}
+
+export interface MessagesResponse {
+  success: boolean;
+  messages: Message[];
+}
+
 export interface VotesResponse {
+  success: boolean;
   votes: Vote[];
 }
 
-// Vote detail response
 export interface VoteDetailResponse {
+  success: boolean;
   vote: VoteDetail;
 }
 
-// ── Agent Profile & Onboarding ──
-
-export interface AgentProfile {
-  id: string;
-  pubkey: string;
-  walletAddress: string;
-  name: string;
-  avatarUrl: string | null;
-  bio: string | null;
-  twitterHandle: string | null;
-  status: string;
-  xp: number;
-  level: number;
-  levelName: string;
-  xpForNextLevel: number;
-  totalTrades: number;
-  winRate: number;
-  totalPnl: number;
-  onboardingComplete: boolean;
-  createdAt: string;
-}
-
-export interface OnboardingTask {
-  taskId: string;
-  taskType: string;
-  title: string;
-  description: string;
-  xpReward: number;
-  status: string;
-  xpAwarded: number | null;
-  completedAt: string | null;
-}
-
-export interface OnboardingProgress {
-  tasks: OnboardingTask[];
-  totalTasks: number;
-  completedTasks: number;
-  progress: number;
-}
-
-export interface AgentMeResponse {
+export interface ProfileResponse {
   success: boolean;
-  agent: AgentProfile;
-  stats: {
-    sortinoRatio: number;
-    maxDrawdown: number;
-    totalPnl: number;
-    totalTrades: number;
-    winRate: number;
-  } | null;
-  onboarding: OnboardingProgress;
-}
-
-// ── Auth (Privy) ──
-
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}
-
-export interface LoginResponse {
-  userId: string;
-  tokens: AuthTokens;
-}
-
-export interface QuickstartResponse {
-  agent: AgentProfile;
-  onboarding: OnboardingProgress;
-  token: string;
-  refreshToken: string;
-  expiresIn: number;
-}
-
-// ── Unified Feed Item (Telegram-style activity feed) ──
-
-type FeedItemBase = { id: string; timestamp: string; tokenMint: string };
-
-export type MessageFeedItem = FeedItemBase & {
-  type: 'message';
-  agentId: string;
-  agentName: string;
-  agentAvatar?: string;
-  content: string;
-  sentiment?: string;
-};
-
-export type TradeFeedItem = FeedItemBase & {
-  type: 'trade';
-  agentId: string;
-  agentName: string;
-  side: 'BUY' | 'SELL';
-  amount: number;
-  price: number;
-  tokenSymbol: string;
-};
-
-export type TaskFeedItem = FeedItemBase & {
-  type: 'task_claimed' | 'task_completed';
-  agentId: string;
-  agentName: string;
-  taskTitle: string;
-};
-
-export type SystemFeedItem = FeedItemBase & {
-  type: 'system';
-  content: string;
-};
-
-export type UnifiedFeedItem = MessageFeedItem | TradeFeedItem | TaskFeedItem | SystemFeedItem;
-
-// ── Trending Token (arena token conversation grid) ──
-
-export interface TrendingToken {
-  tokenMint: string;
-  tokenSymbol: string;
-  priceChange24h?: number;
-  marketCap?: number;
-  volume24h?: number;
-  liquidity?: number;
-  priceUsd?: number;
-  imageUrl?: string;
-  chain?: string;
-  // Conversation data (merged client-side)
-  conversationId?: string;
-  conversationTopic?: string;
-  messageCount: number;
-  participantCount: number;
-  lastMessageAt?: string;
-  lastMessage?: string;
-  latestMessages?: Array<{
-    agentName: string;
-    content: string;
-    timestamp: string;
-  }>;
-  sentiment?: {
-    bullish: number;
-    bearish: number;
-    neutral: number;
-  };
-  positions?: Array<{
-    agentId: string;
-    agentName: string;
-    quantity: number;
-    pnl: number;
-    pnlPercent: number;
-  }>;
-  taskCount?: number;
-  // Unified feed data
-  feedPreview?: UnifiedFeedItem[];
-  activeAgentCount?: number;
-  typingAgents?: string[];
-}
-
-// ── Agent Tasks ──
-
-export interface AgentTaskType {
-  taskId: string;
-  tokenMint: string | null;
-  tokenSymbol?: string;
-  taskType: string;
-  title: string;
-  xpReward: number;
-  status: 'OPEN' | 'CLAIMED' | 'COMPLETED' | 'EXPIRED';
-  completions: TaskCompletionType[];
-  createdAt: string;
-}
-
-export interface TaskCompletionType {
-  agentId: string;
-  agentName: string;
-  status: 'PENDING' | 'VALIDATED' | 'REJECTED';
-  xpAwarded?: number;
-  submittedAt?: string;
-}
-
-export interface TaskLeaderboardEntry {
-  agentId: string;
-  agentName: string;
-  totalXP: number;
-  tasksCompleted: number;
-}
-
-export interface TaskStats {
-  total: number;
-  active: number;
-  completed: number;
-  expired: number;
-  totalXPAwarded: number;
-}
-
-// XP Leaderboard entry
-export interface XPLeaderboardEntry {
-  agentId: string;
-  name: string;
-  xp: number;
-  level: number;
-  levelName: string;
-  totalTrades: number;
-}
-
-// ── Agent Conversations & Task Completions ──
-
-export interface AgentConversationSummary {
-  conversationId: string;
-  topic: string;
-  tokenMint?: string;
-  participantCount: number;
-  messageCount: number;
-  lastMessage?: string;
-  lastMessageAt: string;
-  agentMessageCount: number;
-  createdAt: string;
-}
-
-export interface AgentTaskCompletionDetail {
-  taskId: string;
-  taskType: string;
-  title: string;
-  tokenMint?: string | null;
-  tokenSymbol?: string | null;
-  xpReward: number;
-  status: 'PENDING' | 'VALIDATED' | 'REJECTED';
-  xpAwarded?: number | null;
-  submittedAt?: string | null;
-}
-
-// ── Epoch Rewards ──
-
-export interface EpochInfo {
-  id: string;
-  name: string;
-  number: number;
-  startAt: string;
-  endAt: string;
-  status: string;
-  usdcPool: number;
+  data: Profile;
 }
 
 export interface AgentAllocation {
   agentId: string;
   agentName: string;
-  walletAddress: string;
   rank: number;
   usdcAmount: number;
+  performanceScore: number;
   multiplier: number;
-  txSignature?: string;
-  status: 'preview' | 'completed' | 'failed';
-  avatarUrl?: string;
-  twitterHandle?: string;
-}
-
-export interface Distribution {
-  agentName: string;
-  amount: number;
-  txSignature: string;
-  completedAt: string;
-}
-
-export interface BSCAllocation {
-  agentId: string;
-  agentName: string;
-  evmAddress: string;
-  rank: number;
-  usdcAmount: number;
-  multiplier: number;
+  status: string;
   txHash?: string;
-  status: 'preview' | 'completed' | 'failed';
-  avatarUrl?: string;
+  txSignature?: string;
   twitterHandle?: string;
+  walletAddress?: string;
+  avatarUrl?: string;
 }
 
 export interface EpochReward {
-  epoch: EpochInfo | null;
+  id: string;
+  epochNumber: number;
+  name: string;
+  status: string;
+  usdcPool: number;
   allocations: AgentAllocation[];
-  bscAllocations?: BSCAllocation[];
-  treasury: { balance: number; distributed: number; available: number };
-  bscTreasury?: { balance: number; distributed: number; available: number };
-  distributions: Distribution[];
-  bscDistributions?: Distribution[];
+  distributions: any[];
+  epoch?: any;
+  treasury?: any;
 }
 
-// ── BSC Token Graduations ──
-
-export interface BSCTokenGraduation {
+export interface AgentTaskType {
   id: string;
-  tokenAddress: string;
-  tokenName: string;
-  tokenSymbol: string;
-  txHash: string;
-  chain: string;
-  platform: string | null; // 'four.meme' | 'flap'
-  bondingCurveGraduated: boolean;
-  graduationTxHash: string | null;
-  graduationTime: string | null;
-  pairAddress: string | null;
-  quoteToken: string | null; // 'WBNB' | 'USDT' | 'USD1'
-  explorerUrl: string;
-  platformUrl: string;
-  pancakeSwapUrl: string | null;
+  title: string;
+  description: string;
+  xpReward: number;
+  status: string;
+  completions: any[];
+  tokenMint?: string;
+  tokenSymbol?: string;
+  taskId: string;
+  taskType: string;
   createdAt: string;
 }
 
-export interface BSCMigrationsResponse {
-  success: boolean;
-  count: number;
-  data: BSCTokenGraduation[];
-  platforms: string[];
+export interface TaskLeaderboardEntry {
+  agentId: string;
+  displayName: string;
+  completionCount: number;
+  xpEarned: number;
 }
 
-export interface BSCMigrationStats {
-  totalCreated: number;
-  totalGraduated: number;
-  graduationRate: number;
-  byPlatform: {
-    'four.meme': number;
-    'flap': number;
+export interface TaskStats {
+  totalTasks: number;
+  totalCompletions: number;
+  totalXpAwarded: number;
+  active?: number;
+  completed?: number;
+}
+
+export interface AgentMeResponse {
+  success: boolean;
+  agent: Agent;
+  onboarding: {
+    tasks: any[];
+    progress: number;
   };
 }
 
-export interface BSCMigrationStatsResponse {
-  success: boolean;
-  data: BSCMigrationStats;
+export interface AgentProfile extends Agent {
+  bio?: string;
+  website?: string;
+  discord?: string;
+  telegram?: string;
+  levelName?: string;
+  xpForNextLevel?: number;
+  createdAt?: string;
+  status: string;
 }
 
-// ── News & Announcements ──
+export interface XPLeaderboardEntry {
+  agentId: string;
+  displayName: string;
+  xp: number;
+  level: number;
+  name?: string;
+  levelName: string;
+}
 
-export type NewsCategory = 'FEATURE' | 'PARTNERSHIP' | 'MILESTONE' | 'CHANGELOG' | 'EVENT' | 'ANNOUNCEMENT';
-export type NewsCtaType = 'MODAL' | 'EXTERNAL_LINK' | 'INTERNAL_LINK';
+export interface AgentConversationSummary {
+  id: string;
+  topic: string;
+  lastMessageAt: string;
+  conversationId: string;
+  lastMessage?: string;
+  agentMessageCount?: number;
+  participantCount?: number;
+  messageCount?: number;
+}
+
+export interface AgentTaskCompletionDetail {
+  id: string;
+  taskId: string;
+  status: string;
+  submittedAt: string;
+  xpAwarded: number;
+  taskType: string;
+  title: string;
+  tokenSymbol?: string;
+  tokenMint?: string;
+  xpReward?: number;
+}
+
+export interface LoginResponse {
+  token: string;
+  refreshToken: string;
+  agent: Agent;
+  tokens: {
+    accessToken: string;
+    refreshToken: string;
+  };
+}
+
+export interface QuickstartResponse {
+  success: boolean;
+  agent: Agent;
+  token: string;
+  refreshToken: string;
+  onboarding: {
+    tasks: any[];
+    progress: number;
+  };
+}
 
 export interface NewsItem {
   id: string;
   title: string;
   description: string;
-  content: string | null;
+  content?: string;
   imageUrl: string;
   ctaText: string;
-  ctaType: NewsCtaType;
-  ctaUrl: string | null;
-  category: NewsCategory;
-  priority: number;
+  ctaType: string;
+  ctaUrl?: string;
+  category: string;
   publishedAt: string;
 }
 
@@ -545,126 +350,154 @@ export interface NewsFeedResponse {
 
 export interface SingleNewsResponse {
   success: boolean;
-  item: NewsItem | null;
+  item: NewsItem;
 }
 
-// ── Prediction Markets (Polymarket / Kalshi) ──
+export interface BSCTokenGraduation {
+  id: string;
+  tokenAddress: string;
+  tokenName: string;
+  tokenSymbol: string;
+  graduationTime: string;
+  platform: string;
+  quoteToken?: string;
+  pancakeSwapUrl?: string;
+  explorerUrl: string;
+}
+
+export interface BSCMigrationsResponse {
+  success: boolean;
+  data: BSCTokenGraduation[];
+}
+
+export interface BSCMigrationStats {
+  creations24h: number;
+  graduations24h: number;
+  byPlatform?: Record<string, number>;
+  totalCreated: number;
+  totalGraduated: number;
+  graduationRate: number;
+}
+
+export interface BSCMigrationStatsResponse {
+  success: boolean;
+  data: BSCMigrationStats;
+}
+
+export interface TrendingToken {
+  tokenMint: string;
+  tokenSymbol: string;
+  imageUrl?: string;
+  priceUsd: number;
+  priceChange24h: number;
+  marketCap: number;
+  volume24h: number;
+  liquidity: number;
+  chain: string;
+  conversationId?: string;
+  messageCount: number;
+  participantCount: number;
+  lastMessageAt?: string;
+  activeAgentCount: number;
+  typingAgents?: any[];
+  lastMessage: string;
+  latestMessages: any[];
+  sentiment?: any;
+  positions?: any;
+  taskCount?: any;
+  feedPreview?: any;
+}
 
 export interface PredictionMarket {
   id: string;
   platform: string;
-  ticker: string;
+  externalId: string;
   title: string;
-  category: string | null;
-  subtitle: string | null;
+  category: string;
   yesPrice: number;
   noPrice: number;
   volume: number;
-  outcome: string;
   status: string;
   expiresAt: string;
-  closesAt?: string | null;
 }
 
 export interface PredictionStats {
-  totalMarkets: number;
   totalPredictions: number;
-  resolvedPredictions: number;
-  pendingPredictions: number;
-  activeForecasters: number;
-  avgAccuracy: number;
-  avgBrierScore: number;
+  accuracy: number;
+  roi: number;
 }
 
 export interface PredictionLeaderboardEntry {
-  rank: number;
   agentId: string;
-  agentName: string;
-  avatarUrl?: string;
-  totalPredictions: number;
-  correctPredictions: number;
+  displayName: string;
   accuracy: number;
-  brierScore?: number;
-  roi: number;
-  streak: number;
-  bestStreak: number;
-  resolved?: boolean;
+  totalPredictions: number;
 }
 
 export interface RecentPredictionEntry {
   id: string;
   agentId: string;
   agentName: string;
-  ticker: string;
-  side: 'YES' | 'NO';
-  confidence: number | null;
-  contracts: number;
-  avgPrice: number;
-  createdAt: string;
+  marketTitle: string;
+  side: string;
+  timestamp: string;
 }
 
 export interface AgentPrediction {
   id: string;
-  ticker: string;
+  marketId: string;
+  side: string;
+  pnl?: number;
+  status: string;
   marketTitle: string;
-  category: string | null;
-  side: 'YES' | 'NO';
-  contracts: number;
+  ticker: string;
   avgPrice: number;
-  totalCost: number;
-  payout: number | null;
-  pnl: number | null;
-  outcome: 'PENDING' | 'WIN' | 'LOSS' | string;
-  marketOutcome: string;
-  currentYesPrice?: number;
-  confidence: number | null;
-  reasoning: string | null;
-  realOrder?: boolean;
-  createdAt: string;
+  outcome: string;
 }
 
 export interface AgentVoice {
-  id: string;
   agentId: string;
   agentName: string;
-  avatarUrl: string | null;
-  side: 'YES' | 'NO';
-  contracts: number;
-  avgPrice: number;
-  confidence: number | null;
-  reasoning: string | null;
-  outcome: 'PENDING' | 'WIN' | 'LOSS' | string;
-  createdAt: string;
+  content: string;
+  timestamp: string;
 }
 
 export interface PredictionCoordinatorStatus {
-  running: boolean;
-  cycleCount: number;
-  intervalMs: number;
-  lastRunAt: string | null;
-  marketsPerCycle: number;
-  agentsPerMarket: number;
-  baseContracts: number;
+  activeMarkets: number;
+  pendingPredictions: number;
 }
 
-export interface PredictionSignalEvent {
+export interface UnifiedFeedItem {
+  id: string;
+  type: string;
   timestamp: string;
-  cycleId: string;
-  agentId: string;
-  marketId: string;
-  ticker: string;
-  side: 'YES' | 'NO';
-  confidence: number;
-  contracts: number;
-  avgPrice: number;
+  agentName: string;
+  content: string;
+  side: string;
+  amount: number;
+  tokenSymbol: string;
+  taskTitle: string;
+}
+
+export interface OnboardingTask {
+  id: string;
+  title: string;
+  completed: boolean;
+  status: string;
+  taskId: string;
+  xpReward: number;
 }
 
 export interface PredictionConsensusEvent {
-  timestamp: string;
-  cycleId: string;
-  marketId: string;
   ticker: string;
   side: 'YES' | 'NO';
   confidence: number;
   participants: number;
+  marketId?: string;
+}
+
+export interface PredictionSignalEvent {
+  ticker: string;
+  side: 'YES' | 'NO';
+  price?: number;
 }

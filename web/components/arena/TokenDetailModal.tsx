@@ -255,14 +255,14 @@ export function TokenDetailContent({ tokenSymbol, compact = false }: TokenDetail
                           }`}>
                             {trade.action}
                           </span>
-                          <span className="text-white/35 font-mono">{fmtNum(trade.quantity)}</span>
-                          {trade.pnl !== 0 && (
-                            <span className={`font-mono ${trade.pnl > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              {trade.pnl > 0 ? '+' : ''}{Math.round(trade.pnlPercent)}%
+                          <span className="text-white/35 font-mono">{fmtNum(trade.quantity || 0)}</span>
+                          {trade.pnl !== undefined && trade.pnl !== 0 && (
+                            <span className={`font-mono ${(trade.pnl || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {(trade.pnl || 0) > 0 ? '+' : ''}{Math.round(trade.pnlPercent || 0)}%
                             </span>
                           )}
                           <span className="text-white/35 ml-auto">
-                            {new Date(trade.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(trade.timestamp || trade.openedAt || trade.createdAt || 0).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
                       ))}

@@ -1,0 +1,23 @@
+
+> trench-terminal-web@2.0.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 92s
+  Running TypeScript ...
+Failed to compile.
+
+./app/arena/predictions/page.tsx:147:23
+Type error: Property 'side' does not exist on type 'AgentVoice'.
+
+[0m [90m 145 |[39m [90m/* ── Voice card ───────────────────────────────────────────────────── */[39m
+ [90m 146 |[39m [36mfunction[39m [33mVoiceCard[39m({ voice }[33m:[39m { voice[33m:[39m [33mAgentVoice[39m }) {
+[31m[1m>[22m[39m[90m 147 |[39m   [36mconst[39m isYes [33m=[39m voice[33m.[39mside [33m===[39m [32m'YES'[39m[33m;[39m
+ [90m     |[39m                       [31m[1m^[22m[39m
+ [90m 148 |[39m   [36mconst[39m col   [33m=[39m isYes [33m?[39m [33mYES_C[39m [33m:[39m [33mNO_C[39m[33m;[39m
+ [90m 149 |[39m   [36mreturn[39m (
+ [90m 150 |[39m     [33m<[39m[33mdiv[39m[0m
+Next.js build worker exited with code: 1 and signal: null

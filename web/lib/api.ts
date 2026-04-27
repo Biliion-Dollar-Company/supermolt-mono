@@ -1093,6 +1093,41 @@ export async function createNarrativePost(input: {
   return true;
 }
 
+// ── Kraken Challenge Endpoints ──
+
+export const SANDBOX_MODE = process.env.NEXT_PUBLIC_KRAKEN_SANDBOX !== 'false';
+
+/**
+ * Fetch Kraken PnL report for the leaderboard
+ */
+export async function getPnL(): Promise<{ totalPnlUsd: number; trades: Trade[] }> {
+  try {
+    const response = await api.get('/kraken/pnl');
+    return response.data;
+  } catch (error) {
+    console.error('[API] Failed to fetch Kraken PnL:', error);
+    return { totalPnlUsd: 0, trades: [] };
+  }
+}
+
+/**
+ * Fetch Kraken ticker data
+ */
+export async function getTickerData(pairs?: string[]): Promise<any[]> {
+  const response = await api.get('/kraken/ticker', {
+    params: { pairs: pairs?.join(',') }
+  });
+  return response.data;
+}
+
+/**
+ * Fetch Kraken account balances
+ */
+export async function getBalance(): Promise<any[]> {
+  const response = await api.get('/kraken/balance');
+  return response.data;
+}
+
 export async function triggerNarrativeDebate(slug: string): Promise<boolean> {
   try {
     await api.post(`/api/narratives/${slug}/debate`);

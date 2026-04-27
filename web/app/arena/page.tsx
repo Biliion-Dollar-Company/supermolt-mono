@@ -16,7 +16,7 @@ const RisingLines = dynamic(() => import('@/components/react-bits/rising-lines')
 
 import { MessageSquare, LayoutGrid } from 'lucide-react';
 import { getTrendingTokens, getRecentTrades, getAllPositions, getMyAgent } from '@/lib/api';
-import type { TrendingToken, Trade, Position } from '@/lib/types';
+import type { TrendingToken, Trade, Position, AgentProfile } from '@/lib/types';
 import {
   TokenConversationGrid,
   TokenConversationPanel,
@@ -136,24 +136,25 @@ function aggregateTokens(trades: Trade[], positions: Position[]): ArenaToken[] {
     const sym = trade.tokenSymbol;
     if (!sym || sym === 'UNKNOWN') continue;
     const existing = tokenMap.get(sym) || {
+      symbol: sym,
       agentIds: new Set<string>(),
       tradeCount: 0,
-      lastTradeTime: trade.timestamp,
+      lastTradeTime: trade.timestamp || trade.openedAt || trade.createdAt || '',
       totalVolume: 0,
       pnlSum: 0,
       pnlCount: 0,
       tokenMint: trade.tokenMint || '',
     };
-
     existing.agentIds.add(trade.agentId);
     existing.tradeCount++;
-    existing.totalVolume += trade.quantity * trade.entryPrice;
+    existing.totalVolume += (trade.quantity || 0) * trade.entryPrice;
     if (trade.pnl !== 0) {
-      existing.pnlSum += trade.pnlPercent;
+      existing.pnlSum += trade.pnlPercent || 0;
       existing.pnlCount++;
     }
-    if (new Date(trade.timestamp) > new Date(existing.lastTradeTime)) {
-      existing.lastTradeTime = trade.timestamp;
+    const tradeTime = trade.timestamp || trade.openedAt || trade.createdAt || '';
+    if (new Date(tradeTime) > new Date(existing.lastTradeTime)) {
+      existing.lastTradeTime = tradeTime;
     }
     if (!existing.tokenMint && trade.tokenMint) {
       existing.tokenMint = trade.tokenMint;
@@ -503,7 +504,7 @@ function CommandCenterSection() {
     if (isAuthenticated) {
       getMyAgent()
         .then((me) => {
-          setAuth(me.agent, me.onboarding.tasks, me.onboarding.progress);
+          setAuth(me.agent as AgentProfile, me.onboarding.tasks, me.onboarding.progress);
           setLoading(false);
         })
         .catch(() => setLoading(false));

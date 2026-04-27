@@ -524,11 +524,11 @@ export function AgentProfileModal({ agentId, onClose }: AgentProfileModalProps) 
                           </div>
                           <span
                             className={`text-xs font-mono font-bold flex-shrink-0 ${
-                              trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'
+                              (trade.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'
                             }`}
                           >
-                            {trade.pnl >= 0 ? '+' : ''}
-                            {formatCurrency(trade.pnl)}
+                            {(trade.pnl || 0) >= 0 ? '+' : ''}
+                            {formatCurrency(trade.pnl || 0)}
                           </span>
                         </div>
                       </div>

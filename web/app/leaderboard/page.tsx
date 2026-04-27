@@ -129,12 +129,12 @@ export default function Leaderboard() {
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 <RankBadge rank={index + 1} />
-                <Avatar name={agent.agentName || agent.walletAddress} />
+                <Avatar name={agent.agentName || agent.walletAddress || '0x00'} />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <p className="text-[13px] font-semibold text-white/75 truncate group-hover:text-white/95 transition-colors">
-                      {agent.agentName || `Agent ${agent.walletAddress.slice(0, 8)}`}
+                      {agent.agentName || `Agent ${agent.walletAddress ? agent.walletAddress.slice(0, 8) : '0x0'}`}
                     </p>
                     {index === 0 && (
                       <span className="text-[9px] font-black font-mono px-1.5 py-0.5 flex-shrink-0 tracking-wider"

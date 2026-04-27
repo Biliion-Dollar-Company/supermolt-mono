@@ -60,7 +60,29 @@ export class LLMService {
      * Generate text completion using available LLM
      */
     async generate(systemPrompt: string, userPrompt: string, config?: { temperature?: number; maxTokens?: number }): Promise<string | null> {
-        // ... (existing implementation)
+        const order = this.getProviderOrder();
+        
+        for (const provider of order) {
+            try {
+                if (provider === 'together' && TOGETHER_API_KEY) {
+                    return await this.callTogether(systemPrompt, userPrompt, config);
+                }
+                if (provider === 'groq' && GROQ_API_KEY) {
+                    return await this.callGroq(systemPrompt, userPrompt, config);
+                }
+                if (provider === 'anthropic' && ANTHROPIC_API_KEY) {
+                    return await this.callAnthropic(systemPrompt, userPrompt, config);
+                }
+                if (provider === 'openai' && OPENAI_API_KEY) {
+                    return await this.callOpenAI(systemPrompt, userPrompt, config);
+                }
+            } catch (error: any) {
+                console.warn(`[LLM] Provider ${provider} failed, trying next...`);
+            }
+        }
+
+        console.error('[LLM] All providers failed.');
+        return null;
     }
 
     /**

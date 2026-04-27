@@ -14,6 +14,7 @@ import { scoreTokenForAgent, type TokenData } from '../lib/token-scorer';
 import {
   getTickerData,
   placeOrder,
+  closePosition,
   KRAKEN_DEFAULT_PAIRS,
   type KrakenTickerData,
 } from './kraken-cli.service';
@@ -103,7 +104,7 @@ function krakenTickerToTokenData(t: KrakenTickerData): TokenData {
 /**
  * Pick random active agents for this trading cycle
  */
-async function selectRandomAgents(count: number): Promise<any[]> {
+export async function selectRandomAgents(count: number): Promise<any[]> {
   try {
     // Get all active trading agents (not observers)
     const allAgents = await db.tradingAgent.findMany({
@@ -157,14 +158,16 @@ async function executeTradingCycle(config: TradingLoopConfig): Promise<void> {
   try {
     // 1. Fetch Kraken market signals
     const tokens = await fetchKrakenMarketSignals();
-    console.log(`[TradingLoop] Fetched ${tokens.length} Kraken market signals`);
 
     if (tokens.length === 0) {
       console.warn('[TradingLoop] No tokens available, skipping cycle');
       return;
     }
 
-    // 2. Select random agents
+    // 2. Manage existing positions (EXIT logic)
+    await manageExistingPositions(tokens);
+
+    // 3. Select random agents (ENTRY logic)
     const agents = await selectRandomAgents(config.agentsPerCycle);
     
     if (agents.length === 0) {
@@ -172,7 +175,7 @@ async function executeTradingCycle(config: TradingLoopConfig): Promise<void> {
       return;
     }
 
-    // 3. For each agent, score tokens and trade
+    // 4. For each agent, score tokens and trade
     let tradesThisCycle = 0;
 
     for (const agent of agents) {
@@ -221,6 +224,92 @@ async function executeTradingCycle(config: TradingLoopConfig): Promise<void> {
 
   } catch (error) {
     console.error('[TradingLoop] Cycle failed:', error);
+  }
+}
+
+/**
+ * Manage existing open positions.
+ * For this hackathon, we use a simple "time-based exit" or "take profit/stop loss".
+ * Default: Close any position older than 1 hour.
+ */
+async function manageExistingPositions(currentPrices: TokenData[]): Promise<void> {
+  try {
+    const openTrades = await db.paperTrade.findMany({
+      where: {
+        status: 'OPEN',
+        signalSource: 'kraken_trading_loop',
+      },
+      include: { agent: true },
+    });
+
+    if (openTrades.length === 0) return;
+
+    console.log(`[TradingLoop] Checking ${openTrades.length} open positions for exit signals...`);
+
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+
+    for (const trade of openTrades) {
+      const currentToken = currentPrices.find(p => p.mint === trade.tokenMint);
+      if (!currentToken) continue;
+
+      const currentPrice = currentToken.priceUsd;
+      const entryPrice = Number(trade.entryPrice);
+      const pnlPercent = ((currentPrice - entryPrice) / entryPrice) * 100;
+
+      // Exit conditions:
+      // 1. Profit > 5% (Take Profit)
+      // 2. Loss > 3% (Stop Loss)
+      // 3. Time > 1 hour (Time Exit)
+      const shouldExit = pnlPercent >= 5 || pnlPercent <= -3 || trade.openedAt < oneHourAgo;
+
+      if (shouldExit) {
+        const reason = pnlPercent >= 5 ? 'TP' : (pnlPercent <= -3 ? 'SL' : 'TIME');
+        console.log(`[TradingLoop] EXIT trade ${trade.id} (${trade.tokenSymbol}): ${reason} @ ${pnlPercent.toFixed(2)}%`);
+        await closeAgentPosition(trade, currentPrice, pnlPercent);
+      }
+    }
+  } catch (error) {
+    console.error('[TradingLoop] Position management failed:', error);
+  }
+}
+
+/**
+ * Close a paper trade and execute offsetting order on Kraken.
+ */
+export async function closeAgentPosition(trade: any, exitPrice: number, pnlPercent: number): Promise<void> {
+  try {
+    const entryPrice = Number(trade.entryPrice);
+    const amountUsd = Number(trade.amount);
+    const pnlUsd = (exitPrice - entryPrice) * Number(trade.tokenAmount);
+
+    // 1. Update DB
+    await db.paperTrade.update({
+      where: { id: trade.id },
+      data: {
+        status: 'CLOSED',
+        exitPrice,
+        pnl: pnlUsd,
+        pnlPercent,
+        closedAt: new Date(),
+      },
+    });
+
+    // 2. Kraken Order (Offsetting) — fire-and-forget
+    closePosition(trade.tokenMint, 'buy', Number(trade.tokenAmount), exitPrice)
+      .then((result) => {
+        console.log(`[Kraken] Exit order ${result.orderId} placed for trade ${trade.id}`);
+      })
+      .catch((err) => {
+        console.warn(`[Kraken] Exit order placement failed (trade ${trade.id}):`, err.message);
+      });
+
+    // 3. ERC-8004 Feedback (fire-and-forget)
+    submitTradeFeedback(trade.id).catch((err) =>
+      console.warn(`[ERC8004] submitTradeFeedback failed (trade ${trade.id}):`, err.message),
+    );
+
+  } catch (error) {
+    console.error(`[TradingLoop] Failed to close position ${trade.id}:`, error);
   }
 }
 

@@ -128,13 +128,17 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
         setPositions(positionsData);
 
         const sorted = [...tradesData].sort(
-          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          (a, b) => {
+            const timeA = new Date(a.timestamp || a.openedAt || 0).getTime();
+            const timeB = new Date(b.timestamp || b.openedAt || 0).getTime();
+            return timeA - timeB;
+          }
         );
         let cumulativePnL = 0;
         const data = sorted.map((trade) => {
-          cumulativePnL += trade.pnl;
+          cumulativePnL += trade.pnl || 0;
           return {
-            timestamp: new Date(trade.timestamp).toLocaleTimeString(),
+            timestamp: new Date(trade.timestamp || trade.openedAt || 0).toLocaleTimeString(),
             cumulativePnL,
           };
         });
@@ -214,7 +218,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     );
   }
 
-  const winCount = trades.filter((t) => t.pnl > 0).length;
+  const winCount = trades.filter((t) => (t.pnl || 0) > 0).length;
   const winRate = trades.length > 0 ? (winCount / trades.length) * 100 : 0;
   const totalTaskXP = taskCompletions
     .filter((t) => t.status === 'VALIDATED')
@@ -263,14 +267,14 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
           <div className="p-6 flex items-start gap-5">
             {/* Avatar */}
             <div className="flex-shrink-0">
-              <Avatar name={agent.agentName || agent.walletAddress.slice(0, 4)} />
+              <Avatar name={agent.agentName || (agent.walletAddress ? agent.walletAddress.slice(0, 4) : 'UNKN')} />
             </div>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-1 flex-wrap">
                 <h1 className="text-3xl font-bold text-white truncate">
-                  {agent.agentName || `Agent ${agent.walletAddress.slice(0, 8)}`}
+                  {agent.agentName || `Agent ${agent.walletAddress ? agent.walletAddress.slice(0, 8) : '0x0'}`}
                 </h1>
                 {agentProfile && (
                   <span
@@ -301,8 +305,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                   <XPProgressBar
                     xp={agentProfile.xp}
                     level={agentProfile.level}
-                    levelName={agentProfile.levelName}
-                    xpForNextLevel={agentProfile.xpForNextLevel}
+                    levelName={agentProfile.levelName || 'ROOKIE'}
+                    xpForNextLevel={agentProfile.xpForNextLevel || 1000}
                   />
                 </div>
               )}
@@ -321,8 +325,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
               { label: 'Win Rate', value: formatPercent(winRate) },
               {
                 label: 'Total P&L',
-                value: formatCurrency(agent.total_pnl),
-                color: agent.total_pnl >= 0 ? YES_C : NO_C,
+                value: formatCurrency(agent.total_pnl || 0),
+                color: (agent.total_pnl || 0) >= 0 ? YES_C : NO_C,
               },
               { label: 'Trades', value: String(agent.trade_count || 0) },
               { label: 'XP', value: agentProfile ? String(agentProfile.xp) : '--' },
@@ -510,15 +514,15 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                         <div className="text-right">
                           <span
                             className="text-sm font-mono font-bold"
-                            style={{ color: trade.pnl >= 0 ? YES_C : NO_C }}
+                            style={{ color: (trade.pnl || 0) >= 0 ? YES_C : NO_C }}
                           >
-                            {formatCurrency(trade.pnl)}
+                            {formatCurrency(trade.pnl || 0)}
                           </span>
                           <div
                             className="text-[10px] mt-0.5"
                             style={{ color: 'rgba(255,255,255,0.25)' }}
                           >
-                            {new Date(trade.timestamp).toLocaleString()}
+                            {new Date(trade.timestamp || trade.openedAt || 0).toLocaleString()}
                           </div>
                         </div>
                       </div>
@@ -650,13 +654,13 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
                       {/* Right: outcome + pnl */}
                       <div className="flex items-center gap-3 ml-4 flex-shrink-0">
-                        {pred.pnl !== null && (
+                        {pred.pnl !== undefined && pred.pnl !== null && (
                           <span
                             className="text-sm font-mono font-bold"
-                            style={{ color: pred.pnl >= 0 ? YES_C : NO_C }}
+                            style={{ color: (pred.pnl || 0) >= 0 ? YES_C : NO_C }}
                           >
-                            {pred.pnl >= 0 ? '+' : ''}
-                            {pred.pnl.toFixed(2)}
+                            {(pred.pnl || 0) >= 0 ? '+' : ''}
+                            {(pred.pnl || 0).toFixed(2)}
                           </span>
                         )}
                         <span
