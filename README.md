@@ -1,90 +1,27 @@
-# Trench Terminal
+# AgentOps Enterprise (formerly Trench Terminal)
 
-**Autonomous Signal Intelligence on Solana**
+**Autonomous Financial Routing & Agentic Swarm Orchestration**
 
-[![Solana](https://img.shields.io/badge/Solana-black?style=flat&logo=solana&logoColor=white)](https://solana.com)
-[![Rust](https://img.shields.io/badge/Rust-000000?style=flat&logo=rust&logoColor=white)](https://www.rust-lang.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![AI](https://img.shields.io/badge/AI%20Agents-FF6F00?style=flat&logo=openai&logoColor=white)](#)
-[![Colosseum Frontier](https://img.shields.io/badge/Colosseum-Frontier%20Hackathon-purple?style=flat)](#)
+Built for **Agent Olympics 2026**, AgentOps provides the high-performance "Command Center" for autonomous agent swarms. By combining a sub-millisecond Rust signal engine with a multi-agent competitive arena, AgentOps enables complex financial routing and liquidity management without human intervention.
 
-AI agents that detect social signals, deploy tokens on Pump.fun, and trade them autonomously. A self-improving closed loop that gets sharper with every cycle.
+## 🚀 The Evolution
+
+AgentOps takes the signal-to-execution pipeline of Trench Terminal and scales it for **Enterprise Swarms**.
+
+- **Scale:** 18+ unique AI agents competing and collaborating in the Arena.
+- **Performance:** Optimized for **Vultr** bare metal to minimize latency in the detect-deploy-trade loop.
+- **Intelligence:** Closed-loop training that learns from every on-chain outcome.
 
 ---
 
-## What It Does
+## 🏗️ System Overview
 
-Trench Terminal is an autonomous signal-to-execution pipeline. It ingests real-time social data from Twitter, Telegram, and Reddit, runs it through a sub-millisecond Rust filter and LLM concept generation, deploys tokens on Pump.fun via Jito MEV bundles, then sets competing AI agents loose to trade them on Jupiter. Every outcome is tracked, scored, and fed back as training data. The system literally learns from its own wins and losses.
+The project is structured as a high-performance monorepo:
 
-No human in the loop. Detect. Deploy. Trade. Learn. Repeat.
-
-## Architecture
-
-```
-                          TRENCH TERMINAL PIPELINE
-  ============================================================================
-
-  INGEST                    PROCESS                     EXECUTE
-  ------                    -------                     -------
-
-  Twitter ----+
-               |
-  Telegram ---+---> [ Rust Signal Filter ] ---> [ LLM Concept Gen ]
-               |       6 microservices              Groq / OpenAI
-  Reddit -----+       Redis Streams
-                       < 1ms filter                      |
-                                                         v
-                                                 +-----------------+
-                                                 |   Pump.fun      |
-                                                 |   Deployment    |
-                                                 |   (Jito MEV)    |
-                                                 +-----------------+
-                                                         |
-                 +---------------------------------------+
-                 |
-                 v
-  +----------------------------+        +----------------------------+
-  |       AGENT ARENA          |        |     OUTCOME TRACKER        |
-  |                            |        |                            |
-  |  12+ competing agents      | -----> |  DexScreener T+0 -> T+24h |
-  |  Jupiter DEX execution     |        |  Sortino ratio ranking     |
-  |  Socket.IO live updates    |        |  PnL attribution           |
-  +----------------------------+        +----------------------------+
-                                                   |
-                 +---------------------------------+
-                 |
-                 v
-  +----------------------------+
-  |     TRAINING EXPORT        |
-  |                            |
-  |  SFT + DPO pair generation |
-  |  48K+ training examples    |       <--- loops back to Signal Filter
-  |  Continuous retraining     |            and LLM Concept Gen
-  +----------------------------+
-```
-
-## Tech Stack
-
-| Layer | Stack |
-|---|---|
-| **Signal Pipeline** | 6 Rust microservices, Redis Streams, Groq/OpenAI LLM |
-| **Agent Arena** | Hono + Bun backend, Prisma ORM, Socket.IO real-time |
-| **Frontend** | Next.js 16, React 19, PixiJS 8 (War Room visualization), Tailwind CSS |
-| **Solana** | Helius (RPC), Jupiter (DEX routing), Jito (MEV bundles), Pump.fun (token launch), Birdeye (prices) |
-| **Auth** | Privy (Sign-In with Solana) |
-
-## Repo Surfaces
-
-This repository currently keeps multiple active surfaces in one project tree:
-
-- `backend/`: core API, execution, automation, and integrations
-- `web/`: operator UI, war room, dashboard, intel, and social surfaces
-- `mobile/`: mobile client work
-- `telegram-bot/`: messaging/broadcast surface
-- `contracts/`: on-chain programs and deployment assets
-- `shared/`: shared types and cross-surface code
-
-Treat these as the current working structure. Any split/archive decision should be made deliberately later, not inferred from folder count alone.
+- `backend/`: Core API, 18+ agent strategies, and Jupiter/Jito execution.
+- `web/`: PixiJS-powered "War Room" for real-time swarm visualization.
+- `monitoring/`: Infrastructure health and performance metrics.
+- `shared/`: Shared types and cross-surface logic.
 
 ## Product Notes
 
